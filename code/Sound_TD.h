@@ -54,19 +54,15 @@ enum column_type
     columnType_Album,
 };
 
-struct file_id
-{
-    u32 ID;
-};
-
 struct sort_batch
 {
-    array_u32 *Genre;
-    array_u32 *Artist;
-    array_u32 *Album;
-    array_u32 *Song;
+    // These arrays contain the id for the other columns respectively
+    array_batch_id *Genre; 
+    array_batch_id *Artist;
+    array_batch_id *Album;
+    array_file_id  *Song;
     
-    string_c  *Names;
+    string_c       *Names; // ::BATCH_ID
     u32 BatchCount;
     u32 MaxBatches;
 }; 
@@ -75,8 +71,9 @@ struct column_sorting_info
 {
     struct music_sorting_info *Base;
     sort_batch Batch;
-    array_u32 Selected;
-    array_u32 Displayable; // Stores PlaylistIDs for song column and sortBatchIDs for the rest!
+    array_file_id Selected;
+    // Displayable stores _FileIDs_ for song column and sortBatchIDs for the rest!
+    array_file_id Displayable; // ::DISPLAYABLE_ID
 };
 
 struct music_sorting_info
@@ -103,18 +100,18 @@ enum play_loop
 
 struct playing_song
 {
-    i32 PlaylistID;
-    i32 FileID;
+    playlist_id PlaylistID;
+    file_id FileID;
     i32 DecodeID;
     
     b32 PlayUpNext; // should only be set in SetNextSong
 };
 
-struct play_list
+struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
 {
-    array_u32 Songs; 
-    array_u32 UpNext;
-    array_u32 Previous;
+    array_file_id Songs;
+    array_file_id UpNext;
+    array_file_id Previous;
 };
 
 struct music_info
@@ -123,7 +120,7 @@ struct music_info
     play_loop Looping;
     b32 IsPlaying;
     
-    play_list Playlist;
+    play_list Playlist;  // ::PLAYLIST_ID
     
     music_sorting_info SortingInfo;
     music_display_info DisplayInfo;
@@ -168,7 +165,7 @@ struct mp3_metadata
     i32 FoundFlags;
 };
 
-struct mp3_file_info
+struct mp3_file_info //::FILE_ID
 {
     string_c     *FileName;
     string_c     *SubPath;
@@ -180,7 +177,7 @@ struct mp3_file_info
 struct mp3_decode_info
 {
     mp3dec_file_info_t DecodedData[MAX_MP3_DECODE_COUNT];
-    array_u32 FileID; // size: MAX_MP3_DECODE_COUNT
+    array_file_id FileID; // size: MAX_MP3_DECODE_COUNT
     u32 Count;
     
     b32 volatile CurrentlyDecoding[MAX_MP3_DECODE_COUNT];
@@ -202,7 +199,7 @@ struct mp3_info
 struct job_load_decode_mp3
 {
     mp3_info *MP3Info;
-    u32 FileID;
+    file_id FileID;
     i32 DecodeID;
 };
 
@@ -236,8 +233,9 @@ struct check_music_path
 
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
-internal i32 AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, i32 FileID, array_u32 *IgnoreDecodeIDs = 0);
-inline i32 FileIDToColumnDisplayID(music_display_column *DisplayColumn, i32 FileID);
+internal i32 AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, 
+                            array_u32 *IgnoreDecodeIDs = 0);
+inline displayable_id FileIDToColumnDisplayID(music_display_column *DisplayColumn, file_id FileID);
 internal b32 AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
 

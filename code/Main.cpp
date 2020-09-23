@@ -569,8 +569,8 @@ WinMain(HINSTANCE Instance,
             GameState->MP3Info = MP3Info;
             MP3Info->MusicInfo = &GameState->MusicInfo;
             
-            MusicInfo->Playlist.Songs  = CreateArray(&GameState->Bucket.Fixed, MP3Info->FileInfo.Count+200);
-            MusicInfo->Playlist.UpNext = CreateArray(&GameState->Bucket.Fixed, 200);
+            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->Bucket.Fixed, MP3Info->FileInfo.Count+200);
+            MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->Bucket.Fixed, 200);
             
             music_sorting_info *SortingInfo = &MusicInfo->SortingInfo;
             CreateMusicSortingInfo(&GameState->Bucket, MP3Info);
@@ -1031,7 +1031,7 @@ WinMain(HINSTANCE Instance,
                 if(GetIsFinishedPlaying(GameState->SoundThreadInterface))
                 {
                     MusicInfo->IsPlaying = false;
-                    if(PlayingSong->PlaylistID >= 0 || MusicInfo->Playlist.UpNext.Count > 0)
+                    if(PlayingSong->PlaylistID >= 0 || MusicInfo->Playlist.UpNext.A.Count > 0)
                     {
                         PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                         HandleChangeToNextSong(GameState);

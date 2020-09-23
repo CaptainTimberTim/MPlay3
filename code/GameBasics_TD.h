@@ -10,7 +10,7 @@ global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Setti
 struct settings
 {
     r32 Volume = 0.5f;
-    i32 PlayingSongID = -1;
+    file_id PlayingSongID = {-1};
     u32 ColorPaletteID = 0;
     r32 GenreArtistEdgeXPercent = -1.0f;
     r32 ArtistAlbumEdgeXPercent = -1.0f;

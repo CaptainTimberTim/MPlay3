@@ -1,6 +1,8 @@
 #ifndef _SOUND__U_I__T_D_H
 #define _SOUND__U_I__T_D_H
 
+#include "Sound_General_TD.h"
+
 #define MAX_DISPLAY_SONG_COUNT   24
 #define MAX_DISPLAY_COUNT  80
 #define SLOT_DISTANCE_PIXEL 3
@@ -32,7 +34,7 @@ struct search_bar_btn_info
     struct music_display_info *DisplayInfo;
     struct search_bar *Search;
     struct music_display_column *DisplayColumn;
-    struct array_u32 *Displayable;
+    struct array_file_id *Displayable;
     struct column_sorting_info *SortingInfo;
 };
 
@@ -40,7 +42,7 @@ struct search_bar
 {
     text_field TextField;
     button *Button;
-    array_u32 InitialDisplayables;
+    array_file_id InitialDisplayables;
 };
 
 struct music_display_column
@@ -52,9 +54,9 @@ struct music_display_column
     r32 SlotWidth;
     r32 ColumnHeight;
     u32 Count;
-    i32 OnScreenPlaylistIDs [MAX_DISPLAY_COUNT];
-    render_text Text        [MAX_DISPLAY_COUNT];
-    entry_id *BGRects       [MAX_DISPLAY_COUNT];
+    displayable_id OnScreenIDs [MAX_DISPLAY_COUNT];
+    render_text Text    [MAX_DISPLAY_COUNT];
+    entry_id *BGRects   [MAX_DISPLAY_COUNT];
     entry_id *Background;
     r32 TextX;
     r32 DisplayCursor; // Y position in the total displayables
@@ -212,7 +214,7 @@ struct music_display_info
 
 inline void UpdateColumnColor(music_display_column *DisplayColumn, struct column_sorting_info *SortingColumn);
 internal void BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, u32 FileID);
-internal void BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, u32 SortID);
+internal void BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, batch_id SortID);
 inline void ToggleSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 ColumnDisplayID);
 internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, column_sorting_info *SortColumnInfo, u32 FileID, v4 *Color);
 internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *MusicInfo);

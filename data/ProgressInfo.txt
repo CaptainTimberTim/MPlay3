@@ -8,3 +8,6 @@
 - Fixed DisplayCursor not being updated in some situations.
 - Cleaned up updating the sliders. Previously you had to always do it manually, which was error prone. Now the function that changes column positions itself handles the slider updates.
 - Fixed bringDisplayEntryOnScreen stuff for search. How did that ever work?! Well now it does.
+
+23.09.2020
+- Large conversion of file/batch/playlist/displayable arrays to use their own id structs to make it _much_ clearer what is actually happening. This was long overdue for understanding the code easier!

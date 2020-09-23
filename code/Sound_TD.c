@@ -59,20 +59,20 @@ CreateMP3InfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount)
 {
     mp3_info *Result = PushStructOnBucket(Bucket, mp3_info);
     Result->FileInfo = CreateFileInfoStruct(Bucket, FileInfoCount);
-    Result->DecodeInfo.FileID        = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
+    Result->DecodeInfo.FileID.A      = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
     Result->DecodeInfo.LastTouched   = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
     
     return Result;
 }
 
 inline b32
-IsSongDecoded(mp3_info *MP3Info, u32 FileID, i32 *DecodeID_out = 0)
+IsSongDecoded(mp3_info *MP3Info, file_id FileID, i32 *DecodeID_out = 0)
 {
     b32 Result = false;
     if(DecodeID_out) *DecodeID_out = -1;
     For(MP3Info->DecodeInfo.Count)
     {
-        if(FileID == Get(&MP3Info->DecodeInfo.FileID, It)) 
+        if(FileID == Get(&MP3Info->DecodeInfo.FileID, NewDecodeID(It))) 
         {
             Result = true;
             if(DecodeID_out) *DecodeID_out = It;
@@ -91,7 +91,7 @@ IsSongDecoded(mp3_info *MP3Info, string_compound *FileName, i32 *DecodeID_out = 
     {
         if(CompareStringCompounds(FileName, &MP3Info->FileInfo.FileName[It]))
         {
-            Result = IsSongDecoded(MP3Info, It, DecodeID_out);
+            Result = IsSongDecoded(MP3Info, NewFileID(It), DecodeID_out);
             break;
         }
     }
@@ -108,7 +108,7 @@ GetSongDecodeID(mp3_info *MP3Info, string_compound *Name)
         {
             for(i32 DecodeID = 0; DecodeID < (i32)MP3Info->DecodeInfo.Count; DecodeID++)
             {
-                if(It == Get(&MP3Info->DecodeInfo.FileID, DecodeID)) 
+                if(Get(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID)) == It) 
                 {
                     Result = DecodeID;
                     break;
@@ -120,49 +120,50 @@ GetSongDecodeID(mp3_info *MP3Info, string_compound *Name)
     return Result;
 }
 
-inline i32
+inline file_id
 SongNameToFileID(mp3_file_info *MP3FileInfo, string_compound *Name)
 {
-    i32 Result = -1;
+    file_id Result = NewFileID(-1);
     For(MP3FileInfo->Count)
     {
         if(CompareStringAndCompound(Name, (u8 *)MP3FileInfo->FileName[It].S))
         {
-            Result = It;
+            Result.ID = It;
             break;
         }
     }
     return Result;
 }
 
-inline i32
+inline file_id
 SongNameToPlaylistID(mp3_info *MP3Info, string_compound *Name)
 {
-    i32 Result = -1;
-    array_u32 *Playlist = &MP3Info->MusicInfo->Playlist.Songs;
-    For(Playlist->Count)
+    file_id Result = NewFileID(-1);
+    array_file_id *Playlist = &MP3Info->MusicInfo->Playlist.Songs;
+    For(Playlist->A.Count)
     {
-        u32 FileID = Get(Playlist, It);
-        if(CompareStringCompounds(Name, MP3Info->FileInfo.FileName+FileID))
+        file_id FileID = Get(Playlist, NewPlaylistID(It));
+        if(CompareStringCompounds(Name, MP3Info->FileInfo.FileName+FileID.ID))
         {
-            Result = It;
+            Result.ID = It;
             break;
         }
     }
     return Result;
 }
 
-inline i32
-FileIDToPlaylistID(play_list *Playlist, i32 FileID)
+inline playlist_id
+FileIDToPlaylistID(play_list *Playlist, file_id FileID)
 {
-    i32 Result = -1;
+    playlist_id Result = NewPlaylistID(-1);
     if(FileID < 0) return Result;
     
-    For(Playlist->Songs.Count)
+    For(Playlist->Songs.A.Count)
     {
-        if(Get(&Playlist->Songs, It) == (u32)FileID)
+        playlist_id PID = NewPlaylistID(It);
+        if(Get(&Playlist->Songs, PID) == FileID)
         {
-            Result = It;
+            Result = PID;
             break;
         }
     }
@@ -170,25 +171,26 @@ FileIDToPlaylistID(play_list *Playlist, i32 FileID)
     return Result;
 }
 
-inline i32
-PlaylistIDToFileID(play_list *Playlist, i32 PlaylistID)
+inline file_id
+PlaylistIDToFileID(play_list *Playlist, playlist_id PlaylistID)
 {
-    i32 FileID = -1;
+    file_id FileID = NewFileID(-1);
     if(PlaylistID >= 0) FileID = Get(&Playlist->Songs, PlaylistID);
     return FileID;
 }
 
-inline i32
-FileIDToSongDisplayableID(music_display_column *DisplayColumn, i32 FileID)
+inline displayable_id
+FileIDToSongDisplayableID(music_display_column *DisplayColumn, file_id FileID)
 {
-    i32 Result = -1;
+    displayable_id Result = NewDisplayableID(-1);
     if(FileID < 0) return Result;
     
-    For(DisplayColumn->SortingInfo->Displayable.Count)
+    For(DisplayColumn->SortingInfo->Displayable.A.Count)
     {
-        if(Get(&DisplayColumn->SortingInfo->Displayable, It) == (u32)FileID)
+        displayable_id DID = NewDisplayableID(It);
+        if(Get(&DisplayColumn->SortingInfo->Displayable, DID) == FileID)
         {
-            Result = It;
+            Result = DID;
             break;
         }
     }
@@ -197,25 +199,25 @@ FileIDToSongDisplayableID(music_display_column *DisplayColumn, i32 FileID)
 }
 
 // Acquires the corresponding Genre/Artist/Album DisplayID for given FileID
-inline i32 
-FileIDToColumnDisplayID(music_display_column *DisplayColumn, i32 FileID)
+inline displayable_id
+FileIDToColumnDisplayID(music_display_column *DisplayColumn, file_id FileID)
 {
-    i32 Result = -1;
+    displayable_id Result = NewDisplayableID(-1);
     column_sorting_info *SortingColumn = DisplayColumn->SortingInfo;
     string_c *CompareS = 0;
     switch(DisplayColumn->Type)
     {
         case columnType_Genre:
         {
-            CompareS = &GlobalGameState.MP3Info->FileInfo.Metadata[FileID].Genre;
+            CompareS = &GlobalGameState.MP3Info->FileInfo.Metadata[FileID.ID].Genre;
         } break;
         case columnType_Artist:
         {
-            CompareS = &GlobalGameState.MP3Info->FileInfo.Metadata[FileID].Artist;
+            CompareS = &GlobalGameState.MP3Info->FileInfo.Metadata[FileID.ID].Artist;
         } break;
         case columnType_Album:
         {
-            CompareS = &GlobalGameState.MP3Info->FileInfo.Metadata[FileID].Album;
+            CompareS = &GlobalGameState.MP3Info->FileInfo.Metadata[FileID.ID].Album;
         } break;
         
         case columnType_Song:
@@ -225,72 +227,70 @@ FileIDToColumnDisplayID(music_display_column *DisplayColumn, i32 FileID)
         InvalidDefaultCase;
     }
     
-    For(SortingColumn->Displayable.Count)
+    For(SortingColumn->Displayable.A.Count)
     {
-        string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, It);
-        if(CompareStringCompounds(CompareS, Name)) Result = It;
+        displayable_id DID = NewDisplayableID(It);
+        string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, DID).ID;
+        if(CompareStringCompounds(CompareS, Name)) Result = DID;
         
     }
     
     return Result;
 }
 
-inline i32 
-SortingIDToColumnDisplayID(music_display_column *DisplayColumn, i32 SortID)
+inline displayable_id
+SortingIDToColumnDisplayID(music_display_column *DisplayColumn, batch_id BatchID)
 {
-    i32 Result = -1;
+    displayable_id Result = NewDisplayableID(-1);
     column_sorting_info *SortingColumn = DisplayColumn->SortingInfo;
     string_c *CompareS = 0;
     switch(DisplayColumn->Type)
     {
         case columnType_Genre:
         {
-            CompareS = &SortingColumn->Batch.Names[SortID];
+            CompareS = &SortingColumn->Batch.Names[BatchID.ID];
         } break;
         case columnType_Artist:
         {
-            CompareS = &SortingColumn->Batch.Names[SortID];
+            CompareS = &SortingColumn->Batch.Names[BatchID.ID];
         } break;
         case columnType_Album:
         {
-            CompareS = &SortingColumn->Batch.Names[SortID];
+            CompareS = &SortingColumn->Batch.Names[BatchID.ID];
         } break;
         
-        case columnType_Song:
-        {
-            return FileIDToSongDisplayableID(DisplayColumn, SortID);
-        } break;
         InvalidDefaultCase;
     }
     
-    For(SortingColumn->Displayable.Count)
+    For(SortingColumn->Displayable.A.Count)
     {
-        string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, It);
-        if(CompareStringCompounds(CompareS, Name)) Result = It;
+        displayable_id DID = NewDisplayableID(It);
+        string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, DID).ID;
+        if(CompareStringCompounds(CompareS, Name)) Result = DID;
     }
     
     return Result;
 }
 
-inline i32
+inline file_id
 GetNextSong(play_list *Playlist, playing_song *PlayingSong)
 {
-    i32 FileID = -1;
-    if(PlayingSong->PlayUpNext) FileID = Get(&Playlist->UpNext, 0);
+    file_id FileID = NewFileID(-1);
+    if(PlayingSong->PlayUpNext) FileID = Get(&Playlist->UpNext, NewPlaylistID(0));
     else FileID = PlaylistIDToFileID(Playlist, PlayingSong->PlaylistID);
     return FileID; 
 }
 
-inline i32
-CheckForLooping(play_list *Playlist, u32 PlayingSongID, play_loop Looping)
+inline playlist_id
+CheckForLooping(play_list *Playlist, playlist_id PlayingSongID, play_loop Looping)
 {
-    i32 Result = PlayingSongID;
+    playlist_id Result = PlayingSongID;
     if(Looping == playLoop_Repeat) ; // PlaylistID does not change;
-    else if(Looping == playLoop_Loop) Result = (Result+1)%Playlist->Songs.Count;
+    else if(Looping == playLoop_Loop) Result.ID = (Result.ID+1)%Playlist->Songs.A.Count;
     else 
     {
-        Result++;
-        if(Result >= (i32)Playlist->Songs.Count) Result = -1;
+        Result.ID++;
+        if(Result >= (i32)Playlist->Songs.A.Count) Result.ID = -1;
     }
     return Result;
 }
@@ -300,12 +300,12 @@ SetNextSong(play_list *Playlist, playing_song *PlayingSong, play_loop Looping)
 {
     Assert(PlayingSong->PlaylistID >= -1);
     
-    if(Playlist->UpNext.Count != 0) 
+    if(Playlist->UpNext.A.Count != 0) 
     {
         if(PlayingSong->PlayUpNext) 
         {
-            Take(&Playlist->UpNext, 0);
-            if(Playlist->UpNext.Count == 0) 
+            Take(&Playlist->UpNext, NewPlaylistID(0));
+            if(Playlist->UpNext.A.Count == 0) 
             {
                 PlayingSong->PlayUpNext = false;
                 PlayingSong->PlaylistID = CheckForLooping(Playlist, PlayingSong->PlaylistID, Looping);
@@ -324,23 +324,23 @@ SetNextSong(play_list *Playlist, playing_song *PlayingSong, play_loop Looping)
     }
 }
 
-inline i32
-GetSongAfterCurrent(play_list *Playlist, i32 PlaylistID)
+inline playlist_id
+GetSongAfterCurrent(play_list *Playlist, playlist_id PlaylistID)
 {
-    Assert(PlaylistID > -1);
-    i32 Result = (PlaylistID+1)%Playlist->Songs.Count;
+    Assert(PlaylistID.ID > -1);
+    playlist_id Result = NewPlaylistID((PlaylistID.ID+1)%Playlist->Songs.A.Count);
     return Result;
 }
 
-inline i32
-GetPreviousSong(play_list *Playlist, i32 PlaylistID)
+inline playlist_id
+GetPreviousSong(play_list *Playlist, playlist_id PlaylistID)
 {
-    i32 Result = -1;
-    Assert(PlaylistID >= -1);
-    if(PlaylistID != -1)
+    playlist_id Result = NewPlaylistID(-1);
+    Assert(PlaylistID.ID >= -1);
+    if(PlaylistID.ID != -1)
     {
-        Result = PlaylistID - 1;
-        if(Result < 0) Result = Playlist->Songs.Count-1;
+        Result.ID = PlaylistID.ID - 1;
+        if(Result.ID < 0) Result.ID = Playlist->Songs.A.Count-1;
     }
     
     return Result;
@@ -355,17 +355,17 @@ SetPreviousSong(play_list *Playlist, playing_song *PlayingSong, play_loop Loopin
         if(Looping == playLoop_Repeat) ;
         else if(Looping == playLoop_Loop) 
         {
-            PlayingSong->PlaylistID -= 1;
+            PlayingSong->PlaylistID.ID -= 1;
             PlayingSong->FileID = PlaylistIDToFileID(Playlist, PlayingSong->PlaylistID);
             if(PlayingSong->PlaylistID < 0) 
             {
-                PlayingSong->PlaylistID = Playlist->Songs.Count-1;
+                PlayingSong->PlaylistID.ID = Playlist->Songs.A.Count-1;
                 PlayingSong->FileID = PlaylistIDToFileID(Playlist, PlayingSong->PlaylistID);
             }
         }
         else 
         {
-            PlayingSong->PlaylistID -= 1;
+            PlayingSong->PlaylistID.ID -= 1;
             PlayingSong->FileID = PlaylistIDToFileID(Playlist, PlayingSong->PlaylistID);
         }
     }
@@ -374,24 +374,24 @@ SetPreviousSong(play_list *Playlist, playing_song *PlayingSong, play_loop Loopin
 internal void
 UseDisplayableAsPlaylist(music_info *MusicInfo)
 {
-    u32 FileID = PlaylistIDToFileID(&MusicInfo->Playlist, MusicInfo->PlayingSong.PlaylistID);
+    file_id FileID = PlaylistIDToFileID(&MusicInfo->Playlist, MusicInfo->PlayingSong.PlaylistID);
     
     Reset(&MusicInfo->Playlist.Songs);
-    For(MusicInfo->SortingInfo.Song.Displayable.Count)
+    For(MusicInfo->SortingInfo.Song.Displayable.A.Count)
     {
-        Push(&MusicInfo->Playlist.Songs, Get(&MusicInfo->SortingInfo.Song.Displayable, It));
+        Push(&MusicInfo->Playlist.Songs, Get(&MusicInfo->SortingInfo.Song.Displayable, NewDisplayableID(It)));
     }
     
     // If the currently playing song is in the new playlist set PlaylistID.
     // If not, the music stops?
-    u32 PlaylistID = 0;
-    if(StackFind(&MusicInfo->Playlist.Songs, FileID, &PlaylistID))
+    playlist_id PlaylistID = NewPlaylistID(0);
+    if(StackFind(&MusicInfo->Playlist.Songs, FileID, &PlaylistID.ID))
     {
         MusicInfo->PlayingSong.PlaylistID = PlaylistID;
     }
     else 
     {
-        MusicInfo->PlayingSong.PlaylistID = -1;
+        MusicInfo->PlayingSong.PlaylistID.ID = -1;
         MusicInfo->PlayingSong.DecodeID = -1;
     }
     
@@ -826,7 +826,7 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
     if(DecodeInfo->Count < MAX_MP3_DECODE_COUNT)
     {
         Result = DecodeInfo->Count++;
-        DecodeInfo->FileID.Count++;
+        DecodeInfo->FileID.A.Count++;
         DecodeInfo->LastTouched.Count++;
     }
     else
@@ -837,8 +837,8 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
         }
         Result = GetSmallestEntryID(&DecodeInfo->LastTouched, DecodeInfo->Count);
         if(GlobalGameState.MusicInfo.PlayingSong.PlaylistID >= 0 &&
-           Get(&DecodeInfo->FileID, Result) == (u32)PlaylistIDToFileID(&GlobalGameState.MusicInfo.Playlist,
-                                                                       GlobalGameState.MusicInfo.PlayingSong.PlaylistID))
+           Get(&DecodeInfo->FileID, NewDecodeID(Result)) == PlaylistIDToFileID(&GlobalGameState.MusicInfo.Playlist,
+                                                                               GlobalGameState.MusicInfo.PlayingSong.PlaylistID))
         {
             Put(&DecodeInfo->LastTouched, Result, DecodeInfo->TouchCount++);
             Result = GetSmallestEntryID(&DecodeInfo->LastTouched, DecodeInfo->Count);
@@ -849,14 +849,14 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
 }
 
 internal i32
-LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileInfoID, 
+LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, 
                      i32 DecodeID, b32 DoMetadataExtraction = true)
 {
     i32 Result = DecodeID;
     string_compound FilePath = NewStringCompound(&Bucket->Transient, 255);
     ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, 
-                          MP3Info->FileInfo.SubPath + FileInfoID, 
-                          MP3Info->FileInfo.FileName + FileInfoID);
+                          MP3Info->FileInfo.SubPath + FileID.ID, 
+                          MP3Info->FileInfo.FileName + FileID.ID);
     
     read_file_result FileData = {};
     if(ReadEntireFile(&Bucket->Transient, &FileData, FilePath.S))
@@ -865,7 +865,7 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileInfoID
         {
             if(DoMetadataExtraction)
             {
-                ExtractMetadata(&Bucket->Fixed, &Bucket->Transient, &FileData, &MP3Info->FileInfo.Metadata[FileInfoID]);
+                ExtractMetadata(&Bucket->Fixed, &Bucket->Transient, &FileData, &MP3Info->FileInfo.Metadata[FileID.ID]);
             }
             
             mp3dec_t Dec = {};
@@ -882,14 +882,14 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileInfoID
             }
             else
             {
-                Put(&MP3Info->DecodeInfo.FileID, DecodeID, FileInfoID);
+                Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
                 TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
-                DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileInfoID].Title.S);
+                DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
                 // Check if song duration was already saved, if not, create it.
-                if(~MP3Info->FileInfo.Metadata[FileInfoID].FoundFlags & metadata_Duration)
+                if(~MP3Info->FileInfo.Metadata[FileID.ID].FoundFlags & metadata_Duration)
                 {
-                    mp3_metadata *MD = &MP3Info->FileInfo.Metadata[FileInfoID];
+                    mp3_metadata *MD = &MP3Info->FileInfo.Metadata[FileID.ID];
                     mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
                     
                     MD->Duration = (u32)DInfo->samples/DInfo->channels/DInfo->hz*1000;
@@ -916,10 +916,10 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileInfoID
 }
 
 internal i32
-LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileInfoID, b32 DoMetadataExtraction = true)
+LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, b32 DoMetadataExtraction = true)
 {
     i32 DecodeID = GetNextDecodeIDToEvict(&MP3Info->DecodeInfo);
-    return LoadAndDecodeMP3Data(Bucket, MP3Info, FileInfoID, DecodeID, DoMetadataExtraction);
+    return LoadAndDecodeMP3Data(Bucket, MP3Info, FileID, DecodeID, DoMetadataExtraction);
 }
 
 internal void
@@ -1113,7 +1113,7 @@ TryLoadSettingsFile(game_state *GameState)
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"LastPlayingSong: ");
-                Result.PlayingSongID = ProcessNextI32InString(C, '\n', Length);
+                Result.PlayingSongID.ID = ProcessNextI32InString(C, '\n', Length);
                 C += Length;
                 AdvanceToNewline(&C);
                 
@@ -1205,9 +1205,9 @@ SaveSettingsFile(game_state *GameState)
     sprintf_s(VolumeValue, "%f\n", GameState->SoundThreadInterface->ToneVolume);
     
     //i32 FileID = PlaylistIDToFileID(&GameState->MusicInfo.Playlist, GameState->MusicInfo.PlayingSong.PlaylistID);
-    i32 FileID = GameState->MusicInfo.PlayingSong.FileID;
+    file_id FileID = GameState->MusicInfo.PlayingSong.FileID;
     char FileIDString[10];
-    sprintf_s(FileIDString, "%i\n", FileID);
+    sprintf_s(FileIDString, "%i\n", FileID.ID);
     
     char PaletteIDString[10];
     sprintf_s(PaletteIDString, "%i\n", GameState->MusicInfo.DisplayInfo.ColorPaletteID);
@@ -1279,7 +1279,7 @@ ApplySettings(game_state *GameState, settings Settings)
     music_info *MusicInfo = &GameState->MusicInfo;
     
     MusicInfo->PlayingSong.PlaylistID = FileIDToPlaylistID(&MusicInfo->Playlist, Settings.PlayingSongID);
-    if(Settings.PlayingSongID >= (i32)GameState->MP3Info->FileInfo.Count) Settings.PlayingSongID = -1;
+    if(Settings.PlayingSongID >= (i32)GameState->MP3Info->FileInfo.Count) Settings.PlayingSongID.ID = -1;
     MusicInfo->PlayingSong.FileID = Settings.PlayingSongID;
     
     ChangeSong(GameState, &MusicInfo->PlayingSong); 
@@ -1707,8 +1707,7 @@ AddSongToSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, string_c 
     {
         Batch->Names[Batch->BatchCount] = NewStringCompound(Bucket, InsertCheck->Pos);
         AppendStringCompoundToCompound(Batch->Names+Batch->BatchCount, InsertCheck);
-        Result = Batch->BatchCount;
-        Batch->BatchCount++;
+        Result = Batch->BatchCount++;
     }
     return Result;
 }
@@ -1716,10 +1715,10 @@ AddSongToSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, string_c 
 inline void
 InitializeSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, u32 BatchCount)
 {
-    Batch->Genre  = PushArrayOnBucket(Bucket, BatchCount, array_u32);
-    Batch->Artist = PushArrayOnBucket(Bucket, BatchCount, array_u32);
-    Batch->Album  = PushArrayOnBucket(Bucket, BatchCount, array_u32);
-    Batch->Song   = PushArrayOnBucket(Bucket, BatchCount, array_u32);
+    Batch->Genre  = PushArrayOnBucket(Bucket, BatchCount, array_batch_id);
+    Batch->Artist = PushArrayOnBucket(Bucket, BatchCount, array_batch_id);
+    Batch->Album  = PushArrayOnBucket(Bucket, BatchCount, array_batch_id);
+    Batch->Song   = PushArrayOnBucket(Bucket, BatchCount, array_file_id);
     Batch->Names  = PushArrayOnBucket(Bucket, BatchCount, string_c);
     Batch->MaxBatches = BatchCount;
     Batch->BatchCount = 0;
@@ -1751,9 +1750,9 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
     AddSongToSortBatch(&Bucket->Fixed, &Artist, &Empty);
     AddSongToSortBatch(&Bucket->Fixed, &Album, &Empty);
     
-    for(u32 FID = 0; FID < FileInfo->Count; FID++)
+    for(u32 FileID = 0; FileID < FileInfo->Count; FileID++)
     {
-        mp3_metadata *MD = FileInfo->Metadata + FID;
+        mp3_metadata *MD = FileInfo->Metadata + FileID;
         
         // NOTE:: Fills the Batches with all different genres, artists, albums and gives the batch id back
         i32 GenreID  = AddSongToSortBatch(&Bucket->Fixed, &Genre, &MD->Genre);
@@ -1762,9 +1761,9 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
         Assert(GenreID >= 0 && ArtistID >= 0 && AlbumID >= 0);
         
         // NOTE:: For each song note the corresponding IDs for the genre, artist, album
-        SortBatchInfo[FID].GenreBatchID  = GenreID;
-        SortBatchInfo[FID].ArtistBatchID = ArtistID;
-        SortBatchInfo[FID].AlbumBatchID  = AlbumID;
+        SortBatchInfo[FileID].GenreBatchID  = GenreID;
+        SortBatchInfo[FileID].ArtistBatchID = ArtistID;
+        SortBatchInfo[FileID].AlbumBatchID  = AlbumID;
         
         // NOTE:: Counts how many entries there are in each different genre, artist, album
         Genre_CountForBatches[GenreID]++;
@@ -1774,20 +1773,20 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
     
     For(Genre.BatchCount)
     {
-        Genre.Artist[It] = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
-        Genre.Album[It]  = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
-        Genre.Song[It]   = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
+        Genre.Artist[It].A = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
+        Genre.Album[It].A  = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
+        Genre.Song[It].A   = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
     }
     For(Artist.BatchCount)
     {
-        Artist.Album[It] = CreateArray(&Bucket->Fixed, Artist_CountForBatches[It]);
-        Artist.Song[It]  = CreateArray(&Bucket->Fixed, Artist_CountForBatches[It]);
+        Artist.Album[It].A = CreateArray(&Bucket->Fixed, Artist_CountForBatches[It]);
+        Artist.Song[It].A  = CreateArray(&Bucket->Fixed, Artist_CountForBatches[It]);
     }
     For(Album.BatchCount)
     {
-        Album.Song[It] = CreateArray(&Bucket->Fixed, Album_CountForBatches[It]);
-        if(It == 0) Album.Genre[It] = CreateArray(&Bucket->Fixed, 100);
-        else Album.Genre[It] = CreateArray(&Bucket->Fixed, 10);
+        Album.Song[It].A = CreateArray(&Bucket->Fixed, Album_CountForBatches[It]);
+        if(It == 0) Album.Genre[It].A = CreateArray(&Bucket->Fixed, 100);
+        else Album.Genre[It].A = CreateArray(&Bucket->Fixed, 10);
     }
     
     PopFromTransientBucket(&Bucket->Transient, Genre_CountForBatches);
@@ -1795,37 +1794,37 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
     PopFromTransientBucket(&Bucket->Transient, Album_CountForBatches);
     
     
-    for(u32 FID = 0; FID < FileInfo->Count; FID++)
+    for(u32 FileID = 0; FileID < FileInfo->Count; FileID++)
     {
-        u32 GenreBatchID  = SortBatchInfo[FID].GenreBatchID;
-        u32 ArtistBatchID = SortBatchInfo[FID].ArtistBatchID;
-        u32 AlbumBatchID  = SortBatchInfo[FID].AlbumBatchID;
+        u32 GenreBatchID  = SortBatchInfo[FileID].GenreBatchID;
+        u32 ArtistBatchID = SortBatchInfo[FileID].ArtistBatchID;
+        u32 AlbumBatchID  = SortBatchInfo[FileID].AlbumBatchID;
         
-        PushIfNotExist(&Genre.Artist[GenreBatchID], ArtistBatchID);
-        PushIfNotExist(&Genre.Album[GenreBatchID], AlbumBatchID);
-        PushIfNotExist(&Genre.Song[GenreBatchID], FID);
+        PushIfNotExist(&Genre.Artist[GenreBatchID].A, ArtistBatchID);
+        PushIfNotExist(&Genre.Album[GenreBatchID].A, AlbumBatchID);
+        PushIfNotExist(&Genre.Song[GenreBatchID].A, FileID);
         
-        PushIfNotExist(&Artist.Album[ArtistBatchID], AlbumBatchID);
-        PushIfNotExist(&Artist.Song[ArtistBatchID], FID);
+        PushIfNotExist(&Artist.Album[ArtistBatchID].A, AlbumBatchID);
+        PushIfNotExist(&Artist.Song[ArtistBatchID].A, FileID);
         
-        PushIfNotExist(&Album.Genre[AlbumBatchID], GenreBatchID);
-        PushIfNotExist(&Album.Song[AlbumBatchID], FID);
+        PushIfNotExist(&Album.Genre[AlbumBatchID].A, GenreBatchID);
+        PushIfNotExist(&Album.Song[AlbumBatchID].A, FileID);
     }
     
     music_info *MusicInfo = MP3Info->MusicInfo;
-    MusicInfo->SortingInfo.Genre.Selected  = CreateArray(&Bucket->Fixed, Genre.BatchCount);
-    MusicInfo->SortingInfo.Artist.Selected = CreateArray(&Bucket->Fixed, Artist.BatchCount);
-    MusicInfo->SortingInfo.Album.Selected  = CreateArray(&Bucket->Fixed, Album.BatchCount);
-    MusicInfo->SortingInfo.Song.Selected   = CreateArray(&Bucket->Fixed, FileInfo->Count);
+    MusicInfo->SortingInfo.Genre.Selected.A  = CreateArray(&Bucket->Fixed, Genre.BatchCount);
+    MusicInfo->SortingInfo.Artist.Selected.A = CreateArray(&Bucket->Fixed, Artist.BatchCount);
+    MusicInfo->SortingInfo.Album.Selected.A  = CreateArray(&Bucket->Fixed, Album.BatchCount);
+    MusicInfo->SortingInfo.Song.Selected.A   = CreateArray(&Bucket->Fixed, FileInfo->Count);
     
-    MusicInfo->SortingInfo.Genre.Displayable  = CreateArray(&Bucket->Fixed, Genre.BatchCount);
+    MusicInfo->SortingInfo.Genre.Displayable.A  = CreateArray(&Bucket->Fixed, Genre.BatchCount);
     For(Genre.BatchCount)
     {
-        Push(&MusicInfo->SortingInfo.Genre.Displayable, It);
+        Push(&MusicInfo->SortingInfo.Genre.Displayable, NewFileID(It));
     }
-    MusicInfo->SortingInfo.Artist.Displayable = CreateArray(&Bucket->Fixed, Artist.BatchCount);
-    MusicInfo->SortingInfo.Album.Displayable  = CreateArray(&Bucket->Fixed, Album.BatchCount);
-    MusicInfo->SortingInfo.Song.Displayable   = CreateArray(&Bucket->Fixed, MP3Info->FileInfo.Count);
+    MusicInfo->SortingInfo.Artist.Displayable.A = CreateArray(&Bucket->Fixed, Artist.BatchCount);
+    MusicInfo->SortingInfo.Album.Displayable.A  = CreateArray(&Bucket->Fixed, Album.BatchCount);
+    MusicInfo->SortingInfo.Song.Displayable.A   = CreateArray(&Bucket->Fixed, MP3Info->FileInfo.Count);
     
     MusicInfo->SortingInfo.Genre.Base = &MusicInfo->SortingInfo;
     MusicInfo->SortingInfo.Artist.Base = &MusicInfo->SortingInfo;
@@ -1842,7 +1841,7 @@ SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *Sort
 {
     if(!Input->Pressed[KEY_CONTROL_LEFT] && !Input->Pressed[KEY_CONTROL_RIGHT])
     {
-        if(!IsSelected(DisplayColumn, SortingColumn, ColumnDisplayID) || SortingColumn->Selected.Count > 1)
+        if(!IsSelected(DisplayColumn, SortingColumn, ColumnDisplayID) || SortingColumn->Selected.A.Count > 1)
         {
             ClearSelection(SortingColumn);
         }
@@ -1856,7 +1855,7 @@ UpdateSelectionArray(renderer *Renderer, column_sorting_info *SortingColumn, mus
 {
     column_type Result = columnType_None;
     for(u32 It = 0; 
-        It < SortingColumn->Displayable.Count && It < DisplayColumn->Count;
+        It < SortingColumn->Displayable.A.Count && It < DisplayColumn->Count;
         It++)
     {
         if(IsInRect(DisplayColumn->BGRects[It], Input->MouseP))
@@ -1873,18 +1872,19 @@ internal void
 PropagateSelectionChange(music_sorting_info *SortingInfo)
 {
     
-    array_u32 *Genre  = &SortingInfo->Genre.Selected;
-    array_u32 *Artist = &SortingInfo->Artist.Selected;
-    array_u32 *Album  = &SortingInfo->Album.Selected;
+    array_batch_id *Genre  = &SortingInfo->Genre.Selected;
+    array_batch_id *Artist = &SortingInfo->Artist.Selected;
+    array_batch_id *Album  = &SortingInfo->Album.Selected;
     
-    if(Genre->Count > 0)
+    if(Genre->A.Count > 0)
     {
-        For(Artist->Count)
+        For(Artist->A.Count)
         {
             b32 Found = false;
-            for(u32 GenreID = 0; GenreID < Genre->Count; GenreID++)
+            for(u32 GenreID = 0; GenreID < Genre->A.Count; GenreID++)
             {
-                if(StackContains(SortingInfo->Genre.Batch.Artist+Get(Genre, GenreID), Get(Artist, It)))
+                array_file_id *GenreArtists = SortingInfo->Genre.Batch.Artist+Get(Genre, NewSelectID(GenreID)).ID;
+                if(StackContains(GenreArtists, Get(Artist, NewSelectID(It))))
                 {
                     Found = true;
                     break;
@@ -1892,25 +1892,26 @@ PropagateSelectionChange(music_sorting_info *SortingInfo)
             }
             if(!Found)
             {
-                Take(Artist, It);
+                Take(Artist, NewSelectID(It));
                 It--;
             }
         }
         
     }
     
-    if(Artist->Count > 0 || Genre->Count > 0)
+    if(Artist->A.Count > 0 || Genre->A.Count > 0)
     {
-        For(Album->Count)
+        For(Album->A.Count)
         {
             b32 FoundInArtist = false;
             b32 FoundInGenre  = false;
             
-            if(Artist->Count > 0)
+            if(Artist->A.Count > 0)
             {
-                for(u32 ArtistID = 0; ArtistID < Artist->Count; ArtistID++)
+                for(u32 ArtistID = 0; ArtistID < Artist->A.Count; ArtistID++)
                 {
-                    if(StackContains(SortingInfo->Artist.Batch.Album + Get(Artist, ArtistID), Get(Album, It)))
+                    array_file_id *ArtistAlbums = SortingInfo->Artist.Batch.Album + Get(Artist, NewSelectID(ArtistID)).ID;
+                    if(StackContains(ArtistAlbums, Get(Album, NewSelectID(It))))
                     {
                         FoundInArtist = true;
                         break;
@@ -1918,11 +1919,12 @@ PropagateSelectionChange(music_sorting_info *SortingInfo)
                 }
             }
             else FoundInArtist = true;
-            if(Genre->Count > 0)
+            if(Genre->A.Count > 0)
             {
-                for(u32 GenreID = 0; GenreID < Genre->Count; GenreID++)
+                for(u32 GenreID = 0; GenreID < Genre->A.Count; GenreID++)
                 {
-                    if(StackContains(SortingInfo->Genre.Batch.Album+ Get(Genre, GenreID), Get(Album, It)))
+                    array_file_id *GenreAlbums = SortingInfo->Genre.Batch.Album+ Get(Genre, NewSelectID(GenreID)).ID;
+                    if(StackContains(GenreAlbums, Get(Album, NewSelectID(It))))
                     {
                         FoundInGenre = true;
                         break;
@@ -1933,7 +1935,7 @@ PropagateSelectionChange(music_sorting_info *SortingInfo)
             if(FoundInArtist && FoundInGenre) ;
             else
             {
-                Take(Album, It);
+                Take(Album, NewSelectID(It));
                 It--;
             }
         }
@@ -1953,46 +1955,47 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
     if(DoAlbum)  Reset(&SortingInfo->Album.Displayable);
     if(DoSong)   Reset(&SortingInfo->Song.Displayable);
     
-    For(SortingInfo->Genre.Selected.Count) // Going through Genres
+    For(SortingInfo->Genre.Selected.A.Count) // Going through Genres
     {
-        u32 BatchID = Get(&SortingInfo->Genre.Selected, It);
+        batch_id BatchID = Get(&SortingInfo->Genre.Selected, NewSelectID(It));
         sort_batch *GenreBatch = &SortingInfo->Genre.Batch;
         
-        if(DoArtist) AppendArray(&SortingInfo->Artist.Displayable, GenreBatch->Artist+BatchID);
-        if(SortingInfo->Artist.Selected.Count == 0)
+        if(DoArtist) AppendArray(&SortingInfo->Artist.Displayable, GenreBatch->Artist+BatchID.ID);
+        if(SortingInfo->Artist.Selected.A.Count == 0)
         {
-            if(DoAlbum) AppendArray(&SortingInfo->Album.Displayable, GenreBatch->Album+BatchID);
-            if(SortingInfo->Album.Selected.Count == 0)
+            if(DoAlbum) AppendArray(&SortingInfo->Album.Displayable, GenreBatch->Album+BatchID.ID);
+            if(SortingInfo->Album.Selected.A.Count == 0)
             {
-                if(DoSong) AppendArray(&SortingInfo->Song.Displayable, GenreBatch->Song+BatchID);
+                if(DoSong) AppendArray(&SortingInfo->Song.Displayable, GenreBatch->Song+BatchID.ID);
             }
         }
     }
     
-    For(SortingInfo->Artist.Selected.Count) // Going through Artists
+    For(SortingInfo->Artist.Selected.A.Count) // Going through Artists
     {
-        u32 BatchID = Get(&SortingInfo->Artist.Selected, It);
+        batch_id BatchID = Get(&SortingInfo->Artist.Selected, NewSelectID(It));
         sort_batch *ArtistBatch = &SortingInfo->Artist.Batch;
         
         // For every album in batch, look if it is one of the selected genres. if not, skip.
-        For(ArtistBatch->Album[BatchID].Count, Album)
+        For(ArtistBatch->Album[BatchID.ID].A.Count, Album)
         {
             sort_batch *AlbumBatch = &SortingInfo->Album.Batch;
-            u32 AlbumBatchID = Get(ArtistBatch->Album+BatchID, AlbumIt);
-            For(AlbumBatch->Genre[AlbumBatchID].Count, Genre)
+            select_id AlbumSelectID = NewSelectID(AlbumIt);
+            batch_id AlbumBatchID = Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID);
+            For(AlbumBatch->Genre[AlbumBatchID.ID].A.Count, Genre)
             {
-                if(StackContains(&SortingInfo->Genre.Selected, Get(AlbumBatch->Genre+AlbumBatchID, GenreIt)) ||
-                   SortingInfo->Genre.Selected.Count == 0)
+                if(StackContains(&SortingInfo->Genre.Selected, Get(AlbumBatch->Genre+AlbumBatchID.ID, NewSelectID(GenreIt))) ||
+                   SortingInfo->Genre.Selected.A.Count == 0)
                 {
-                    if(DoAlbum) Push(&SortingInfo->Album.Displayable, Get(ArtistBatch->Album+BatchID, AlbumIt));
+                    if(DoAlbum) Push(&SortingInfo->Album.Displayable, Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID));
                     // If no album is selected, fill song list from the verified album songs and
                     // check that _only_ songs which are also corresponding to the artist are inserted.
-                    if(SortingInfo->Album.Selected.Count == 0)
+                    if(SortingInfo->Album.Selected.A.Count == 0)
                     {
-                        For(AlbumBatch->Song[AlbumBatchID].Count, Song)
+                        For(AlbumBatch->Song[AlbumBatchID.ID].A.Count, Song)
                         {
-                            u32 FileID = Get(AlbumBatch->Song+AlbumBatchID, SongIt);
-                            if(StackContains(ArtistBatch->Song+BatchID, FileID))
+                            file_id FileID = Get(AlbumBatch->Song+AlbumBatchID.ID, NewSelectID(SongIt));
+                            if(StackContains(ArtistBatch->Song+BatchID.ID, FileID))
                             {
                                 if(DoSong) Push(&SortingInfo->Song.Displayable, FileID);
                             }
@@ -2006,39 +2009,39 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
     
     if(DoSong) 
     {
-        For(SortingInfo->Album.Selected.Count) // Going through Albums
+        For(SortingInfo->Album.Selected.A.Count) // Going through Albums
         {
-            u32 BatchID = Get(&SortingInfo->Album.Selected, It);
+            batch_id BatchID = Get(&SortingInfo->Album.Selected, NewSelectID(It));
             
-            AppendArray(&SortingInfo->Song.Displayable, SortingInfo->Album.Batch.Song+BatchID);
+            AppendArray(&SortingInfo->Song.Displayable, SortingInfo->Album.Batch.Song+BatchID.ID);
         }
     }
     
-    if(SortingInfo->Genre.Selected.Count == 0)
+    if(SortingInfo->Genre.Selected.A.Count == 0)
     {
         if(DoArtist) 
         {
             For(SortingInfo->Artist.Batch.BatchCount)
             {
-                Push(&SortingInfo->Artist.Displayable, It);
+                Push(&SortingInfo->Artist.Displayable, NewDisplayableID(It));
             }
         }
-        if(SortingInfo->Artist.Selected.Count == 0)
+        if(SortingInfo->Artist.Selected.A.Count == 0)
         {
             if(DoAlbum) 
             {
                 For(SortingInfo->Album.Batch.BatchCount)
                 {
-                    Push(&SortingInfo->Album.Displayable, It);
+                    Push(&SortingInfo->Album.Displayable, NewDisplayableID(It));
                 }
             }
-            if(SortingInfo->Album.Selected.Count == 0)
+            if(SortingInfo->Album.Selected.A.Count == 0)
             {
                 if(DoSong) 
                 {
                     For(MP3FileInfo->Count)
                     {
-                        Push(&SortingInfo->Song.Displayable, It);
+                        Push(&SortingInfo->Song.Displayable, NewDisplayableID(It));
                     }
                 }
             }
@@ -2059,20 +2062,20 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     if(MusicInfo->IsShuffled) ShuffleStack(&MusicInfo->SortingInfo.Song.Displayable);
     DisplayInfo->Song.Base.DisplayCursor = 0;
     
-    u32 ArtistDisplayID   = 0;
+    displayable_id ArtistDisplayID = NewDisplayableID(0);
     r32 SelectArtistStart = 0;
-    u32 AlbumDisplayID    = 0;
+    displayable_id AlbumDisplayID = NewDisplayableID(0);
     r32 SelectAlbumStart  = 0;
     switch(Type) // nothing to do for columnType_Genre
     {
         case columnType_Album:
         {
-            AlbumDisplayID    = DisplayInfo->Album.OnScreenPlaylistIDs[0];
+            AlbumDisplayID    = DisplayInfo->Album.OnScreenIDs[0];
             SelectAlbumStart  = GetLocalPosition(DisplayInfo->Album.BGRects[0]).y;
         } // Through
         case columnType_Artist:
         {
-            ArtistDisplayID   = DisplayInfo->Artist.OnScreenPlaylistIDs[0];
+            ArtistDisplayID   = DisplayInfo->Artist.OnScreenIDs[0];
             SelectArtistStart = GetLocalPosition(DisplayInfo->Artist.BGRects[0]).y; 
         } break;
     }
@@ -2090,20 +2093,20 @@ SearchInDisplayable(column_sorting_info *ColumnSortInfo, search_bar *Search, mp3
 {
     Reset(&ColumnSortInfo->Displayable);
     
-    For(Search->InitialDisplayables.Count)
+    For(Search->InitialDisplayables.A.Count)
     {
-        u32 DisplayableID = Get(&Search->InitialDisplayables, It);
+        file_id FileID = Get(&Search->InitialDisplayables, NewDisplayableID(It));
         string_c *Name = 0;
         if(FileInfo) 
         {
-            Name = &FileInfo->Metadata[DisplayableID].Title;
-            if(Name->Pos == 0) Name = FileInfo->FileName+DisplayableID;
+            Name = &FileInfo->Metadata[FileID.ID].Title;
+            if(Name->Pos == 0) Name = FileInfo->FileName+FileID.ID;
         }
-        else Name = ColumnSortInfo->Batch.Names+DisplayableID;
+        else Name = ColumnSortInfo->Batch.Names+FileID.ID;
         
         if(ContainsAB_CaseInsensitive(Name, &Search->TextField.TextString))
         {
-            Push(&ColumnSortInfo->Displayable, DisplayableID);
+            Push(&ColumnSortInfo->Displayable, FileID);
         }
     }
 }
@@ -2144,8 +2147,8 @@ IsHigherInAlphabet(i32 T1, i32 T2, void *Data)
     b32 Result = false;
     
     column_sorting_info *SortingColumn = (column_sorting_info *)Data;
-    string_c *A = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable,T1);
-    string_c *B = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable,T2);
+    string_c *A = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, NewDisplayableID(T1)).ID;
+    string_c *B = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, NewDisplayableID(T2)).ID;
     
     if(B->Pos > 0) 
     {
@@ -2193,29 +2196,29 @@ SortDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo)
     column_sorting_info *Album  = &SortingInfo->Album;
     column_sorting_info *Song   = &SortingInfo->Song;
     
-    QuickSort(0, Genre->Displayable.Count-1, &Genre->Displayable, {IsHigherInAlphabet, Genre});
-    QuickSort(0, Artist->Displayable.Count-1, &Artist->Displayable, {IsHigherInAlphabet, Artist});
-    QuickSort(0, Album->Displayable.Count-1, &Album->Displayable, {IsHigherInAlphabet, Album});
+    QuickSort(0, Genre->Displayable.A.Count-1, &Genre->Displayable, {IsHigherInAlphabet, Genre});
+    QuickSort(0, Artist->Displayable.A.Count-1, &Artist->Displayable, {IsHigherInAlphabet, Artist});
+    QuickSort(0, Album->Displayable.A.Count-1, &Album->Displayable, {IsHigherInAlphabet, Album});
     
     sort_song_column_info SortSongInfo;
     SortSongInfo.FileInfo = MP3FileInfo;
-    SortSongInfo.SongDisplayable = &Song->Displayable;
-    QuickSort(0, Song->Displayable.Count-1, &Song->Displayable, {CompareSongDisplayable, &SortSongInfo});
+    SortSongInfo.SongDisplayable = &Song->Displayable.A;
+    QuickSort(0, Song->Displayable.A.Count-1, &Song->Displayable, {CompareSongDisplayable, &SortSongInfo});
 }
 
 internal void
-RetraceFilePath(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileID)
+RetraceFilePath(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID)
 {
     mp3_file_info TmpFileInfo = CreateFileInfoStruct(&Bucket->Transient, 1000);
     string_compound FilePath = NewStringCompound(&Bucket->Transient, 255);
     ConcatStringCompounds(2, &FilePath, &MP3Info->FolderPath);
     string_compound SubPath = NewStringCompound(&Bucket->Transient, 255);;
-    ConcatStringCompounds(2, &SubPath, MP3Info->FileInfo.SubPath + FileID);
+    ConcatStringCompounds(2, &SubPath, MP3Info->FileInfo.SubPath + FileID.ID);
     
     FindAllMP3FilesInFolder(&Bucket->Transient, &Bucket->Transient, &FilePath, &SubPath, &TmpFileInfo);
     CrawlFileInfosForMetadata(&Bucket->Transient, &Bucket->Transient, &TmpFileInfo, &MP3Info->FolderPath);
     
-    mp3_metadata *OldMD = MP3Info->FileInfo.Metadata+FileID;
+    mp3_metadata *OldMD = MP3Info->FileInfo.Metadata+FileID.ID;
     b32 Found = false;
     For(TmpFileInfo.Count)
     {
@@ -2226,8 +2229,8 @@ RetraceFilePath(bucket_allocator *Bucket, mp3_info *MP3Info, u32 FileID)
            CompareStringCompounds(&OldMD->Artist, &FoundMD->Artist) &&
            CompareStringCompounds(&OldMD->Album, &FoundMD->Album))
         {
-            string_c *NewFileName = MP3Info->FileInfo.FileName+FileID;
-            string_c *NewSubPath = MP3Info->FileInfo.SubPath+FileID;
+            string_c *NewFileName = MP3Info->FileInfo.FileName+FileID.ID;
+            string_c *NewSubPath = MP3Info->FileInfo.SubPath+FileID.ID;
             
             if(NewFileName->Length < TmpFileInfo.FileName[It].Pos)
             {
@@ -2264,7 +2267,7 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
     music_info *MusicInfo = &GameState->MusicInfo;
     GameState->MusicInfo.CurrentlyChangingSong = false;
     
-    i32 FileID = GetNextSong(&MusicInfo->Playlist, Song);
+    file_id FileID = GetNextSong(&MusicInfo->Playlist, Song);
     
     mp3dec_file_info_t *DInfo = &GameState->MP3Info->DecodeInfo.DecodedData[Song->DecodeID];
     Assert(DInfo->layer == 3);
@@ -2277,7 +2280,7 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
                            &MusicInfo->DisplayInfo.Song.Base.Base->ColorPalette.PlayingSong);
     
     
-    mp3_metadata *MD = &GameState->MP3Info->FileInfo.Metadata[FileID];
+    mp3_metadata *MD = &GameState->MP3Info->FileInfo.Metadata[FileID.ID];
     DebugLog(1255, "Nr.%i: %s (%s) by %s \n%i - %s - %s - %i Hz\n", MD->Track, MD->Title.S, MD->Album.S, MD->Artist.S, MD->Year, MD->Genre.S, MD->DurationString.S, DInfo->hz);
     
     char WinText[512];
@@ -2290,7 +2293,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
 {
     music_info *MusicInfo = &GameState->MusicInfo;
     
-    i32 FileID = GetNextSong(&MusicInfo->Playlist, Song);
+    file_id FileID = GetNextSong(&MusicInfo->Playlist, Song);
     
     if(FileID >= 0)
     {
@@ -2340,8 +2343,8 @@ HandleChangeToNextSong(game_state *GameState)
 internal void
 ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
 {
-    MusicInfo->Playlist.Songs  = CreateArray(&GameState->Bucket.Fixed, GameState->MP3Info->FileInfo.Count+200);
-    MusicInfo->Playlist.UpNext = CreateArray(&GameState->Bucket.Fixed, 200);
+    MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->Bucket.Fixed, GameState->MP3Info->FileInfo.Count+200);
+    MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->Bucket.Fixed, 200);
     
     MusicInfo->PlayingSong = {-1, -1, -1, 0};
     CreateMusicSortingInfo(&GameState->Bucket, GameState->MP3Info);
@@ -2351,14 +2354,14 @@ ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
     UpdateAllDisplayColumns(GameState);
     SaveMP3LibraryFile(GameState, GameState->MP3Info);
     
-    MusicInfo->DisplayInfo.Genre.Search.InitialDisplayables = CreateArray(&GameState->Bucket.Fixed, 
-                                                                          MusicInfo->SortingInfo.Genre.Displayable.Length);
-    MusicInfo->DisplayInfo.Artist.Search.InitialDisplayables = CreateArray(&GameState->Bucket.Fixed, 
-                                                                           MusicInfo->SortingInfo.Artist.Displayable.Length);
-    MusicInfo->DisplayInfo.Album.Search.InitialDisplayables = CreateArray(&GameState->Bucket.Fixed, 
-                                                                          MusicInfo->SortingInfo.Album.Displayable.Length);
-    MusicInfo->DisplayInfo.Song.Base.Search.InitialDisplayables = CreateArray(&GameState->Bucket.Fixed, 
-                                                                              MusicInfo->SortingInfo.Song.Displayable.Length);
+    MusicInfo->DisplayInfo.Genre.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+                                                                            MusicInfo->SortingInfo.Genre.Displayable.A.Length);
+    MusicInfo->DisplayInfo.Artist.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+                                                                             MusicInfo->SortingInfo.Artist.Displayable.A.Length);
+    MusicInfo->DisplayInfo.Album.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+                                                                            MusicInfo->SortingInfo.Album.Displayable.A.Length);
+    MusicInfo->DisplayInfo.Song.Base.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+                                                                                MusicInfo->SortingInfo.Song.Displayable.A.Length);
     
     MusicInfo->DisplayInfo.Genre.DisplayCursor = 0;
     MusicInfo->DisplayInfo.Artist.DisplayCursor = 0;
@@ -2690,7 +2693,7 @@ AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
 }
 
 internal i32
-AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, i32 FileID, array_u32 *IgnoreDecodeIDs)
+AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, array_u32 *IgnoreDecodeIDs)
 {
     mp3_info *MP3Info = GameState->MP3Info;
     if(FileID < 0) return -1;
@@ -2704,10 +2707,10 @@ AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, i32 FileID, 
         {
             // If this gets called twice, the second time IsSongDecoded will 
             // definately be true, even if job is not done. 
-            Put(&MP3Info->DecodeInfo.FileID, DecodeID, FileID);
+            Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
             MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = true;
             
-            job_load_decode_mp3 Data = {MP3Info, (u32)FileID, DecodeID};
+            job_load_decode_mp3 Data = {MP3Info, FileID, DecodeID};
             AddJobToQueue(JobQueue, JobLoadAndDecodeMP3File, Data);
         }
     }
@@ -2726,24 +2729,24 @@ AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 
     
     if(Song.PlaylistID >= 0)
     {
-        u32 PlaylistSize = Playlist->Songs.Count + Playlist->UpNext.Count;
+        u32 PlaylistSize = Playlist->Songs.A.Count + Playlist->UpNext.A.Count;
         b32 DoNext = true;
-        u32 CurrentNext = GetPreviousSong(Playlist, Song.PlaylistID);
-        u32 CurrentPrev = Song.PlaylistID;
+        playlist_id CurrentNext = GetPreviousSong(Playlist, Song.PlaylistID);
+        playlist_id CurrentPrev = Song.PlaylistID;
         for(u32 It = 0; 
             It < PlaylistSize && It < MAX_MP3_DECODE_COUNT;
             It++)
         {
             if(DoNext)
             {
-                CurrentNext = (CurrentNext+1)%Playlist->Songs.Count;
-                u32 FileID = PlaylistIDToFileID(Playlist, CurrentNext);
+                CurrentNext.ID = (CurrentNext.ID+1)%Playlist->Songs.A.Count;
+                file_id FileID = PlaylistIDToFileID(Playlist, CurrentNext);
                 AddJob_LoadMP3(GameState, JobQueue, FileID, IgnoreDecodeIDs);
             }
             else
             {
                 CurrentPrev = GetPreviousSong(Playlist, CurrentPrev);
-                u32 FileID = PlaylistIDToFileID(Playlist, CurrentPrev);
+                file_id FileID = PlaylistIDToFileID(Playlist, CurrentPrev);
                 AddJob_LoadMP3(GameState, JobQueue, FileID, IgnoreDecodeIDs);
             }
             DoNext = !DoNext;
@@ -2760,12 +2763,12 @@ AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, ar
     u32 IgnoreCount = 0;
     if(IgnoreDecodeIDs) IgnoreCount = Min(IgnoreDecodeIDs->Count, MAX_MP3_DECODE_COUNT);
     for(u32 It = 0; 
-        It < Playlist->Songs.Count &&
+        It < Playlist->Songs.A.Count &&
         It < DisplayColumn->Count && 
         It < MAX_MP3_DECODE_COUNT - IgnoreCount;
         It++)
     {
-        u32 FileID = PlaylistIDToFileID(Playlist, DisplayColumn->OnScreenPlaylistIDs[It]);
+        file_id FileID = PlaylistIDToFileID(Playlist, NewPlaylistID(DisplayColumn->OnScreenIDs[It]));
         AddJob_LoadMP3(GameState, JobQueue, FileID, IgnoreDecodeIDs);
     }
 }
@@ -2778,18 +2781,19 @@ AddJob_NextUndecodedInPlaylist()
     mp3_decode_info *DecodeInfo = &GlobalGameState.MP3Info->DecodeInfo;
     if(MusicInfo->PlayingSong.PlaylistID < 0) return Result;
     
-    u32 StartPlaylistID = 0;
+    playlist_id StartPlaylistID = NewPlaylistID(0);
     if(MusicInfo->PlayingSong.PlaylistID >= 0) StartPlaylistID = MusicInfo->PlayingSong.PlaylistID;
     
-    for(u32 It = StartPlaylistID + 1; 
-        It < MusicInfo->Playlist.Songs.Count; 
+    for(u32 It = StartPlaylistID.ID + 1; 
+        It < MusicInfo->Playlist.Songs.A.Count; 
         It++)
     {
         u32 DecodeID = 0;
-        if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, It), &DecodeID))
+        playlist_id PID = NewPlaylistID(It);
+        if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, PID), &DecodeID))
         {
             Result = true;
-            AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, It));
+            AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
             break;
         }
         else TouchDecoded(DecodeInfo, DecodeID);
@@ -2799,13 +2803,15 @@ AddJob_NextUndecodedInPlaylist()
     // we want to loop and try to find something to decode at the beginning of the playlist.
     if(!Result && MusicInfo->Looping == playLoop_Loop)
     {
-        For(StartPlaylistID)
+        Assert(StartPlaylistID.ID >= 0);
+        For((u32)StartPlaylistID.ID)
         {
             u32 DecodeID = 0;
-            if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, It), &DecodeID))
+            playlist_id PID = NewPlaylistID(It);
+            if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, PID), &DecodeID))
             {
                 Result = true;
-                AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, It));
+                AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
                 break;
             }
             else TouchDecoded(DecodeInfo, DecodeID);

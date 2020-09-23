@@ -212,6 +212,7 @@ struct music_display_info
 
 inline void UpdateColumnColor(music_display_column *DisplayColumn, struct column_sorting_info *SortingColumn);
 internal void BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, u32 FileID);
+internal void BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, u32 SortID);
 inline void ToggleSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 ColumnDisplayID);
 internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, column_sorting_info *SortColumnInfo, u32 FileID, v4 *Color);
 internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *MusicInfo);
@@ -222,7 +223,7 @@ internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel
 
 
 internal void SearchInDisplayable(column_sorting_info *ColumnSortInfo, struct search_bar *Search, mp3_file_info *FileInfo = 0);
-
+internal void UpdateColumnVerticalSlider(renderer *Renderer, music_display_column *DisplayColumn, column_sorting_info *ColumnSorting);
 
 
 

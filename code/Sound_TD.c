@@ -228,11 +228,45 @@ FileIDToColumnDisplayID(music_display_column *DisplayColumn, i32 FileID)
     For(SortingColumn->Displayable.Count)
     {
         string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, It);
-        if(CompareStringCompounds(CompareS, Name))
+        if(CompareStringCompounds(CompareS, Name)) Result = It;
+        
+    }
+    
+    return Result;
+}
+
+inline i32 
+SortingIDToColumnDisplayID(music_display_column *DisplayColumn, i32 SortID)
+{
+    i32 Result = -1;
+    column_sorting_info *SortingColumn = DisplayColumn->SortingInfo;
+    string_c *CompareS = 0;
+    switch(DisplayColumn->Type)
+    {
+        case columnType_Genre:
         {
-            //DebugLog(255, "FoundSong %s, DisplayID: %i\n", Name->S, It);
-            Result = It;
-        }
+            CompareS = &SortingColumn->Batch.Names[SortID];
+        } break;
+        case columnType_Artist:
+        {
+            CompareS = &SortingColumn->Batch.Names[SortID];
+        } break;
+        case columnType_Album:
+        {
+            CompareS = &SortingColumn->Batch.Names[SortID];
+        } break;
+        
+        case columnType_Song:
+        {
+            return FileIDToSongDisplayableID(DisplayColumn, SortID);
+        } break;
+        InvalidDefaultCase;
+    }
+    
+    For(SortingColumn->Displayable.Count)
+    {
+        string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, It);
+        if(CompareStringCompounds(CompareS, Name)) Result = It;
     }
     
     return Result;
@@ -2048,7 +2082,6 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     MoveDisplayColumn(Renderer, &DisplayInfo->Song.Base);
     
     UpdateSelectionColors(MusicInfo);
-    UpdateHorizontalSliders(Renderer, DisplayInfo, SortingInfo);
     UpdateVerticalSliders(Renderer, DisplayInfo, SortingInfo);
 }
 

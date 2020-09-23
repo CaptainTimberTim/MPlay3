@@ -5,14 +5,13 @@
 //   it goes over the edge, drop it into the new line
 // - sub-pixel accuracy? 
 // - ability to change slot height with auto text fit?
-// - add option to rescan files for new .mp3 added by user
 // - album image as panel background
 // - redraw only when necessary!
 // - lyrics window when file exists?
 //
 // - generate huge amount of fake mp3 files and test with those!
 // - show current playlist button
-// - files bigger than 64MB just assert
+// - files bigger than 64MB*2 just assert
 // - invalid songs in library checker
 // - keep currently playing list
 // - make render text message logging on top of window!
@@ -20,11 +19,11 @@
 // - fix all the non-ascii problems...
 // - add a keyboard button which toggles the shortcuts for every element
 // - solidify playlist stuff?
-// - switch fileID being a u32 to a struct file_id
 // - think about doing more than just a quad for text?
 // - make a seperate thread for metadata crawl
 // - think about selecting all entries that are visible when pressing enter during search
 
+// - fix cursor change on column edge drag
 // - still hardcapped atz 10k mp3 files
 // - go through and remove all gamestate/renderer/info juggling
 // - if glyphs not existing for font, use a backup font?
@@ -36,6 +35,10 @@
 //      - overhaul song select, is not working sometimes.
 //        May have to do with color update?
 //      - if song selected, pressing the big play should start it
+// - last second gets cut off sometimes, from songs!
+// - harden all that sortID/DisplayID/FileID shenanigans!!!
+//      - switch fileID being a u32 to a struct file_id
+// - error popup when file not found
 
 #include "Sound_UI_TD.h"
 
@@ -49,6 +52,11 @@ enum column_type
     columnType_Genre,
     columnType_Artist,
     columnType_Album,
+};
+
+struct file_id
+{
+    u32 ID;
 };
 
 struct sort_batch
@@ -68,7 +76,7 @@ struct column_sorting_info
     struct music_sorting_info *Base;
     sort_batch Batch;
     array_u32 Selected;
-    array_u32 Displayable; // Stores PlaylistIDs
+    array_u32 Displayable; // Stores PlaylistIDs for song column and sortBatchIDs for the rest!
 };
 
 struct music_sorting_info

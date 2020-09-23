@@ -951,25 +951,21 @@ WinMain(HINSTANCE Instance,
                         if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
                         {
                             ScrollDisplayColumn(Renderer, &DisplayInfo->Song.Base, (r32)Input->WheelAmount);
-                            UpdateColumnHorizontalSlider(Renderer, &DisplayInfo->Song.Base, &SortingInfo->Song);
                             UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Song.Base, &SortingInfo->Song);
                         }
                         if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
                         {
                             ScrollDisplayColumn(Renderer, &DisplayInfo->Genre, (r32)Input->WheelAmount);
-                            UpdateColumnHorizontalSlider(Renderer, &DisplayInfo->Genre, &SortingInfo->Genre);
                             UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Genre, &SortingInfo->Genre);
                         }
                         if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
                         {
                             ScrollDisplayColumn(Renderer, &DisplayInfo->Artist, (r32)Input->WheelAmount);
-                            UpdateColumnHorizontalSlider(Renderer, &DisplayInfo->Artist, &SortingInfo->Artist);
                             UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Artist, &SortingInfo->Artist);
                         }
                         if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
                         {
                             ScrollDisplayColumn(Renderer, &DisplayInfo->Album, (r32)Input->WheelAmount);
-                            UpdateColumnHorizontalSlider(Renderer, &DisplayInfo->Album, &SortingInfo->Album);
                             UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Album, &SortingInfo->Album);
                         }
                         

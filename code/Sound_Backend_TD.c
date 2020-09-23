@@ -238,9 +238,6 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             i32 SampleDistanceWriteToWritten = CircleDistance(WriteCursor, ByteToLock, SoundInstance->BufferSize)
                 /SoundInstance->BytesPerSample;
             
-            // TODO:: This assert triggers, when I unplug my headphones?
-            // Maybe if this and deal with the fallout?
-            Assert(WriteSampleAmount >= SampleDistanceWriteToWritten);
             if(VolumeChanged) 
             {
                 // If volume changed, we overwrite everything that was already in the buffer with 
@@ -249,7 +246,7 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
                 SoundInfo->PlayedSampleCount  -= SampleDistanceWriteToWritten;
                 ByteToLock = WriteCursor;
             }
-            else WriteSampleAmount -= SampleDistanceWriteToWritten;
+            else WriteSampleAmount = Max(0, WriteSampleAmount - SampleDistanceWriteToWritten);
             
             game_sound_output_buffer SoundBuffer = {};
             SoundBuffer.SamplesPerSecond = SoundInstance->SamplesPerSecond;

@@ -1,0 +1,10 @@
+********* Progress Info - DevLog? *********
+
+
+
+22.09.2020
+- Fixed shuffle not effecting playing songs, when it was already in playmode.
+- Fixed Assert crash when there are more samples to be played than I write every frame (happened on output hardware change). 
+- Fixed DisplayCursor not being updated in some situations.
+- Cleaned up updating the sliders. Previously you had to always do it manually, which was error prone. Now the function that changes column positions itself handles the slider updates.
+- Fixed bringDisplayEntryOnScreen stuff for search. How did that ever work?! Well now it does.

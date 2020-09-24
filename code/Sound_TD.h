@@ -11,7 +11,6 @@
 //
 // - generate huge amount of fake mp3 files and test with those!
 // - show current playlist button
-// - files bigger than 64MB*2 just assert
 // - invalid songs in library checker
 // - keep currently playing list
 // - make render text message logging on top of window!
@@ -23,6 +22,8 @@
 // - make a seperate thread for metadata crawl
 // - think about selecting all entries that are visible when pressing enter during search
 
+// - files bigger than 64MB*2 just assert
+//      - skyrim atmospheres is 74MB as mp3 and decompressed ~400MB! Backend thread has not enough memory for that!
 // - fix cursor change on column edge drag
 // - still hardcapped atz 10k mp3 files
 // - go through and remove all gamestate/renderer/info juggling
@@ -35,10 +36,9 @@
 //      - overhaul song select, is not working sometimes.
 //        May have to do with color update?
 //      - if song selected, pressing the big play should start it
-// - last second gets cut off sometimes, from songs!
-// - harden all that sortID/DisplayID/FileID shenanigans!!!
-//      - switch fileID being a u32 to a struct file_id
 // - error popup when file not found
+// - if i have an album selected and select an artist, the album not in the displayables is still selected!
+
 
 #include "Sound_UI_TD.h"
 
@@ -104,7 +104,7 @@ struct playing_song
     file_id FileID;
     i32 DecodeID;
     
-    b32 PlayUpNext; // should only be set in SetNextSong
+    b32 PlayUpNext; // should only be set in SetNextSong/and OnSongPlayPressed
 };
 
 struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
@@ -195,7 +195,6 @@ struct mp3_info
 
 
 // Threading
-
 struct job_load_decode_mp3
 {
     mp3_info *MP3Info;

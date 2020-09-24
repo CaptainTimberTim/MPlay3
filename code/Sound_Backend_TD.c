@@ -145,11 +145,10 @@ NewSoundInstance(dsound_instance *SoundInstance, HWND Window, u32 SongHz, u32 Ch
     SoundInstance->Buffer->Play(0, 0, DSBPLAY_LOOPING);
 }
 
-internal play_state
-FillSamplesFromPlayingFile(time_management *Time, sound_info *SoundInfo,
-                           game_sound_output_buffer *SoundBuffer, mp3dec_file_info_t *MP3Decoded)
+internal void
+FillSamplesFromPlayingFile(time_management *Time, sound_info *SoundInfo, game_sound_output_buffer *SoundBuffer,
+                           mp3dec_file_info_t *MP3Decoded, DWORD ByteToLock)
 {
-    play_state Result = playState_Playing;
     Assert(MP3Decoded);
     Assert(MP3Decoded->buffer);
     
@@ -157,29 +156,33 @@ FillSamplesFromPlayingFile(time_management *Time, sound_info *SoundInfo,
     
     i16 *SampleOut = SoundBuffer->Samples;
     i16 *SampleIn  = MP3Decoded->buffer + SoundInfo->PlayedSampleCount*MP3Decoded->channels;
-    for(i32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount*MP3Decoded->channels; ++SampleIndex)
+    i32 LastSample = -1;
+    for(i32 SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
     {
-        if(SoundInfo->PlayedSampleCount+SampleIndex < MP3Decoded->samples/MP3Decoded->channels)
+        For((u32)MP3Decoded->channels)
         {
-            *SampleOut++ = (i16)(*SampleIn++ * SoundInfo->ToneVolume);
-        }
-        else
-        {
-            // When file ends, fill the rest of the frame with silence
-            *SampleOut++ = 0;
+            if(SoundInfo->PlayedSampleCount+SampleIndex+It < MP3Decoded->samples/MP3Decoded->channels)
+                *SampleOut++ = (i16)(*SampleIn++ * SoundInfo->ToneVolume);
+            else // When file ends, fill the rest of the frame with silence
+            {
+                if(LastSample<0) LastSample = SampleIndex;
+                *SampleOut++ = 0;
+            }
         }
     }
     
-    if(SoundInfo->PlayedSampleCount+SoundBuffer->SampleCount >= MP3Decoded->samples/MP3Decoded->channels)
+    if(SoundInfo->PlayedSampleCount >= MP3Decoded->samples/MP3Decoded->channels)
     {
         SoundInfo->PlayedTime = 0;
-        OutputDebugStringA("Done.\n");
-        Result = playState_Done;
         SoundInfo->PlayedSampleCount = (i32)MP3Decoded->samples/MP3Decoded->channels;
+        
+        if(SoundInfo->SongEndByte < 0)
+        {
+            dsound_instance *SoundInstance = &SoundInfo->SoundInstance;
+            SoundInfo->SongEndByte = (ByteToLock+LastSample*SoundInstance->BytesPerSample)%SoundInstance->BufferSize;
+        }
     }
     else SoundInfo->PlayedSampleCount += SoundBuffer->SampleCount;
-    
-    return Result;
 }
 
 
@@ -206,7 +209,7 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
 {
     sound_info *SoundInfo          = &SoundThread->SoundInfo;
     dsound_instance *SoundInstance = &SoundInfo->SoundInstance;
-    i16* Samples                   = SoundThread->SoundSamples;
+    i16 *Samples                   = SoundThread->SoundSamples;
     
     play_state Result = playState_Error;
     
@@ -229,6 +232,7 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             {
                 SoundInfo->RunningSampleIndex = WriteCursor / SoundInstance->BytesPerSample;
                 SoundInfo->SoundIsValid = true;
+                SoundInfo->SongEndByte = -1;
             }
             
             DWORD ByteToLock = (SoundInfo->RunningSampleIndex*SoundInstance->BytesPerSample)%SoundInstance->BufferSize;
@@ -253,9 +257,22 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             SoundBuffer.SampleCount = WriteSampleAmount;
             SoundBuffer.Samples = Samples;
             
-            Result = FillSamplesFromPlayingFile(Time, SoundInfo, &SoundBuffer, MP3Decoded);
+            FillSamplesFromPlayingFile(Time, SoundInfo, &SoundBuffer, MP3Decoded, ByteToLock);
             FillSoundBuffer(SoundInfo, SoundInstance, ByteToLock, WriteSampleAmount*SoundInstance->BytesPerSample,
                             &SoundBuffer);
+            
+            
+            // This handles that the song is finished, but the PlayCursor needs to have played
+            // the last samples of the song, before I can give the playState_Done response.
+            if(SoundInfo->SongEndByte >= 0 &&
+               (i32)PlayCursor >= SoundInfo->SongEndByte && 
+               (i32)SoundInfo->PrevPlayCursor < SoundInfo->SongEndByte) 
+            {
+                Result = playState_Done;
+                DebugLog(12, "Done.\n");
+            }
+            else Result = playState_Playing;
+            SoundInfo->PrevPlayCursor = PlayCursor;
         }
     }
     else DebugLog(255, "ERROR: Framerate too low (last frame took %.2fs). Music temporarily paused.\n", Time->dTime);
@@ -360,6 +377,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
     b32 WaitForMainThread  = false;
     
     r32 PrevVolume = Interface->ToneVolume;
+    r32 CurrentSongPlayltime = 0;
     while(true)
     {
         LARGE_INTEGER CurrentCycleCount = GetWallClock();
@@ -376,9 +394,13 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
                 Interface->ChangedTimeToggle = false;
                 SoundInfo->PlayedSampleCount = (u32)(Interface->CurrentPlaytime*
                                                      SoundInfo->SoundInstance.SamplesPerSecond);
+                CurrentSongPlayltime = Interface->CurrentPlaytime;
                 WaitForMainThread = false;
             }
-            Interface->CurrentPlaytime = (SoundInfo->PlayedSampleCount/(r32)SoundInfo->SoundInstance.SamplesPerSecond);
+            
+            //Interface->CurrentPlaytime = (SoundInfo->PlayedSampleCount/(r32)SoundInfo->SoundInstance.SamplesPerSecond);
+            if(IsPlaying) CurrentSongPlayltime += Time.dTime;
+            Interface->CurrentPlaytime = CurrentSongPlayltime;
         }
         else Interface->CurrentPlaytime = 0;
         
@@ -405,6 +427,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             }
             
             SoundInfo->PlayedTime = 0;
+            CurrentSongPlayltime = 0;
             SoundInfo->PlayedSampleCount = 0;
             WaitForMainThread = false;
         }
@@ -429,10 +452,10 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             if(IsPlaying && !WaitForMainThread)
             {
                 PlayState = SimpleCalculateAndPlaySound(&Time, ThreadInfo, &MP3Decoded, PrevVolume != SoundInfo->ToneVolume);
-                //PlayState = CalculateAndPlaySound(&Time, ThreadInfo, &MP3Decoded, FlipWallClock, PerfCountFrequency);
-                if(PlayState == playState_Done) 
+                if(PlayState == playState_Done)
                 {
                     ClearSoundBuffer(&SoundInfo->SoundInstance);
+                    SoundInfo->SoundIsValid = false;
                     WaitForMainThread = true;
                 }
                 else if(PlayState == playState_Error)

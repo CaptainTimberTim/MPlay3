@@ -836,12 +836,13 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
             For(IgnoreDecodeIDs->Count) TouchDecoded(DecodeInfo, Get(IgnoreDecodeIDs, It));
         }
         Result = GetSmallestEntryID(&DecodeInfo->LastTouched, DecodeInfo->Count);
-        if(GlobalGameState.MusicInfo.PlayingSong.PlaylistID >= 0 &&
-           Get(&DecodeInfo->FileID, NewDecodeID(Result)) == PlaylistIDToFileID(&GlobalGameState.MusicInfo.Playlist,
-                                                                               GlobalGameState.MusicInfo.PlayingSong.PlaylistID))
+        if(GlobalGameState.MusicInfo.PlayingSong.PlaylistID >= 0 && GlobalGameState.MusicInfo.PlayingSong.DecodeID == Result)
         {
+            if(Get(&DecodeInfo->FileID, NewDecodeID(Result)) == PlaylistIDToFileID(&GlobalGameState.MusicInfo.Playlist,
+                                                                                   GlobalGameState.MusicInfo.PlayingSong.PlaylistID)) DebugLog(255, "ERROR:: STAGE 1: Should never be the same here!\n");
             Put(&DecodeInfo->LastTouched, Result, DecodeInfo->TouchCount++);
             Result = GetSmallestEntryID(&DecodeInfo->LastTouched, DecodeInfo->Count);
+            
         }
     }
     Assert(Result >= 0);
@@ -2715,6 +2716,7 @@ AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id File
         }
     }
     
+    Assert(DecodeID >= 0);
     TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
     return DecodeID;
 }

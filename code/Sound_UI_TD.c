@@ -1,6 +1,5 @@
 #include "Sound_UI_TD.h"
 inline file_id GetNextSong(play_list *Playlist, playing_song *PlayingSong);
-internal void SetNextSong(play_list *Playlist, playing_song *PlayingSong, play_loop Looping);
 inline playlist_id GetSongAfterCurrent(play_list *Playlist, playlist_id PlaylistID);
 inline playlist_id GetPreviousSong(play_list *Playlist, playlist_id PlaylistID);
 inline void SetPreviousSong(play_list *Playlist, playing_song *PlayingSong, play_loop Looping);
@@ -77,11 +76,15 @@ OnSongPlayPressed(void *Data)
         *IsPlaying = true;
         MusicInfo->PlayingSong.PlaylistID = PlaylistID;
         MusicInfo->PlayingSong.FileID = PlaylistIDToFileID(&MusicInfo->Playlist, PlaylistID);
+        if(MusicInfo->PlayingSong.PlayUpNext)
+        {
+            MusicInfo->PlayingSong.PlayUpNext = false; 
+            Take(&MusicInfo->Playlist.UpNext, NewPlaylistID(0));
+        }
         ChangeSong(PlayInfo->GameState, &MusicInfo->PlayingSong);
         
         AddJob_LoadMP3(PlayInfo->GameState, &PlayInfo->GameState->JobQueue,
                        PlaylistIDToFileID(&MusicInfo->Playlist, PlaylistID));
-        //AddJobs_LoadOnScreenMP3s(PlayInfo->GameState, &PlayInfo->GameState->JobQueue);
         AddJobs_LoadMP3s(PlayInfo->GameState, &PlayInfo->GameState->JobQueue);
     }
     else 

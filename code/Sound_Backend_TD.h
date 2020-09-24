@@ -42,6 +42,9 @@ struct sound_info
     r32 ToneVolume;
     i32 PlayedSampleCount;
     r32 PlayedTime;
+    
+    DWORD PrevPlayCursor;
+    i32 SongEndByte;
 };
 
 struct game_sound_output_buffer

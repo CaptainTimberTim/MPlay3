@@ -10,4 +10,9 @@
 - Fixed bringDisplayEntryOnScreen stuff for search. How did that ever work?! Well now it does.
 
 23.09.2020
-- Large conversion of file/batch/playlist/displayable arrays to use their own id structs to make it _much_ clearer what is actually happening. This was long overdue for understanding the code easier!
+- Large conversion of file/batch/playlist/displayable arrays to use their own id structs to make it _much_ clearer what is actually happening. This was long overdue for making the code easier to understanding!
+
+24.09.2020
+- Fixed bug where you could not properly select new song when a _up next_ song was playing.
+- Fixed bug where the end of the song is sometimes cut off.
+- Fixed bug where playing song was erroneously evicted and another song started playing in its place.

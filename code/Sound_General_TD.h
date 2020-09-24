@@ -1,10 +1,9 @@
 /* date = September 23rd 2020 9:18 am */
-
 #ifndef _SOUND__GENERAL__T_D_H
 #define _SOUND__GENERAL__T_D_H
 
 struct file_id        { i32 ID; }; // ::FILE_ID
-typedef file_id batch_id; // ::BATCH_ID
+typedef file_id batch_id;          // ::BATCH_ID
 struct playlist_id    { i32 ID; }; // ::PLAYLIST_ID
 typedef playlist_id select_id;
 typedef playlist_id decode_id;
@@ -63,7 +62,7 @@ inline b32 operator==(playlist_id ID1, i32 ID2)         { return ID1.ID == ID2; 
 inline b32 operator!=(playlist_id ID1, playlist_id ID2) { return ID1.ID != ID2.ID; }
 inline b32 operator!=(playlist_id ID1, i32  ID2)        { return ID1.ID != ID2; }
 
-// Miscellanious
+// Miscellaneous
 inline displayable_id NewDisplayableID(i32 ID) { return {ID}; }
 inline select_id    NewSelectID(i32 ID) { return {ID}; }
 inline decode_id    NewDecodeID(i32 ID) { return {ID}; }

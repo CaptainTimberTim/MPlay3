@@ -158,7 +158,7 @@ inline void Push(array_u32 *Array, u32 Item);
 inline u32  Pop(array_u32 *Array);
 inline void ReplaceAt(array_u32 *Array, u32 Pos, u32 Item);
 inline void Reset(array_u32 *Array);
-inline void Clear(array_u32 *Array);
+inline void Clear(array_u32 *Array, u32 Value = 0);
 inline b32  Contains(array_u32 *Array, u32 Item);
 inline b32  Find(array_u32 *Array, u32 Item, u32 *Result);
 inline void FindAndTake(array_u32 *Array, u32 Item);
@@ -168,6 +168,7 @@ inline void StackFindAndTake(array_u32 *Array, u32 Item);
 inline void StackInsert(array_u32 *Array, u32 Pos, u32 Item);
 inline void PushIfNotExist(array_u32 *Array, u32 Item);
 inline void AppendArray(array_u32 *Array1, array_u32 *Array2);
+inline void MergeArrays(array_u32 *Array1, array_u32 *Array2); // Slow
 inline void Switch(array_u32 *Array, u32 P1, u32 P2);
 inline void Copy(array_u32 *To, array_u32 *From);
 internal void ShuffleStack(array_u32 *Array);
@@ -183,3 +184,4 @@ struct sort_info
 };
 
 internal void QuickSort(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo);
+inline   void QuickSort3(array_u32 Array, b32 SortOnLength_NotCount = false);

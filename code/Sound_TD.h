@@ -32,12 +32,8 @@
 // - Switch openGL to directX?
 // - Add "want to quit" popup when esc. OR, make animation that slides down window or something when holding escape pressed!
 // - Add key shortcut button
-// - double click song select?
-//      - overhaul song select, is not working sometimes.
-//        May have to do with color update?
-//      - if song selected, pressing the big play should start it
+// - if song selected, pressing the big play should start it
 // - error popup when file not found
-// - if i have an album selected and select an artist, the album not in the displayables is still selected!
 
 
 #include "Sound_UI_TD.h"
@@ -71,9 +67,8 @@ struct column_sorting_info
 {
     struct music_sorting_info *Base;
     sort_batch Batch;
-    array_file_id Selected;
-    // Displayable stores _FileIDs_ for song column and sortBatchIDs for the rest!
-    array_file_id Displayable; // ::DISPLAYABLE_ID
+    array_file_id Selected; // stores _FileIDs_ for song column and sortBatchIDs for the rest!
+    array_file_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
 };
 
 struct music_sorting_info
@@ -237,7 +232,7 @@ internal i32 AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue,
 inline displayable_id FileIDToColumnDisplayID(music_display_column *DisplayColumn, file_id FileID);
 internal b32 AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
-
+internal b32 IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 
 global_variable string_compound GenreTypes[] =
 {

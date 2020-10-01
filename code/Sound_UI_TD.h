@@ -7,6 +7,8 @@
 #define MAX_DISPLAY_COUNT  80
 #define SLOT_DISTANCE_PIXEL 3
 
+#define DOUBLE_CLICK_TIME 0.5f
+
 struct color_palette
 {
     v3 Slot;
@@ -75,6 +77,9 @@ struct music_display_column
     entry_id *BetweenSliderRect;
     search_bar Search;
     search_bar_btn_info SearchInfo;
+    
+    r64 LastClickTime;
+    i32 LastClickSlotID;
 };
 
 struct song_play_btn

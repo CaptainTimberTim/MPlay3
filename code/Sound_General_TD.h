@@ -22,11 +22,14 @@ inline b32  Find(array_file_id *Array, file_id Item, u32 *Result) { return Find(
 inline void StackFindAndTake(array_file_id *Array, file_id ID)    { StackFindAndTake(&Array->A, ID.ID); }
 inline b32 StackContains(array_file_id *Array, file_id ID)        { return StackContains(&Array->A, ID.ID); }
 inline void Reset(array_file_id *Array)                           { Reset(&Array->A); }
+inline void Clear(array_file_id *Array, u32 Value = 0)            { Clear(&Array->A, Value); }
 inline void ShuffleStack(array_file_id *Array)                    { ShuffleStack(&Array->A); }
 inline file_id Take(array_file_id *Array, playlist_id ID)         { return {(i32)Take(&Array->A, ID.ID)}; }
 inline b32  StackFind(array_file_id *Array, file_id Item, i32 *Result) { return StackFind(&Array->A, Item.ID, (u32 *)Result); }
 inline void Put(array_file_id *Array, playlist_id ID, file_id FileID)  { Put(&Array->A, ID.ID, FileID.ID); }
 inline void AppendArray(array_file_id *A1, array_file_id *A2)     { AppendArray(&A1->A, &A2->A); }
+inline void MergeArrays(array_file_id *A1, array_file_id *A2)     { MergeArrays(&A1->A, &A2->A); }
+inline void PushIfNotExist(array_file_id *Array, file_id ID)      { PushIfNotExist(&Array->A, ID.ID); }
 internal void QuickSort(i32 Low, i32 High, array_file_id *SortArray, sort_info SortInfo)
 { QuickSort(Low, High, &SortArray->A, SortInfo); }
 

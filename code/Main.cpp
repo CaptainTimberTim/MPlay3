@@ -82,6 +82,8 @@ struct time_management
     r32 dTime;
     r64 GameTime;
     r32 CurrentTimeSpeed;
+    
+    i64 PerfCountFrequency;
 };
 internal b32 TryGetClipboardText(struct string_compound *String);
 internal void ApplyWindowResize(HWND Window, i32 NewWidth, i32 NewHeight, b32 ForceResize = false);
@@ -427,18 +429,18 @@ GetWindowDimensions(HWND Window, v2i *Dim)
     ReleaseDC(Window, DeviceContext);
 }
 
-inline LARGE_INTEGER
+inline LONGLONG
 GetWallClock()
 {
     LARGE_INTEGER Result;
     QueryPerformanceCounter(&Result);
-    return(Result);
+    return(Result.QuadPart);
 }
 
 inline r32
-GetSecondsElapsed(i64 PerfCountFrequency, LARGE_INTEGER Start, LARGE_INTEGER End)
+GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End)
 {
-    r32 Result = ((r32)(End.QuadPart - Start.QuadPart) / (r32)PerfCountFrequency);
+    r32 Result = ((r32)(End - Start) / (r32)PerfCountFrequency);
     return(Result);
 }
 
@@ -482,11 +484,11 @@ WinMain(HINSTANCE Instance,
         // Initializing clock
         LARGE_INTEGER PerfCountFrequencyResult;
         QueryPerformanceFrequency(&PerfCountFrequencyResult);
-        i64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
-        LARGE_INTEGER PrevCycleCount = GetWallClock();
-        LARGE_INTEGER FlipWallClock  = GetWallClock();
+        GameState->Time.PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+        LONGLONG PrevCycleCount = GetWallClock();
+        LONGLONG FlipWallClock  = GetWallClock();
         
-        SetRandomSeed(FlipWallClock.QuadPart);
+        SetRandomSeed(FlipWallClock);
         
         // Initializing Allocator
         GameState->Bucket = {};
@@ -716,8 +718,9 @@ WinMain(HINSTANCE Instance,
             IsRunning = true;
             while(IsRunning)
             {
-                LARGE_INTEGER CurrentCycleCount = GetWallClock();
-                GameState->Time.dTime = GetSecondsElapsed(PerfCountFrequency, PrevCycleCount, CurrentCycleCount);
+                LONGLONG CurrentCycleCount = GetWallClock();
+                GameState->Time.dTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, 
+                                                          PrevCycleCount, CurrentCycleCount);
                 PrevCycleCount = CurrentCycleCount;
                 GameState->Time.GameTime += GameState->Time.dTime;
                 
@@ -903,41 +906,7 @@ WinMain(HINSTANCE Instance,
                     else if(Input->KeyChange[KEY_LMB] == KeyUp &&
                             DragableList->DraggingID < 0)
                     {
-                        column_type ChangedSelection = columnType_None;
-                        if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
-                        {
-                            if(UpdateSelectionArray(Renderer, &SortingInfo->Song, &DisplayInfo->Song.Base, Input))
-                            {
-                                UpdateColumnColor(&DisplayInfo->Song.Base, &SortingInfo->Song);
-                            }
-                        }
-                        else if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
-                        {
-                            ChangedSelection = UpdateSelectionArray(Renderer, &SortingInfo->Genre, 
-                                                                    &DisplayInfo->Genre, Input);
-                            if(ChangedSelection)
-                            {
-                                PropagateSelectionChange(SortingInfo);
-                                DisplayInfo->Artist.DisplayCursor = 0;
-                                DisplayInfo->Album.DisplayCursor  = 0;
-                            }
-                        }
-                        else if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
-                        {
-                            ChangedSelection = UpdateSelectionArray(Renderer, &SortingInfo->Artist, 
-                                                                    &DisplayInfo->Artist, Input);
-                            if(ChangedSelection)
-                            {
-                                PropagateSelectionChange(SortingInfo);
-                                DisplayInfo->Album.DisplayCursor  = 0;
-                            }
-                        }
-                        else if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
-                        {
-                            ChangedSelection = UpdateSelectionArray(Renderer, &SortingInfo->Album, 
-                                                                    &DisplayInfo->Album, Input);
-                        }
-                        
+                        column_type ChangedSelection = CheckColumnsForSelectionChange();
                         if(ChangedSelection != columnType_None)
                         {
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);

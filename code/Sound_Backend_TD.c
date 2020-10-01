@@ -200,8 +200,8 @@ CircleDistance(i32 From, i32 To, i32 CircleBufferSize)
     return Result;
 }
 
-inline LARGE_INTEGER GetWallClock();
-inline r32 GetSecondsElapsed(i64 PerfCountFrequency, LARGE_INTEGER Start, LARGE_INTEGER End);
+inline LONGLONG GetWallClock();
+inline r32 GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End);
 
 internal play_state
 SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp3dec_file_info_t *MP3Decoded,
@@ -364,8 +364,8 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
     i64 PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
-    LARGE_INTEGER PrevCycleCount = GetWallClock();
-    LARGE_INTEGER FlipWallClock  = GetWallClock();
+    LONGLONG PrevCycleCount = GetWallClock();
+    LONGLONG FlipWallClock  = GetWallClock();
     
     time_management Time = {60, 1.0f/60.0f, 0, 0, 1};
     play_state PlayState = playState_Error;
@@ -380,7 +380,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
     r32 CurrentSongPlayltime = 0;
     while(true)
     {
-        LARGE_INTEGER CurrentCycleCount = GetWallClock();
+        LONGLONG CurrentCycleCount = GetWallClock();
         Time.dTime = GetSecondsElapsed(PerfCountFrequency, PrevCycleCount, CurrentCycleCount);
         PrevCycleCount = CurrentCycleCount;
         Time.GameTime += Time.dTime;

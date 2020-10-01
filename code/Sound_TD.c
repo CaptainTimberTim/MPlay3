@@ -179,6 +179,18 @@ PlaylistIDToFileID(play_list *Playlist, playlist_id PlaylistID)
     return FileID;
 }
 
+inline playlist_id
+OnScreenIDToPlaylistID(music_info *MusicInfo, u32 OnScreenID, file_id *FileID)
+{
+    playlist_id PlaylistID = NewPlaylistID(-1);
+    file_id ID = NewFileID(-1);
+    if(!FileID) FileID = &ID;
+    *FileID  = Get(&MusicInfo->SortingInfo.Song.Displayable, MusicInfo->DisplayInfo.Song.Base.OnScreenIDs[OnScreenID]);
+    StackFind(&MusicInfo->Playlist.Songs, *FileID, &PlaylistID.ID);
+    
+    return PlaylistID;
+}
+
 inline displayable_id
 FileIDToSongDisplayableID(music_display_column *DisplayColumn, file_id FileID)
 {
@@ -1838,9 +1850,9 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
 }
 
 inline void
-SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *SortingColumn, struct input_info *Input, u32 ColumnDisplayID)
+SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *SortingColumn, u32 ColumnDisplayID)
 {
-    if(!Input->Pressed[KEY_CONTROL_LEFT] && !Input->Pressed[KEY_CONTROL_RIGHT])
+    if(!GlobalGameState.Input.Pressed[KEY_CONTROL_LEFT] && !GlobalGameState.Input.Pressed[KEY_CONTROL_RIGHT])
     {
         if(!IsSelected(DisplayColumn, SortingColumn, ColumnDisplayID) || SortingColumn->Selected.A.Count > 1)
         {
@@ -1851,21 +1863,57 @@ SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *Sort
 }
 
 internal column_type // returns none if not in any rect, and corresponding column if it is
-UpdateSelectionArray(renderer *Renderer, column_sorting_info *SortingColumn, music_display_column *DisplayColumn,
-                     struct input_info *Input)
+UpdateSelectionArray(column_sorting_info *SortingColumn, music_display_column *DisplayColumn)
 {
     column_type Result = columnType_None;
+    DisplayColumn->LastClickSlotID = -1;
     for(u32 It = 0; 
         It < SortingColumn->Displayable.A.Count && It < DisplayColumn->Count;
         It++)
     {
-        if(IsInRect(DisplayColumn->BGRects[It], Input->MouseP))
+        if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP))
         {
-            SetSelectionArray(DisplayColumn, SortingColumn, Input, It);
+            SetSelectionArray(DisplayColumn, SortingColumn, It);
             Result = DisplayColumn->Type;
+            DisplayColumn->LastClickSlotID = It;
             break;
         }
     }
+    return Result;
+}
+
+internal column_type
+SelectAllOrNothing(music_display_column *DisplayColumn, column_sorting_info *SortingColumn)
+{
+    column_type Result = columnType_None;
+    b32 SelectAll = false;
+    for(u32 It = 0; 
+        It < SortingColumn->Displayable.A.Count && It < DisplayColumn->Count;
+        It++)
+    {
+        if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP))
+        {
+            if((i32)It == DisplayColumn->LastClickSlotID) // Clicked on same slot == is a proper double click
+            {
+                SelectAll = IsSelected(DisplayColumn, SortingColumn, It);
+                
+                Reset(&SortingColumn->Selected);
+                For(SortingColumn->Displayable.A.Count, Select)
+                {
+                    SetSelection(DisplayColumn, SortingColumn, NewDisplayableID(SelectIt), SelectAll);
+                }
+            }
+            else // Not a proper double click, do same as UpdateSelectionArray
+            {
+                SetSelectionArray(DisplayColumn, SortingColumn, It);
+            }
+            
+            Result = DisplayColumn->Type;
+            DisplayColumn->LastClickSlotID = It;
+            break;
+        }
+    }
+    
     return Result;
 }
 
@@ -1944,6 +1992,40 @@ PropagateSelectionChange(music_sorting_info *SortingInfo)
 }
 
 internal void
+MergeDisplayArrays(array_file_id *A1, array_file_id *A2, u32 CheckValue)
+{
+    For(A2->A.Count)
+    {
+        u32 ID = A2->A.Slot[It];
+        Assert(A1->A.Length > ID);
+        if(A1->A.Slot[ID] == CheckValue) 
+        {
+            Put(&A1->A, ID, ID);
+            A1->A.Count++;
+        }
+    }
+}
+
+internal void
+PutAndCheck(array_file_id *A1, file_id ID, u32 CheckValue)
+{
+    Assert((i32)A1->A.Length > ID.ID);
+    if(A1->A.Slot[ID.ID] == CheckValue) 
+    {
+        Put(&A1->A, ID.ID, ID.ID);
+        A1->A.Count++;
+    }
+}
+
+inline b32
+IsBigger(i32 T1, i32 T2, void *Data)
+{
+    array_u32 *A = (array_u32 *)Data;
+    
+    return A->Slot[T1] < A->Slot[T2];
+}
+
+internal void
 FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, music_display_info *DisplayInfo)
 {
     // NOTE:: This may work now... I actually only do it for selected artist properly.
@@ -1952,22 +2034,27 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
     b32 DoAlbum  = !DisplayInfo->Album.Search.TextField.IsActive;
     b32 DoSong   = !DisplayInfo->Song.Base.Search.TextField.IsActive;
     
-    if(DoArtist) Reset(&SortingInfo->Artist.Displayable);
-    if(DoAlbum)  Reset(&SortingInfo->Album.Displayable);
-    if(DoSong)   Reset(&SortingInfo->Song.Displayable);
+    // For performance I use the displayable lists not as stacks in this procedure.
+    // I fill them with a value they can never be, put the values to insert at the 
+    // array position it itself points to (so duplicates are just written twice at 
+    // the same location) and in the end remove the 'gaps' to re-stack-afy them.
+    u32 CheckValue = MP3FileInfo->Count+1;
+    if(DoArtist) Clear(&SortingInfo->Artist.Displayable, CheckValue);
+    if(DoAlbum)  Clear(&SortingInfo->Album.Displayable, CheckValue);
+    if(DoSong)   Clear(&SortingInfo->Song.Displayable, CheckValue);
     
     For(SortingInfo->Genre.Selected.A.Count) // Going through Genres
     {
         batch_id BatchID = Get(&SortingInfo->Genre.Selected, NewSelectID(It));
         sort_batch *GenreBatch = &SortingInfo->Genre.Batch;
         
-        if(DoArtist) AppendArray(&SortingInfo->Artist.Displayable, GenreBatch->Artist+BatchID.ID);
+        if(DoArtist) MergeDisplayArrays(&SortingInfo->Artist.Displayable, GenreBatch->Artist+BatchID.ID, CheckValue);
         if(SortingInfo->Artist.Selected.A.Count == 0)
         {
-            if(DoAlbum) AppendArray(&SortingInfo->Album.Displayable, GenreBatch->Album+BatchID.ID);
+            if(DoAlbum) MergeDisplayArrays(&SortingInfo->Album.Displayable, GenreBatch->Album+BatchID.ID, CheckValue);
             if(SortingInfo->Album.Selected.A.Count == 0)
             {
-                if(DoSong) AppendArray(&SortingInfo->Song.Displayable, GenreBatch->Song+BatchID.ID);
+                if(DoSong) MergeDisplayArrays(&SortingInfo->Song.Displayable, GenreBatch->Song+BatchID.ID, CheckValue);
             }
         }
     }
@@ -1988,7 +2075,8 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
                 if(StackContains(&SortingInfo->Genre.Selected, Get(AlbumBatch->Genre+AlbumBatchID.ID, NewSelectID(GenreIt))) ||
                    SortingInfo->Genre.Selected.A.Count == 0)
                 {
-                    if(DoAlbum) Push(&SortingInfo->Album.Displayable, Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID));
+                    if(DoAlbum) PutAndCheck(&SortingInfo->Album.Displayable, 
+                                            Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID), CheckValue);
                     // If no album is selected, fill song list from the verified album songs and
                     // check that _only_ songs which are also corresponding to the artist are inserted.
                     if(SortingInfo->Album.Selected.A.Count == 0)
@@ -1998,7 +2086,7 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
                             file_id FileID = Get(AlbumBatch->Song+AlbumBatchID.ID, NewSelectID(SongIt));
                             if(StackContains(ArtistBatch->Song+BatchID.ID, FileID))
                             {
-                                if(DoSong) Push(&SortingInfo->Song.Displayable, FileID);
+                                if(DoSong) PutAndCheck(&SortingInfo->Song.Displayable, FileID, CheckValue);
                             }
                         }
                     }
@@ -2014,9 +2102,15 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
         {
             batch_id BatchID = Get(&SortingInfo->Album.Selected, NewSelectID(It));
             
-            AppendArray(&SortingInfo->Song.Displayable, SortingInfo->Album.Batch.Song+BatchID.ID);
+            MergeDisplayArrays(&SortingInfo->Song.Displayable, SortingInfo->Album.Batch.Song+BatchID.ID, CheckValue);
         }
     }
+    
+    timer Timer = StartTimer();
+    if(SortingInfo->Artist.Displayable.A.Count > 0) QuickSort3(SortingInfo->Artist.Displayable.A, true);
+    if(SortingInfo->Album.Displayable.A.Count > 0) QuickSort3(SortingInfo->Album.Displayable.A, true);
+    if(SortingInfo->Song.Displayable.A.Count > 0) QuickSort3(SortingInfo->Song.Displayable.A, true);
+    SnapTimer(&Timer);
     
     if(SortingInfo->Genre.Selected.A.Count == 0)
     {

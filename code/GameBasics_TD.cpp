@@ -36,3 +36,24 @@ FreeImage_STB(loaded_bitmap Bitmap)
 {
     stbi_image_free(Bitmap.Pixels);
 }
+
+
+#if DEBUG_TD
+inline timer
+StartTimer()
+{
+    timer Timer = {};
+    Timer.Start = Timer.LastSnap = GetWallClock();
+    return Timer;
+}
+
+inline void
+SnapTimer(timer *Timer)
+{
+    i64 NewSnap = GetWallClock();
+    r32 CurrentSnap = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->LastSnap, NewSnap);
+    r32 Total = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->Start, NewSnap);
+    DebugLog(255, "Timer snap %i: %.8f, total: %.8f\n", ++Timer->Count, CurrentSnap, Total);
+    Timer->LastSnap = NewSnap;
+}
+#endif

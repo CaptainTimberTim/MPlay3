@@ -17,18 +17,20 @@ inline mp3_info *CreateMP3InfoStruct(memory_bucket_container *Bucket, u32 FileIn
 inline mp3_file_info CreateFileInfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount);
 inline void DeleteFileInfoStruct(memory_bucket_container *Bucket, mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
-inline void SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *SortingColumn, struct input_info *Input, u32 ColumnDisplayID);
+inline void SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *SortingColumn, u32 ColumnDisplayID);
 internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
 inline displayable_id FileIDToSongDisplayableID(music_display_column *DisplayColumn, file_id FileID);
 inline displayable_id SortingIDToColumnDisplayID(music_display_column *DisplayColumn, batch_id BatchID);
+inline playlist_id OnScreenIDToPlaylistID(music_info *MusicInfo, u32 OnScreenID, file_id *FileID = 0);
 inline void HandleChangeToNextSong(game_state *GameState);
 internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
 internal void AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
 internal b32 AddJob_LoadMetadata(game_state *GameState);
 internal void UseDisplayableAsPlaylist(music_info *MusicInfo);
-
-internal void
-BringDisplayableEntryOnScreen_(music_display_column *DisplayColumn, u32 DisplayID);
+internal column_type UpdateSelectionArray(column_sorting_info *SortingColumn, music_display_column *DisplayColumn);
+internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, column_sorting_info *SortingColumn);
+internal void PropagateSelectionChange(music_sorting_info *SortingInfo);
+internal void BringDisplayableEntryOnScreen_(music_display_column *DisplayColumn, u32 DisplayID);
 
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayColumn)
@@ -70,12 +72,16 @@ OnSongPlayPressed(void *Data)
     if(!IsInRect(SongColumn->Background, GlobalGameState.Input.MouseP)) return;
     
     UseDisplayableAsPlaylist(MusicInfo);
-    playlist_id PlaylistID = {SongColumn->OnScreenIDs[PlayInfo->DisplayID].ID}; // TODO::PLAYLIST_DISPLAYABLE
+    
+    file_id FileID = {};
+    playlist_id PlaylistID = OnScreenIDToPlaylistID(MusicInfo, PlayInfo->DisplayID, &FileID);
+    //playlist_id PlaylistID = {SongColumn->OnScreenIDs[PlayInfo->DisplayID].ID}; // TODO::PLAYLIST_DISPLAYABLE
+    
     if(MusicInfo->PlayingSong.PlaylistID != PlaylistID)
     {
         *IsPlaying = true;
         MusicInfo->PlayingSong.PlaylistID = PlaylistID;
-        MusicInfo->PlayingSong.FileID = PlaylistIDToFileID(&MusicInfo->Playlist, PlaylistID);
+        MusicInfo->PlayingSong.FileID = FileID; //PlaylistIDToFileID(&MusicInfo->Playlist, PlaylistID);
         if(MusicInfo->PlayingSong.PlayUpNext)
         {
             MusicInfo->PlayingSong.PlayUpNext = false; 
@@ -303,7 +309,7 @@ ProcessActiveSearch(renderer *Renderer, music_display_column *DisplayColumn, r32
     {
         if(DisplayColumn->SearchInfo.Displayable->A.Count == 1) 
         {
-            SetSelectionArray(DisplayColumn, ColumnSortInfo, Input, 0);
+            SetSelectionArray(DisplayColumn, ColumnSortInfo, 0);
             UpdateColumnColor(DisplayColumn, ColumnSortInfo);
         }
         ResetSearchList(Renderer, DisplayColumn, ColumnSortInfo);
@@ -815,6 +821,16 @@ IsInOnScreenList(music_display_column *DisplayColumn, column_sorting_info *Sorti
 }
 
 inline void
+SetSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, displayable_id ID, b32 Select)
+{
+    Assert(ID.ID < (i32)SortColumn->Displayable.A.Count);
+    
+    file_id FileID = Get(&SortColumn->Displayable, ID);
+    if(Select) Push(&SortColumn->Selected, FileID);
+    else StackFindAndTake(&SortColumn->Selected, FileID);
+}
+
+inline void
 Select(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 OnScreenIDsID)
 {
     Assert(DisplayColumn->Count > OnScreenIDsID && SortColumn->Displayable.A.Count > OnScreenIDsID);
@@ -898,11 +914,9 @@ UpdateColumnColor(music_display_column *DisplayColumn, column_sorting_info *Sort
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
     if(DisplayColumn->Type == columnType_Song)
     {
-        if(MusicInfo->PlayingSong.PlaylistID >= 0)
-        {
-            file_id FileID = Get(&MusicInfo->Playlist.Songs, MusicInfo->PlayingSong.PlaylistID);
-            UpdatePlayingSongColor(DisplayColumn, SortingColumn, FileID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
-        }
+        file_id FileID = {-1};
+        if(MusicInfo->PlayingSong.PlaylistID >= 0) FileID = Get(&MusicInfo->Playlist.Songs, MusicInfo->PlayingSong.PlaylistID);
+        UpdatePlayingSongColor(DisplayColumn, SortingColumn, FileID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
     }
     else
     {
@@ -2024,7 +2038,100 @@ TestHoveringEdgeDrags(game_state *GameState, v2 MouseP, music_display_info *Disp
     
 }
 
-
+internal column_type
+CheckColumnsForSelectionChange()
+{
+    column_type Result = columnType_None;
+    
+    renderer *Renderer = &GlobalGameState.Renderer;
+    input_info *Input = &GlobalGameState.Input;
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    music_sorting_info *SortingInfo = &GlobalGameState.MusicInfo.SortingInfo;
+    
+    if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
+    {
+        
+        if(GlobalGameState.Time.GameTime - DisplayInfo->Song.Base.LastClickTime < DOUBLE_CLICK_TIME)
+        {
+            if(SortingInfo->Song.Selected.A.Count > 0)
+            {
+                file_id FileID = Get(&SortingInfo->Song.Selected, NewSelectID(0));
+                i32 OnScreenID = -1;
+                if(StackFind(&SortingInfo->Song.Displayable, FileID, &OnScreenID))
+                {
+                    For(DisplayInfo->Song.Base.Count) 
+                    {
+                        if(DisplayInfo->Song.Base.OnScreenIDs[It].ID == OnScreenID)
+                        {
+                            OnScreenID = It;
+                            break;
+                        }
+                    }
+                    
+                    music_btn BtnInfo = {&GlobalGameState, &GlobalGameState.MusicInfo.PlayingSong};
+                    OnStopSong(&BtnInfo);
+                    song_play_btn BtnInfo2 = {(u32)OnScreenID, &GlobalGameState};
+                    OnSongPlayPressed(&BtnInfo2);
+                }
+                else Assert(false);
+            }
+            else
+            {
+                music_btn BtnInfo = {&GlobalGameState, &GlobalGameState.MusicInfo.PlayingSong};
+                OnPlayPauseSongToggleOff(&BtnInfo);
+            }
+        }
+        else 
+        {
+            if(UpdateSelectionArray(&SortingInfo->Song, &DisplayInfo->Song.Base))
+            {
+                UpdateColumnColor(&DisplayInfo->Song.Base, &SortingInfo->Song);
+            }
+        }
+        
+        DisplayInfo->Song.Base.LastClickTime = GlobalGameState.Time.GameTime;
+    }
+    else if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
+    {
+        
+        if(GlobalGameState.Time.GameTime - DisplayInfo->Genre.LastClickTime < DOUBLE_CLICK_TIME)
+            Result = SelectAllOrNothing(&DisplayInfo->Genre, &SortingInfo->Genre);
+        else Result = UpdateSelectionArray(&SortingInfo->Genre, &DisplayInfo->Genre);
+        
+        if(Result)
+        {
+            PropagateSelectionChange(SortingInfo);
+            DisplayInfo->Artist.DisplayCursor = 0;
+            DisplayInfo->Album.DisplayCursor  = 0;
+        }
+        
+        DisplayInfo->Genre.LastClickTime = GlobalGameState.Time.GameTime;
+    }
+    else if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
+    {
+        if(GlobalGameState.Time.GameTime - DisplayInfo->Artist.LastClickTime < DOUBLE_CLICK_TIME)
+            Result = SelectAllOrNothing(&DisplayInfo->Artist, &SortingInfo->Artist);
+        else Result = UpdateSelectionArray(&SortingInfo->Artist, &DisplayInfo->Artist);
+        
+        if(Result)
+        {
+            PropagateSelectionChange(SortingInfo);
+            DisplayInfo->Album.DisplayCursor  = 0;
+        }
+        
+        DisplayInfo->Artist.LastClickTime = GlobalGameState.Time.GameTime;
+    }
+    else if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
+    {
+        if(GlobalGameState.Time.GameTime - DisplayInfo->Album.LastClickTime < DOUBLE_CLICK_TIME)
+            Result = SelectAllOrNothing(&DisplayInfo->Album, &SortingInfo->Album);
+        else Result = UpdateSelectionArray(&SortingInfo->Album, &DisplayInfo->Album);
+        
+        DisplayInfo->Album.LastClickTime = GlobalGameState.Time.GameTime;
+    }
+    
+    return Result;
+}
 
 
 

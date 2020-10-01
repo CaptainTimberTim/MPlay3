@@ -114,8 +114,8 @@ internal JOB_LIST_CALLBACK(DoJobWork)
 
 // Sound Thread
 
-inline LARGE_INTEGER GetWallClock();
-inline r32 GetSecondsElapsed(i64 PerfCountFrequency, LARGE_INTEGER Start, LARGE_INTEGER End);
+inline LONGLONG GetWallClock();
+inline r32 GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End);
 
 internal DWORD WINAPI
 SoundThreadProc(LPVOID Data)

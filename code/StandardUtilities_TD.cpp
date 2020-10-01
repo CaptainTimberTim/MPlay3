@@ -633,10 +633,8 @@ DestroyArray(memory_bucket_container *Bucket, array_u32 Array)
 inline void 
 Put(array_u32 *Array, u32 Pos, u32 Item)
 {
-    //Assert(Array->Count < Array->Length);
     Assert(Pos < Array->Length);
     Array->Slot[Pos] = Item;
-    //Array->Count++;
 }
 
 inline u32
@@ -692,11 +690,11 @@ Reset(array_u32 *Array)
 }
 
 inline void
-Clear(array_u32 *Array)
+Clear(array_u32 *Array, u32 Value)
 {
-    For(Array->Count)
+    For(Array->Length)
     {
-        Array->Slot[It] = 0;
+        Array->Slot[It] = Value;
     }
     Reset(Array);
 }
@@ -840,6 +838,15 @@ AppendArray(array_u32 *Array1, array_u32 *Array2)
     }
 }
 
+inline void 
+MergeArrays(array_u32 *Array1, array_u32 *Array2)
+{
+    For(Array2->Count)
+    {
+        PushIfNotExist(Array1, Get(Array2, It));
+    }
+}
+
 inline void
 Switch(array_u32 *Array, u32 P1, u32 P2)
 {
@@ -944,6 +951,103 @@ PrintArray(array_u32 Array)
     DebugLog(3, "]\n");
 }
 
+
+// 3-Way Quicksort ***********************************************
+inline void
+Swap(u32 *A, u32 *B)
+{
+    u32 T = *A;
+    *A = *B;
+    *B = T;
+}
+
+// This function partitions a[] in three parts 
+// a) a[l..i] contains all elements smaller than pivot 
+// b) a[i+1..j-1] contains all occurrences of pivot 
+// c) a[j..r] contains all elements greater than pivot
+internal void
+Partition(array_u32 Array, i32 l, i32 r, i32 *i, i32 *j) 
+{ 
+    *i = l-1;
+    *j = r; 
+    i32 p = l-1;
+    i32 q = r; 
+    u32 v = Array.Slot[r]; 
+    
+    while (true) 
+    { 
+        // From left, find the first element smaller than 
+        // or equal to v. This loop will definitely terminate 
+        // as v is last element 
+        while (Array.Slot[++(*i)] < v) ; 
+        
+        // From right, find the first element greater than or 
+        // equal to v 
+        while (v < Array.Slot[--(*j)]) 
+            if (*j == l) 
+            break; 
+        
+        // If i and j cross, then we are done 
+        if (*i >= *j) break; 
+        
+        // Swap, so that smaller goes on left greater goes on right 
+        Swap(Array.Slot+ *i, Array.Slot+ *j); 
+        
+        // Move all same left occurrence of pivot to beginning of 
+        // array and keep count using p 
+        if (Array.Slot[*i] == v) 
+        { 
+            p++; 
+            Swap(Array.Slot + p, Array.Slot + *i); 
+        } 
+        
+        // Move all same right occurrence of pivot to end of array 
+        // and keep count using q 
+        if (Array.Slot[*j] == v) 
+        { 
+            q--; 
+            Swap(Array.Slot + *j, Array.Slot + q); 
+        } 
+    } 
+    
+    // Move pivot element to its correct index 
+    Swap(Array.Slot+*i, Array.Slot+r); 
+    
+    // Move all left same occurrences from beginning 
+    // to adjacent to arr[i] 
+    *j = (*i)-1; 
+    for (i32 k = l; k < p; k++, (*j)--) 
+        Swap(Array.Slot+k, Array.Slot+*j); 
+    
+    // Move all right same occurrences from end 
+    // to adjacent to arr[i] 
+    *i = (*i)+1; 
+    for (i32 k = r-1; k > q; k--, (*i)++) 
+        Swap(Array.Slot+*i, Array.Slot+k); 
+} 
+
+// 3-way partition based quick sort 
+inline void 
+Quicksort3Recurse(array_u32 Array, i32 l, i32 r) 
+{ 
+    if (r <= l) return; 
+    
+    i32 i, j; 
+    
+    // Note that i and j are passed as reference 
+    Partition(Array, l, r, &i, &j); 
+    
+    // Recur 
+    Quicksort3Recurse(Array, l, j); 
+    Quicksort3Recurse(Array, i, r); 
+}
+
+inline void 
+QuickSort3(array_u32 Array, b32 SortOnLength_NotCount)
+{
+    if(SortOnLength_NotCount) Quicksort3Recurse(Array, 0, Array.Length-1);
+    else Quicksort3Recurse(Array, 0, Array.Count-1);
+}
 
 
 

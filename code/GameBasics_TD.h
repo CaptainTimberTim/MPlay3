@@ -27,6 +27,13 @@ enum cursor_state
     cursorState_Drag,
 };
 
+struct timer
+{
+    u32 Count;
+    i64 Start;
+    i64 LastSnap;
+};
+
 struct game_state
 {
     string_c DataPath;
@@ -55,3 +62,11 @@ struct game_state
 
 internal loaded_bitmap LoadImage_STB(u8 *Path);
 inline void FreeImage_STB(loaded_bitmap Bitmap);
+
+#if DEBUG_TD
+inline timer StartTimer();
+inline void SnapTimer(timer *Timer);
+#else
+#define StartTimer() {}
+#define SnapTimer(f) 
+#endif

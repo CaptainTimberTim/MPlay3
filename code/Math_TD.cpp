@@ -336,6 +336,12 @@ Lerp(i32 A, i32 B, r32 T)
     return Result;
 }
 
+inline r32
+GraphFirstQuickThenSlow(r32 x)
+{
+    return -Pow(x-1, 4) + 1;
+}
+
 inline i32
 Max(i32 A, i32 B)
 {

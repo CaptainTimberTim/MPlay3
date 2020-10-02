@@ -22,3 +22,8 @@
 - Added DebugTimer feature, to time code blocks via StartTimer() and SnapTimer().
 - Added double click for all columns except for song. Double click now selects all slots that are displayed. 
 - Added double click for song column. It starts playing the clicked song or pauses it, when it was already playing.
+
+02.10.2020
+- Changed QuickSort3 in FillDisplayables to a much simpler RemoveCheckValue, as they actually do not need to be sorted at that point.
+- Added a quit animation when pressing Esc. Now it does not just quit, instead you have to hold Esc for 1 second.
+- Added quit animation also to alt+f4 and window X button with double speed.

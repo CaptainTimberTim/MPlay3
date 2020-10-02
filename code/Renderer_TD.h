@@ -276,7 +276,11 @@ inline void SetPositionX(entry_id *Entry, r32 X);
 inline void SetPositionY(entry_id *Entry, r32 Y);
 inline v2   GetLocalPosition(entry_id *Entry); // Get Raw + Transform
 inline void SetLocalPosition(entry_id *Entry, v2 Position); // Set Transform
+inline void SetLocalPositionY(entry_id *Entry, r32 NewY);
+inline void SetLocalPositionX(entry_id *Entry, r32 NewX);
 inline void Translate(entry_id *Entry, v2 TranslationOffset); // Move Transform
+
+inline void SetActive(entry_id *Entry, b32 Activate);
 
 // Helper for entry relations
 inline rect ExtractScreenRect(entry_id *Entry);
@@ -318,7 +322,7 @@ inline void SetPosition(render_text *Info, v2 P);
 inline void SetPositionX(render_text *Info, r32 X);
 inline void SetPositionY(render_text *Info, r32 Y);
 inline void SetLocalPosition(render_text *Text, v2 P);
-inline void SetRenderText(render_text *Text, b32 Render);
+inline void SetActive(render_text *Text, b32 Render);
 inline void SetColor(render_text *Text, v3 *Color);
 inline void Translate(render_text *Info, v2 Translation);
 inline v2   GetPosition(render_text *Info, u32 LetterID);

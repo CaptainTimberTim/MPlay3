@@ -2006,7 +2006,7 @@ MergeDisplayArrays(array_file_id *A1, array_file_id *A2, u32 CheckValue)
     }
 }
 
-internal void
+inline void
 PutAndCheck(array_file_id *A1, file_id ID, u32 CheckValue)
 {
     Assert((i32)A1->A.Length > ID.ID);
@@ -2017,12 +2017,18 @@ PutAndCheck(array_file_id *A1, file_id ID, u32 CheckValue)
     }
 }
 
-inline b32
-IsBigger(i32 T1, i32 T2, void *Data)
+internal void
+RemoveCheckValueFromArray(array_u32 Array, u32 CheckValue)
 {
-    array_u32 *A = (array_u32 *)Data;
-    
-    return A->Slot[T1] < A->Slot[T2];
+    u32 BackIt = Array.Length-1;
+    For(Array.Count)
+    {
+        if(Array.Slot[It] != CheckValue) continue;
+        while(Array.Slot[BackIt] == CheckValue) BackIt--;
+        if(BackIt < Array.Count) break;
+        
+        Array.Slot[It] = Array.Slot[BackIt--];
+    }
 }
 
 internal void
@@ -2107,9 +2113,15 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
     }
     
     timer Timer = StartTimer();
+#if 0
     if(SortingInfo->Artist.Displayable.A.Count > 0) QuickSort3(SortingInfo->Artist.Displayable.A, true);
     if(SortingInfo->Album.Displayable.A.Count > 0) QuickSort3(SortingInfo->Album.Displayable.A, true);
     if(SortingInfo->Song.Displayable.A.Count > 0) QuickSort3(SortingInfo->Song.Displayable.A, true);
+#else
+    if(SortingInfo->Artist.Displayable.A.Count > 0) RemoveCheckValueFromArray(SortingInfo->Artist.Displayable.A, CheckValue);
+    if(SortingInfo->Album.Displayable.A.Count > 0) RemoveCheckValueFromArray(SortingInfo->Album.Displayable.A, CheckValue);
+    if(SortingInfo->Song.Displayable.A.Count > 0) RemoveCheckValueFromArray(SortingInfo->Song.Displayable.A, CheckValue);
+#endif
     SnapTimer(&Timer);
     
     if(SortingInfo->Genre.Selected.A.Count == 0)

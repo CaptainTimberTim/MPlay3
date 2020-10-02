@@ -213,6 +213,14 @@ struct music_display_info
     
     playing_song_panel PlayingSongPanel;
     music_path_ui MusicPath;
+    
+    // Quit curtain
+    b32 QuitAnimationStart;
+    b32 WindowExit;
+    entry_id *QuitCurtain;
+    render_text QuitText;
+    r32 dQuitAnim;
+    r32 QuitTime;
 };
 
 

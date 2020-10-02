@@ -509,12 +509,12 @@ ResetColumnText(renderer *Renderer, music_display_column *DisplayColumn, column_
             SetPositionX(ColumnExt(DisplayColumn)->SongTrack+It, TextX+SONG_TRACK_X_OFFSET);
             SetPositionX(ColumnExt(DisplayColumn)->SongYear+It, TextX+SONG_ARTIST_X_OFFSET);
             
-            SetRenderText(ColumnExt(DisplayColumn)->SongTitle+It, true);
-            SetRenderText(ColumnExt(DisplayColumn)->SongArtist+It, true);
-            SetRenderText(ColumnExt(DisplayColumn)->SongAlbum+It, true);
-            SetRenderText(ColumnExt(DisplayColumn)->SongGenre+It, true);
-            SetRenderText(ColumnExt(DisplayColumn)->SongTrack+It, true);
-            SetRenderText(ColumnExt(DisplayColumn)->SongYear+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongTitle+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongArtist+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongAlbum+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongGenre+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongTrack+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongYear+It, true);
             
             r32 NewBtnX = GetPosition(DisplayColumn->LeftBorder).x;
             SetPositionX(ColumnExt(DisplayColumn)->Play[It]->Entry, NewBtnX+SONG_PLAY_BUTTON_X_OFFSET);
@@ -523,7 +523,7 @@ ResetColumnText(renderer *Renderer, music_display_column *DisplayColumn, column_
         else
         {
             SetPositionX(DisplayColumn->Text+It, TextX);
-            SetRenderText(DisplayColumn->Text+It, true);
+            SetActive(DisplayColumn->Text+It, true);
         }
     }
 }
@@ -955,15 +955,15 @@ ChangeDisplayColumnCount(renderer *Renderer, music_display_column *DisplayColumn
     {
         if(DisplayColumn->Type == columnType_Song) 
         {
-            SetRenderText(ColumnExt(DisplayColumn)->SongTitle+ID, false);
-            SetRenderText(ColumnExt(DisplayColumn)->SongArtist+ID, false);
-            SetRenderText(ColumnExt(DisplayColumn)->SongAlbum+ID, false);
-            SetRenderText(ColumnExt(DisplayColumn)->SongTrack+ID, false);
-            SetRenderText(ColumnExt(DisplayColumn)->SongYear+ID, false);
+            SetActive(ColumnExt(DisplayColumn)->SongTitle+ID, false);
+            SetActive(ColumnExt(DisplayColumn)->SongArtist+ID, false);
+            SetActive(ColumnExt(DisplayColumn)->SongAlbum+ID, false);
+            SetActive(ColumnExt(DisplayColumn)->SongTrack+ID, false);
+            SetActive(ColumnExt(DisplayColumn)->SongYear+ID, false);
             
             SetSongButtonsActive(ColumnExt(DisplayColumn), ID, false);
         }
-        else SetRenderText(DisplayColumn->Text+ID, false);
+        else SetActive(DisplayColumn->Text+ID, false);
         if(DisplayColumn->BGRects[ID]) DisplayColumn->BGRects[ID]->ID->Render = false;
     }
     
@@ -1522,7 +1522,7 @@ OnMusicPathPressed(void *Data)
         SetActive(&MusicPath->LoadingBar, false);
     }
     MusicPath->Background->ID->Render = MusicPath->TextField.IsActive;
-    SetRenderText(&MusicPath->CurrentPath, MusicPath->TextField.IsActive);
+    SetActive(&MusicPath->CurrentPath, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Rescan, MusicPath->TextField.IsActive);
@@ -1868,6 +1868,20 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->LoopPlaylist->OnPressed = {OnLoopPlaylistToggleOn,  &DisplayInfo->MusicBtnInfo};
     DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
+    // Quit curtain ****************************
+    
+    DisplayInfo->QuitCurtain = CreateRenderRect(Renderer, V2(WWidth, WHeight), -0.99f,
+                                                &DisplayInfo->ColorPalette.SliderGrabThing);
+    Translate(DisplayInfo->QuitCurtain, V2(WWidth/2, WHeight/2));
+    SetActive(DisplayInfo->QuitCurtain, false);
+    DisplayInfo->dQuitAnim = 0;
+    DisplayInfo->QuitTime = 0.8f;
+    
+    string_c QuitText = NewStaticStringCompound("Goodbye!");
+    CreateRenderText(Renderer, Renderer->FontInfo.BigFont, &QuitText, &DisplayInfo->ColorPalette.Text, 
+                     &DisplayInfo->QuitText, -0.999f, 0);
+    SetPosition(&DisplayInfo->QuitText, V2(WWidth/2, WHeight/2));
+    SetActive(&DisplayInfo->QuitText, false);
 }
 
 internal void
@@ -2133,6 +2147,47 @@ CheckColumnsForSelectionChange()
     return Result;
 }
 
+inline void
+SetQuitAnimation(b32 Activate)
+{
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    DisplayInfo->QuitAnimationStart = Activate;
+    SetActive(DisplayInfo->QuitCurtain, Activate);
+    SetActive(&DisplayInfo->QuitText, Activate);
+}
+
+internal b32
+QuitAnimation(r32 Dir)
+{
+    b32 Result = false;
+    
+    window_info *Window = &GlobalGameState.Renderer.Window;
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    time_management *Time = &GlobalGameState.Time;
+    entry_id *QuitCurtain = DisplayInfo->QuitCurtain;
+    if(DisplayInfo->dQuitAnim >= 1.0f || DisplayInfo->dQuitAnim < 0.0f)
+    {
+        SetScale(QuitCurtain, V2(1, 1));
+        SetLocalPositionY(QuitCurtain, Window->CurrentDim.Height/2.0f);
+        Result = true;
+        DebugLog(250, "AnimFinished %f\n", DisplayInfo->dQuitAnim);
+        DisplayInfo->dQuitAnim = 0.0f;
+    }
+    else 
+    {
+        r32 NewYScale = GraphFirstQuickThenSlow(DisplayInfo->dQuitAnim);
+        SetSize(QuitCurtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
+        SetLocalPosition(QuitCurtain, V2(Window->CurrentDim.Width/2.0f, 
+                                         Window->CurrentDim.Height - GetSize(QuitCurtain).y/2.0f));
+        
+        SetPosition(&DisplayInfo->QuitText, V2((Window->CurrentDim.Width - DisplayInfo->QuitText.CurrentP.x)/2.0f,
+                                               Window->CurrentDim.Height - GetSize(QuitCurtain).y/2.0f));
+        
+        DisplayInfo->dQuitAnim += Time->dTime/DisplayInfo->QuitTime * Dir;
+    }
+    
+    return Result;
+}
 
 
 

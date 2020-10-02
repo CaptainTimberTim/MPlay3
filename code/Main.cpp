@@ -136,6 +136,9 @@ WindowGotResized(game_state *GameState)
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Song, &DisplayInfo->Song.Base);
         
+        SetQuitAnimation(false);
+        DisplayInfo->dQuitAnim = 0;
+        
         Renderer->Window.GotResized = false;
     }
     
@@ -238,7 +241,12 @@ WindowCallback(HWND Window,
             
         } break;
         case WM_DESTROY:
-        case WM_CLOSE: { IsRunning = false; } break;
+        case WM_CLOSE: 
+        { 
+            SetQuitAnimation(true);
+            GlobalGameState.MusicInfo.DisplayInfo.WindowExit = true;
+            GlobalGameState.MusicInfo.DisplayInfo.QuitTime /= 2;
+        } break;
         case WM_ACTIVATEAPP: {} break;
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
@@ -740,7 +748,7 @@ WinMain(HINSTANCE Instance,
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(&FPSText);
                         CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, 
-                                         &FPSComp, &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9f, FPSParent);
+                                         &FPSComp, &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
                         DeleteStringCompound(&GameState->Bucket.Transient, &FPSComp);
                     }
                     else dUpdateRate += GameState->Time.dTime/0.1f;
@@ -774,18 +782,31 @@ WinMain(HINSTANCE Instance,
                     {
                         InterruptSearch(Renderer, DisplayInfo, SortingInfo);
                     }
-                    else
-                    {
-                        IsRunning = false;
-                        continue;
-                    }
+                    else SetQuitAnimation(true);
                 }
                 if(Input->Pressed[KEY_ALT_LEFT] && Input->KeyChange[KEY_F4] == KeyDown) 
                 {
-                    IsRunning = false;
-                    continue;
+                    SetQuitAnimation(true);
+                    DisplayInfo->WindowExit = true;
+                    DisplayInfo->QuitTime /= 2;
                 }
                 
+                if(DisplayInfo->QuitAnimationStart)
+                {
+                    if(Input->Pressed[KEY_ESCAPE] || DisplayInfo->WindowExit)
+                    {
+                        if(DisplayInfo->dQuitAnim < 0) DisplayInfo->dQuitAnim = 0;
+                        if(QuitAnimation(1))
+                        {
+                            IsRunning = false;
+                            continue;
+                        }
+                    }
+                    else 
+                    {
+                        if(QuitAnimation(-1)) SetQuitAnimation(false);
+                    }
+                }
                 
                 if(DisplayInfo->MusicPath.TextField.IsActive)
                 {
@@ -799,10 +820,13 @@ WinMain(HINSTANCE Instance,
                     TestHoveringEdgeDrags(GameState, Input->MouseP, DisplayInfo);
                     
                     // Command keys ******
-                    if(Input->KeyChange[KEY_F1] == KeyDown) OnSearchPressed(&DisplayInfo->Genre.SearchInfo);
-                    if(Input->KeyChange[KEY_F2] == KeyDown) OnSearchPressed(&DisplayInfo->Artist.SearchInfo);
-                    if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
-                    if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
+                    if(NoModifiers(Input))
+                    {
+                        if(Input->KeyChange[KEY_F1] == KeyDown) OnSearchPressed(&DisplayInfo->Genre.SearchInfo);
+                        if(Input->KeyChange[KEY_F2] == KeyDown) OnSearchPressed(&DisplayInfo->Artist.SearchInfo);
+                        if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
+                        if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
+                    }
                     if(Input->KeyChange[KEY_F9] == KeyDown)
                     {
                         SaveMP3LibraryFile(GameState, MP3Info);

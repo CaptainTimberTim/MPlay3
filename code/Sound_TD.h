@@ -30,10 +30,10 @@
 // - if glyphs not existing for font, use a backup font?
 // - stop rendering when no user input and no song is playing
 // - Switch openGL to directX?
-// - Add "want to quit" popup when esc. OR, make animation that slides down window or something when holding escape pressed!
 // - Add key shortcut button
 // - if song selected, pressing the big play should start it
 // - error popup when file not found
+// - make that pressing the keyboard buttons while window not in focus also does the things
 
 
 #include "Sound_UI_TD.h"

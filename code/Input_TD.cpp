@@ -307,6 +307,11 @@ HandleFocusRegain(input_info *Input)
     }
 }
 
+inline b32
+NoModifiers(input_info *Input)
+{
+    return !Input->Pressed[KEY_CONTROL_LEFT] && !Input->Pressed[KEY_CONTROL_RIGHT] && !Input->Pressed[KEY_ALT_LEFT] && !Input->Pressed[KEY_ALT_RIGHT];
+}
 
 
 

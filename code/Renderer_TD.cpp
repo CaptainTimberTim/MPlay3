@@ -499,9 +499,27 @@ SetLocalPosition(entry_id *Entry, v2 NewTranslation)
 }
 
 inline void
+SetLocalPositionX(entry_id *Entry, r32 NewX)
+{
+    Entry->ID->Transform.Translation.x = NewX;
+}
+
+inline void
+SetLocalPositionY(entry_id *Entry, r32 NewY)
+{
+    Entry->ID->Transform.Translation.y = NewY;
+}
+
+inline void
 Translate(entry_id *Entry, v2 TranslationOffset)
 {
     Entry->ID->Transform.Translation += TranslationOffset;
+}
+
+inline void 
+SetActive(entry_id *Entry, b32 Activate)
+{
+    Entry->ID->Render = Activate;
 }
 
 // Entry rect relation helper *********************************************************
@@ -1073,7 +1091,7 @@ GetPosition(render_text *Text, u32 LetterID)
 }
 
 inline void
-SetRenderText(render_text *Text, b32 Render)
+SetActive(render_text *Text, b32 Render)
 {
     if(Text->Base == 0) return;
     Text->Base->ID->Render = Render;

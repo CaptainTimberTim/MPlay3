@@ -1,13 +1,13 @@
 MPlay3Settings
 Version 3
 
-Volume: 0.770833
-LastPlayingSong: -1
+Volume: 0.555556
+LastPlayingSong: 7569
 ColorPalette: 4
-GenreArtistEdgeXPercent: 0.178395
-ArtistAlbumEdgeXPercent: 0.433951
-AlbumSongEdgeXPercent: 0.624196
-WindowDimensionX: 1252
-WindowDimensionY: 889
-Looping: 1
+GenreArtistEdgeXPercent: 0.157348
+ArtistAlbumEdgeXPercent: 0.415636
+AlbumSongEdgeXPercent: 0.647415
+WindowDimensionX: 2163
+WindowDimensionY: 1209
+Looping: 0
 Shuffle: 0

@@ -1407,6 +1407,7 @@ CreateBasicColorPalette(color_palette *Palette)
     Palette->SliderGrabThing  = Color(10, 40, 3);
     Palette->ButtonActive     = Color(25, 56, 18);
     Palette->PlayingSong      = Color(23, 45, 23);
+    Palette->ErrorText        = Color(170, 11, 22);
 }
 
 inline void
@@ -1421,6 +1422,7 @@ CreateEvilColorPalette(color_palette *Palette)
     Palette->SliderGrabThing  = Color(51, 9, 9);
     Palette->ButtonActive     = Color(61, 15, 15);
     Palette->PlayingSong      = Color(23, 20, 20);
+    Palette->ErrorText        = Color(170, 11, 22);
 }
 
 inline void
@@ -1435,6 +1437,7 @@ CreateAquaColorPalette(color_palette *Palette)
     Palette->SliderGrabThing  = Color(50,54,78);
     Palette->ButtonActive     = Color(70,68,94);
     Palette->PlayingSong      = Color(35,39,63);
+    Palette->ErrorText        = Color(170, 11, 22);
 }
 
 inline void
@@ -1449,6 +1452,7 @@ CreateMonochromeColorPalette(color_palette *Palette)
     Palette->SliderGrabThing  = Color(70,73,73);
     Palette->ButtonActive     = Color(86,88,88);
     Palette->PlayingSong      = Color(235,235,235);
+    Palette->ErrorText        = Color(170, 11, 22);
 }
 
 inline void
@@ -1463,6 +1467,7 @@ CreateMonoInvertedColorPalette(color_palette *Palette)
     Palette->SliderGrabThing  = Color(70,73,73);
     Palette->ButtonActive     = Color(78,80,80);
     Palette->PlayingSong      = Color(38,35,35);
+    Palette->ErrorText        = Color(170, 11, 22);
 }
 
 inline void
@@ -1869,19 +1874,28 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
     // Quit curtain ****************************
+    quit_animation *QuitStuff = &DisplayInfo->Quit;
     
-    DisplayInfo->QuitCurtain = CreateRenderRect(Renderer, V2(WWidth, WHeight), -0.99f,
-                                                &DisplayInfo->ColorPalette.SliderGrabThing);
-    Translate(DisplayInfo->QuitCurtain, V2(WWidth/2, WHeight/2));
-    SetActive(DisplayInfo->QuitCurtain, false);
-    DisplayInfo->dQuitAnim = 0;
-    DisplayInfo->QuitTime = 0.8f;
+    QuitStuff->Curtain = CreateRenderRect(Renderer, V2(WWidth, WHeight), -0.99f,
+                                          &DisplayInfo->ColorPalette.SliderGrabThing);
+    Translate(QuitStuff->Curtain, V2(WWidth/2, WHeight/2));
+    SetActive(QuitStuff->Curtain, false);
+    QuitStuff->dAnim = 0;
+    QuitStuff->Time = 0.8f;
     
     string_c QuitText = NewStaticStringCompound("Goodbye!");
     CreateRenderText(Renderer, Renderer->FontInfo.BigFont, &QuitText, &DisplayInfo->ColorPalette.Text, 
-                     &DisplayInfo->QuitText, -0.999f, 0);
-    SetPosition(&DisplayInfo->QuitText, V2(WWidth/2, WHeight/2));
-    SetActive(&DisplayInfo->QuitText, false);
+                     &QuitStuff->Text, -0.999f, 0);
+    SetPosition(&QuitStuff->Text, V2(WWidth/2, WHeight/2));
+    SetActive(&QuitStuff->Text, false);
+    
+    QuitStuff->LastEscapePressTime = -10;
+    
+    // User error text *************************************
+    user_error_text *UserErrorText = &DisplayInfo->UserErrorText;
+    
+    UserErrorText->AnimTime = 2.5f;
+    UserErrorText->dAnim = 1.0f;
 }
 
 internal void
@@ -2148,12 +2162,11 @@ CheckColumnsForSelectionChange()
 }
 
 inline void
-SetQuitAnimation(b32 Activate)
+SetQuitAnimation(quit_animation *Quit, b32 Activate)
 {
-    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-    DisplayInfo->QuitAnimationStart = Activate;
-    SetActive(DisplayInfo->QuitCurtain, Activate);
-    SetActive(&DisplayInfo->QuitText, Activate);
+    Quit->AnimationStart = Activate;
+    SetActive(Quit->Curtain, Activate);
+    SetActive(&Quit->Text, Activate);
 }
 
 internal b32
@@ -2164,30 +2177,77 @@ QuitAnimation(r32 Dir)
     window_info *Window = &GlobalGameState.Renderer.Window;
     music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
     time_management *Time = &GlobalGameState.Time;
-    entry_id *QuitCurtain = DisplayInfo->QuitCurtain;
-    if(DisplayInfo->dQuitAnim >= 1.0f || DisplayInfo->dQuitAnim < 0.0f)
+    quit_animation *Quit = &GlobalGameState.MusicInfo.DisplayInfo.Quit;
+    if(Quit->dAnim >= 1.0f || Quit->dAnim < 0.0f)
     {
-        SetScale(QuitCurtain, V2(1, 1));
-        SetLocalPositionY(QuitCurtain, Window->CurrentDim.Height/2.0f);
+        SetScale(Quit->Curtain, V2(1, 1));
+        SetLocalPositionY(Quit->Curtain, Window->CurrentDim.Height/2.0f);
         Result = true;
-        DebugLog(250, "AnimFinished %f\n", DisplayInfo->dQuitAnim);
-        DisplayInfo->dQuitAnim = 0.0f;
+        Quit->dAnim = 0.0f;
     }
     else 
     {
-        r32 NewYScale = GraphFirstQuickThenSlow(DisplayInfo->dQuitAnim);
-        SetSize(QuitCurtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
-        SetLocalPosition(QuitCurtain, V2(Window->CurrentDim.Width/2.0f, 
-                                         Window->CurrentDim.Height - GetSize(QuitCurtain).y/2.0f));
+        Quit->dAnim += Time->dTime/Quit->Time * Dir;
         
-        SetPosition(&DisplayInfo->QuitText, V2((Window->CurrentDim.Width - DisplayInfo->QuitText.CurrentP.x)/2.0f,
-                                               Window->CurrentDim.Height - GetSize(QuitCurtain).y/2.0f));
+        r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
+        SetSize(Quit->Curtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
+        SetLocalPosition(Quit->Curtain, V2(Window->CurrentDim.Width/2.0f, 
+                                           Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
         
-        DisplayInfo->dQuitAnim += Time->dTime/DisplayInfo->QuitTime * Dir;
+        SetPosition(&Quit->Text, V2((Window->CurrentDim.Width - Quit->Text.CurrentP.x)/2.0f,
+                                    Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
     }
     
     return Result;
 }
+
+inline void
+PushUserErrorMessage(string_c *String)
+{
+    renderer *Renderer = &GlobalGameState.Renderer;
+    user_error_text *ErrorInfo = &GlobalGameState.MusicInfo.DisplayInfo.UserErrorText;
+    
+    // For each output character we extend the visibility time of the message.
+    ErrorInfo->AnimTime = 1.0f + String->Pos*0.1f; 
+    
+    render_text_atlas *Atlas = Renderer->FontInfo.MediumFont;
+    if(String->Pos > 60) Atlas = Renderer->FontInfo.SmallFont;
+    
+    CreateRenderText(Renderer, Atlas, String,
+                     &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText,
+                     &ErrorInfo->Message, -0.8f, 0);
+    SetTransparency(&ErrorInfo->Message, 0);
+    ErrorInfo->dAnim = 0;
+    ErrorInfo->IsAnimating = true;
+}
+
+inline void
+AnimateErrorMessage(user_error_text *ErrorInfo, r32 dTime)
+{
+    if(ErrorInfo->IsAnimating)
+    {
+        if(ErrorInfo->dAnim >= 1.0f)
+        {
+            SetActive(&ErrorInfo->Message, false);
+            RemoveRenderText(&ErrorInfo->Message);
+            ErrorInfo->IsAnimating = false;
+        }
+        else 
+        {
+            r32 Alpha = 1-Pow(ErrorInfo->dAnim, 10);
+            SetTransparency(&ErrorInfo->Message, Alpha);
+            SetPosition(&ErrorInfo->Message, V2(105, GlobalGameState.Renderer.Window.CurrentDim.Height - 16.0f));
+            
+            ErrorInfo->dAnim += dTime/ErrorInfo->AnimTime;
+        }
+    }
+}
+
+
+
+
+
+
 
 
 

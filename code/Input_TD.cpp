@@ -313,8 +313,27 @@ NoModifiers(input_info *Input)
     return !Input->Pressed[KEY_CONTROL_LEFT] && !Input->Pressed[KEY_CONTROL_RIGHT] && !Input->Pressed[KEY_ALT_LEFT] && !Input->Pressed[KEY_ALT_RIGHT];
 }
 
+inline i32
+AddHotKey(HWND Window, input_info *Input, key_code KeyCode)
+{
+    i32 Result = -1;
+    if(Input->_HotKeyCount < MAX_HOTKEYS)
+    {
+        if(RegisterHotKey(Window, Input->_HotKeyCount, MOD_NOREPEAT, KeyCodeToWindowsKey(KeyCode)))
+        {
+            Input->HotKeys[Input->_HotKeyCount] = KeyCode;
+            Result = Input->_HotKeyCount++;
+        }
+    }
+    return Result;
+}
 
-
+inline void
+HandleHotkey(input_info *Input, i32 HotKeyID, u64 LParam)
+{
+    Assert(HotKeyID < Input->_HotKeyCount);
+    UpdateKeyChange(Input, KeyCodeToWindowsKey(Input->HotKeys[HotKeyID]), LParam);
+}
 
 
 

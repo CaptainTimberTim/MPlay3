@@ -136,8 +136,9 @@ WindowGotResized(game_state *GameState)
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Song, &DisplayInfo->Song.Base);
         
-        SetQuitAnimation(false);
-        DisplayInfo->dQuitAnim = 0;
+        SetQuitAnimation(&DisplayInfo->Quit, false);
+        DisplayInfo->Quit.dAnim = 0;
+        AnimateErrorMessage(&DisplayInfo->UserErrorText, 0);
         
         Renderer->Window.GotResized = false;
     }
@@ -243,9 +244,10 @@ WindowCallback(HWND Window,
         case WM_DESTROY:
         case WM_CLOSE: 
         { 
-            SetQuitAnimation(true);
-            GlobalGameState.MusicInfo.DisplayInfo.WindowExit = true;
-            GlobalGameState.MusicInfo.DisplayInfo.QuitTime /= 2;
+            quit_animation *Quit = &GlobalGameState.MusicInfo.DisplayInfo.Quit;
+            SetQuitAnimation(Quit, true);
+            Quit->WindowExit = true;
+            Quit->Time /= 2;
         } break;
         case WM_ACTIVATEAPP: {} break;
         case WM_SYSKEYDOWN:
@@ -292,6 +294,10 @@ ProcessPendingMessages(input_info *Input, HWND Window)
         switch(Message.message)
         {
             case WM_QUIT: { IsRunning = false; } break;
+            case WM_HOTKEY:
+            {
+                HandleHotkey(Input, (i32)Message.wParam, Message.lParam);
+            } break;
             case WM_CHAR: 
             {
                 UpdateTypedCharacters(Input, (u8)Message.wParam);
@@ -521,6 +527,10 @@ WinMain(HINSTANCE Instance,
             HDC DeviceContext = GetDC(Window);
             InitOpenGL(Window);
             
+            AddHotKey(Window, Input, KEY_PLAY_PAUSE);
+            AddHotKey(Window, Input, KEY_STOP);
+            AddHotKey(Window, Input, KEY_NEXT);
+            AddHotKey(Window, Input, KEY_PREVIOUS);
             // ********************************************
             // Threading***********************************
             // ********************************************
@@ -539,8 +549,8 @@ WinMain(HINSTANCE Instance,
             
             NewSoundInstance(&SoundThreadInfo.SoundInfo.SoundInstance, Window, 48000, 2, GameState->Time.GameHz);
             SoundThreadInfo.SoundSamples = PushArrayOnBucket(&GameState->Bucket.Fixed, 
-                                                             SoundThreadInfo.SoundInfo.SoundInstance.BufferSize, 
-                                                             i16);
+                                                             SoundThreadInfo.SoundInfo.SoundInstance.BufferSize, i16);
+            GameState->ThreadErrorList.Mutex = CreateMutexExA(0, 0, 0, MUTEX_ALL_ACCESS);
             
             InitializeSoundThread(&SoundThreadData, ProcessSound, &SoundThreadInfo);
             
@@ -755,6 +765,8 @@ WinMain(HINSTANCE Instance,
                     FPSCount = (FPSCount+1)%100;
                 }
 #endif
+                AnimateErrorMessage(&DisplayInfo->UserErrorText, GameState->Time.dTime);
+                ProcessThreadErrors();
                 
                 // *******************************************
                 // Thread handling ****************************
@@ -782,29 +794,39 @@ WinMain(HINSTANCE Instance,
                     {
                         InterruptSearch(Renderer, DisplayInfo, SortingInfo);
                     }
-                    else SetQuitAnimation(true);
+                    else 
+                    {
+                        SetQuitAnimation(&DisplayInfo->Quit, true);
+                        if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) <= DOUBLE_CLICK_TIME)
+                        {
+                            DisplayInfo->Quit.WindowExit = true;
+                            DisplayInfo->Quit.Time /= 2;
+                        }
+                        DisplayInfo->Quit.LastEscapePressTime = GameState->Time.GameTime;
+                    }
                 }
                 if(Input->Pressed[KEY_ALT_LEFT] && Input->KeyChange[KEY_F4] == KeyDown) 
                 {
-                    SetQuitAnimation(true);
-                    DisplayInfo->WindowExit = true;
-                    DisplayInfo->QuitTime /= 2;
+                    SetQuitAnimation(&DisplayInfo->Quit, true);
+                    DisplayInfo->Quit.WindowExit = true;
+                    DisplayInfo->Quit.Time /= 2;
                 }
                 
-                if(DisplayInfo->QuitAnimationStart)
+                if(DisplayInfo->Quit.AnimationStart)
                 {
-                    if(Input->Pressed[KEY_ESCAPE] || DisplayInfo->WindowExit)
+                    if(Input->Pressed[KEY_ESCAPE] || DisplayInfo->Quit.WindowExit)
                     {
-                        if(DisplayInfo->dQuitAnim < 0) DisplayInfo->dQuitAnim = 0;
+                        if(DisplayInfo->Quit.dAnim < 0) DisplayInfo->Quit.dAnim = 0;
                         if(QuitAnimation(1))
                         {
                             IsRunning = false;
                             continue;
                         }
+                        DisplayInfo->Quit.LastEscapePressTime = GameState->Time.GameTime;
                     }
-                    else 
+                    else if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) > DOUBLE_CLICK_TIME)
                     {
-                        if(QuitAnimation(-1)) SetQuitAnimation(false);
+                        if(QuitAnimation(-1)) SetQuitAnimation(&DisplayInfo->Quit, false);
                     }
                 }
                 
@@ -936,6 +958,14 @@ WinMain(HINSTANCE Instance,
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
                             AddJobs_LoadOnScreenMP3s(GameState, JobQueue);
                         }
+                    }
+                    
+                    if(Input->KeyChange[KEY_V] == KeyUp)
+                    {
+                        string_c ErrorMsg = NewStringCompound(&GameState->Bucket.Transient, 555);
+                        AppendStringToCompound(&ErrorMsg, (u8 *)"Could not load song from disk.");
+                        PushUserErrorMessage(&ErrorMsg);
+                        DeleteStringCompound(&GameState->Bucket.Transient, &ErrorMsg);
                     }
                     
                     if(Input->WheelAmount != 0)

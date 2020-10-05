@@ -1,7 +1,5 @@
 ********* Progress Info - DevLog? *********
 
-
-
 22.09.2020
 - Fixed shuffle not effecting playing songs, when it was already in playmode.
 - Fixed Assert crash when there are more samples to be played than I write every frame (happened on output hardware change). 
@@ -27,3 +25,15 @@
 - Changed QuickSort3 in FillDisplayables to a much simpler RemoveCheckValue, as they actually do not need to be sorted at that point.
 - Added a quit animation when pressing Esc. Now it does not just quit, instead you have to hold Esc for 1 second.
 - Added quit animation also to alt+f4 and window X button with double speed.
+
+03.10.2020
+- Added error messaging for the user. Only for main thead yet.
+- Added a error message queue for threading.
+
+04.10.2020
+- Added double-escape-press for fast/auto quit.
+- Added a "wait for double-escape-press" in animation. 
+- When a .mp3 decode/read error is detected and pushed to the user, now it will not crash if the song is pressed again.
+- Finally added ReadEndOfFile to extract ID3v1 metadata without reading the entire file.
+- Now properly searching for additional metadata in ID3v1, if ID3v2 or ID3v3 do not have all infos.
+- Special keyboard key for PlayPause/Stop/Next/Previous are now processed even when application is not focused.

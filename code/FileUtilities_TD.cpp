@@ -72,7 +72,6 @@ ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileD
         if (GetFileSizeEx(FileHandle, &FileSize))
         {
             u32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
-            //FileData->Contents = (char *)VirtualAlloc(0, FileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
             FileData->Data = (u8 *)PushSizeOnBucket(BucketContainer, FileSize32+1);
             if (FileData->Data)
             {
@@ -147,6 +146,75 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
                     FreeFileMemory(Bucket, FileData->Data);
                     FileData->Data = 0;
                     printf("Could not read the file.\n");
+                }
+            }
+            else
+            {
+                printf("Could not get Memory for file.\n");
+            }
+        }
+        else
+        {
+            printf("Could not get file size.\n");
+        }
+        CloseHandle(FileHandle);
+    }
+    else
+    {
+        //printf("Could not open File: \"%s\".\n", Filename);
+    }
+    return(Result);
+}
+
+internal b32 
+ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount)
+{
+    b32 Result = false;
+    
+    string_w FileNameWide = {};
+    ConvertString8To16(&Bucket->Parent->Transient, Filename, &FileNameWide);
+    Result = ReadEndOfFile(Bucket, FileData, &FileNameWide, ReadAmount);
+    DeleteStringW(&Bucket->Parent->Transient, &FileNameWide);
+    
+    return Result;
+}
+
+internal b32 
+ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount)
+{
+    b32 Result = false;
+    HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    if (FileHandle != INVALID_HANDLE_VALUE)
+    {
+        LARGE_INTEGER FileSize;
+        if (GetFileSizeEx(FileHandle, &FileSize))
+        {
+            Assert(FileSize.QuadPart < MAX_UINT32);
+            u32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
+            FileData->Data = (u8 *)PushSizeOnBucket(Bucket, ReadAmount);
+            if (FileData->Data)
+            {
+                // Now move the file pointer to start reading from the end
+                LARGE_INTEGER MoveAmount = FileSize;
+                MoveAmount.QuadPart = ((MoveAmount.QuadPart - ReadAmount) < 0) ? 0 : (MoveAmount.QuadPart - ReadAmount);
+                if(SetFilePointerEx(FileHandle, MoveAmount, 0, FILE_BEGIN))
+                {
+                    DWORD BytesRead;
+                    if (ReadFile(FileHandle, FileData->Data, ReadAmount, &BytesRead, 0))
+                    {
+                        FileData->Size = BytesRead;
+                        Result = true;
+                    }
+                    else
+                    {
+                        FreeFileMemory(Bucket, FileData->Data);
+                        FileData->Data = 0;
+                        printf("Could not read the file.\n");
+                    }
+                }
+                else
+                {
+                    DebugLog(255, "ERROR:: Could not move FilePointer.\n");
                 }
             }
             else

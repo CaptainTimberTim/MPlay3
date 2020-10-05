@@ -17,6 +17,8 @@ internal b32 ReadEntireFile(memory_bucket_container *BucketContainer, read_file_
 internal b32 ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, string_w *Filename);
 internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount);
 internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount);
+internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount);
+internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount);
 internal b32 AppendToFile(memory_bucket_container *BucketContainer, char *FileName, u32 MemorySize, void *Memory);
 
 // .obj loader methods

@@ -58,6 +58,8 @@ struct game_state
     
     crawl_thread CrawlInfo;
     check_music_path CheckMusicPath;
+    
+    thread_error_list ThreadErrorList;
 };
 
 internal loaded_bitmap LoadImage_STB(u8 *Path);

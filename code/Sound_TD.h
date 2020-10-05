@@ -33,8 +33,8 @@
 // - Add key shortcut button
 // - if song selected, pressing the big play should start it
 // - error popup when file not found
-// - make that pressing the keyboard buttons while window not in focus also does the things
-
+// - bug: when resizing and a column as at the bottom, it repeats the last slot
+// - bug: enter in song search crashes.
 
 #include "Sound_UI_TD.h"
 
@@ -225,6 +225,21 @@ struct check_music_path
     array_u32 AddTestInfoIDs;
 };
 
+#define MAX_THREAD_ERRORS 20
+struct error_item
+{
+    load_error_codes Code;
+    file_id ID;
+};
+
+struct thread_error_list
+{
+    error_item Errors[MAX_THREAD_ERRORS];
+    u32 Count;
+    
+    b32 RemoveDecode;
+    HANDLE Mutex;
+};
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
 internal i32 AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, 
@@ -233,6 +248,7 @@ inline displayable_id FileIDToColumnDisplayID(music_display_column *DisplayColum
 internal b32 AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
 internal b32 IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
+internal void PushErrorMessageFromThread(error_item Error);
 
 global_variable string_compound GenreTypes[] =
 {

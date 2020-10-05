@@ -45,6 +45,7 @@ enum key_change
 };
 
 #define MAX_CHAR_PER_FRAME 20
+#define MAX_HOTKEYS 10
 struct input_info
 {
     key_change KeyChange[KEY_CODE_COUNT];
@@ -57,4 +58,7 @@ struct input_info
     v2 MouseP;
     i32 WheelAmount;
     b32 _MouseMoved;
+    
+    key_code HotKeys[MAX_HOTKEYS];
+    i32 _HotKeyCount;
 };

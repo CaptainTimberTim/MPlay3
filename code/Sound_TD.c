@@ -484,7 +484,7 @@ FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_cont
         DeleteStringCompound(TransientBucket, &FileType);
     }
     
-    DebugLog(555, "Found %i songs in folder %s.\n", ResultingFileInfo->Count, FolderPathStar.S);
+    //DebugLog(555, "Found %i songs in folder %s.\n", ResultingFileInfo->Count, FolderPathStar.S);
     
     DeleteStringW(TransientBucket, &WideFolderPath);
     DeleteStringCompound(TransientBucket, &FolderPathStar);
@@ -509,7 +509,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
 {
     if(File->Size >= 128)
     {
-        u8 *Current = (u8 *)File->Data + (File->Size-129);
+        u8 *Current = (u8 *)File->Data + (File->Size-128);
         
         if(*Current++ == 'T' &&
            *Current++ == 'A' &&
@@ -821,7 +821,7 @@ ExtractMetadata(memory_bucket_container *MainBucket, memory_bucket_container *Tr
     u32 MetadataSize3 = 0;
     u32 MetadataSize2 = 0;
     if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataSize3 = MetadataID3v2_3(MainBucket, TransientBucket, File, Metadata);
-    if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataID3v1(MainBucket, File, Metadata);
+    //if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataID3v1(MainBucket, File, Metadata);
     return (MetadataSize3 > 0) ? MetadataSize3 : MetadataSize2;
 }
 
@@ -861,11 +861,11 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
     return Result;
 }
 
-internal i32
+internal error_item
 LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, 
                      i32 DecodeID, b32 DoMetadataExtraction = true)
 {
-    i32 Result = DecodeID;
+    error_item Result = {(load_error_codes)DecodeID, FileID};
     string_compound FilePath = NewStringCompound(&Bucket->Transient, 255);
     ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, 
                           MP3Info->FileInfo.SubPath + FileID.ID, 
@@ -890,7 +890,7 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
             i32 DecodeResult = MP3Info->DecodeInfo.DecodedData[DecodeID].samples ? 0 : -1;
             if(DecodeResult)
             {
-                Result = loadErrorCode_DecodingFailed;
+                Result.Code = loadErrorCode_DecodingFailed;
                 OutputDebugStringA("Error.\n");
             }
             else
@@ -913,14 +913,14 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
         }
         else 
         {
-            Result = loadErrorCode_EmptyFile;
+            Result.Code = loadErrorCode_EmptyFile;
         }
         FreeFileMemory(&Bucket->Transient, FileData.Data);
     }
     else 
     {
         OutputDebugStringA("ERROR:: Failed to load file.\n");
-        Result = loadErrorCode_FileLoadFailed;
+        Result.Code = loadErrorCode_FileLoadFailed;
     }
     DeleteStringCompound(&Bucket->Transient, &FilePath);
     
@@ -928,7 +928,7 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
     return Result;
 }
 
-internal i32
+internal error_item
 LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, b32 DoMetadataExtraction = true)
 {
     i32 DecodeID = GetNextDecodeIDToEvict(&MP3Info->DecodeInfo);
@@ -963,24 +963,25 @@ CrawlFileForMetadata(memory_bucket_container *MainBucket, memory_bucket_containe
         FreeFileMemory(TransientBucket, FileData.Data);
     }
     
-    if(DataLength == 0)
+    if(DataLength > 0 && ReadBeginningOfFile(TransientBucket, &FileData, FilePath->S, DataLength)) 
     {
-        if(ReadEntireFile(TransientBucket, &FileData, FilePath->S)) 
+        ExtractMetadata(MainBucket, TransientBucket, &FileData, MD);
+        FreeFileMemory(TransientBucket, FileData.Data);
+    }
+    
+    if(!FoundAllMetadata(MD->FoundFlags))
+    {
+        if(ReadEndOfFile(TransientBucket, &FileData, FilePath->S, 128))
         {
             MetadataID3v1(MainBucket, &FileData, MD);
             FreeFileMemory(TransientBucket, FileData.Data);
         }
     }
-    else if(ReadBeginningOfFile(TransientBucket, &FileData, FilePath->S, DataLength)) 
-    {
-        ExtractMetadata(MainBucket, TransientBucket, &FileData, MD);
-        FreeFileMemory(TransientBucket, FileData.Data);
-    }
 }
 
 internal void
-CrawlFileInfosForMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
-                          mp3_file_info *FileInfo, string_c *FolderPath, u32 *CurrentCrawlCount = 0)
+CrawlFilesForMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
+                      mp3_file_info *FileInfo, string_c *FolderPath, u32 *CurrentCrawlCount = 0)
 {
     OutputDebugStringA("\n");
     string_compound FilePath = NewStringCompound(TransientBucket, 255);
@@ -2323,7 +2324,7 @@ RetraceFilePath(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID)
     ConcatStringCompounds(2, &SubPath, MP3Info->FileInfo.SubPath + FileID.ID);
     
     FindAllMP3FilesInFolder(&Bucket->Transient, &Bucket->Transient, &FilePath, &SubPath, &TmpFileInfo);
-    CrawlFileInfosForMetadata(&Bucket->Transient, &Bucket->Transient, &TmpFileInfo, &MP3Info->FolderPath);
+    CrawlFilesForMetadata(&Bucket->Transient, &Bucket->Transient, &TmpFileInfo, &MP3Info->FolderPath);
     
     mp3_metadata *OldMD = MP3Info->FileInfo.Metadata+FileID.ID;
     b32 Found = false;
@@ -2407,6 +2408,8 @@ ChangeSong(game_state *GameState, playing_song *Song)
         GameState->MusicInfo.CurrentlyChangingSong = true;
         Song->DecodeID = AddJob_LoadMP3(GameState, &GameState->JobQueue, FileID);
         
+        Assert(Song->DecodeID >= 0);
+        /*
         if(Song->DecodeID == loadErrorCode_FileLoadFailed)
         {
             RetraceFilePath(&GameState->Bucket, GameState->MP3Info, FileID);
@@ -2420,7 +2423,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
         {
             Assert(false);
         }
-        
+        */
         if(!GameState->MP3Info->DecodeInfo.CurrentlyDecoding[Song->DecodeID])
         {
             FinishChangeSong(GameState, Song);
@@ -2490,8 +2493,8 @@ CreateNewMetadata(game_state *GameState)
     GameState->MP3Info->FileInfo = CreateFileInfoStruct(&GameState->Bucket.Fixed, MAX_MP3_INFO_COUNT);
     Result = FindAllMP3FilesInFolder(&GameState->Bucket.Fixed, &GameState->Bucket.Transient, &GameState->MP3Info->FolderPath,
                                      &SubPath, &GameState->MP3Info->FileInfo);
-    CrawlFileInfosForMetadata(&GameState->Bucket.Fixed, &GameState->Bucket.Transient, &GameState->MP3Info->FileInfo,
-                              &GameState->MP3Info->FolderPath);
+    CrawlFilesForMetadata(&GameState->Bucket.Fixed, &GameState->Bucket.Transient, &GameState->MP3Info->FileInfo,
+                          &GameState->MP3Info->FolderPath);
     
     ApplyNewMetadata(GameState, MusicInfo);
     return Result;
@@ -2622,8 +2625,8 @@ LoadNewMetadata_Thread(bucket_allocator *Bucket, crawl_thread *CrawlInfo)
         FindAllMP3FilesInFolder(&GlobalGameState.Bucket.Fixed, &Bucket->Transient, &MP3Info->FolderPath, 
                                 &SubPath, &MP3Info->FileInfo);
         
-        CrawlFileInfosForMetadata(&GlobalGameState.Bucket.Fixed, &Bucket->Transient, &MP3Info->FileInfo, &MP3Info->FolderPath, 
-                                  &CrawlInfo->Out->CurrentCount);
+        CrawlFilesForMetadata(&GlobalGameState.Bucket.Fixed, &Bucket->Transient, &MP3Info->FileInfo, &MP3Info->FolderPath, 
+                              &CrawlInfo->Out->CurrentCount);
         CrawlInfo->Out->DoneCrawling = true;
     }
     
@@ -2750,7 +2753,9 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
 {
     job_load_decode_mp3 *JobInfo = (job_load_decode_mp3 *)Data;
     
-    LoadAndDecodeMP3Data(ThreadInfo->Bucket, JobInfo->MP3Info, JobInfo->FileID, JobInfo->DecodeID, false);
+    error_item Result = LoadAndDecodeMP3Data(ThreadInfo->Bucket, JobInfo->MP3Info, JobInfo->FileID, JobInfo->DecodeID, false);
+    
+    if(Result.Code < 0) PushErrorMessageFromThread(Result);
 }
 
 internal JOB_LIST_CALLBACK(JobLoadNewMetadata)
@@ -2929,8 +2934,101 @@ AddJob_NextUndecodedInPlaylist()
     return Result;
 }
 
+internal void
+PushErrorMessageFromThread(error_item Error)
+{
+    WaitForSingleObjectEx(GlobalGameState.ThreadErrorList.Mutex, INFINITE, false);
+    if(GlobalGameState.ThreadErrorList.Count < MAX_THREAD_ERRORS)
+    {
+        GlobalGameState.ThreadErrorList.Errors[GlobalGameState.ThreadErrorList.Count++] = Error;
+        GlobalGameState.ThreadErrorList.RemoveDecode = true;
+    }
+    ReleaseMutex(GlobalGameState.ThreadErrorList.Mutex);
+}
 
+internal error_item
+PopErrorMessageFromThread()
+{
+    error_item Result = {loadErrorCode_NoError, {-1}};
+    WaitForSingleObjectEx(GlobalGameState.ThreadErrorList.Mutex, INFINITE, false);
+    if(GlobalGameState.ThreadErrorList.Count > 0) 
+    {
+        Result = GlobalGameState.ThreadErrorList.Errors[--GlobalGameState.ThreadErrorList.Count];
+    }
+    ReleaseMutex(GlobalGameState.ThreadErrorList.Mutex);
+    return Result;
+}
 
+inline void
+RemoveDecodeFails()
+{
+    WaitForSingleObjectEx(GlobalGameState.ThreadErrorList.Mutex, INFINITE, false);
+    
+    u32 DecodeID = 0;
+    For(GlobalGameState.ThreadErrorList.Count)
+    {
+        if(Find(&GlobalGameState.MP3Info->DecodeInfo.FileID, GlobalGameState.ThreadErrorList.Errors[It].ID, &DecodeID))
+        {
+            Put(&GlobalGameState.MP3Info->DecodeInfo.FileID.A, DecodeID, MAX_UINT32);
+            Put(&GlobalGameState.MP3Info->DecodeInfo.LastTouched, DecodeID, 0);
+            if(GlobalGameState.MusicInfo.PlayingSong.DecodeID == (i32)DecodeID) 
+            {
+                GlobalGameState.MusicInfo.PlayingSong.PlaylistID.ID = -1;
+                GlobalGameState.MusicInfo.PlayingSong.FileID.ID = -1;
+                GlobalGameState.MusicInfo.PlayingSong.DecodeID = -1;
+            }
+        }
+    }
+    
+    GlobalGameState.ThreadErrorList.RemoveDecode = false;
+    ReleaseMutex(GlobalGameState.ThreadErrorList.Mutex);
+}
+
+internal void
+ProcessThreadErrors()
+{
+    if(GlobalGameState.ThreadErrorList.Count)
+    {
+        if(GlobalGameState.ThreadErrorList.RemoveDecode) RemoveDecodeFails();
+        
+        if(!GlobalGameState.MusicInfo.DisplayInfo.UserErrorText.IsAnimating)
+        {
+            error_item NextError = PopErrorMessageFromThread();
+            switch(NextError.Code)
+            {
+                case loadErrorCode_DecodingFailed:
+                {
+                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.Bucket.Transient, 555);
+                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not decode song. Is file corrupted? (");
+                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileName + NextError.ID.ID);
+                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
+                    PushUserErrorMessage(&ErrorMsg);
+                    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &ErrorMsg);
+                } break;
+                
+                case loadErrorCode_FileLoadFailed:
+                {
+                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.Bucket.Transient, 555);
+                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song from disk. If files were moved, do a retrace. (");
+                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileName + NextError.ID.ID);
+                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
+                    PushUserErrorMessage(&ErrorMsg);
+                    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &ErrorMsg);
+                } break;
+                
+                case loadErrorCode_EmptyFile:
+                {
+                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.Bucket.Transient, 555);
+                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song. File was empty. (");
+                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileName + NextError.ID.ID);
+                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
+                    PushUserErrorMessage(&ErrorMsg);
+                    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &ErrorMsg);
+                } break;
+            }
+        }
+    }
+}
 
 
 

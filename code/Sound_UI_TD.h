@@ -20,6 +20,7 @@ struct color_palette
     v3 SliderGrabThing;
     v3 ButtonActive;
     v3 PlayingSong;
+    v3 ErrorText;
 };
 
 struct slider
@@ -172,6 +173,26 @@ struct music_path_ui
     button *Rescan;
 };
 
+struct quit_animation
+{
+    b32 AnimationStart;
+    b32 WindowExit;
+    entry_id *Curtain;
+    render_text Text;
+    r32 dAnim;
+    r32 Time;
+    
+    r64 LastEscapePressTime;
+};
+
+struct user_error_text
+{
+    render_text Message;
+    b32 IsAnimating;
+    r32 dAnim;
+    r32 AnimTime;
+};
+
 struct music_display_info
 {
     // General
@@ -214,13 +235,9 @@ struct music_display_info
     playing_song_panel PlayingSongPanel;
     music_path_ui MusicPath;
     
-    // Quit curtain
-    b32 QuitAnimationStart;
-    b32 WindowExit;
-    entry_id *QuitCurtain;
-    render_text QuitText;
-    r32 dQuitAnim;
-    r32 QuitTime;
+    quit_animation Quit;
+    
+    user_error_text UserErrorText;
 };
 
 

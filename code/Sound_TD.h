@@ -1,40 +1,35 @@
 #pragma once
-// TODO::
+// IDEAS::
 //
 // - think about making song display MDs next to each other (genre in the artist row) an if 
 //   it goes over the edge, drop it into the new line
-// - sub-pixel accuracy? 
 // - ability to change slot height with auto text fit?
 // - album image as panel background
-// - redraw only when necessary!
 // - lyrics window when file exists?
+// - think about selecting all entries that are visible when pressing enter during search
+// - if song selected, pressing the big play should start it?
+
+// TODO::
 //
 // - generate huge amount of fake mp3 files and test with those!
-// - show current playlist button
-// - invalid songs in library checker
-// - keep currently playing list
-// - make render text message logging on top of window!
+// - sub-pixel accuracy? 
+// - redraw only when necessary!
+//      - stop rendering when no user input and no song is playing
+// - Solidify playlists
+//      - show current playlist button
 // - -/+ for volume
-// - fix all the non-ascii problems...
-// - add a keyboard button which toggles the shortcuts for every element
-// - solidify playlist stuff?
+// - if glyphs not existing for font, use a backup font?
+//      - fix all the non-ascii problems...
 // - think about doing more than just a quad for text?
-// - make a seperate thread for metadata crawl
-// - think about selecting all entries that are visible when pressing enter during search
-
 // - files bigger than 64MB*2 just assert
 //      - skyrim atmospheres is 74MB as mp3 and decompressed ~400MB! Backend thread has not enough memory for that!
 // - fix cursor change on column edge drag
-// - still hardcapped atz 10k mp3 files
+// - still hardcapped at 10k mp3 files
 // - go through and remove all gamestate/renderer/info juggling
-// - if glyphs not existing for font, use a backup font?
-// - stop rendering when no user input and no song is playing
 // - Switch openGL to directX?
 // - Add key shortcut button
-// - if song selected, pressing the big play should start it
-// - error popup when file not found
-// - bug: when resizing and a column as at the bottom, it repeats the last slot
-// - bug: enter in song search crashes.
+// - Implement better memory management
+// - add feature for user to add their own color palette
 
 #include "Sound_UI_TD.h"
 

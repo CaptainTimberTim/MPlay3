@@ -131,9 +131,33 @@ CreateGLTexture(loaded_bitmap Bitmap)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     
-    return ID;
+    return ++ID;
 }
 
+inline void
+UpdateGLTexture(loaded_bitmap Bitmap, GLuint TexID)
+{
+    glBindTexture(GL_TEXTURE_2D, TexID-1);
+    
+    i32 GLColorFormat = 0;
+    switch(Bitmap.ColorFormat)
+    {
+        case colorFormat_RGBA:
+        {
+            GLColorFormat = GL_RGBA;
+        } break;
+        case colorFormat_RGB:
+        {
+            GLColorFormat = GL_RGB;
+        } break;
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Bitmap.Width, Bitmap.Height, 0, GLColorFormat, GL_UNSIGNED_BYTE, Bitmap.Pixels);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
 
 inline void
 ConvertToGLSpace(renderer *Renderer, render_entry *Entry, v3 *Result)
@@ -173,7 +197,7 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             case renderType_2DBitmap: 
             {
                 glEnable(GL_TEXTURE_2D);
-                glBindTexture(GL_TEXTURE_2D, RenderEntry->TexID);
+                glBindTexture(GL_TEXTURE_2D, RenderEntry->TexID-1); // ZII:: We increment texIDs on creation to have 0 be default
                 
                 glBegin(GL_QUADS);
                 v3 V[4];
@@ -209,7 +233,7 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             case renderType_Text:
             {
                 glEnable(GL_TEXTURE_2D);
-                glBindTexture(GL_TEXTURE_2D, RenderEntry->TexID);
+                glBindTexture(GL_TEXTURE_2D, RenderEntry->TexID-1);
                 glBegin(GL_QUADS);
                 
                 For(RenderEntry->Text->Count)

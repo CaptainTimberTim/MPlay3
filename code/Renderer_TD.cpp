@@ -345,6 +345,7 @@ CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, l
     
     Result->ID->Type = renderType_2DBitmap;
     Result->ID->TexID = CreateGLTexture(Bitmap);
+    Result->ID->Color = &Renderer->DefaultEntryColor;
     
     return Result;
 }
@@ -359,6 +360,7 @@ CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, u
     
     Result->ID->Type = renderType_2DBitmap;
     Result->ID->TexID = BitmapID;
+    Result->ID->Color = &Renderer->DefaultEntryColor;
     
     return Result;
 }
@@ -372,6 +374,7 @@ CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, entry_id *Parent, u32
     
     Result->ID->Type = renderType_2DBitmap;
     Result->ID->TexID = BitmapID;
+    Result->ID->Color = &Renderer->DefaultEntryColor;
     
     return Result;
 }
@@ -390,6 +393,7 @@ CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, s
     Result->ID->Type = renderType_2DBitmap;
     Result->ID->TexID = CreateGLTexture(Bitmap);
     FreeImage_STB(Bitmap);
+    Result->ID->Color = &Renderer->DefaultEntryColor;
     return Result;
 }
 

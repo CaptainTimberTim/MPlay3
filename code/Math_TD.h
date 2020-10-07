@@ -290,6 +290,7 @@ inline v3 TripleCross(v3 A, v3 B, v3 C);
 
 // 3D integer Vectors
 inline v3 V3i(u32 X, u32 Y, u32 Z);
+inline v3i V3i(v3 Vec);
 inline v3 operator+  (v3 A, v3 B);
 inline v3 operator+  (v3 A, r32 B);
 inline v3 operator+  (r32 A, v3 B);

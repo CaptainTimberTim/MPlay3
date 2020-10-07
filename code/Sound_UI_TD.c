@@ -30,7 +30,6 @@ internal void UseDisplayableAsPlaylist(music_info *MusicInfo);
 internal column_type UpdateSelectionArray(column_sorting_info *SortingColumn, music_display_column *DisplayColumn);
 internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, column_sorting_info *SortingColumn);
 internal void PropagateSelectionChange(music_sorting_info *SortingInfo);
-internal void BringDisplayableEntryOnScreen_(music_display_column *DisplayColumn, u32 DisplayID);
 
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayColumn)
@@ -315,7 +314,9 @@ ProcessActiveSearch(renderer *Renderer, music_display_column *DisplayColumn, r32
         ResetSearchList(Renderer, DisplayColumn, ColumnSortInfo);
         UpdateSelectionChanged(Renderer, &GlobalGameState.MusicInfo, GlobalGameState.MP3Info, DisplayColumn->Type);
         
-        BringDisplayableEntryOnScreenWithSortID(DisplayColumn, Get(&ColumnSortInfo->Selected, NewSelectID(0)));
+        file_id SelectedID = Get(&ColumnSortInfo->Selected, NewSelectID(0));
+        if(DisplayColumn->Type == columnType_Song) BringDisplayableEntryOnScreen(DisplayColumn, SelectedID);
+        else BringDisplayableEntryOnScreenWithSortID(DisplayColumn, SelectedID);
     }
 }
 
@@ -603,15 +604,6 @@ SongHorizontalSliderDrag(renderer *Renderer, music_display_column *DisplayColumn
     RenderButton = Overhang == 0 || (GetPosition(Song->Add[It]->Entry).x < GetPosition(DisplayColumn->LeftBorder).x);
     SetActive(Song->Add[It], !RenderButton);
 }
-
-struct drag_slider_data
-{
-    music_info *MusicInfo;
-    music_display_column *DisplayColumn;
-    column_sorting_info *SortingColumn;
-    
-    v2 MouseOffset;
-};
 
 internal void
 OnSliderDragStart(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
@@ -1073,7 +1065,8 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
                              DisplayColumn->Text+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[It]);
         }
         DisplayColumn->OnScreenIDs[It] = NextID;
-        // The last ID is not visible when the column is at the bottom, but the NextID would be out of displayable range.
+        // #LastSlotOverflow, The last ID is not visible when the column is at the bottom, 
+        // but the NextID would be out of displayable range.
         if(NextID.ID+1 < (i32)DisplayColumn->SortingInfo->Displayable.A.Count) NextID.ID++; 
     }
     ResetColumnText(Renderer, DisplayColumn, DisplayColumn->SortingInfo);
@@ -1085,8 +1078,9 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
 internal void
 ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32 ScrollAmount)
 {
+    column_sorting_info *SortingColumn = DisplayColumn->SortingInfo;
     r32 SlotHeight = DisplayColumn->SlotHeight;
-    r32 TotalHeight   = GetDisplayableHeight(DisplayColumn->SortingInfo, SlotHeight);
+    r32 TotalHeight   = GetDisplayableHeight(SortingColumn, SlotHeight);
     // DisplayCursor is the very top position. Therefore MaxHeight needs to be reduced by VisibleHeight
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
@@ -1095,11 +1089,12 @@ ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32
     
     r32 NewY = Mod(DisplayColumn->DisplayCursor, SlotHeight);
     i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
-    i32 CursorDiff = NewCursorID - PrevCursorID;
+    NewCursorID     = Min(NewCursorID, SortingColumn->Displayable.A.Count-1);
+    i32 CursorDiff  = NewCursorID - PrevCursorID;
     
     if(CursorDiff != 0)
     {
-        i32 MaximumID = Max(0, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
+        i32 MaximumID = Max(0, SortingColumn->Displayable.A.Count - DisplayColumn->Count + 1);
         MoveDisplayColumn(Renderer, DisplayColumn, NewDisplayableID(Min(NewCursorID, MaximumID)), NewY);
     }
     else
@@ -1207,8 +1202,13 @@ ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo,
     ChangeDisplayColumnCount(Renderer, DisplayColumn, NewDisplayCount);
     
     FitDisplayColumnIntoSlot(Renderer, DisplayColumn, SortingColumn);
-    MoveDisplayColumn(Renderer, DisplayColumn, DisplayColumn->OnScreenIDs[0], GetLocalPosition(DisplayColumn->BGRects[0]).y);
+    MoveDisplayColumn(Renderer, DisplayColumn, DisplayColumn->OnScreenIDs[0],GetLocalPosition(DisplayColumn->BGRects[0]).y);
     
+    // I do this to fix that if the column is at the bottom and the window gets bigger, the
+    // slots will be stopped at the edge. Without this, the new visible slots will be the same
+    // ID. See: #LastSlotOverflow in MoveDisplayColumn
+    drag_slider_data Data = { MusicInfo, DisplayColumn, SortingColumn, 0};
+    OnVerticalSliderDrag(Renderer, GetPosition(DisplayColumn->SliderVertical.GrabThing), 0, &Data);
     
     SetActive(DisplayColumn->Search.Button, (Renderer->Window.CurrentDim.Height > (GlobalMinWindowHeight + 15)));
 }
@@ -1471,8 +1471,30 @@ CreateMonoInvertedColorPalette(color_palette *Palette)
 }
 
 inline void
-UpdateColorPalette(music_display_info *DisplayInfo)
+CreateCustomColorPalette(color_palette *Palette, u32 CustomID)
 {
+    *Palette = GlobalGameState.Settings.Palettes[CustomID];
+    
+    r32 Div = 255.0f;
+    Palette->Slot             /= Div;
+    Palette->Text             /= Div;
+    Palette->Selected         /= Div;
+    Palette->Foreground       /= Div;
+    Palette->ForegroundText   /= Div;
+    Palette->SliderBackground /= Div;
+    Palette->SliderGrabThing  /= Div;
+    Palette->ButtonActive     /= Div;
+    Palette->PlayingSong      /= Div;
+    Palette->ErrorText        /= Div;
+}
+
+inline void
+UpdateColorPalette(music_display_info *DisplayInfo, b32 GoToNextPalette)
+{
+    u32 PaletteAmount = DEFAULT_COLOR_PALETTE_COUNT+GlobalGameState.Settings.PaletteCount;
+    if(GoToNextPalette) DisplayInfo->ColorPaletteID = ++DisplayInfo->ColorPaletteID%PaletteAmount;
+    else if(DisplayInfo->ColorPaletteID >= PaletteAmount) DisplayInfo->ColorPaletteID = 0;
+    
     switch(DisplayInfo->ColorPaletteID)
     {
         case 0: CreateBasicColorPalette(&DisplayInfo->ColorPalette); break;
@@ -1480,8 +1502,11 @@ UpdateColorPalette(music_display_info *DisplayInfo)
         case 2: CreateAquaColorPalette(&DisplayInfo->ColorPalette); break;
         case 3: CreateMonochromeColorPalette(&DisplayInfo->ColorPalette); break;
         case 4: CreateMonoInvertedColorPalette(&DisplayInfo->ColorPalette); break;
-        
-        InvalidDefaultCase;
+        default:
+        {
+            u32 CustomPaletteID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
+            CreateCustomColorPalette(&DisplayInfo->ColorPalette, CustomPaletteID);
+        }
     }
 }
 
@@ -1489,9 +1514,7 @@ inline void
 OnPaletteSwap(void *Data)
 {
     music_display_info *DisplayInfo = &((music_btn *)Data)->GameState->MusicInfo.DisplayInfo;
-    DisplayInfo->ColorPaletteID = ++DisplayInfo->ColorPaletteID%5;
-    
-    UpdateColorPalette(DisplayInfo);
+    UpdateColorPalette(DisplayInfo, true);
 }
 
 inline void
@@ -2193,9 +2216,10 @@ QuitAnimation(r32 Dir)
         SetSize(Quit->Curtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
         SetLocalPosition(Quit->Curtain, V2(Window->CurrentDim.Width/2.0f, 
                                            Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
-        
         SetPosition(&Quit->Text, V2((Window->CurrentDim.Width - Quit->Text.CurrentP.x)/2.0f,
                                     Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
+        
+        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);//Max(0.85f, Quit->dAnim));
     }
     
     return Result;

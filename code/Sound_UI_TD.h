@@ -9,18 +9,28 @@
 
 #define DOUBLE_CLICK_TIME 0.5f
 
+#define DEFAULT_COLOR_PALETTE_COUNT 5
 struct color_palette
 {
-    v3 Slot;
     v3 Text;
-    v3 Selected;
-    v3 Foreground;
     v3 ForegroundText;
+    v3 ErrorText;
+    v3 Foreground;
+    v3 Slot;
     v3 SliderBackground;
     v3 SliderGrabThing;
     v3 ButtonActive;
+    v3 Selected;
     v3 PlayingSong;
-    v3 ErrorText;
+};
+
+struct drag_slider_data
+{
+    struct music_info *MusicInfo;
+    struct music_display_column *DisplayColumn;
+    struct column_sorting_info *SortingColumn;
+    
+    v2 MouseOffset;
 };
 
 struct slider
@@ -243,7 +253,7 @@ struct music_display_info
 
 
 inline void UpdateColumnColor(music_display_column *DisplayColumn, struct column_sorting_info *SortingColumn);
-internal void BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, u32 FileID);
+internal void BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, file_id FileID);
 internal void BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, batch_id SortID);
 inline void ToggleSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 ColumnDisplayID);
 internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, column_sorting_info *SortColumnInfo, u32 FileID, v4 *Color);

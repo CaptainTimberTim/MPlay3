@@ -2,6 +2,13 @@
 #include "Math_TD.h"
 #include "StandardUtilities_TD.h"
 
+#ifndef CombineDefine
+#define CombineDefine1(X, Y) X##Y
+#define CombineDefine(X, Y) CombineDefine1(X, Y)
+#endif
+
+
+
 struct string_compound
 {
     u8 *S;
@@ -15,9 +22,19 @@ inline string_c NewStringCompound(memory_bucket_container *BucketContainer, u32 
 inline void DeleteStringCompound(memory_bucket_container *BucketContainer, string_compound *S);
 #define ResetStringCompound(SC) {(SC).Pos = 0; (SC).S[0] = '\0';}
 
+#define NewEmptyLocalString(Name, Count)  \
+u8 CombineDefine(StringStorage, __LINE__)[Count]; \
+string_c Name = {CombineDefine(StringStorage, __LINE__), 0, Count}; 
+
+#define NewLocalString(Name, Count, String)  NewEmptyLocalString(Name, Count)\
+AppendStringToCompound(&Name, (u8 *)String); 
+
+
 inline void AppendCharToCompound(string_compound *Comp, u8 C);
 inline void AppendStringToCompound(string_compound *Comp, u8 *String); 
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 StartPos);
+inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To);
+inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter);
 inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2); 
 
 inline void WipeStringCompound(string_compound *Comp);
@@ -33,7 +50,6 @@ inline void CutStringCompoundAt(string_compound *Comp, u32 P);
 inline b32 CompareStringCompounds(string_compound *S1, string_compound *S2);
 inline b32 CompareStringAndCompound(string_compound *Comp, u8 *S);
 
-inline void I32ToString(string_compound *Comp, i32 I);
 inline void EatTrailingSpaces(string_c *S);
 inline void EatLeadingSpaces(string_c *S);
 internal b32 ContainsAB_CaseInsensitive(string_c *String, string_c *Contains);
@@ -45,20 +61,32 @@ inline u8 *AdvanceAfterChar(u8 *Char, u8 Delimiter);
 inline u8 *AdvanceToLineEnd(u8 *Char);
 inline u8 *AdvanceToNextLine(u8 *Char);
 inline u8 *AdvanceAfterConsecutiveGivenChar(u8 *Character, u8 Given);
-inline r32 CharToR32(char C);
-inline u32 CharToU32(u8 C);
-inline void R32ToString(u8 *Buffer, r32 Value);
-inline u32 ProcessNextU32InString(u8 *Character, char Delimiter, u8 &NumberLength);
-inline i32 ProcessNextI32InString(u8 *Character, char Delimiter, u8 &NumberLength);
-inline r32 ProcessNextR32InString(u8 *Character, char Delimiter, u8 &NumberLength);
-inline b32 ProcessNextB32InString(u8 *Character);
 inline i32 FirstOccurranceOfCharacterInString(u8 CharToFind, u8 *String, u8 Delimiter);
 inline u32 StringLengthUntilChar(u8 *Character, u8 Delimiter);
 inline u32 CopyStringUntilChar(u8 *Dest, u8 *Source, u8 Delimiter);
 inline void CopyString(u8 *Dest, u8 *Source, u32 Size);
 inline void CombineStrings(u8 *Dest, u8 *S1, u8 *S2);
+
+// Conversion procedures
+inline void I32ToString(string_c *Comp, i32 I);
+inline void R32ToString(string_c *S, r32 Value);
+inline void R32ToString(u8 *Buffer, r32 Value);
+inline void V3ToString(string_c *S, u8 Delimiter, v3 Vec);
+inline r32 CharToR32(char C);
+inline u32 CharToU32(u8 C);
+inline u32 ProcessNextU32InString(u8 *Character, char Delimiter, u8 &NumberLength);
+inline i32 ProcessNextI32InString(u8 *Character, char Delimiter, u8 &NumberLength);
+inline r32 ProcessNextR32InString(u8 *Character, char Delimiter, u8 &NumberLength);
+inline b32 ProcessNextB32InString(u8 *Character);
 inline void ConvertV3To15Char(v3 P, u8 *Result);
 inline u32 ConvertU32FromString(u8 *Character, u32 NumberLength);
+
+// Local string stuff
+#define R32ToLocalString(Name, Count, Value) NewEmptyLocalString(Name, Count) \
+Name.Pos = sprintf_s((char *)Name.S, Count, "%f", Value);
+
+#define I32ToLocalString(Name, Count, Value) NewEmptyLocalString(Name, Count) \
+I32ToString(&(Name), Value);
 
 // Conversion to wide chars
 struct string_wide
@@ -138,6 +166,18 @@ CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To)
         Comp->S[Comp->Pos++] = *S++;
     }
     Comp->S[Comp->Pos] = '\0';
+}
+
+inline void 
+CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter)
+{
+    while(*String != Delimiter)
+    {
+        Assert(Comp->Pos < Comp->Length);
+        Assert(*String);
+        Comp->S[Comp->Pos++] = *String;
+        String++;
+    }
 }
 
 inline void 
@@ -446,10 +486,35 @@ CharToU32(u8 C)
 }
 
 inline void
+R32ToString(string_c *S, r32 Value)
+{
+    S->Pos += sprintf_s((char *)(S->S+S->Pos), S->Length-S->Pos, "%f", Value);
+}
+
+inline void
 R32ToString(u8 *Buffer, r32 Value)
 {
-    // TODO:: Implement this myself!
-    snprintf((char *)Buffer, sizeof(Buffer), "%f", Value);
+    sprintf_s((char *)Buffer, sizeof(Buffer), "%f", Value);
+}
+
+inline void 
+V3ToString(string_c *S, u8 Delimiter, v3 Vec)
+{
+    R32ToString(S, Vec.x);
+    AppendCharToCompound(S, Delimiter);
+    R32ToString(S, Vec.y);
+    AppendCharToCompound(S, Delimiter);
+    R32ToString(S, Vec.z);
+}
+
+inline void 
+V3iToString(string_c *S, u8 Delimiter, v3i Vec)
+{
+    I32ToString(S, Vec.x);
+    AppendCharToCompound(S, Delimiter);
+    I32ToString(S, Vec.y);
+    AppendCharToCompound(S, Delimiter);
+    I32ToString(S, Vec.z);
 }
 
 inline u32

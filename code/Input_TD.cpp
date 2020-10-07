@@ -107,7 +107,11 @@ UpdateKeyChange(input_info *Input, u32 WinKey, u64 LParam)
         case VK_F11: UpdateSingleKey(Input, KEY_F11, WasDown, IsDown); break;
         case VK_F12: UpdateSingleKey(Input, KEY_F12, WasDown, IsDown); break;
         
-        // All these will also be reprocessed to a WM_CHAR
+        case VK_ADD:       UpdateSingleKey(Input, KEY_ADD, WasDown, IsDown); break;
+        case VK_SUBTRACT:  UpdateSingleKey(Input, KEY_SUBTRACT, WasDown, IsDown); break;
+        
+        
+        // All these will also be reprocessed to a WM_CHAR, result must be false!
         case VK_SPACE:  UpdateSingleKey(Input, KEY_SPACE, WasDown, IsDown); Result = false; break;
         case 'A': UpdateSingleKey(Input, KEY_A, WasDown, IsDown); Result = false; break;
         case 'B': UpdateSingleKey(Input, KEY_B, WasDown, IsDown); Result = false; break;
@@ -146,6 +150,9 @@ UpdateKeyChange(input_info *Input, u32 WinKey, u64 LParam)
         case '7': UpdateSingleKey(Input, KEY_7, WasDown, IsDown); Result = false; break;
         case '8': UpdateSingleKey(Input, KEY_8, WasDown, IsDown); Result = false; break;
         case '9': UpdateSingleKey(Input, KEY_9, WasDown, IsDown); Result = false; break;
+        
+        case VK_OEM_PLUS:  UpdateSingleKey(Input, KEY_PLUS, WasDown, IsDown); Result = false; break;
+        case VK_OEM_MINUS: UpdateSingleKey(Input, KEY_MINUS, WasDown, IsDown); Result = false; break;
         
         default: 
         //DebugLog(255, "The pressed button is not supported: %i\n", WinKey);
@@ -290,6 +297,11 @@ KeyCodeToWindowsKey(key_code KeyCode)
         case KEY_PREVIOUS:   Result = 177; break;
         case KEY_STOP:       Result = 178; break;
         case KEY_PLAY_PAUSE: Result = 179; break;
+        
+        case KEY_ADD:      Result = VK_ADD; break;
+        case KEY_SUBTRACT: Result = VK_SUBTRACT; break;
+        case KEY_PLUS:     Result = VK_OEM_PLUS; break;
+        case KEY_MINUS:    Result = VK_OEM_MINUS; break;
     }
     return Result;
 }

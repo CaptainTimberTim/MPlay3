@@ -30,10 +30,21 @@
 - Added error messaging for the user. Only for main thead yet.
 - Added a error message queue for threading.
 
-04.10.2020
+05.10.2020
 - Added double-escape-press for fast/auto quit.
 - Added a "wait for double-escape-press" in animation. 
 - When a .mp3 decode/read error is detected and pushed to the user, now it will not crash if the song is pressed again.
 - Finally added ReadEndOfFile to extract ID3v1 metadata without reading the entire file.
 - Now properly searching for additional metadata in ID3v1, if ID3v2 or ID3v3 do not have all infos.
 - Special keyboard key for PlayPause/Stop/Next/Previous are now processed even when application is not focused.
+
+06.10.2020
+- Fixed bug: Selecting song through search was crashing. Needed to call other procedure based on column type.
+- Fixed bug: Making window bigger while a column is at the bottom repeated the last slot for the new incoming ones. Fixed by updating the column to look for overshooting the end and stop when hitting it.
+- Fixed bug: Fixed array out of bounds assert made visible by fixing previous bug. Calculation of NewCursorID in ScrollDisplayColumn could be one too high.
+- Started ColorPicker. Created color texture generation with blackness level.
+
+07.10.2020
+- Added local_string_compound to string api
+- Added custom color palettes read and saved to settings file.
+- Added custom color palette functionality, switching through them with F11.

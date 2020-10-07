@@ -6,7 +6,7 @@
 global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
 
 #define LIBRARY_CURRENT_VERSION 3
-#define SETTINGS_CURRENT_VERSION 3
+#define SETTINGS_CURRENT_VERSION 4
 struct settings
 {
     r32 Volume = 0.5f;
@@ -19,6 +19,10 @@ struct settings
     i32 WindowDimY = 1039;
     b32 Looping = false;
     b32 Shuffle = false;
+    
+    string_c *PaletteNames;
+    color_palette *Palettes;
+    u32 PaletteCount;
 };
 
 enum cursor_state
@@ -40,6 +44,8 @@ struct game_state
     bucket_allocator Bucket;
     
     input_info Input;
+    
+    settings Settings;
     
     // Time management
     time_management Time;
@@ -72,3 +78,13 @@ inline void SnapTimer(timer *Timer);
 #define StartTimer() {}
 #define SnapTimer(f) 
 #endif
+
+struct color_picker
+{
+    loaded_bitmap Bitmap;
+    u32 GLID; 
+    entry_id *TextureEntry;
+    
+    r32 Blackness;
+};
+

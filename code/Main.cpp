@@ -39,13 +39,15 @@ u8 *StartAddress = GoalAddress + sizeof(ArrayType); \
 memmove_s(GoalAddress, MoveSize, StartAddress, MoveSize); \
 } 
 
-#define Combine1(X, Y) X##Y
-#define Combine(X, Y) Combine1(X, Y)
+#ifndef CombineDefine
+#define CombineDefine1(X, Y) X##Y
+#define CombineDefine(X, Y) CombineDefine1(X, Y)
+#endif
 
 #define DebugLog(Count, Text, ...) { \
-char Combine(B, __LINE__)[Count]; \
-sprintf_s(Combine(B, __LINE__), Text, __VA_ARGS__);\
-OutputDebugStringA(Combine(B, __LINE__)); \
+char CombineDefine(B, __LINE__)[Count]; \
+sprintf_s(CombineDefine(B, __LINE__), Text, __VA_ARGS__);\
+OutputDebugStringA(CombineDefine(B, __LINE__)); \
 }
 
 #if DEBUG_TD
@@ -513,10 +515,10 @@ WinMain(HINSTANCE Instance,
         printf("%s", BucketStatus);
         
         // NOTE:: Loading Settings file
-        settings Settings = TryLoadSettingsFile(GameState);
+        GameState->Settings = TryLoadSettingsFile(GameState);
         
-        u32 InitialWindowWidth  = Settings.WindowDimX;//1416;
-        u32 InitialWindowHeight = Settings.WindowDimY;//1039;
+        u32 InitialWindowWidth  = GameState->Settings.WindowDimX;//1416;
+        u32 InitialWindowHeight = GameState->Settings.WindowDimY;//1039;
         HWND Window = CreateWindowExA(0, WindowClass.lpszClassName, "MPlay3", 
                                       WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, 
                                       CW_USEDEFAULT, InitialWindowWidth, InitialWindowHeight, 
@@ -563,7 +565,6 @@ WinMain(HINSTANCE Instance,
             
             ReshapeGLWindow(&GameState->Renderer);
             b32 *ReRender = &Renderer->Rerender;
-            
             
             
             // Preparing base structs
@@ -703,7 +704,11 @@ WinMain(HINSTANCE Instance,
             
             check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
             AddJob_CheckMusicPathChanged(CheckMusicPath);
-            ApplySettings(GameState, Settings);
+            ApplySettings(GameState, GameState->Settings);
+            
+            
+            color_picker ColorPicker = CreateColorPicker(V2i(500, 500));
+            SetActive(ColorPicker.TextureEntry, false);
             
             
             // ********************************************
@@ -864,8 +869,7 @@ WinMain(HINSTANCE Instance,
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
                     if(Input->KeyChange[KEY_F11] == KeyDown) 
                     {
-                        DisplayInfo->ColorPaletteID = ++DisplayInfo->ColorPaletteID%5;
-                        UpdateColorPalette(DisplayInfo);
+                        UpdateColorPalette(DisplayInfo, true);
                     }
                     // ******************
                     
@@ -925,13 +929,20 @@ WinMain(HINSTANCE Instance,
                         }
                     }
                     
-                    if(Input->Pressed[KEY_UP])
+                    // Change volume
+                    if(Input->Pressed[KEY_UP] || Input->Pressed[KEY_ADD] ||
+                       (Input->Pressed[KEY_PLUS] && DisplayInfo->SearchIsActive < 0)) // Plus only when no search is open
                     {
-                        PushToneVolume(GameState->SoundThreadInterface, 0.01f);
+                        ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume+0.01f);
+                        ColorPicker.Blackness += 0.01f;
+                        UpdateColorPickerTexture(&ColorPicker);
                     }
-                    else if(Input->Pressed[KEY_DOWN])
+                    else if(Input->Pressed[KEY_DOWN] || Input->Pressed[KEY_SUBTRACT] || 
+                            (Input->Pressed[KEY_MINUS] && DisplayInfo->SearchIsActive < 0))
                     {
-                        PushToneVolume(GameState->SoundThreadInterface, -0.01f);
+                        ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume-0.01f);
+                        ColorPicker.Blackness -= 0.01f;
+                        UpdateColorPickerTexture(&ColorPicker);
                     }
                     
                     UpdateButtons(Renderer, Input);
@@ -975,6 +986,9 @@ WinMain(HINSTANCE Instance,
                         {
                             ScrollDisplayColumn(Renderer, &DisplayInfo->Song.Base, (r32)Input->WheelAmount);
                             UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Song.Base, &SortingInfo->Song);
+                            
+                            ScrollLoadInfo.LoadFinished = false;
+                            ScrollLoadInfo.dTime = 0;
                         }
                         if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
                         {
@@ -991,9 +1005,6 @@ WinMain(HINSTANCE Instance,
                             ScrollDisplayColumn(Renderer, &DisplayInfo->Album, (r32)Input->WheelAmount);
                             UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Album, &SortingInfo->Album);
                         }
-                        
-                        ScrollLoadInfo.LoadFinished = false;
-                        ScrollLoadInfo.dTime = 0;
                     }
                     
                     if(!ScrollLoadInfo.LoadFinished) // If user finished scrolling, after WaitTime we load onscreen songs
@@ -1074,7 +1085,7 @@ WinMain(HINSTANCE Instance,
                 
             }
             
-            SaveSettingsFile(GameState);
+            SaveSettingsFile(GameState, &GameState->Settings);
             SaveMP3LibraryFile(GameState, MP3Info);
             DebugLog(25, "Settings saved.\n");
         }

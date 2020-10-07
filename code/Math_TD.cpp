@@ -1338,6 +1338,17 @@ V3i(u32 X, u32 Y, u32 Z)
     return(Result);
 }
 
+inline v3i
+V3i(v3 Vec)
+{
+    v3i Result;
+    
+    Result.x = (i32)Vec.x;
+    Result.y = (i32)Vec.y;
+    Result.z = (i32)Vec.z;
+    
+    return Result;
+}
 
 inline v3i 
 operator+(v3i A, v3i B)

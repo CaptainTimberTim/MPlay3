@@ -4,7 +4,7 @@
 inline void
 AdvanceToNewline(u8 **String)
 {
-    while(*String[0] != '\n') (*String)++;
+    while(*String[0] != '\n' && *String[0] != 0 ) (*String)++;
     (*String)++;
 }
 
@@ -851,7 +851,8 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
         if(GlobalGameState.MusicInfo.PlayingSong.PlaylistID >= 0 && GlobalGameState.MusicInfo.PlayingSong.DecodeID == Result)
         {
             if(Get(&DecodeInfo->FileID, NewDecodeID(Result)) == PlaylistIDToFileID(&GlobalGameState.MusicInfo.Playlist,
-                                                                                   GlobalGameState.MusicInfo.PlayingSong.PlaylistID)) DebugLog(255, "ERROR:: STAGE 1: Should never be the same here!\n");
+                                                                                   GlobalGameState.MusicInfo.PlayingSong.PlaylistID))
+                DebugLog(255, "ERROR:: STAGE 1: Should never be the same here!\n");
             Put(&DecodeInfo->LastTouched, Result, DecodeInfo->TouchCount++);
             Result = GetSmallestEntryID(&DecodeInfo->LastTouched, DecodeInfo->Count);
             
@@ -1081,7 +1082,7 @@ MillisecondsToMinutes(memory_bucket_container *Bucket, u32 Millis, string_c *Out
 // NOTE:: Settings file specifications
 //
 // MPlay3Settings
-// Version 1
+// Version 4
 // 
 // Volume: <Between 0 and 1>
 // LastPlayingSong: <FileName>
@@ -1089,11 +1090,35 @@ MillisecondsToMinutes(memory_bucket_container *Bucket, u32 Millis, string_c *Out
 // GenreArtistEdgeXPercent: <Between 0 and 1>
 // ArtistAlbumEdgeXPercent: <Between 0 and 1>
 // AlbumSongEdgeXPercent: <Between 0 and 1>
-// WindowDimX: <Between GlobalMinWindowWidth and MAX_I32>;
-// WindowDimY: <Between GlobalMinWindowHeight and MAX_I32>;
-// Looping: <0/1>;
-// Shuffle: <0/1>;
+// WindowDimX: <Between GlobalMinWindowWidth and MAX_I32>
+// WindowDimY: <Between GlobalMinWindowHeight and MAX_I32>
+// Looping: <0/1>
+// Shuffle: <0/1>
+// Palette: <Name>
+// Text: <R255> <G255> <B255>
+// ForegroundText: <R255> <G255> <B255>
+// ErrorText: <R255> <G255> <B255>
+// Foreground: <R255> <G255> <B255>
+// Slot: <R255> <G255> <B255>
+// SliderBackground: <R255> <G255> <B255>
+// SliderGrabThing: <R255> <G255> <B255>
+// ButtonActive: <R255> <G255> <B255>
+// Selected: <R255> <G255> <B255>
+// PlayingSong: <R255> <G255> <B255>
 
+inline void
+ProcessNextPaletteColor(u8 **C, u8 *ColorName, v3 *Color)
+{
+    u8 Length = 0;
+    *C += StringLength(ColorName);
+    Color->r = (r32)ProcessNextI32InString(*C, ' ', Length);
+    *C += Length+1;
+    Color->g = (r32)ProcessNextI32InString(*C, ' ', Length);
+    *C += Length+1;
+    Color->b = (r32)ProcessNextI32InString(*C, '\n', Length);
+    
+    AdvanceToNewline(C);
+}
 
 internal settings
 TryLoadSettingsFile(game_state *GameState)
@@ -1123,42 +1148,34 @@ TryLoadSettingsFile(game_state *GameState)
                 
                 C += StringLength((u8 *)"Volume: ");
                 Result.Volume = ProcessNextR32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"LastPlayingSong: ");
                 Result.PlayingSongID.ID = ProcessNextI32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"ColorPalette: ");
                 Result.ColorPaletteID = ProcessNextU32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"GenreArtistEdgeXPercent: ");
                 Result.GenreArtistEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"ArtistAlbumEdgeXPercent: ");
                 Result.ArtistAlbumEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"AlbumSongEdgeXPercent: ");
                 Result.AlbumSongEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"WindowDimensionX: ");
                 Result.WindowDimX = ProcessNextU32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"WindowDimensionY: ");
                 Result.WindowDimY = ProcessNextU32InString(C, '\n', Length);
-                C += Length;
                 AdvanceToNewline(&C);
                 
                 C += StringLength((u8 *)"Looping: ");
@@ -1168,6 +1185,42 @@ TryLoadSettingsFile(game_state *GameState)
                 C += StringLength((u8 *)"Shuffle: ");
                 Result.Shuffle = ProcessNextB32InString(C);
                 AdvanceToNewline(&C);
+                
+                // Prescan for color palette count
+                u8 *PreC = C;
+                Result.PaletteCount = 0;
+                while(StringCompare(PreC, (u8 *)"Palette: ", 0, 9))
+                {
+                    For(11) AdvanceToNewline(&PreC);
+                    Result.PaletteCount++;
+                }
+                Result.PaletteNames  = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteCount, string_c);
+                Result.Palettes = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteCount, color_palette);
+                
+                string_c PaletteName = NewStringCompound(&GameState->Bucket.Transient, 255);
+                For(Result.PaletteCount)
+                {
+                    C += StringLength((u8 *)"Palette: ");
+                    CopyStringToCompound(&PaletteName, C, (u8)'\n');
+                    Result.PaletteNames[It] = NewStringCompound(&GameState->Bucket.Fixed, PaletteName.Pos);
+                    AppendStringCompoundToCompound(Result.PaletteNames+It, &PaletteName);
+                    ResetStringCompound(PaletteName);
+                    
+                    color_palette *Palette = Result.Palettes+It;
+                    AdvanceToNewline(&C);
+                    
+                    ProcessNextPaletteColor(&C, (u8 *)"Text: ", &Palette->Text);
+                    ProcessNextPaletteColor(&C, (u8 *)"ForegroundText: ", &Palette->ForegroundText);
+                    ProcessNextPaletteColor(&C, (u8 *)"ErrorText: ", &Palette->ErrorText);
+                    ProcessNextPaletteColor(&C, (u8 *)"Foreground: ", &Palette->Foreground);
+                    ProcessNextPaletteColor(&C, (u8 *)"Slot: ", &Palette->Slot);
+                    ProcessNextPaletteColor(&C, (u8 *)"SliderBackground: ", &Palette->SliderBackground);
+                    ProcessNextPaletteColor(&C, (u8 *)"SliderGrabThing: ", &Palette->SliderGrabThing);
+                    ProcessNextPaletteColor(&C, (u8 *)"ButtonActive: ", &Palette->ButtonActive);
+                    ProcessNextPaletteColor(&C, (u8 *)"Selected: ", &Palette->Selected);
+                    ProcessNextPaletteColor(&C, (u8 *)"PlayingSong: ", &Palette->PlayingSong);
+                }
+                DeleteStringCompound(&GameState->Bucket.Transient, &PaletteName);
             }
             else
             {
@@ -1196,85 +1249,78 @@ TryLoadSettingsFile(game_state *GameState)
 }
 
 internal void
-SaveSettingsFile(game_state *GameState)
+SaveSettingsFile(game_state *GameState, settings *Settings)
 {
     string_c SaveData = NewStringCompound(&GameState->Bucket.Transient, 1000);
     
-    string_c FileIdentification = NewStaticStringCompound("MPlay3Settings\n");
-    string_c FileVersion        = NewStaticStringCompound("Version ");
-    string_c VersionLinebreak   = NewStaticStringCompound("\n\n");
+    AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
+    I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
+    AppendStringToCompound(&SaveData, (u8 *)"\n\n");
     
-    string_c FileVolume         = NewStaticStringCompound("Volume: ");
-    string_c FileLastSong       = NewStaticStringCompound("LastPlayingSong: ");
-    string_c FileColorPalette   = NewStaticStringCompound("ColorPalette: ");
-    string_c FileGenreArtist    = NewStaticStringCompound("GenreArtistEdgeXPercent: ");
-    string_c FileArtistAlbum    = NewStaticStringCompound("ArtistAlbumEdgeXPercent: ");
-    string_c FileAlbumSong      = NewStaticStringCompound("AlbumSongEdgeXPercent: ");
-    string_c WindowDimX         = NewStaticStringCompound("WindowDimensionX: ");
-    string_c WindowDimY         = NewStaticStringCompound("WindowDimensionY: ");
-    string_c Looping            = NewStaticStringCompound("Looping: ");
-    string_c Shuffle            = NewStaticStringCompound("Shuffle: ");
-    
-    char VolumeValue[25];
-    sprintf_s(VolumeValue, "%f\n", GameState->SoundThreadInterface->ToneVolume);
-    
-    //i32 FileID = PlaylistIDToFileID(&GameState->MusicInfo.Playlist, GameState->MusicInfo.PlayingSong.PlaylistID);
-    file_id FileID = GameState->MusicInfo.PlayingSong.FileID;
-    char FileIDString[10];
-    sprintf_s(FileIDString, "%i\n", FileID.ID);
-    
-    char PaletteIDString[10];
-    sprintf_s(PaletteIDString, "%i\n", GameState->MusicInfo.DisplayInfo.ColorPaletteID);
-    
-    char GenreArtistX[25];
-    sprintf_s(GenreArtistX, "%f\n", GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
-    
-    char ArtistAlbumX[25];
-    sprintf_s(ArtistAlbumX, "%f\n", GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);
-    
-    char AlbumSongX[25];
-    sprintf_s(AlbumSongX, "%f\n", GameState->MusicInfo.DisplayInfo.AlbumSong.XPercent);
+    NewLocalString(FileVolume,       50, "Volume: ");
+    NewLocalString(FileLastSong,     50, "LastPlayingSong: ");
+    NewLocalString(FileColorPalette, 50, "ColorPalette: ");
+    NewLocalString(FileGenreArtist,  50, "GenreArtistEdgeXPercent: ");
+    NewLocalString(FileArtistAlbum,  50, "ArtistAlbumEdgeXPercent: ");
+    NewLocalString(FileAlbumSong,    50, "AlbumSongEdgeXPercent: ");
+    NewLocalString(WindowDimX,       50, "WindowDimensionX: ");
+    NewLocalString(WindowDimY,       50, "WindowDimensionY: ");
+    NewLocalString(Looping,          50, "Looping: ");
+    NewLocalString(Shuffle,          50, "Shuffle: ");
     
     v2i Dim = GetWindowSize();
-    char WinDimX[25];
-    sprintf_s(WinDimX, "%i\n", Dim.x);
+    R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
+    I32ToString(&FileLastSong, GameState->MusicInfo.PlayingSong.FileID.ID);
+    I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
+    R32ToString(&FileGenreArtist, GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
+    R32ToString(&FileArtistAlbum, GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);
+    R32ToString(&FileAlbumSong, GameState->MusicInfo.DisplayInfo.AlbumSong.XPercent);
+    I32ToString(&WindowDimX, Dim.x);
+    I32ToString(&WindowDimY, Dim.y);
+    I32ToString(&Looping, GameState->MusicInfo.Looping == playLoop_Loop);
+    I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
-    char WinDimY[25];
-    sprintf_s(WinDimY, "%i\n", Dim.y);
+    string_c LB = NewStaticStringCompound("\n");
+    ConcatStringCompounds(21, &SaveData, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB);
     
-    char Loop[3];
-    sprintf_s(Loop, "%i\n", GameState->MusicInfo.Looping == playLoop_Loop);
+    string_c Palette           = NewStaticStringCompound("Palette: ");
+    string_c P_Text            = NewStaticStringCompound("\nText: ");
+    string_c P_ForegroundText  = NewStaticStringCompound("\nForegroundText: ");
+    string_c P_ErrorText       = NewStaticStringCompound("\nErrorText: ");
+    string_c P_Foreground      = NewStaticStringCompound("\nForeground: ");
+    string_c P_Slot            = NewStaticStringCompound("\nSlot: ");
+    string_c P_SliderBG        = NewStaticStringCompound("\nSliderBackground: ");
+    string_c P_SliderGrabThing = NewStaticStringCompound("\nSliderGrabThing: ");
+    string_c P_ButtonActive    = NewStaticStringCompound("\nButtonActive: ");
+    string_c P_Selected        = NewStaticStringCompound("\nSelected: ");
+    string_c P_PlayingSong     = NewStaticStringCompound("\nPlayingSong: ");
     
-    char Shuff[3];
-    sprintf_s(Shuff, "%i\n", GameState->MusicInfo.IsShuffled);
-    
-    AppendStringCompoundToCompound(&SaveData, &FileIdentification);
-    AppendStringCompoundToCompound(&SaveData, &FileVersion);
-    I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
-    AppendStringCompoundToCompound(&SaveData, &VersionLinebreak);
-    
-    AppendStringCompoundToCompound(&SaveData, &FileVolume);
-    AppendStringToCompound(&SaveData, (u8 *)VolumeValue);
-    AppendStringCompoundToCompound(&SaveData, &FileLastSong);
-    AppendStringToCompound(&SaveData, (u8 *)FileIDString);
-    AppendStringCompoundToCompound(&SaveData, &FileColorPalette);
-    AppendStringToCompound(&SaveData, (u8 *)PaletteIDString);
-    AppendStringCompoundToCompound(&SaveData, &FileGenreArtist);
-    AppendStringToCompound(&SaveData, (u8 *)GenreArtistX);
-    AppendStringCompoundToCompound(&SaveData, &FileArtistAlbum);
-    AppendStringToCompound(&SaveData, (u8 *)ArtistAlbumX);
-    AppendStringCompoundToCompound(&SaveData, &FileAlbumSong);
-    AppendStringToCompound(&SaveData, (u8 *)AlbumSongX);
-    
-    AppendStringCompoundToCompound(&SaveData, &WindowDimX);
-    AppendStringToCompound(&SaveData, (u8 *)WinDimX);
-    AppendStringCompoundToCompound(&SaveData, &WindowDimY);
-    AppendStringToCompound(&SaveData, (u8 *)WinDimY);
-    
-    AppendStringCompoundToCompound(&SaveData, &Looping);
-    AppendStringToCompound(&SaveData, (u8 *)Loop);
-    AppendStringCompoundToCompound(&SaveData, &Shuffle);
-    AppendStringToCompound(&SaveData, (u8 *)Shuff);
+    For(Settings->PaletteCount)
+    {
+        ConcatStringCompounds(3, &SaveData, &Palette, Settings->PaletteNames+It);
+        
+        AppendStringCompoundToCompound(&SaveData, &P_Text);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].Text));
+        AppendStringCompoundToCompound(&SaveData, &P_ForegroundText);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].ForegroundText));
+        AppendStringCompoundToCompound(&SaveData, &P_ErrorText);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].ErrorText));
+        AppendStringCompoundToCompound(&SaveData, &P_Foreground);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].Foreground));
+        AppendStringCompoundToCompound(&SaveData, &P_Slot);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].Slot));
+        AppendStringCompoundToCompound(&SaveData, &P_SliderBG);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].SliderBackground));
+        AppendStringCompoundToCompound(&SaveData, &P_SliderGrabThing);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].SliderGrabThing));
+        AppendStringCompoundToCompound(&SaveData, &P_ButtonActive);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].ButtonActive));
+        AppendStringCompoundToCompound(&SaveData, &P_Selected);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].Selected));
+        AppendStringCompoundToCompound(&SaveData, &P_PlayingSong);
+        V3iToString(&SaveData, ' ', V3i(Settings->Palettes[It].PlayingSong));
+        AppendCharToCompound(&SaveData, '\n');
+    }
     
     
     string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
@@ -1300,7 +1346,7 @@ ApplySettings(game_state *GameState, settings Settings)
     
     
     MusicInfo->DisplayInfo.ColorPaletteID = Settings.ColorPaletteID; 
-    UpdateColorPalette(&MusicInfo->DisplayInfo);
+    UpdateColorPalette(&MusicInfo->DisplayInfo, false);
     
     MusicInfo->DisplayInfo.GenreArtist.XPercent = Settings.GenreArtistEdgeXPercent;
     MusicInfo->DisplayInfo.ArtistAlbum.XPercent = Settings.ArtistAlbumEdgeXPercent;

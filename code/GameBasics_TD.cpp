@@ -57,3 +57,67 @@ SnapTimer(timer *Timer)
     Timer->LastSnap = NewSnap;
 }
 #endif
+
+internal void
+UpdateColorPickerTexture(color_picker *ColorPicker)
+{
+    loaded_bitmap *Bitmap = &ColorPicker->Bitmap;
+    if(!Bitmap->Pixels) 
+        Bitmap->Pixels = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, Bitmap->Width*Bitmap->Height, u32);
+    
+    For(Bitmap->Height, Y_)
+    {
+        r32 YPercent = Y_It/(r32)Bitmap->Height;
+        For(Bitmap->Width, X_)
+        {
+            i32 Pos = Y_It*Bitmap->Width + X_It;
+            
+            r32 XPercent = X_It/(r32)Bitmap->Width;
+            
+            r32 Red32   = (1-XPercent)*(1-YPercent)-ColorPicker->Blackness;
+            r32 Blue32  =    XPercent *(1-YPercent)-ColorPicker->Blackness;
+            r32 Green32 = (1-XPercent)*   YPercent -ColorPicker->Blackness;
+            
+            u8 Red   = (u8)Min(255.0f, Max(0.0f, Red32*255));
+            u8 Blue  = (u8)Min(255.0f, Max(0.0f, Blue32*255));
+            u8 Green = (u8)Min(255.0f, Max(0.0f, Green32*255));
+            u8 Alpha = (XPercent+YPercent > 1) ? 0 : 255;
+            
+            Bitmap->Pixels[Pos] = (Red << 0) | (Green << 8) | (Blue << 16) | (Alpha << 24);
+        }
+    }
+    
+    if(!ColorPicker->GLID) ColorPicker->GLID = CreateGLTexture(*Bitmap);
+    else UpdateGLTexture(*Bitmap, ColorPicker->GLID);
+}
+
+internal color_picker
+CreateColorPicker(v2i BitmapSize)
+{
+    color_picker Result = {};
+    
+    Result.Bitmap.ColorFormat = colorFormat_RGBA;
+    Result.Bitmap.Width  = BitmapSize.x;
+    Result.Bitmap.Height = BitmapSize.y;
+    Result.Bitmap.WasLoaded = true;
+    
+    Result.Blackness = -0.00f;
+    
+    UpdateColorPickerTexture(&Result);
+    
+    Result.TextureEntry = CreateRenderBitmap(&GlobalGameState.Renderer, V2(BitmapSize), -0.9f, 0, Result.GLID);
+    SetPosition(Result.TextureEntry, V2(GlobalGameState.Renderer.Window.CurrentDim.Dim)*0.5f);
+    
+    return Result;
+}
+
+
+
+
+
+
+
+
+
+
+

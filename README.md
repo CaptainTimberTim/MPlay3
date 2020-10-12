@@ -17,5 +17,5 @@ To build this project, the only thing required is the Visual Studio compiler and
 I have a "build.bat" in the code directory, which I use for building.
 In the "build" directory is a Visual Studio project file, which is only used for debugging.
 
-In the base folder is a C_Environment_Startup.lnk which starts a command prompt, Visual Studio (2019) and the editor 4Coder through *.bat files.
+In the base folder is a C_Environment_Startup.lnk which starts a command prompt, Visual Studio (2019) and the editor 4Coder (http://4coder.net/) through *.bat files.
 If one or more of the paths to the other applications are different they can be changed in the corresponding *.bat files. You can find Visual Studio's vcvarsall.bat path in the shell.bat and the path to 4coder in the editor.bat.

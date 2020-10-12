@@ -13,8 +13,9 @@ A small video of MPlay3 and a bit more motivation for this project is on my webs
 <br><br>
 ## Building the repository
 
-To build this project, the only thing required is the Visual Studio compiler.
+To build this project, the only thing required is the Visual Studio compiler and maybe an editor.
 I have a "build.bat" in the code directory, which I use for building.
 In the "build" directory is a Visual Studio project file, which is only used for debugging.
 
-To use the project exactly like me, all files in the base directory need their paths changed (the path in the shortcut file as well). That said, it is really not necessary to do.
+In the base folder is a C_Environment_Startup.lnk which starts a command prompt, Visual Studio (2019) and the editor 4Coder through *.bat files.
+If one or more of the paths to the other applications are different they can be changed in the corresponding *.bat files. You can find Visual Studio's vcvarsall.bat path in the shell.bat and the path to 4coder in the editor.bat.

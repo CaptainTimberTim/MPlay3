@@ -128,18 +128,14 @@ CreateSongButtons(renderer *Renderer, display_column_song_extension *SongColumn,
     
     r32 HalfSize = 22;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
-    SongColumn->Play[ID] = NewButton(Renderer, Rect, Z, false, 
-                                     ButtonID, &Palette->SliderGrabThing, 
-                                     &Palette->ButtonActive, &Palette->SliderBackground, 
-                                     PlayID, &Palette->Text, SongColumn->Base.BGRects[ID]);
+    SongColumn->Play[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, PlayID, Renderer->ButtonColors, 
+                                     SongColumn->Base.BGRects[ID]);
     Translate(SongColumn->Play[ID], V2(0, SONG_PLAY_BUTTON_Y_OFFSET));
     SongColumn->PlayBtnData[ID] = {ID, &GlobalGameState};
     SongColumn->Play[ID]->OnPressed = {OnSongPlayPressed, &SongColumn->PlayBtnData[ID]};
     
-    SongColumn->Add[ID] = NewButton(Renderer, Rect, Z, false, 
-                                    ButtonID, &Palette->SliderGrabThing, 
-                                    &Palette->ButtonActive, &Palette->SliderBackground, 
-                                    SongColumn->AddGLID, &Palette->Text, SongColumn->Play[ID]->Entry);
+    SongColumn->Add[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, SongColumn->AddGLID, 
+                                    Renderer->ButtonColors, SongColumn->Play[ID]->Entry);
     Translate(SongColumn->Add[ID], V2(52, 0));
     
     SongColumn->Add[ID]->OnPressed = {OnSongAddPressed, &SongColumn->PlayBtnData[ID]};
@@ -244,7 +240,7 @@ OnSearchPressed(void *Data)
         UpdateColumnVerticalSlider(SearchInfo->Renderer, SearchInfo->DisplayColumn, SearchInfo->SortingInfo);
     }
     
-    SetTextFieldActive(&Search->TextField, !Search->TextField.IsActive);
+    SetActive(&Search->TextField, !Search->TextField.IsActive);
     
     ResetStringCompound(Search->TextField.TextString);
     Search->TextField.dBackspacePress = 0;
@@ -327,15 +323,13 @@ CreateSearchBar(renderer *Renderer, memory_bucket_container *Bucket, music_displ
     r32 BtnDepth        = -0.6f;
     r32 SearchExt       = 12;
     
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Search_Icon.png"); 
-    u32 SearchID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
+    loaded_bitmap SearchBitmap = LoadImage_STB((u8 *)"..\\data\\Buttons\\Search_Icon.png");
+    u32 SearchID= CreateGLTexture(SearchBitmap); 
+    FreeImage_STB(SearchBitmap);
+    
     
     Result.Button = NewButton(Renderer, {{-SearchExt, -SearchExt},{SearchExt, SearchExt}}, 
-                              BtnDepth, false, Renderer->ButtonBaseID, 
-                              &DisplayInfo->ColorPalette.SliderGrabThing, 
-                              &DisplayInfo->ColorPalette.ButtonActive, 
-                              &DisplayInfo->ColorPalette.SliderBackground, SearchID,
-                              &DisplayInfo->ColorPalette.Text, Parent);
+                              BtnDepth, false, Renderer->ButtonBaseID, SearchID, Renderer->ButtonColors, Parent);
     Translate(Result.Button, V2(1, -1));
     DisplayColumn->SearchInfo = 
     {
@@ -430,9 +424,7 @@ CreateDisplayColumn(memory_bucket_container *Bucket, renderer *Renderer, music_d
     
     if(Type == columnType_Song) 
     {
-        Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Add_Icon.png"); 
-        ColumnExt(DisplayColumn)->AddGLID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-        
+        ColumnExt(DisplayColumn)->AddGLID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Add_Icon.png");
         CreateDisplayColumnSong(Renderer, ColumnExt(DisplayColumn));
     }
     
@@ -606,30 +598,21 @@ SongHorizontalSliderDrag(renderer *Renderer, music_display_column *DisplayColumn
 }
 
 internal void
-OnSliderDragStart(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
-{
-    drag_slider_data *Info = (drag_slider_data *)Data;
-    
-    Info->MouseOffset.x = AdjustedMouseP.x - GetPosition(Info->DisplayColumn->SliderHorizontal.GrabThing).x;
-    Info->MouseOffset.y = AdjustedMouseP.y - GetPosition(Info->DisplayColumn->SliderVertical.GrabThing).y;
-}
-
-internal void
 OnHorizontalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
     drag_slider_data *Info = (drag_slider_data *)Data;
     music_display_column *DisplayColumn = Info->DisplayColumn;
     slider *Slider = &DisplayColumn->SliderHorizontal;
     r32 GrabThingHalfWidth  = GetSize(Slider->GrabThing).x/2.0f;
-    if(Info->MouseOffset.x < GrabThingHalfWidth && Info->MouseOffset.x > -GrabThingHalfWidth) 
-        AdjustedMouseP.x -= Info->MouseOffset.x;
+    if(Slider->MouseOffset.x < GrabThingHalfWidth && Slider->MouseOffset.x > -GrabThingHalfWidth) 
+        AdjustedMouseP.x -= Slider->MouseOffset.x;
     
     r32 BGXPos = GetLocalPosition(Slider->Background).x;
     r32 NewX   = Clamp(AdjustedMouseP.x, BGXPos - Slider->MaxSlidePix, BGXPos + Slider->MaxSlidePix);
     r32 OldX   = GetLocalPosition(Slider->GrabThing).x;
     SetLocalPosition(Slider->GrabThing, V2(NewX, GetLocalPosition(Slider->GrabThing).y));
     
-    r32 TranslationPercent = SaveDiv(1.0f, Slider->MaxSlidePix*2)*(OldX-NewX);
+    r32 TranslationPercent = SafeDiv(1.0f, Slider->MaxSlidePix*2)*(OldX-NewX);
     r32 TranslationPix = TranslationPercent*DisplayColumn->SlotWidth*(Slider->OverhangP-1);
     // TODO:: The first visible letter needs to be squashed according to its overhang!
     for(u32 It = 0;
@@ -657,7 +640,7 @@ UpdateColumnVerticalSliderPosition(renderer *Renderer, music_display_column *Dis
     r32 TotalHeight      = GetDisplayableHeight(ColumnSorting, DisplayColumn->SlotHeight);
     TotalHeight          = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
-    r32 CursorHeightPercentage = SaveDiv(DisplayColumn->DisplayCursor,(r32)TotalHeight);
+    r32 CursorHeightPercentage = SafeDiv(DisplayColumn->DisplayCursor,(r32)TotalHeight);
     v2 P = V2(GetLocalPosition(Slider->GrabThing).x, GetLocalPosition(Slider->Background).y+Slider->MaxSlidePix);
     P.y -= CursorHeightPercentage*(GetSize(Slider->Background).y-GetSize(Slider->GrabThing).y);
     SetLocalPosition(Slider->GrabThing, P);
@@ -698,8 +681,8 @@ OnVerticalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, 
     slider *Slider = &DisplayColumn->SliderVertical;
     
     r32 GrabThingHalfHeight  = GetSize(Slider->GrabThing).y/2.0f;
-    if(DragData->MouseOffset.y < GrabThingHalfHeight && DragData->MouseOffset.y > -GrabThingHalfHeight) 
-        AdjustedMouseP.y -= DragData->MouseOffset.y;
+    if(Slider->MouseOffset.y < GrabThingHalfHeight && Slider->MouseOffset.y > -GrabThingHalfHeight) 
+        AdjustedMouseP.y -= Slider->MouseOffset.y;
     
     r32 ParentY = GetLocalPosition(Slider->GrabThing->ID->Parent).y;
     r32 BGYPos = GetLocalPosition(Slider->Background).y + ParentY;
@@ -788,7 +771,7 @@ OnVolumeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Da
     r32 NewX = Clamp(AdjustedMouseP.x, BGX-VolumeSlider->MaxSlidePix, BGX+VolumeSlider->MaxSlidePix);
     
     VolumeSlider->GrabThing->ID->Transform.Translation.x = NewX;
-    r32 TranslationPercent = SaveDiv(1.0f,(VolumeSlider->MaxSlidePix*2))*(NewX-BGX) + 0.5f;
+    r32 TranslationPercent = SafeDiv(1.0f,(VolumeSlider->MaxSlidePix*2))*(NewX-BGX) + 0.5f;
     
     SetToneVolume(GameState->SoundThreadInterface, TranslationPercent);
 }
@@ -1207,7 +1190,7 @@ ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo,
     // I do this to fix that if the column is at the bottom and the window gets bigger, the
     // slots will be stopped at the edge. Without this, the new visible slots will be the same
     // ID. See: #LastSlotOverflow in MoveDisplayColumn
-    drag_slider_data Data = { MusicInfo, DisplayColumn, SortingColumn, 0};
+    drag_slider_data Data = { MusicInfo, DisplayColumn, SortingColumn};
     OnVerticalSliderDrag(Renderer, GetPosition(DisplayColumn->SliderVertical.GrabThing), 0, &Data);
     
     SetActive(DisplayColumn->Search.Button, (Renderer->Window.CurrentDim.Height > (GlobalMinWindowHeight + 15)));
@@ -1510,11 +1493,68 @@ UpdateColorPalette(music_display_info *DisplayInfo, b32 GoToNextPalette)
     }
 }
 
+inline b32
+IsColorPaletteDefault()
+{
+    return (GlobalGameState.MusicInfo.DisplayInfo.ColorPaletteID < DEFAULT_COLOR_PALETTE_COUNT);
+}
+
+internal void
+RemoveCustomColorPalette(u32 PaletteID)
+{
+    settings *Settings = &GlobalGameState.Settings;
+    PaletteID -= DEFAULT_COLOR_PALETTE_COUNT;
+    Assert(PaletteID >= 0);
+    Assert(PaletteID < Settings->PaletteCount);
+    
+    RemoveItem(Settings->Palettes, Settings->PaletteCount, PaletteID, color_palette);
+    RemoveItem(Settings->PaletteNames, Settings->PaletteCount, PaletteID, string_c);
+    
+    Settings->PaletteCount--;
+    Assert(Settings->PaletteCount >= 0);
+}
+
+internal void
+AddCustomColorPalette(color_palette *ColorPalette, string_c *Name)
+{
+    settings *Settings = &GlobalGameState.Settings;
+    if(Settings->PaletteCount+1 >= Settings->PaletteMaxCount)
+    {
+        NewLocalString(ErrorMsg, 255, "ERROR:: Created too many color palettes at once. Restart App if you want more!");
+        PushUserErrorMessage(&ErrorMsg);
+    }
+    else
+    {
+        Settings->PaletteNames[Settings->PaletteCount] = NewStringCompound(&GlobalGameState.Bucket.Fixed, 100);
+        if(Name->Pos >= 100) Name->Pos = 100;
+        AppendStringCompoundToCompound(Settings->PaletteNames+Settings->PaletteCount, Name);
+        For(PALETTE_COLOR_AMOUNT)
+        {
+            Settings->Palettes[Settings->PaletteCount].Colors[It] = ColorPalette->Colors[It]*255.0f;
+        }
+        Settings->PaletteCount++;
+        // TODO:: Maybe write it out immidiately that it cannot get lost?
+    }
+}
+
 inline void
 OnPaletteSwap(void *Data)
 {
     music_display_info *DisplayInfo = &((music_btn *)Data)->GameState->MusicInfo.DisplayInfo;
     UpdateColorPalette(DisplayInfo, true);
+}
+
+inline string_c *
+GetCurrentPaletteName()
+{
+    string_c *Result = 0;
+    
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    if(DisplayInfo->ColorPaletteID < DEFAULT_COLOR_PALETTE_COUNT) 
+        Result = GlobalDefaultColorPaletteNames + DisplayInfo->ColorPaletteID;
+    else Result = GlobalGameState.Settings.PaletteNames + (DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT);
+    
+    return Result;
 }
 
 inline void
@@ -1524,7 +1564,7 @@ OnMusicPathPressed(void *Data)
     music_display_info *DisplayInfo = &MusicBtnInfo->GameState->MusicInfo.DisplayInfo;
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
     
-    SetTextFieldActive(&MusicPath->TextField, !MusicPath->TextField.IsActive);
+    SetActive(&MusicPath->TextField, !MusicPath->TextField.IsActive);
     if(MusicPath->TextField.IsActive)
     {
         if(IsSearchOpen(DisplayInfo))
@@ -1633,6 +1673,12 @@ OnRescanPressed(void *Data)
     AddJob_CheckMusicPathChanged(&GlobalGameState.CheckMusicPath);
 }
 
+inline void
+OnColorPicker(void *Data)
+{
+    SetActive((color_picker *)Data, true);
+}
+
 internal void
 InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp3_info *MP3Info)
 {
@@ -1692,41 +1738,33 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->AlbumSong.OriginalYHeight = GetPosition(DisplayInfo->AlbumSong.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->AlbumSong.Edge, scaleAxis_Y);
     
-    Renderer->ButtonBase = LoadImage_STB((u8 *)"..\\data\\Buttons\\PlayPause.png"); 
-    Renderer->ButtonBaseID = CreateGLTexture(Renderer->ButtonBase);
     
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Shuffle_Icon.png"); 
-    u32 ShuffleID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Shuffle_Pressed_Icon.png"); 
-    u32 ShufflePressedID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Loop_Icon.png"); 
-    u32 LoopID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Loop_Pressed_Icon.png"); 
-    u32 LoopPressedID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Randomize_Icon.png"); 
-    u32 RandomizeID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Randomize_Pressed_Icon.png"); 
-    u32 RandomizePressedID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Play_Icon.png"); 
-    u32 PlayID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Pause_Icon.png"); 
-    u32 PauseID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Stop_Icon.png"); 
-    u32 StopID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Next_Icon.png"); 
-    u32 NextID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Previous_Icon.png"); 
-    u32 PreviousID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\MusicPath_Icon.png"); 
-    u32 MusicPathID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Confirm_Icon.png"); 
-    u32 ConfirmID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Cancel_Icon.png"); 
-    u32 CancelID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\PaletteSwap_Icon2.png"); 
-    u32 PaletteID = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
-    Renderer->ButtonIcons[Renderer->ButtonIconCount] = LoadImage_STB((u8 *)"..\\data\\Buttons\\Rescan_Icon.png"); 
-    u32 RescanID  = CreateGLTexture(Renderer->ButtonIcons[Renderer->ButtonIconCount++]);
+    Renderer->ButtonColors = 
+    {
+        &DisplayInfo->ColorPalette.SliderGrabThing,
+        &DisplayInfo->ColorPalette.ButtonActive,
+        &DisplayInfo->ColorPalette.SliderBackground, 
+        &DisplayInfo->ColorPalette.Text,
+    };
+    Renderer->ButtonBaseID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\PlayPause.png"); 
+    
+    u32 ShuffleID          = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Shuffle_Icon.png"); 
+    u32 ShufflePressedID   = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Shuffle_Pressed_Icon.png"); 
+    u32 LoopID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Loop_Icon.png"); 
+    u32 LoopPressedID      = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Loop_Pressed_Icon.png"); 
+    u32 RandomizeID        = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Randomize_Icon.png"); 
+    u32 RandomizePressedID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Randomize_Pressed_Icon.png"); 
+    u32 PlayID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Play_Icon.png"); 
+    u32 PauseID            = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Pause_Icon.png"); 
+    u32 StopID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Stop_Icon.png"); 
+    u32 NextID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Next_Icon.png"); 
+    u32 PreviousID         = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Previous_Icon.png"); 
+    u32 MusicPathID        = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\MusicPath_Icon.png"); 
+    u32 ConfirmID          = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Confirm_Icon.png"); 
+    u32 CancelID           = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Cancel_Icon.png"); 
+    u32 PaletteID          = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\PaletteSwap_Icon2.png"); 
+    u32 RescanID           = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Rescan_Icon.png"); 
+    u32 ColorPickerID      = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\ColorPicker_Icon.png"); 
     
     r32 BtnDepth = -0.6f;
     
@@ -1740,59 +1778,49 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     rect LargeBtnRect  = {{-LargeRectS, -LargeRectS}, {LargeRectS, LargeRectS}};
     rect MediumBtnRect = {{-MediumRectS,-MediumRectS},{MediumRectS,MediumRectS}};
     rect SmallBtnRect  = {{-SmallRectS, -SmallRectS}, {SmallRectS,SmallRectS}};
-    DisplayInfo->PlayPause = NewButton(Renderer, PlayPauseRect, BtnDepth, true, 
-                                       Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                       &DisplayInfo->ColorPalette.ButtonActive, 
-                                       &DisplayInfo->ColorPalette.SliderBackground, 
-                                       PlayID, &DisplayInfo->ColorPalette.Text, 0, PauseID);
+    DisplayInfo->PlayPause = NewButton(Renderer, PlayPauseRect, BtnDepth, true, Renderer->ButtonBaseID, 
+                                       PlayID, Renderer->ButtonColors, 0, PauseID);
     SetLocalPosition(DisplayInfo->PlayPause, V2(PlayPauseX, 60));
     DisplayInfo->PlayPause->OnPressed = {OnPlayPauseSongToggleOn, &DisplayInfo->MusicBtnInfo};
     DisplayInfo->PlayPause->OnPressedToggleOff = {OnPlayPauseSongToggleOff, &DisplayInfo->MusicBtnInfo};
     
     DisplayInfo->Stop      = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                       Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                       &DisplayInfo->ColorPalette.ButtonActive, 
-                                       &DisplayInfo->ColorPalette.SliderBackground,
-                                       StopID, &DisplayInfo->ColorPalette.Text, 0);
+                                       Renderer->ButtonBaseID, StopID, Renderer->ButtonColors, 0);
     SetLocalPosition(DisplayInfo->Stop, V2(PlayPauseX + 74, 80.75f));
     DisplayInfo->Stop->OnPressed = {OnStopSong, &DisplayInfo->MusicBtnInfo};
     
     DisplayInfo->Previous  = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                       Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                       &DisplayInfo->ColorPalette.ButtonActive, 
-                                       &DisplayInfo->ColorPalette.SliderBackground,
-                                       PreviousID, &DisplayInfo->ColorPalette.Text, 0);
+                                       Renderer->ButtonBaseID, PreviousID, Renderer->ButtonColors, 0);
     SetLocalPosition(DisplayInfo->Previous, V2(PlayPauseX+74+53, 80.75f));
     DisplayInfo->Previous->OnPressed = {OnPreviousSong, &DisplayInfo->MusicBtnInfo};
     
     DisplayInfo->Next      = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                       Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                       &DisplayInfo->ColorPalette.ButtonActive, 
-                                       &DisplayInfo->ColorPalette.SliderBackground,
-                                       NextID, &DisplayInfo->ColorPalette.Text, 0);
+                                       Renderer->ButtonBaseID, NextID, Renderer->ButtonColors, 0);
     SetLocalPosition(DisplayInfo->Next, V2(PlayPauseX+74+53*2, 80.75f));
     DisplayInfo->Next->OnPressed = {OnNextSong, &DisplayInfo->MusicBtnInfo};
     
     DisplayInfo->PaletteSwap = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
-                                         Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                         &DisplayInfo->ColorPalette.ButtonActive, 
-                                         &DisplayInfo->ColorPalette.SliderBackground,
-                                         PaletteID, &DisplayInfo->ColorPalette.Text, 0);
+                                         Renderer->ButtonBaseID, PaletteID, Renderer->ButtonColors, 0);
     //SetButtonTranslation(DisplayInfo->PaletteSwap, V2(PlayPauseX-64, 30));
     SetLocalPosition(DisplayInfo->PaletteSwap, V2(40, Renderer->Window.CurrentDim.Height-25.0f));
     TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Entry, fixedTo_TopLeft);
     TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Icon, fixedTo_TopLeft);
     DisplayInfo->PaletteSwap->OnPressed = {OnPaletteSwap, &DisplayInfo->MusicBtnInfo};
     
+    // Color picker button
+    DisplayInfo->ColorPicker = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
+                                         Renderer->ButtonBaseID, ColorPickerID, Renderer->ButtonColors, 0);
+    SetLocalPosition(DisplayInfo->ColorPicker, V2(80, Renderer->Window.CurrentDim.Height-25.0f));
+    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->ColorPicker->Entry, fixedTo_TopLeft);
+    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->ColorPicker->Icon, fixedTo_TopLeft);
+    DisplayInfo->ColorPicker->OnPressed = {OnColorPicker, &GameState->ColorPicker};
+    
     // Music path stuff *******************************
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
     
     MusicPath->Button = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
-                                  Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                  &DisplayInfo->ColorPalette.ButtonActive, 
-                                  &DisplayInfo->ColorPalette.SliderBackground,
-                                  MusicPathID, &DisplayInfo->ColorPalette.Text, 0);
-    SetLocalPosition(MusicPath->Button, V2(40+SmallRectS*2+5, Renderer->Window.CurrentDim.Height-25.0f));
+                                  Renderer->ButtonBaseID, MusicPathID, Renderer->ButtonColors, 0);
+    SetLocalPosition(MusicPath->Button, V2(120, Renderer->Window.CurrentDim.Height-25.0f));
     TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Entry, fixedTo_TopLeft);
     TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Icon, fixedTo_TopLeft);
     MusicPath->Button->OnPressed = {OnMusicPathPressed, &DisplayInfo->MusicBtnInfo};
@@ -1818,19 +1846,13 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     MusicPath->Background->ID->Render = false;
     
     MusicPath->Save = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
-                                Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                &DisplayInfo->ColorPalette.ButtonActive, 
-                                &DisplayInfo->ColorPalette.SliderBackground,
-                                ConfirmID, &DisplayInfo->ColorPalette.Text, MusicPath->TextField.LeftAlign);
+                                Renderer->ButtonBaseID, ConfirmID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
     Translate(MusicPath->Save, V2(MediumRectS, -MediumRectS -44));
     MusicPath->Save->OnPressed = {OnMusicPathSavePressed, &DisplayInfo->MusicBtnInfo};
     SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
     
     MusicPath->Quit = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
-                                Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                &DisplayInfo->ColorPalette.ButtonActive, 
-                                &DisplayInfo->ColorPalette.SliderBackground,
-                                CancelID, &DisplayInfo->ColorPalette.Text, MusicPath->TextField.LeftAlign);
+                                Renderer->ButtonBaseID, CancelID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
     Translate(MusicPath->Quit, V2(MediumRectS*3+10, -MediumRectS -25 -19));
     MusicPath->Quit->OnPressed = {OnMusicPathQuitPressed, &DisplayInfo->MusicBtnInfo};
     SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
@@ -1846,9 +1868,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     MusicPath->CrawlThreadStateCount = 0;
     
     MusicPath->Rescan = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, Renderer->ButtonBaseID, 
-                                  &DisplayInfo->ColorPalette.SliderGrabThing, &DisplayInfo->ColorPalette.ButtonActive, 
-                                  &DisplayInfo->ColorPalette.SliderBackground, RescanID, &DisplayInfo->ColorPalette.Text,
-                                  MusicPath->TextField.LeftAlign);
+                                  RescanID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
     Translate(MusicPath->Rescan, V2(204, 55));
     SetActive(MusicPath->Rescan, false);
     MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
@@ -1878,20 +1898,14 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     DisplayInfo->SearchIsActive = -1;
     
-    DisplayInfo->ShufflePlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, 
-                                             Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                             &DisplayInfo->ColorPalette.ButtonActive, 
-                                             &DisplayInfo->ColorPalette.SliderBackground,
-                                             RandomizeID, &DisplayInfo->ColorPalette.Text, 0, RandomizePressedID);
+    DisplayInfo->ShufflePlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
+                                             RandomizeID, Renderer->ButtonColors, 0, RandomizePressedID);
     SetLocalPosition(DisplayInfo->ShufflePlaylist, V2(PlayPauseX - (PlayPauseS+MediumRectS+5), MediumRectS+15));
     DisplayInfo->ShufflePlaylist->OnPressed = {OnShufflePlaylistToggleOn, &DisplayInfo->MusicBtnInfo};
     DisplayInfo->ShufflePlaylist->OnPressedToggleOff = {OnShufflePlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
     DisplayInfo->LoopPlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, 
-                                          Renderer->ButtonBaseID, &DisplayInfo->ColorPalette.SliderGrabThing, 
-                                          &DisplayInfo->ColorPalette.ButtonActive, 
-                                          &DisplayInfo->ColorPalette.SliderBackground,
-                                          LoopID, &DisplayInfo->ColorPalette.Text, 0, LoopPressedID);
+                                          Renderer->ButtonBaseID, LoopID, Renderer->ButtonColors, 0, LoopPressedID);
     SetLocalPosition(DisplayInfo->LoopPlaylist, V2(PlayPauseX - (PlayPauseS+MediumRectS+5), MediumRectS*3+15+6));
     DisplayInfo->LoopPlaylist->OnPressed = {OnLoopPlaylistToggleOn,  &DisplayInfo->MusicBtnInfo};
     DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
@@ -2021,7 +2035,7 @@ internal void
 UpdatePanelTimeline(playing_song_panel *Panel, r32 CurrentTime)
 {
     slider *Slider = &Panel->Timeline;
-    r32 TimePercentage = Min(1.0f, SaveDiv((CurrentTime*1000), Panel->SongDuration));
+    r32 TimePercentage = Min(1.0f, SafeDiv((CurrentTime*1000), Panel->SongDuration));
     r32 NewXPos = (Slider->MaxSlidePix*2)*TimePercentage;
     Slider->GrabThing->ID->Transform.Translation.x = GetPosition(Slider->Background).x-Slider->MaxSlidePix+NewXPos;
 }
@@ -2056,7 +2070,7 @@ OnTimelineDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *
     r32 NewX = Clamp(AdjustedMouseP.x, BGX-Slider->MaxSlidePix, BGX+Slider->MaxSlidePix);
     
     Slider->GrabThing->ID->Transform.Translation.x = NewX;
-    r32 TranslationPercentage = SaveDiv(1.0f,(Slider->MaxSlidePix*2))*(NewX-BGX) + 0.5f;
+    r32 TranslationPercentage = SafeDiv(1.0f,(Slider->MaxSlidePix*2))*(NewX-BGX) + 0.5f;
     
     r32 NewPlaytime = (DisplayInfo->PlayingSongPanel.SongDuration/1000.0f)*TranslationPercentage;
     
@@ -2179,47 +2193,6 @@ CheckColumnsForSelectionChange()
         else Result = UpdateSelectionArray(&SortingInfo->Album, &DisplayInfo->Album);
         
         DisplayInfo->Album.LastClickTime = GlobalGameState.Time.GameTime;
-    }
-    
-    return Result;
-}
-
-inline void
-SetQuitAnimation(quit_animation *Quit, b32 Activate)
-{
-    Quit->AnimationStart = Activate;
-    SetActive(Quit->Curtain, Activate);
-    SetActive(&Quit->Text, Activate);
-}
-
-internal b32
-QuitAnimation(r32 Dir)
-{
-    b32 Result = false;
-    
-    window_info *Window = &GlobalGameState.Renderer.Window;
-    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-    time_management *Time = &GlobalGameState.Time;
-    quit_animation *Quit = &GlobalGameState.MusicInfo.DisplayInfo.Quit;
-    if(Quit->dAnim >= 1.0f || Quit->dAnim < 0.0f)
-    {
-        SetScale(Quit->Curtain, V2(1, 1));
-        SetLocalPositionY(Quit->Curtain, Window->CurrentDim.Height/2.0f);
-        Result = true;
-        Quit->dAnim = 0.0f;
-    }
-    else 
-    {
-        Quit->dAnim += Time->dTime/Quit->Time * Dir;
-        
-        r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
-        SetSize(Quit->Curtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
-        SetLocalPosition(Quit->Curtain, V2(Window->CurrentDim.Width/2.0f, 
-                                           Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
-        SetPosition(&Quit->Text, V2((Window->CurrentDim.Width - Quit->Text.CurrentP.x)/2.0f,
-                                    Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
-        
-        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);//Max(0.85f, Quit->dAnim));
     }
     
     return Result;

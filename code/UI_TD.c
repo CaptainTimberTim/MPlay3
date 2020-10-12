@@ -58,6 +58,13 @@ NewButton(renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
     return Result;
 }
 
+inline button *
+NewButton(renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle, u32 ButtonBitmapID, u32 IconBitmapID,
+          button_colors Colors, entry_id *Parent, i32 ToggleIconBitmapID)
+{
+    return NewButton(Renderer, Rect, Depth, IsToggle, ButtonBitmapID, Colors.BaseColor, Colors.DownColor, Colors.HoverColor, IconBitmapID, Colors.IconColor, Parent, ToggleIconBitmapID);
+}
+
 inline void
 ToggleButtonVisuals(button *Button, b32 ToggleOn)
 {
@@ -223,6 +230,7 @@ AddDragable(drag_list *DragList, entry_id *Entry,
             drag_func_pointer OnDragStart, drag_func_pointer OnDragging, drag_func_pointer OnDragEnd)
 {
     Assert(DragList->Count < DRAGABLE_MAX_COUNT);
+    DragList->IsActive[DragList->Count] = true;
     DragList->Dragables[DragList->Count] = Entry;
     DragList->OnDragStart[DragList->Count] = OnDragStart;
     DragList->OnDragging[DragList->Count] = OnDragging;
@@ -234,6 +242,8 @@ OnDraggingStart(drag_list *DragableList, renderer *Renderer, v2 MouseP)
 {
     For(DragableList->Count)
     {
+        if(!DragableList->Dragables[It]->ID->Render) continue;
+        if(!DragableList->IsActive[It])              continue;
         if(IsInRect(DragableList->Dragables[It], MouseP))
         {
             v2 AdjustedMouseP = MouseP;
@@ -270,6 +280,22 @@ OnDraggingEnd(drag_list *DragableList, renderer *Renderer, v2 MouseP)
                                                                DragableList->OnDragEnd[DragableList->DraggingID].Data);
     }
     DragableList->DraggingID = -1;
+}
+
+inline void
+SetActiveAll(drag_list *DragList, b32 Activate)
+{
+    For(DragList->Count) DragList->IsActive[It] = Activate;
+}
+
+inline void
+SetActiveAllButGiven(drag_list *DragList, entry_id *ID, b32 Activate)
+{
+    For(DragList->Count) 
+    {
+        if(ID->ID == DragList->Dragables[It]->ID) DragList->IsActive[It] = !Activate;
+        else DragList->IsActive[It] = Activate;
+    }
 }
 
 // Textfield stuff
@@ -309,11 +335,12 @@ Translate(text_field *TextField, v2 Translation)
 }
 
 inline void
-SetTextFieldActive(text_field *TextField, b32 MakeActive)
+SetActive(text_field *TextField, b32 MakeActive)
 {
     TextField->IsActive = MakeActive;
     TextField->Background->ID->Render = MakeActive;
     TextField->Cursor->ID->Render = MakeActive;
+    SetActive(&TextField->Text, MakeActive);
 }
 
 inline void
@@ -496,6 +523,132 @@ UpdateIndeterminiteLoadingBar(loading_bar *LoadingBar, r32 RoundtripPercentage)
     r32 Size  = GetSize(LoadingBar->ProgressBar).x;
     v2 NewP = V2((-Width/2+Size/2) + (Width-Size)*RoundtripPercentage, 0);
     SetLocalPosition(LoadingBar->ProgressBar, NewP);
+}
+
+// Slider *********************
+
+inline void
+Translate(slider *Slider, v2 T)
+{
+    Translate(Slider->Background, T);
+}
+
+inline void
+SetLocalPosition(slider *Slider, v2 T)
+{
+    SetLocalPosition(Slider->Background, T);
+}
+
+inline void
+SetActive(slider *Slider, b32 Activate)
+{
+    SetActive(Slider->Background, Activate);
+    SetActive(Slider->GrabThing, Activate);
+}
+
+inline void
+OnSliderDragStart(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
+{
+    slider *Slider = (slider *)Data;
+    Slider->MouseOffset = AdjustedMouseP - GetPosition(Slider->GrabThing);
+}
+
+internal void
+OnSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
+{
+    slider *Slider = (slider *)Data;
+    Slider->SliderIsDragged = true;
+    
+    v2 GrabThingExtends  = GetExtends(Slider->GrabThing);
+    if(Slider->Axis == sliderAxis_Y)
+    {
+        if(Slider->MouseOffset.y < GrabThingExtends.y && Slider->MouseOffset.y > -GrabThingExtends.y) 
+            AdjustedMouseP.y -= Slider->MouseOffset.y;
+        
+        r32 BGY  = GetPosition(Slider->Background).y;
+        r32 NewY = Clamp(AdjustedMouseP.y, BGY - Slider->MaxSlidePix, BGY + Slider->MaxSlidePix);
+        SetLocalPosition(Slider->GrabThing, V2(0, NewY-BGY));
+        
+        Slider->SlidePercentage = SafeDiv(1.0f,(Slider->MaxSlidePix*2))*(NewY-BGY) + 0.5f;
+    }
+    else
+    {
+        if(Slider->MouseOffset.x < GrabThingExtends.x && Slider->MouseOffset.x > -GrabThingExtends.x) 
+            AdjustedMouseP.x -= Slider->MouseOffset.x;
+        
+        r32 BGX  = GetPosition(Slider->Background).x;
+        r32 NewX = Clamp(AdjustedMouseP.x, BGX - Slider->MaxSlidePix, BGX + Slider->MaxSlidePix);
+        SetLocalPosition(Slider->GrabThing, V2(NewX-BGX, 0));
+        
+        Slider->SlidePercentage = SafeDiv(1.0f,(Slider->MaxSlidePix*2))*(NewX-BGX) + 0.5f;
+    }
+}
+
+internal void
+SetSliderPosition(slider *Slider, r32 Percentage)
+{
+    Slider->SlidePercentage = Clamp01(Percentage);
+    r32 NewPos = (Slider->MaxSlidePix*2)*(Slider->SlidePercentage-0.5f);
+    
+    if(Slider->Axis == sliderAxis_Y) SetLocalPosition(Slider->GrabThing, V2(0, NewPos));
+    else SetLocalPosition(Slider->GrabThing, V2(NewPos, 0));
+}
+
+internal void
+CreateSlider(slider *Result, renderer *Renderer, v2 BGSize, v2 GrabSize, r32 Depth, loaded_bitmap BGBitmap, 
+             v3 *GrabColor, slider_axis Axis, entry_id *Parent = 0)
+{
+    Result->Axis = Axis;
+    Result->Background = CreateRenderBitmap(Renderer, BGSize, Depth, Parent, CreateGLTexture(BGBitmap));
+    Result->GrabThing  = CreateRenderRect(Renderer, GrabSize, Depth-0.00001f, GrabColor, Result->Background);
+    Result->SlidePercentage = 0.5f;
+    
+    if(Axis == sliderAxis_Y) Result->MaxSlidePix = (BGSize.y-GrabSize.y)*0.5f;
+    else Result->MaxSlidePix = (BGSize.x-GrabSize.x)*0.5f;
+    
+    AddDragable(&GlobalGameState.DragableList, Result->Background, {OnSliderDragStart, Result}, {OnSliderDrag, Result}, {});
+}
+
+
+// Quit curtain ************************
+
+inline void
+SetQuitAnimation(quit_animation *Quit, b32 Activate)
+{
+    Quit->AnimationStart = Activate;
+    SetActive(Quit->Curtain, Activate);
+    SetActive(&Quit->Text, Activate);
+}
+
+internal b32
+QuitAnimation(quit_animation *Quit, r32 Dir)
+{
+    b32 Result = false;
+    
+    window_info *Window = &GlobalGameState.Renderer.Window;
+    time_management *Time = &GlobalGameState.Time;
+    if(Quit->dAnim >= 1.0f || Quit->dAnim < 0.0f)
+    {
+        SetScale(Quit->Curtain, V2(1, 1));
+        SetLocalPositionY(Quit->Curtain, Window->CurrentDim.Height/2.0f);
+        Result = true;
+        Quit->dAnim = 0.0f;
+    }
+    else 
+    {
+        Quit->dAnim += Time->dTime/Quit->Time * Dir;
+        
+        r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
+        SetSize(Quit->Curtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
+        SetLocalPosition(Quit->Curtain, V2(Window->CurrentDim.Width/2.0f, 
+                                           Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
+        SetPosition(&Quit->Text, V2((Window->CurrentDim.Width - Quit->Text.CurrentP.x)/2.0f,
+                                    Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
+        
+        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);//Max(0.85f, Quit->dAnim));
+    }
+    
+    return Result;
 }
 
 

@@ -45,12 +45,22 @@ struct button_group
     u32 Count;
 };
 
+struct button_colors
+{
+    v3 *BaseColor;
+    v3 *DownColor;
+    v3 *HoverColor;
+    v3 *IconColor;
+};
+
 inline button *NewButton(struct renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
                          string_c *BtnPath, v3 *BaseColor, v3 *DownColor, v3 *HoverColor, string_c *IconPath, v3 *IconColor,
                          entry_id *Parent, string_c *ToggleIconPath = 0);
 inline button *NewButton(struct renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
                          u32 ButtonBitmapID, v3 *BaseColor, v3 *DownColor, v3 *HoverColor, 
                          u32 IconBitmapID, v3 *IconColor, entry_id *Parent, i32 ToggleIconBitmapID = -1);
+inline button *NewButton(struct renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle, u32 ButtonBitmapID, u32 IconBitmapID,
+                         button_colors Colors, entry_id *Parent, i32 ToggleIconBitmapID = -1);
 inline void SetActive(button *Button, b32 SetActive);
 inline void Translate(button *Button, v2 Translation);
 inline void SetLocalPosition(button *Button, v2 Translation);
@@ -71,6 +81,7 @@ struct drag_func_pointer
 struct drag_list
 {
     i32 DraggingID;
+    b32 IsActive[DRAGABLE_MAX_COUNT];
     entry_id *Dragables[DRAGABLE_MAX_COUNT];
     drag_func_pointer OnDragStart[DRAGABLE_MAX_COUNT];
     drag_func_pointer OnDragging [DRAGABLE_MAX_COUNT];
@@ -119,7 +130,7 @@ struct text_field
 internal text_field CreateTextField(renderer *Renderer, memory_bucket_container *Bucket, v2 Size, r32 ZValue, 
                                     u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor);
 inline void Translate(text_field *TextField, v2 Translation);
-inline void SetTextFieldActive(text_field *TextField, b32 MakeActive);
+inline void SetActive(text_field *TextField, b32 MakeActive);
 inline void UpdateTextField(renderer *Renderer, text_field *TextField);
 internal text_field_flag_result ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *TextField);
 
@@ -138,5 +149,53 @@ inline void UpdateIndeterminiteLoadingBar(loading_bar *LoadingBar, r32 Roundtrip
 inline void SetPosition(loading_bar *LoadingBar, v2 NewP);
 inline void SetLocalPosition(loading_bar *LoadingBar, v2 NewP);
 inline void SetActive(loading_bar *LoadingBar, b32 IsActive);
+
+
+// slider ***********************
+
+enum slider_axis
+{
+    sliderAxis_X,
+    sliderAxis_Y,
+};
+
+struct slider
+{
+    entry_id *Background;
+    entry_id *GrabThing;
+    r32 MaxSlidePix;
+    
+    v2 MouseOffset;
+    slider_axis Axis;
+    
+    r32 SlidePercentage;
+    b32 SliderIsDragged;
+    
+    r32 OverhangP; // CLEANUP:: This is for the column stuff only
+};
+
+// quit curtain
+
+struct quit_animation
+{
+    b32 AnimationStart;
+    b32 WindowExit;
+    entry_id *Curtain;
+    render_text Text;
+    r32 dAnim;
+    r32 Time;
+    
+    r64 LastEscapePressTime;
+};
+
+
+
+
+
+
+
+
+
+
 
 #endif //_U_I__T_D_H

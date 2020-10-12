@@ -196,7 +196,7 @@ inline r32 Min(r32 A, r32 B);
 inline r32 Mod(r32 V, r32 M);
 inline r64 Mod(r64 V, r64 M);
 
-inline r32 SaveDiv(r32 A, r32 B);
+inline r32 SafeDiv(r32 A, r32 B);
 // Vector Math *****************
 
 // 2D Vectors
@@ -287,6 +287,7 @@ inline r32 AngleBetween(v3 A, v3 B);
 inline v3  AxisBetween(v3 A, v3 B);
 inline void Zero(v3 *V);
 inline v3 TripleCross(v3 A, v3 B, v3 C);
+inline v3 Clamp01(v3 V);
 
 // 3D integer Vectors
 inline v3 V3i(u32 X, u32 Y, u32 Z);

@@ -1094,7 +1094,7 @@ MillisecondsToMinutes(memory_bucket_container *Bucket, u32 Millis, string_c *Out
 // WindowDimY: <Between GlobalMinWindowHeight and MAX_I32>
 // Looping: <0/1>
 // Shuffle: <0/1>
-// Palette: <Name>
+// Palette: <Name>  // Palette with all following color values can occur multiple times
 // Text: <R255> <G255> <B255>
 // ForegroundText: <R255> <G255> <B255>
 // ErrorText: <R255> <G255> <B255>
@@ -1194,10 +1194,11 @@ TryLoadSettingsFile(game_state *GameState)
                     For(11) AdvanceToNewline(&PreC);
                     Result.PaletteCount++;
                 }
-                Result.PaletteNames  = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteCount, string_c);
-                Result.Palettes = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteCount, color_palette);
+                Result.PaletteMaxCount = Result.PaletteCount+10;
+                Result.PaletteNames  = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteMaxCount, string_c);
+                Result.Palettes      = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteMaxCount, color_palette);
                 
-                string_c PaletteName = NewStringCompound(&GameState->Bucket.Transient, 255);
+                string_c PaletteName = NewStringCompound(&GameState->Bucket.Transient, 100);
                 For(Result.PaletteCount)
                 {
                     C += StringLength((u8 *)"Palette: ");
@@ -1251,7 +1252,7 @@ TryLoadSettingsFile(game_state *GameState)
 internal void
 SaveSettingsFile(game_state *GameState, settings *Settings)
 {
-    string_c SaveData = NewStringCompound(&GameState->Bucket.Transient, 1000);
+    string_c SaveData = NewStringCompound(&GameState->Bucket.Transient, 50000);
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
     I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);

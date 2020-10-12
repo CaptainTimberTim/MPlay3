@@ -30,6 +30,9 @@
 // - Add key shortcut button
 // - Implement better memory management
 // - add feature for user to add their own color palette
+// - fix bug: some colors in "pink dreams" are not correctly translated!
+// - add field for name in color picker
+// - add button to delete palette
 
 #include "Sound_UI_TD.h"
 

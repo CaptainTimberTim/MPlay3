@@ -526,6 +526,25 @@ SetActive(entry_id *Entry, b32 Activate)
     Entry->ID->Render = Activate;
 }
 
+inline void 
+SetColor(entry_id *Entry, v3 *Color)
+{
+    Entry->ID->Color = Color;
+}
+
+inline v3
+GetColor(entry_id *Entry)
+{
+    v3 Result = *Entry->ID->Color;
+    return Result;
+}
+
+inline void 
+SetParent(entry_id *Entry, entry_id *Parent)
+{
+    Entry->ID->Parent = Parent;
+}
+
 // Entry rect relation helper *********************************************************
 
 inline r32
@@ -700,6 +719,24 @@ IsIntersectingRectButBottomShowing(entry_id *Entry, entry_id *Rect)
     }
     
     return Result;
+}
+
+inline v2 
+ClampToRect(v2 Pos, rect_2D Rect)
+{
+    v2 Result = {};
+    
+    Result.x = Clamp(Pos.x, Rect.Min.x, Rect.Max.x);
+    Result.y = Clamp(Pos.y, Rect.Min.y, Rect.Max.y);
+    
+    return Result;
+}
+
+inline v2 
+ClampToRect(v2 Pos, entry_id *Entry)
+{
+    rect_2D Rect = ExtractScreenRect(Entry);
+    return ClampToRect(Pos, Rect);
 }
 
 inline b32

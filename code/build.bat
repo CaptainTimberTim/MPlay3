@@ -22,8 +22,6 @@ set libIncludes=  User32.lib Gdi32.lib winmm.lib opengl32.lib
 
 cl -F20000000 -EHsc %compilerFlags% %buildFlags% %compilerWarningLevel% "../code/Main.cpp" %linkerFlags%  %libIncludes% 
 
-
-
 REM cl -EHsc %optimize% -nologo %buildFlags% %addIncludeDir% %compilerWarningLevel% "../code/Main.cpp" %linkerFlags% %addLinkerLibs%  %libIncludes% 
 
 popd

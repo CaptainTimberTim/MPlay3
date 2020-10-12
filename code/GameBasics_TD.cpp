@@ -58,32 +58,102 @@ SnapTimer(timer *Timer)
 }
 #endif
 
+// Color picker *********************************************
+
+inline void
+SetActive(color_picker *ColorPicker, b32 Activate)
+{
+    ColorPicker->IsActive = Activate;
+    SetActive(ColorPicker->TextureEntry, Activate);
+    SetActive(&ColorPicker->ColorSpectrum, Activate);
+    SetActive(ColorPicker->Background, Activate);
+    SetActive(&ColorPicker->RGBText, Activate);
+    SetActive(ColorPicker->PickDot, Activate);
+    SetActiveAllButGiven(&GlobalGameState.DragableList, ColorPicker->ColorSpectrum.Background, !Activate);
+    SetActive(ColorPicker->MoveNob, Activate);
+    SetActive(ColorPicker->InnerDot, Activate);
+    SetActive(ColorPicker->InnerInnerDot, Activate);
+    SetActive(ColorPicker->ActiveColorBG, Activate);
+    For(PALETTE_COLOR_AMOUNT)
+    {
+        SetActive(ColorPicker->PaletteColors[It].Outline, Activate);
+        SetActive(ColorPicker->PaletteColors[It].Preview, Activate);
+        SetActive(&ColorPicker->PaletteColors[It].Name, Activate);
+    }
+    SetActive(ColorPicker->New, Activate);
+    SetActive(ColorPicker->Remove, Activate);
+    SetActive(ColorPicker->Save, Activate);
+    SetActive(ColorPicker->Cancel, Activate);
+    SetActive(&ColorPicker->PaletteName, Activate);
+    if(Activate) SetActive(ColorPicker->PaletteName.Cursor, false);
+}
+
+inline u32
+ColorToColor32(v3 Color, u8 Alpha)
+{
+    u32 Result = 0;
+    
+    u8 Red   = (u8)(255*Color.r);
+    u8 Blue  = (u8)(255*Color.g);
+    u8 Green = (u8)(255*Color.b);
+    
+    Result = (Red << 0) | (Blue << 8) | (Green << 16) | (Alpha << 24);
+    return Result;
+}
+
+internal v3
+CalculateColorFromSpectrum(r32 SpectrumPercentage)
+{
+    v3 Result = {};
+    r32 P = 1-SpectrumPercentage;
+    r32 OneSixth = 1.0f/6.0f;
+    
+    r32 Red = 1;
+    if(P >= OneSixth) Red = Clamp01(1-(P-OneSixth)*6);
+    if(P >= OneSixth*4) Red = Clamp01((P-OneSixth*4)*6);
+    
+    r32 Green = 1;
+    if(P <= OneSixth) Green = Clamp01(P*6);
+    else if(P >= OneSixth*3) Green = Clamp01(1-(P-OneSixth*3)*6);
+    
+    r32 Blue = 0;
+    if(P >= OneSixth*2 && P < OneSixth*5) Blue = Clamp01((P-OneSixth*2)*6);
+    else if(P >= OneSixth*5) Blue = Clamp01(1-(P-OneSixth*5)*6);
+    
+    Result.r = Red;
+    Result.g = Green;
+    Result.b = Blue;
+    
+    return Result;
+}
+
 internal void
-UpdateColorPickerTexture(color_picker *ColorPicker)
+UpdateColorPickerTexture(color_picker *ColorPicker, v3 NewColor)
 {
     loaded_bitmap *Bitmap = &ColorPicker->Bitmap;
     if(!Bitmap->Pixels) 
         Bitmap->Pixels = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, Bitmap->Width*Bitmap->Height, u32);
     
+    v3 NewColorInvert = V3(1)-NewColor;
     For(Bitmap->Height, Y_)
     {
         r32 YPercent = Y_It/(r32)Bitmap->Height;
         For(Bitmap->Width, X_)
         {
             i32 Pos = Y_It*Bitmap->Width + X_It;
-            
             r32 XPercent = X_It/(r32)Bitmap->Width;
             
-            r32 Red32   = (1-XPercent)*(1-YPercent)-ColorPicker->Blackness;
-            r32 Blue32  =    XPercent *(1-YPercent)-ColorPicker->Blackness;
-            r32 Green32 = (1-XPercent)*   YPercent -ColorPicker->Blackness;
-            
-            u8 Red   = (u8)Min(255.0f, Max(0.0f, Red32*255));
-            u8 Blue  = (u8)Min(255.0f, Max(0.0f, Blue32*255));
-            u8 Green = (u8)Min(255.0f, Max(0.0f, Green32*255));
-            u8 Alpha = (XPercent+YPercent > 1) ? 0 : 255;
-            
-            Bitmap->Pixels[Pos] = (Red << 0) | (Green << 8) | (Blue << 16) | (Alpha << 24);
+            v3 NextColor = Clamp01(NewColor+NewColorInvert*(1-XPercent))*YPercent;
+#if 0
+            if(Y_It == 0)
+            {
+                DebugLog(255, "%f %f %f\n", NextColor.x, NextColor.y, NextColor.z);
+            }
+#endif
+            u8 Red   = (u8)(255*NextColor.r);
+            u8 Blue  = (u8)(255*NextColor.g);
+            u8 Green = (u8)(255*NextColor.b);
+            Bitmap->Pixels[Pos] = (Red << 0) | (Blue << 8) | (Green << 16) | (255 << 24);
         }
     }
     
@@ -91,24 +161,392 @@ UpdateColorPickerTexture(color_picker *ColorPicker)
     else UpdateGLTexture(*Bitmap, ColorPicker->GLID);
 }
 
-internal color_picker
-CreateColorPicker(v2i BitmapSize)
+inline v3
+RGBToHSV(v3 Color)
 {
-    color_picker Result = {};
+    v3 Result = {}; // x == Hue, y == Saturation, z == Value
     
-    Result.Bitmap.ColorFormat = colorFormat_RGBA;
-    Result.Bitmap.Width  = BitmapSize.x;
-    Result.Bitmap.Height = BitmapSize.y;
-    Result.Bitmap.WasLoaded = true;
+    r32 CMax = Max(Color.r, Max(Color.g, Color.b));
+    r32 CMin = Min(Color.r, Min(Color.g, Color.b));
     
-    Result.Blackness = -0.00f;
+    r32 CDelta = CMax - CMin;
     
-    UpdateColorPickerTexture(&Result);
+    // Calculate Hue
+    if(CDelta < 0.000001f)   Result.x = 0.0f;
+    else if(CMax == Color.r) Result.x = 60*fmodf((Color.g-Color.b)/CDelta, 6.0f);
+    else if(CMax == Color.g) Result.x = 60*((Color.b-Color.r)/CDelta + 2);
+    else if(CMax == Color.b) Result.x = 60*((Color.r-Color.g)/CDelta + 4);
+    if(Result.x < 0) Result.x += 360;
     
-    Result.TextureEntry = CreateRenderBitmap(&GlobalGameState.Renderer, V2(BitmapSize), -0.9f, 0, Result.GLID);
-    SetPosition(Result.TextureEntry, V2(GlobalGameState.Renderer.Window.CurrentDim.Dim)*0.5f);
+    // Calculate Saturation
+    Result.y = SafeDiv(CDelta, CMax);
+    
+    // Calculate Value
+    Result.z = CMax;
     
     return Result;
+}
+
+inline void
+CreateRenderTextFromColor(color_picker *ColorPicker, v3 NewColor)
+{
+    renderer *Renderer = &GlobalGameState.Renderer;
+    color_palette *Palette = &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette;
+    
+    i32 Red   = (i32)(255*NewColor.r);
+    i32 Green = (i32)(255*NewColor.g);
+    i32 Blue  = (i32)(255*NewColor.b);
+    
+    NewLocalString(ColorString, 22, "R: ");
+    I32ToString(&ColorString, Red);
+    AppendStringToCompound(&ColorString, (u8 *)"  G: ");
+    I32ToString(&ColorString, Green);
+    AppendStringToCompound(&ColorString, (u8 *)"  B: ");
+    I32ToString(&ColorString, Blue);
+    
+    RemoveRenderText(&ColorPicker->RGBText);
+    CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, &ColorString, &Palette->ForegroundText, 
+                     &ColorPicker->RGBText, -0.9f, ColorPicker->Background);
+    SetLocalPosition(&ColorPicker->RGBText, ColorPicker->_BGOffset+V2(ColorPicker->RGBText.CurrentP.x*-0.5f, 
+                                                                      ColorPicker->Bitmap.Height*-0.5f - 20.0f));
+}
+
+internal void
+ColorToPickerPosition(color_picker *ColorPicker, v3 Color)
+{
+    v3 ColorHSV = RGBToHSV(Color);
+    
+    SetSliderPosition(&ColorPicker->ColorSpectrum, 1-(ColorHSV.x/360.0f));
+    
+    rect_2D TexRect = GetRect(ColorPicker->TextureEntry);
+    
+    v2 NewPickDotP = V2(TexRect.Min.x+ColorPicker->Bitmap.Width*ColorHSV.y, 
+                        TexRect.Min.y+ColorPicker->Bitmap.Height*ColorHSV.z);
+    SetPosition(ColorPicker->PickDot, NewPickDotP);
+    
+    v3 NewColor = CalculateColorFromSpectrum(ColorPicker->ColorSpectrum.SlidePercentage);
+    UpdateColorPickerTexture(ColorPicker, NewColor);
+    
+    CreateRenderTextFromColor(ColorPicker, Color);
+}
+
+inline v3 
+CalculatePickDotColor(color_picker *ColorPicker)
+{
+    v3 Result = {};
+    
+    v2 PickDotP = GetPosition(ColorPicker->PickDot);
+    rect_2D TexRect = GetRect(ColorPicker->TextureEntry);
+    PickDotP -= TexRect.Min;
+    
+    v3 NewColor = CalculateColorFromSpectrum(ColorPicker->ColorSpectrum.SlidePercentage);
+    v3 NewColorInvert = V3(1)-NewColor;
+    
+    r32 YPercent = PickDotP.y/(r32)ColorPicker->Bitmap.Height;
+    r32 XPercent = PickDotP.x/(r32)ColorPicker->Bitmap.Width;
+    Result = Clamp01(NewColor+NewColorInvert*(1-XPercent))*YPercent;
+    
+    return Result;
+}
+
+internal void
+UpdateColorPickerSelectedColor(color_picker *ColorPicker)
+{
+    color_palette *Palette = &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette;
+    
+    v3 NewColor = CalculatePickDotColor(ColorPicker);
+    ColorPicker->SelectedColor = NewColor;
+    Palette->Colors[ColorPicker->ActiveColor] = NewColor;
+    SetColor(ColorPicker->PaletteColors[ColorPicker->ActiveColor].Preview, &Palette->Colors[ColorPicker->ActiveColor]);
+    
+    CreateRenderTextFromColor(ColorPicker, NewColor);
+}
+
+internal void
+HandleActiveColorPicker(color_picker *ColorPicker)
+{
+    input_info *Input = &GlobalGameState.Input;
+    if(ColorPicker->ColorSpectrum.SliderIsDragged)
+    {
+        ColorPicker->ColorSpectrum.SliderIsDragged = false;
+        
+        v3 NewColor = CalculateColorFromSpectrum(ColorPicker->ColorSpectrum.SlidePercentage);
+        UpdateColorPickerTexture(ColorPicker, NewColor);
+        
+        UpdateColorPickerSelectedColor(ColorPicker);
+    }
+    else if(Input->KeyChange[KEY_LMB] == KeyDown)
+    {
+        if(IsInRect(ColorPicker->TextureEntry, Input->MouseP))
+        {
+            ColorPicker->IsPickingColor = true;
+        }
+        if(IsInRect(ColorPicker->MoveNob, Input->MouseP))
+        {
+            ColorPicker->IsMoving = true;
+            ColorPicker->MoveOffset = GetPosition(ColorPicker->MoveNob)-Input->MouseP;
+        }
+    }
+    else if(Input->KeyChange[KEY_LMB] == KeyUp) 
+    {
+        if(!ColorPicker->IsPickingColor)
+        {
+            For(PALETTE_COLOR_AMOUNT)
+            {
+                if(IsInRect(ColorPicker->PaletteColors[It].Outline, Input->MouseP))
+                {
+                    ColorPicker->ActiveColor = It;
+                    SetParent(ColorPicker->ActiveColorBG, ColorPicker->PaletteColors[It].Outline);
+                    ColorToPickerPosition(ColorPicker, GetColor(ColorPicker->PaletteColors[It].Preview));
+                    SetColor(ColorPicker->InnerDot, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.Colors[It]);
+                    break;
+                }
+            }
+        }
+        ColorPicker->IsPickingColor = false;
+        ColorPicker->IsMoving = false;
+    }
+    else if(Input->Pressed[KEY_LMB])
+    {
+        if(ColorPicker->IsPickingColor)
+        {
+            v2 MouseP = ClampToRect(Input->MouseP, ColorPicker->TextureEntry);
+            SetPosition(ColorPicker->PickDot, MouseP);
+            UpdateColorPickerSelectedColor(ColorPicker);
+        }
+        else if(ColorPicker->IsMoving)
+        {
+            SetPosition(ColorPicker->MoveNob, ColorPicker->MoveOffset+Input->MouseP);
+        }
+    }
+    
+    // Process button presses
+    ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->New);
+    if(!IsColorPaletteDefault()) 
+    {
+        ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Remove);
+        ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Save);
+    }
+    ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Cancel);
+    
+    // Update stuff on palette change
+    if(ColorPicker->CurrentColorPaletteID != GlobalGameState.MusicInfo.DisplayInfo.ColorPaletteID)
+    {
+        ColorPicker->CurrentColorPaletteID = GlobalGameState.MusicInfo.DisplayInfo.ColorPaletteID;
+        
+        // Update Textfield text
+        ResetStringCompound(ColorPicker->PaletteName.TextString);
+        AppendStringCompoundToCompound(&ColorPicker->PaletteName.TextString, GetCurrentPaletteName());
+        UpdateTextField(&GlobalGameState.Renderer, &ColorPicker->PaletteName);
+        
+        // Change buttons colors if deactivated
+        if(IsColorPaletteDefault()) 
+        {
+            SetColor(ColorPicker->Save->Icon, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
+            SetColor(ColorPicker->Remove->Icon, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
+            
+            SetActive(ColorPicker->PaletteName.Cursor, false);
+        }
+        else 
+        {
+            SetColor(ColorPicker->Save->Icon, GlobalGameState.Renderer.ButtonColors.IconColor);
+            SetColor(ColorPicker->Remove->Icon, GlobalGameState.Renderer.ButtonColors.IconColor);
+        }
+        ColorToPickerPosition(ColorPicker, GetColor(ColorPicker->PaletteColors[0].Preview));
+        SetColor(ColorPicker->InnerDot, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.Colors[0]);
+    }
+    
+    // process text field
+    if(!IsColorPaletteDefault()) 
+    {
+        text_field_flag_result TFResult = ProcessTextField(&GlobalGameState.Renderer, GlobalGameState.Time.dTime, 
+                                                           Input, &ColorPicker->PaletteName);
+        if(TFResult.Flag & processTextField_TextChanged)
+        {
+        }
+        if(TFResult.Flag & processTextField_Confirmed)
+        {
+        }
+    }
+}
+
+inline void
+OnNewPalette(void *Data)
+{
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    color_picker *ColorPicker = (color_picker *)Data;
+    AddCustomColorPalette(&DisplayInfo->ColorPalette, &ColorPicker->PaletteName.TextString);
+    
+    // Move to the now saved palette!
+    DisplayInfo->ColorPaletteID = DEFAULT_COLOR_PALETTE_COUNT+GlobalGameState.Settings.PaletteCount-1;
+    UpdateColorPalette(DisplayInfo, false);
+}
+
+inline void
+OnRemovePalette(void *Data)
+{
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    RemoveCustomColorPalette(DisplayInfo->ColorPaletteID);
+    UpdateColorPalette(DisplayInfo, false);
+}
+
+inline void
+OnSavePalette(void *Data)
+{
+    color_picker *ColorPicker = (color_picker *)Data;
+    settings *Settings = &GlobalGameState.Settings;
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    u32 CustomID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
+    Assert(CustomID < Settings->PaletteCount);
+    
+    if(ColorPicker->PaletteName.TextString.Pos >= 100) ColorPicker->PaletteName.TextString.Pos = 100;
+    ResetStringCompound(Settings->PaletteNames[CustomID]);
+    AppendStringCompoundToCompound(Settings->PaletteNames+CustomID, &ColorPicker->PaletteName.TextString);
+    For(PALETTE_COLOR_AMOUNT)
+    {
+        Settings->Palettes[CustomID].Colors[It] = DisplayInfo->ColorPalette.Colors[It]*255.0f;
+    }
+}
+
+inline void
+OnCancelColorPicker(void *Data)
+{
+    SetActive((color_picker *)Data, false);
+}
+
+internal void
+CreateColorPicker(color_picker *Result, v2i BitmapSize)
+{
+    renderer *Renderer = &GlobalGameState.Renderer;
+    color_palette *Palette = &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette;
+    r32 Depth = -0.9f;
+    
+    Result->IsActive = true;
+    Result->Bitmap.ColorFormat = colorFormat_RGBA;
+    Result->Bitmap.Width  = BitmapSize.x;
+    Result->Bitmap.Height = BitmapSize.y;
+    Result->Bitmap.WasLoaded = true;
+    
+    v2 MainPos = V2(GlobalGameState.Renderer.Window.CurrentDim.Dim)*0.5f;
+    Result->_BGOffset = V2(-70, 20-12.5f-13);
+    v2 BGOffset = Result->_BGOffset;
+    v2i ColorSpectrumSize = V2i(50, BitmapSize.y);
+    
+    // Create Move Nob
+    v2 BGSize = V2(BitmapSize)+V2(ColorSpectrumSize.x + 260.0f, 80+26);
+    Result->MoveNob = CreateRenderRect(Renderer, V2(BGSize.x, 25.0f), 
+                                       Depth+0.001f, &Palette->SliderGrabThing, 0);
+    SetPosition(Result->MoveNob, MainPos+V2(0, BGSize.y*0.5f+12.5f));
+    TranslateWithScreen(&Renderer->TransformList, Result->MoveNob, fixedTo_TopLeft);
+    
+    // Create Background
+    Result->Background = CreateRenderRect(Renderer, BGSize+V2(0, 25), Depth+0.0011f, 
+                                          &Palette->Foreground, Result->MoveNob);
+    //SetTransparency(Result->Background, 0.95f);
+    SetPosition(Result->Background, MainPos+V2(0, 12.5f));
+    
+    // Create brightness slider
+    loaded_bitmap ColorSpectrumBitmap = {};
+    ColorSpectrumBitmap.Pixels = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, ColorSpectrumSize.x*ColorSpectrumSize.y, u32);
+    ColorSpectrumBitmap.ColorFormat = colorFormat_RGBA;
+    ColorSpectrumBitmap.Width  = ColorSpectrumSize.x;
+    ColorSpectrumBitmap.Height = ColorSpectrumSize.y;
+    ColorSpectrumBitmap.WasLoaded = true;
+    
+    // Generate color spectrum texture
+    For((u32)ColorSpectrumSize.y, Y_)
+    {
+        r32 YPercent = Y_It/(r32)ColorSpectrumSize.y;
+        For((u32)ColorSpectrumSize.x, X_)
+        {
+            i32 Pos = Y_It*ColorSpectrumSize.x + X_It;
+            
+            v3 NewColor = CalculateColorFromSpectrum(YPercent);
+            
+            ColorSpectrumBitmap.Pixels[Pos] = ColorToColor32(NewColor, 255);
+        }
+    }
+    
+    CreateSlider(&Result->ColorSpectrum, Renderer, V2(ColorSpectrumSize), 
+                 V2((r32)ColorSpectrumSize.x+8.0f, 8.0f), Depth, ColorSpectrumBitmap, &Palette->SliderGrabThing, 
+                 sliderAxis_Y, Result->Background);
+    SetLocalPosition(&Result->ColorSpectrum, BGOffset-V2(BitmapSize.x*0.5f + ColorSpectrumSize.x*0.5f + 15, 0));
+    
+    // Create color texture
+    v3 NewColor = CalculateColorFromSpectrum(Result->ColorSpectrum.SlidePercentage);
+    UpdateColorPickerTexture(Result, NewColor);
+    Result->TextureEntry = CreateRenderBitmap(Renderer, V2(BitmapSize), Depth, 
+                                              Result->Background, Result->GLID);
+    SetLocalPosition(Result->TextureEntry, BGOffset);
+    
+    // Create Pick dot
+    Result->PickDot = CreateRenderRect(Renderer, V2(8,8), Depth-0.001f, &Palette->Text, Result->Background);
+    SetLocalPosition(Result->PickDot, BGOffset);
+    Result->InnerInnerDot = CreateRenderRect(Renderer, V2(6,6), Depth-0.0011f, &Palette->Slot, Result->PickDot);
+    Result->InnerDot = CreateRenderRect(Renderer, V2(4,4), Depth-0.0012f, &Palette->Text, Result->PickDot);
+    
+    // Create palette colors
+    v2 StartP = BGOffset+V2(BitmapSize)*0.5f+V2(25, -20);
+    r32 YDown = 0;
+    For(PALETTE_COLOR_AMOUNT)
+    {
+        palette_color *C = Result->PaletteColors+It; 
+        C->Outline = CreateRenderRect(Renderer, V2(29,29), Depth-0.001f, 
+                                      &Palette->ForegroundText, Result->Background);
+        SetLocalPosition(C->Outline, StartP + V2(0, YDown));
+        C->Preview = CreateRenderRect(Renderer, V2(25,25), Depth-0.002f, 
+                                      Palette->Colors+It, C->Outline);
+        CreateRenderText(Renderer, GlobalGameState.Renderer.FontInfo.SmallFont, GlobalPaletteColorNames+It,
+                         &Palette->ForegroundText, &C->Name, Depth-0.001f, C->Preview, V2(20, 0));
+        
+        YDown -= 51;
+    }
+    
+    // Create active color bg
+    Result->ActiveColorBG = CreateRenderRect(Renderer, V2(210, 40), Depth-0.00011f, 
+                                             &Palette->SliderGrabThing, Result->PaletteColors[0].Outline);
+    SetLocalPosition(Result->ActiveColorBG, V2(85, 0));
+    
+    
+    // Create Buttons
+    u32 NewID    = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Add_Icon.png"); 
+    u32 RemoveID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Minus_Icon.png"); 
+    u32 SaveID   = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Save_Icon.png"); 
+    u32 CancelID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Cancel_Icon.png");
+    rect BtnRect = {{-21,-21},{21,21}};
+    Result->New    = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, NewID, 
+                               Renderer->ButtonColors, Result->Background);
+    Result->Remove = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, RemoveID, 
+                               Renderer->ButtonColors, Result->Background);
+    Result->Save   = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, SaveID, 
+                               Renderer->ButtonColors, Result->Background);
+    Result->Cancel = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, CancelID, 
+                               Renderer->ButtonColors, Result->Background);
+    
+    r32 ButtonGap = 10;
+    v2  BtnBaseOffset = BGOffset+V2((r32)BitmapSize.x, -(r32)BitmapSize.y)*0.5f;
+    Translate(Result->New,    BtnBaseOffset + V2(21+10 + (42+ButtonGap)*0, -21-8));
+    Translate(Result->Remove, BtnBaseOffset + V2(21+10 + (42+ButtonGap)*1, -21-8));
+    Translate(Result->Save,   BtnBaseOffset + V2(21+10 + (42+ButtonGap)*2, -21-8));
+    Translate(Result->Cancel, BtnBaseOffset + V2(21+10 + (42+ButtonGap)*3, -21-8));
+    
+    Result->New->OnPressed    = {OnNewPalette, Result};
+    Result->Remove->OnPressed = {OnRemovePalette, 0};
+    Result->Save->OnPressed   = {OnSavePalette, Result};
+    Result->Cancel->OnPressed = {OnCancelColorPicker, Result};
+    
+    // Create Textfield for palette names ****************
+    Result->PaletteName = CreateTextField(Renderer, &GlobalGameState.Bucket.Fixed, V2((r32)BitmapSize.x, 20.0f), 
+                                          Depth-0.01f, (u8 *)"Custom Palette", Result->Background, 
+                                          &Palette->ForegroundText, &Palette->Foreground);
+    Translate(&Result->PaletteName, BGOffset + V2(-8.0f, BitmapSize.y*0.5f + 10 + 11));
+    SetActive(&Result->PaletteName, true);
+    AppendStringCompoundToCompound(&Result->PaletteName.TextString, GetCurrentPaletteName());
+    UpdateTextField(Renderer, &Result->PaletteName);
+    
+    Result->CurrentColorPaletteID = MAX_UINT32;
+    ColorToPickerPosition(Result, GetColor(Result->PaletteColors[0].Preview));
+    SetActive(Result, true);
 }
 
 

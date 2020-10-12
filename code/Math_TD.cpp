@@ -378,7 +378,7 @@ ACos(r32 A)
 }
 
 inline r32
-SaveDiv(r32 A, r32 B)
+SafeDiv(r32 A, r32 B)
 {
     r32 Result = 0;
     
@@ -1322,6 +1322,18 @@ Lerp(v3 A, v3 B, r32 T)
     Result.x = Lerp(A.x, B.x, T);
     Result.y = Lerp(A.y, B.y, T);
     Result.z = Lerp(A.z, B.z, T);
+    
+    return Result;
+}
+
+inline v3 
+Clamp01(v3 V)
+{
+    v3 Result = {};
+    
+    Result.x = Clamp01(V.x);
+    Result.y = Clamp01(V.y);
+    Result.z = Clamp01(V.z);
     
     return Result;
 }

@@ -23,6 +23,7 @@ struct settings
     string_c *PaletteNames;
     color_palette *Palettes;
     u32 PaletteCount;
+    u32 PaletteMaxCount;
 };
 
 enum cursor_state
@@ -36,6 +37,49 @@ struct timer
     u32 Count;
     i64 Start;
     i64 LastSnap;
+};
+
+struct palette_color
+{
+    entry_id *Outline;
+    entry_id *Preview;
+    render_text Name;
+};
+
+struct color_picker
+{
+    b32 IsActive;
+    
+    loaded_bitmap Bitmap;
+    u32 GLID; 
+    entry_id *TextureEntry;
+    b32 IsPickingColor;
+    
+    slider ColorSpectrum;
+    render_text RGBText;
+    
+    entry_id *PickDot;
+    entry_id *InnerDot;
+    entry_id *InnerInnerDot;
+    v3 SelectedColor;
+    
+    entry_id *MoveNob;
+    b32 IsMoving;
+    v2 MoveOffset;
+    entry_id *Background;
+    v2 _BGOffset;
+    
+    palette_color PaletteColors[PALETTE_COLOR_AMOUNT];
+    u32 ActiveColor;
+    entry_id *ActiveColorBG;
+    u32 CurrentColorPaletteID;
+    text_field PaletteName;
+    
+    button *New;
+    button *Save;
+    button *Cancel;
+    button *Remove;
+    quit_animation RemoveAnim;
 };
 
 struct game_state
@@ -65,6 +109,8 @@ struct game_state
     crawl_thread CrawlInfo;
     check_music_path CheckMusicPath;
     
+    color_picker ColorPicker;
+    
     thread_error_list ThreadErrorList;
 };
 
@@ -79,12 +125,5 @@ inline void SnapTimer(timer *Timer);
 #define SnapTimer(f) 
 #endif
 
-struct color_picker
-{
-    loaded_bitmap Bitmap;
-    u32 GLID; 
-    entry_id *TextureEntry;
-    
-    r32 Blackness;
-};
-
+// Color Picker
+inline void SetActive(color_picker *ColorPicker, b32 Activate);

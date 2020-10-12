@@ -9,19 +9,46 @@
 
 #define DOUBLE_CLICK_TIME 0.5f
 
-#define DEFAULT_COLOR_PALETTE_COUNT 5
-struct color_palette
+#define DEFAULT_COLOR_PALETTE_COUNT 5 // Amount of complete color palettes that currently exist.
+#define PALETTE_COLOR_AMOUNT 10 // Amount of colors per palette.
+union color_palette
 {
-    v3 Text;
-    v3 ForegroundText;
-    v3 ErrorText;
-    v3 Foreground;
-    v3 Slot;
-    v3 SliderBackground;
-    v3 SliderGrabThing;
-    v3 ButtonActive;
-    v3 Selected;
-    v3 PlayingSong;
+    // If a new color is added, increment the PALETTE_COLOR_AMOUNT define
+    struct
+    {
+        v3 Text; // 1
+        v3 ErrorText; // 2
+        v3 ForegroundText; // 3
+        v3 Foreground; // 4
+        v3 Slot; // 5
+        v3 SliderBackground; // 6
+        v3 SliderGrabThing; // 7
+        v3 ButtonActive; // 8
+        v3 Selected; // 9
+        v3 PlayingSong; // 10
+    };
+    v3 Colors[PALETTE_COLOR_AMOUNT];
+};
+global_variable string_c GlobalPaletteColorNames[] = 
+{
+    NewStaticStringCompound("Text"),
+    NewStaticStringCompound("Error Text"),
+    NewStaticStringCompound("Foreground Text"),
+    NewStaticStringCompound("Foreground"),
+    NewStaticStringCompound("Slot"),
+    NewStaticStringCompound("Slider Background"),
+    NewStaticStringCompound("Slider Grab Thing"),
+    NewStaticStringCompound("Button Active"),
+    NewStaticStringCompound("Selected"),
+    NewStaticStringCompound("Playing Song"),
+};
+global_variable string_c GlobalDefaultColorPaletteNames[] = 
+{
+    NewStaticStringCompound("Lush Green"),
+    NewStaticStringCompound("Smoldering Red"),
+    NewStaticStringCompound("Aquatic Blue"),
+    NewStaticStringCompound("Deep Night Grey"),
+    NewStaticStringCompound("Monochrome Grey"),
 };
 
 struct drag_slider_data
@@ -29,16 +56,6 @@ struct drag_slider_data
     struct music_info *MusicInfo;
     struct music_display_column *DisplayColumn;
     struct column_sorting_info *SortingColumn;
-    
-    v2 MouseOffset;
-};
-
-struct slider
-{
-    entry_id *Background;
-    entry_id *GrabThing;
-    r32 OverhangP;
-    r32 MaxSlidePix;
 };
 
 struct search_bar_btn_info
@@ -183,18 +200,6 @@ struct music_path_ui
     button *Rescan;
 };
 
-struct quit_animation
-{
-    b32 AnimationStart;
-    b32 WindowExit;
-    entry_id *Curtain;
-    render_text Text;
-    r32 dAnim;
-    r32 Time;
-    
-    r64 LastEscapePressTime;
-};
-
 struct user_error_text
 {
     render_text Message;
@@ -235,6 +240,7 @@ struct music_display_info
     button *Previous;
     button *Next;
     button *PaletteSwap;
+    button *ColorPicker;
     button *ShowShortcuts; // TODO
     slider Volume;
     
@@ -266,7 +272,7 @@ internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel
 
 internal void SearchInDisplayable(column_sorting_info *ColumnSortInfo, struct search_bar *Search, mp3_file_info *FileInfo = 0);
 internal void UpdateColumnVerticalSlider(renderer *Renderer, music_display_column *DisplayColumn, column_sorting_info *ColumnSorting);
-
+inline void PushUserErrorMessage(string_c *String);
 
 
 

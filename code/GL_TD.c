@@ -134,6 +134,16 @@ CreateGLTexture(loaded_bitmap Bitmap)
     return ++ID;
 }
 
+inline u32
+LoadAndCreateGLTexture(u8 *Path)
+{
+    loaded_bitmap NewTexBitmap = LoadImage_STB(Path);
+    u32 Result = CreateGLTexture(NewTexBitmap);
+    FreeImage_STB(NewTexBitmap);
+    
+    return Result;
+}
+
 inline void
 UpdateGLTexture(loaded_bitmap Bitmap, GLuint TexID)
 {
@@ -175,6 +185,20 @@ ConvertToGLSpace(renderer *Renderer, render_entry *Entry, v3 *Result)
     }
 }
 
+inline b32
+Render(render_entry *Entry)
+{
+    b32 Result = Entry->Render;
+    
+    while(Entry->Parent && Result)
+    {
+        Entry = Entry->Parent->ID;
+        Result = Entry->Render;
+    }
+    
+    return Result;
+}
+
 internal void
 DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
 {
@@ -190,7 +214,8 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
     for(u32 EntryID = 0; EntryID < EntryList->EntryCount; EntryID++)
     {
         render_entry *RenderEntry = EntryList->Entries + EntryID;
-        if (!RenderEntry->Render) continue;
+        //if(!Render(RenderEntry)) continue;
+        if(!RenderEntry->Render) continue;
         
         switch(RenderEntry->Type)
         {

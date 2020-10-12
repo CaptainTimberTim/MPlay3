@@ -48,3 +48,18 @@
 - Added local_string_compound to string api
 - Added custom color palettes read and saved to settings file.
 - Added custom color palette functionality, switching through them with F11.
+
+08.10.2020
+- Almost finished Color Picker basic setup, with color spectrum and picking.
+
+11.10.2020
+- Worked more on color picker. Most things already work, like...
+	- selecting different colors for specific palettes
+	- overwriting existing custom palettes
+	- opening closing color picker
+	
+12.10.2020
+- Finished the color picker, minus some user feedback stuff. 
+	- Added palette name display, which is editable for the custom ones.
+	- Added remove button, to delete custom palettes.
+- Moved quit_animation to ui-api, but not yet adapted properly.

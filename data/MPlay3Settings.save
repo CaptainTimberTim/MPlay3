@@ -1,20 +1,20 @@
 MPlay3Settings
 Version 4
 
-Volume: 0.390000
-LastPlayingSong: -1
-ColorPalette: 5
-GenreArtistEdgeXPercent: 0.200000
-ArtistAlbumEdgeXPercent: 0.400000
-AlbumSongEdgeXPercent: 0.600000
-WindowDimensionX: 1553
-WindowDimensionY: 854
-Looping: 0
+Volume: 0.597222
+LastPlayingSong: 3665
+ColorPalette: 0
+GenreArtistEdgeXPercent: 0.211233
+ArtistAlbumEdgeXPercent: 0.404927
+AlbumSongEdgeXPercent: 0.620092
+WindowDimensionX: 1731
+WindowDimensionY: 1049
+Looping: 1
 Shuffle: 0
 Palette: Pink Dreams
 Text: 100 3 100
 ForegroundText: 20 3 20
-ErrorText: 237 26 75
+ErrorText: 240 12 12
 Foreground: 248 189 252
 Slot: 228 169 232
 SliderBackground: 240 200 240
@@ -22,3 +22,14 @@ SliderGrabThing: 252 141 243
 ButtonActive: 214 38 211
 Selected: 209 141 252
 PlayingSong: 252 141 176
+Palette: Sunrise Yellow
+Text: 116 14 4
+ForegroundText: 125 22 3
+ErrorText: 170 11 22
+Foreground: 254 228 86
+Slot: 254 246 115
+SliderBackground: 238 249 87
+SliderGrabThing: 250 175 38
+ButtonActive: 243 245 40
+Selected: 250 237 65
+PlayingSong: 254 180 27

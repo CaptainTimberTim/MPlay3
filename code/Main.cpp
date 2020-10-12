@@ -670,22 +670,23 @@ WinMain(HINSTANCE Instance,
             drag_slider_data SongDrag   = {MusicInfo, &DisplayInfo->Song.Base, &SortingInfo->Song};
             
             AddDragable(DragableList, DisplayInfo->Genre.SliderHorizontal.Background,  
-                        {OnSliderDragStart, &GenreDrag}, {OnHorizontalSliderDrag, &GenreDrag}, {});
+                        {OnSliderDragStart, &DisplayInfo->Genre.SliderHorizontal}, {OnHorizontalSliderDrag, &GenreDrag}, {});
             AddDragable(DragableList, DisplayInfo->Artist.SliderHorizontal.Background, 
-                        {OnSliderDragStart, &ArtistDrag}, {OnHorizontalSliderDrag, &ArtistDrag}, {});
+                        {OnSliderDragStart, &DisplayInfo->Artist.SliderHorizontal}, {OnHorizontalSliderDrag, &ArtistDrag}, {});
             AddDragable(DragableList, DisplayInfo->Album.SliderHorizontal.Background,  
-                        {OnSliderDragStart, &AlbumDrag}, {OnHorizontalSliderDrag, &AlbumDrag}, {});
+                        {OnSliderDragStart, &DisplayInfo->Album.SliderHorizontal}, {OnHorizontalSliderDrag, &AlbumDrag}, {});
             AddDragable(DragableList, DisplayInfo->Song.Base.SliderHorizontal.Background,
-                        {OnSliderDragStart, &SongDrag}, {OnHorizontalSliderDrag, &SongDrag},{});
+                        {OnSliderDragStart, &DisplayInfo->Song.Base.SliderHorizontal}, {OnHorizontalSliderDrag, &SongDrag},{});
             
             AddDragable(DragableList, DisplayInfo->Genre.SliderVertical.Background,
-                        {OnSliderDragStart, &GenreDrag}, {OnVerticalSliderDrag, &GenreDrag}, {});
+                        {OnSliderDragStart, &DisplayInfo->Genre.SliderVertical}, {OnVerticalSliderDrag, &GenreDrag}, {});
             AddDragable(DragableList, DisplayInfo->Artist.SliderVertical.Background,
-                        {OnSliderDragStart, &ArtistDrag}, {OnVerticalSliderDrag, &ArtistDrag}, {});
+                        {OnSliderDragStart, &DisplayInfo->Artist.SliderVertical}, {OnVerticalSliderDrag, &ArtistDrag}, {});
             AddDragable(DragableList, DisplayInfo->Album.SliderVertical.Background,
-                        {OnSliderDragStart, &AlbumDrag}, {OnVerticalSliderDrag, &AlbumDrag}, {});
+                        {OnSliderDragStart, &DisplayInfo->Album.SliderVertical}, {OnVerticalSliderDrag, &AlbumDrag}, {});
             AddDragable(DragableList, DisplayInfo->Song.Base.SliderVertical.Background,
-                        {OnSliderDragStart, &SongDrag}, {OnVerticalSliderDrag, &SongDrag}, {OnSongDragEnd, &SongDrag});
+                        {OnSliderDragStart, &DisplayInfo->Song.Base.SliderVertical}, {OnVerticalSliderDrag, &SongDrag},
+                        {OnSongDragEnd, &SongDrag});
             
             AddDragable(DragableList, DisplayInfo->Volume.Background,{},{OnVolumeDrag, GameState},{});
             timeline_slider_drag TimelineDragInfo = {GameState, false};
@@ -707,8 +708,9 @@ WinMain(HINSTANCE Instance,
             ApplySettings(GameState, GameState->Settings);
             
             
-            color_picker ColorPicker = CreateColorPicker(V2i(500, 500));
-            SetActive(ColorPicker.TextureEntry, false);
+            color_picker *ColorPicker = &GameState->ColorPicker;
+            CreateColorPicker(ColorPicker, V2i(500, 500));
+            //SetActive(ColorPicker, false);
             
             
             // ********************************************
@@ -795,6 +797,10 @@ WinMain(HINSTANCE Instance,
                         // TODO:: Do not save when I directly exit from here
                         OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
                     }
+                    else if(ColorPicker->IsActive)
+                    {
+                        SetActive(ColorPicker, false);
+                    }
                     else if(IsSearchOpen(DisplayInfo))
                     {
                         InterruptSearch(Renderer, DisplayInfo, SortingInfo);
@@ -822,7 +828,7 @@ WinMain(HINSTANCE Instance,
                     if(Input->Pressed[KEY_ESCAPE] || DisplayInfo->Quit.WindowExit)
                     {
                         if(DisplayInfo->Quit.dAnim < 0) DisplayInfo->Quit.dAnim = 0;
-                        if(QuitAnimation(1))
+                        if(QuitAnimation(&DisplayInfo->Quit, 1))
                         {
                             IsRunning = false;
                             continue;
@@ -831,122 +837,22 @@ WinMain(HINSTANCE Instance,
                     }
                     else if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) > DOUBLE_CLICK_TIME)
                     {
-                        if(QuitAnimation(-1)) SetQuitAnimation(&DisplayInfo->Quit, false);
+                        if(QuitAnimation(&DisplayInfo->Quit, -1)) SetQuitAnimation(&DisplayInfo->Quit, false);
                     }
                 }
                 
                 if(DisplayInfo->MusicPath.TextField.IsActive)
                 {
                     HandleActiveMusicPath(DisplayInfo, Input, &CrawlInfoOut);
-                }
-                else // This is only reachable if MusicPath stuff is not on screen
+                    if(ColorPicker->IsActive) SetActive(ColorPicker, false);
+                } // This is only reachable if MusicPath stuff is not on screen
+                else 
                 {
                     Assert(!CrawlInfoOut.ThreadIsRunning);
                     Assert(!DisplayInfo->MusicPath.TextField.IsActive);
                     
-                    TestHoveringEdgeDrags(GameState, Input->MouseP, DisplayInfo);
-                    
-                    // Command keys ******
-                    if(NoModifiers(Input))
-                    {
-                        if(Input->KeyChange[KEY_F1] == KeyDown) OnSearchPressed(&DisplayInfo->Genre.SearchInfo);
-                        if(Input->KeyChange[KEY_F2] == KeyDown) OnSearchPressed(&DisplayInfo->Artist.SearchInfo);
-                        if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
-                        if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
-                    }
-                    if(Input->KeyChange[KEY_F9] == KeyDown)
-                    {
-                        SaveMP3LibraryFile(GameState, MP3Info);
-                        DebugLog(25, "Saved library file.\n");
-                    }
-                    if(Input->KeyChange[KEY_F10] == KeyDown)
-                    {
-                        AddJob_CheckMusicPathChanged(CheckMusicPath);
-                        //OutputDebugStringA("Start crawling");
-                        //CreateNewMetadata(GameState);
-                        //OutputDebugStringA(" finished!\n");
-                    }
-                    // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
-                    if(Input->KeyChange[KEY_F11] == KeyDown) 
-                    {
-                        UpdateColorPalette(DisplayInfo, true);
-                    }
-                    // ******************
-                    
-                    if(Input->KeyChange[KEY_RIGHT] == KeyDown ||
-                       Input->KeyChange[KEY_NEXT]  == KeyDown)
-                    {
-                        if(PlayingSong->PlaylistID >= 0)
-                        {
-                            HandleChangeToNextSong(GameState);
-                        }
-                    }
-                    else if(Input->KeyChange[KEY_LEFT]     == KeyDown ||
-                            Input->KeyChange[KEY_PREVIOUS] == KeyDown )
-                    {
-                        if(PlayingSong->PlaylistID >= 0)
-                        {
-                            if(GetPlayedTime(GameState->SoundThreadInterface) < 5.0f)
-                            {
-                                SetPreviousSong(&MusicInfo->Playlist, PlayingSong, MusicInfo->Looping);
-                                ChangeSong(GameState, PlayingSong);
-                                KeepPlayingSongOnScreen(Renderer, MusicInfo);
-                            }
-                            else
-                            {
-                                ChangeSong(GameState, PlayingSong);
-                            }
-                        }
-                    }
-                    
-                    if(Input->KeyChange[KEY_SPACE] == KeyDown ||
-                       Input->KeyChange[KEY_PLAY_PAUSE] == KeyDown)
-                    {
-                        if(DisplayInfo->SearchIsActive >= 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
-                        else
-                        {
-                            MusicInfo->IsPlaying = !MusicInfo->IsPlaying;
-                            if(!MusicInfo->IsPlaying) 
-                            {
-                                PushSoundBufferClear(GameState->SoundThreadInterface);
-                                DisplayInfo->PlayPause->State = buttonState_Unpressed;
-                                DisplayInfo->PlayPause->Entry->ID->Color = DisplayInfo->PlayPause->BaseColor;
-                            }
-                            else
-                            {
-                                DisplayInfo->PlayPause->State = buttonState_Pressed;
-                                DisplayInfo->PlayPause->Entry->ID->Color = DisplayInfo->PlayPause->DownColor;
-                            }
-                        }
-                    }
-                    if(Input->KeyChange[KEY_STOP] == KeyDown)
-                    {
-                        if(PlayingSong->PlaylistID >= 0)
-                        {
-                            ChangeSong(GameState, PlayingSong);
-                            MusicInfo->IsPlaying = false;
-                            PushSoundBufferClear(GameState->SoundThreadInterface);
-                        }
-                    }
-                    
-                    // Change volume
-                    if(Input->Pressed[KEY_UP] || Input->Pressed[KEY_ADD] ||
-                       (Input->Pressed[KEY_PLUS] && DisplayInfo->SearchIsActive < 0)) // Plus only when no search is open
-                    {
-                        ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume+0.01f);
-                        ColorPicker.Blackness += 0.01f;
-                        UpdateColorPickerTexture(&ColorPicker);
-                    }
-                    else if(Input->Pressed[KEY_DOWN] || Input->Pressed[KEY_SUBTRACT] || 
-                            (Input->Pressed[KEY_MINUS] && DisplayInfo->SearchIsActive < 0))
-                    {
-                        ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume-0.01f);
-                        ColorPicker.Blackness -= 0.01f;
-                        UpdateColorPickerTexture(&ColorPicker);
-                    }
-                    
-                    UpdateButtons(Renderer, Input);
-                    
+                    // Dragging stuff ******
+                    b32 LeftMouseUpAndNoDragging = false;
                     if(Input->KeyChange[KEY_LMB] == KeyDown)
                     {
                         OnDraggingStart(DragableList, Renderer, Input->MouseP);
@@ -963,75 +869,174 @@ WinMain(HINSTANCE Instance,
                     else if(Input->KeyChange[KEY_LMB] == KeyUp &&
                             DragableList->DraggingID < 0)
                     {
-                        column_type ChangedSelection = CheckColumnsForSelectionChange();
-                        if(ChangedSelection != columnType_None)
-                        {
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
-                            AddJobs_LoadOnScreenMP3s(GameState, JobQueue);
-                        }
+                        LeftMouseUpAndNoDragging = true;
                     }
                     
-                    if(Input->KeyChange[KEY_V] == KeyUp)
+                    // TODO:: Change this to: IsInSubmenu? Then do this for musicPath as well!
+                    if(!ColorPicker->IsActive || !IsInRect(ColorPicker->Background, Input->MouseP))
                     {
-                        string_c ErrorMsg = NewStringCompound(&GameState->Bucket.Transient, 555);
-                        AppendStringToCompound(&ErrorMsg, (u8 *)"Could not load song from disk.");
-                        PushUserErrorMessage(&ErrorMsg);
-                        DeleteStringCompound(&GameState->Bucket.Transient, &ErrorMsg);
-                    }
-                    
-                    if(Input->WheelAmount != 0)
-                    {
+                        UpdateButtons(Renderer, Input);
                         
-                        if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
+                        if(LeftMouseUpAndNoDragging)
                         {
-                            ScrollDisplayColumn(Renderer, &DisplayInfo->Song.Base, (r32)Input->WheelAmount);
-                            UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Song.Base, &SortingInfo->Song);
+                            column_type ChangedSelection = CheckColumnsForSelectionChange();
+                            if(ChangedSelection != columnType_None)
+                            {
+                                UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
+                                AddJobs_LoadOnScreenMP3s(GameState, JobQueue);
+                            }
+                        }
+                        
+                    }
+                    
+                    if(Input->KeyChange[KEY_F9] == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
+                    // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
+                    if(Input->KeyChange[KEY_F11] == KeyDown) UpdateColorPalette(DisplayInfo, true);
+                    
+                    if(ColorPicker->IsActive)
+                    {
+                        HandleActiveColorPicker(ColorPicker);
+                    }
+                    else
+                    {
+                        // Command keys ******
+                        if(NoModifiers(Input))
+                        {
+                            if(Input->KeyChange[KEY_F1] == KeyDown) OnSearchPressed(&DisplayInfo->Genre.SearchInfo);
+                            if(Input->KeyChange[KEY_F2] == KeyDown) OnSearchPressed(&DisplayInfo->Artist.SearchInfo);
+                            if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
+                            if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
+                        }
+                        if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
+                        // ******************
+                        
+                        TestHoveringEdgeDrags(GameState, Input->MouseP, DisplayInfo);
+                        
+                        // Next/Previous song *******
+                        if(Input->KeyChange[KEY_RIGHT] == KeyDown ||
+                           Input->KeyChange[KEY_NEXT]  == KeyDown)
+                        {
+                            if(PlayingSong->PlaylistID >= 0)
+                            {
+                                HandleChangeToNextSong(GameState);
+                            }
+                        }
+                        else if(Input->KeyChange[KEY_LEFT]     == KeyDown ||
+                                Input->KeyChange[KEY_PREVIOUS] == KeyDown )
+                        {
+                            if(PlayingSong->PlaylistID >= 0)
+                            {
+                                if(GetPlayedTime(GameState->SoundThreadInterface) < 5.0f)
+                                {
+                                    SetPreviousSong(&MusicInfo->Playlist, PlayingSong, MusicInfo->Looping);
+                                    ChangeSong(GameState, PlayingSong);
+                                    KeepPlayingSongOnScreen(Renderer, MusicInfo);
+                                }
+                                else
+                                {
+                                    ChangeSong(GameState, PlayingSong);
+                                }
+                            }
+                        }
+                        
+                        // Stop/Start music ***********
+                        if(Input->KeyChange[KEY_SPACE] == KeyDown ||
+                           Input->KeyChange[KEY_PLAY_PAUSE] == KeyDown)
+                        {
+                            if(DisplayInfo->SearchIsActive >= 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
+                            else
+                            {
+                                MusicInfo->IsPlaying = !MusicInfo->IsPlaying;
+                                if(!MusicInfo->IsPlaying) 
+                                {
+                                    PushSoundBufferClear(GameState->SoundThreadInterface);
+                                    DisplayInfo->PlayPause->State = buttonState_Unpressed;
+                                    DisplayInfo->PlayPause->Entry->ID->Color = DisplayInfo->PlayPause->BaseColor;
+                                }
+                                else
+                                {
+                                    DisplayInfo->PlayPause->State = buttonState_Pressed;
+                                    DisplayInfo->PlayPause->Entry->ID->Color = DisplayInfo->PlayPause->DownColor;
+                                }
+                            }
+                        }
+                        if(Input->KeyChange[KEY_STOP] == KeyDown)
+                        {
+                            if(PlayingSong->PlaylistID >= 0)
+                            {
+                                ChangeSong(GameState, PlayingSong);
+                                MusicInfo->IsPlaying = false;
+                                PushSoundBufferClear(GameState->SoundThreadInterface);
+                            }
+                        }
+                        
+                        // Change volume ******
+                        if(Input->Pressed[KEY_UP] || Input->Pressed[KEY_ADD] ||
+                           (Input->Pressed[KEY_PLUS] && DisplayInfo->SearchIsActive < 0)) // Plus only when no search is open
+                        {
+                            ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume+0.01f);
+                        }
+                        else if(Input->Pressed[KEY_DOWN] || Input->Pressed[KEY_SUBTRACT] || 
+                                (Input->Pressed[KEY_MINUS] && DisplayInfo->SearchIsActive < 0))
+                        {
+                            ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume-0.01f);
+                        }
+                        
+                        // Scrolling ********
+                        if(Input->WheelAmount != 0)
+                        {
                             
-                            ScrollLoadInfo.LoadFinished = false;
-                            ScrollLoadInfo.dTime = 0;
+                            if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
+                            {
+                                ScrollDisplayColumn(Renderer, &DisplayInfo->Song.Base, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Song.Base, &SortingInfo->Song);
+                                
+                                ScrollLoadInfo.LoadFinished = false;
+                                ScrollLoadInfo.dTime = 0;
+                            }
+                            if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
+                            {
+                                ScrollDisplayColumn(Renderer, &DisplayInfo->Genre, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Genre, &SortingInfo->Genre);
+                            }
+                            if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
+                            {
+                                ScrollDisplayColumn(Renderer, &DisplayInfo->Artist, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Artist, &SortingInfo->Artist);
+                            }
+                            if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
+                            {
+                                ScrollDisplayColumn(Renderer, &DisplayInfo->Album, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Album, &SortingInfo->Album);
+                            }
                         }
-                        if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
+                        
+                        if(!ScrollLoadInfo.LoadFinished) // If user finished scrolling, after WaitTime we load onscreen songs
                         {
-                            ScrollDisplayColumn(Renderer, &DisplayInfo->Genre, (r32)Input->WheelAmount);
-                            UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Genre, &SortingInfo->Genre);
+                            if(ScrollLoadInfo.dTime >= 1.0f)
+                            {
+                                ScrollLoadInfo.dTime = 0.0f;
+                                ScrollLoadInfo.LoadFinished = true;
+                                OnSongDragEnd(0, {}, 0, 0);
+                            }
+                            else ScrollLoadInfo.dTime += GameState->Time.dTime/ScrollLoadInfo.WaitTime;
                         }
-                        if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
+                        
+                        // Search bar  ******************
+                        ProcessActiveSearch(Renderer, &DisplayInfo->Genre, GameState->Time.dTime, Input,
+                                            &MusicInfo->SortingInfo.Genre);
+                        ProcessActiveSearch(Renderer, &DisplayInfo->Artist, GameState->Time.dTime, Input,
+                                            &MusicInfo->SortingInfo.Artist);
+                        ProcessActiveSearch(Renderer, &DisplayInfo->Album, GameState->Time.dTime, Input,
+                                            &MusicInfo->SortingInfo.Album);
+                        ProcessActiveSearch(Renderer, &DisplayInfo->Song.Base, GameState->Time.dTime, Input,
+                                            &MusicInfo->SortingInfo.Song, &MP3Info->FileInfo);
+                        
+                        if(PrevIsPlaying != MusicInfo->IsPlaying)
                         {
-                            ScrollDisplayColumn(Renderer, &DisplayInfo->Artist, (r32)Input->WheelAmount);
-                            UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Artist, &SortingInfo->Artist);
+                            PrevIsPlaying = MusicInfo->IsPlaying;
+                            ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
                         }
-                        if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
-                        {
-                            ScrollDisplayColumn(Renderer, &DisplayInfo->Album, (r32)Input->WheelAmount);
-                            UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Album, &SortingInfo->Album);
-                        }
-                    }
-                    
-                    if(!ScrollLoadInfo.LoadFinished) // If user finished scrolling, after WaitTime we load onscreen songs
-                    {
-                        if(ScrollLoadInfo.dTime >= 1.0f)
-                        {
-                            ScrollLoadInfo.dTime = 0.0f;
-                            ScrollLoadInfo.LoadFinished = true;
-                            OnSongDragEnd(0, {}, 0, 0);
-                        }
-                        else ScrollLoadInfo.dTime += GameState->Time.dTime/ScrollLoadInfo.WaitTime;
-                    }
-                    
-                    // Search bar  ******************
-                    ProcessActiveSearch(Renderer, &DisplayInfo->Genre, GameState->Time.dTime, Input,
-                                        &MusicInfo->SortingInfo.Genre);
-                    ProcessActiveSearch(Renderer, &DisplayInfo->Artist, GameState->Time.dTime, Input,
-                                        &MusicInfo->SortingInfo.Artist);
-                    ProcessActiveSearch(Renderer, &DisplayInfo->Album, GameState->Time.dTime, Input,
-                                        &MusicInfo->SortingInfo.Album);
-                    ProcessActiveSearch(Renderer, &DisplayInfo->Song.Base, GameState->Time.dTime, Input,
-                                        &MusicInfo->SortingInfo.Song, &MP3Info->FileInfo);
-                    
-                    if(PrevIsPlaying != MusicInfo->IsPlaying)
-                    {
-                        PrevIsPlaying = MusicInfo->IsPlaying;
-                        ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
                     }
                 }
                 

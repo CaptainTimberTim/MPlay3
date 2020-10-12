@@ -219,7 +219,7 @@ struct renderer
     
     loaded_bitmap ButtonBase;
     u32 ButtonBaseID;
-    loaded_bitmap ButtonIcons[MAX_BUTTONS*2];
+    button_colors ButtonColors;
     u32 ButtonIconCount;
 };
 
@@ -281,6 +281,9 @@ inline void SetLocalPositionX(entry_id *Entry, r32 NewX);
 inline void Translate(entry_id *Entry, v2 TranslationOffset); // Move Transform
 
 inline void SetActive(entry_id *Entry, b32 Activate);
+inline void SetColor(entry_id *Entry, v3 *Color);
+inline v3   GetColor(entry_id *Entry);
+inline void SetParent(entry_id *Entry, entry_id *Parent);
 
 // Helper for entry relations
 inline rect ExtractScreenRect(entry_id *Entry);
@@ -299,6 +302,9 @@ inline r32 HeightBetweenRects(entry_id *RectA, entry_id *RectB);
 inline r32 WidthBetweenRects(entry_id *RectA, entry_id *RectB);
 inline r32 CenterXBetweenRects(entry_id *LeftRect, entry_id *RightRect);
 inline r32 CenterYBetweenRects(entry_id *BottomRect, entry_id *TopRect);
+
+inline v2 ClampToRect(v2 Pos, entry_id *Entry);
+inline v2 ClampToRect(v2 Pos, rect_2D Rect);
 
 // Auto screen transform stuff
 inline screen_transform_list CreateScreenTransformList(memory_bucket_container *Bucket, u32 Size = 128);

@@ -62,6 +62,14 @@ CreateMP3InfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount)
     Result->DecodeInfo.FileID.A      = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
     Result->DecodeInfo.LastTouched   = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
     
+#ifdef DECODE_STREAMING_TMP
+    For(MAX_MP3_DECODE_COUNT)
+    {
+        Result->DecodeInfo.DecodedData[It].buffer = PushArrayOnBucket(Bucket, 48000*2*DECODE_PRELOAD_SECONDS, i16);
+    }
+    
+    Result->DecodeInfo.PlayingDecoded.buffer = PushArrayOnBucket(Bucket, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
+#endif
     return Result;
 }
 
@@ -862,6 +870,20 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
     return Result;
 }
 
+inline void
+CreateSongDurationForMetadata(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, i32 DecodeID)
+{
+    if(~MP3Info->FileInfo.Metadata[FileID.ID].FoundFlags & metadata_Duration)
+    {
+        mp3_metadata *MD = &MP3Info->FileInfo.Metadata[FileID.ID];
+        mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
+        
+        MD->Duration = (u32)DInfo->samples/DInfo->channels/DInfo->hz*1000;
+        MillisecondsToMinutes(&Bucket->Fixed, MD->Duration, &MD->DurationString);
+        MD->FoundFlags |= metadata_Duration;
+    }
+}
+
 internal error_item
 LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, 
                      i32 DecodeID, b32 DoMetadataExtraction = true)
@@ -879,6 +901,7 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
         {
             if(DoMetadataExtraction)
             {
+                Assert(false); // Is this actually used? Does not seem like it!
                 ExtractMetadata(&Bucket->Fixed, &Bucket->Transient, &FileData, &MP3Info->FileInfo.Metadata[FileID.ID]);
             }
             
@@ -886,7 +909,7 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
             mp3dec_init(&Dec);
             
             free(MP3Info->DecodeInfo.DecodedData[DecodeID].buffer);
-            mp3dec_load_buf(&Dec, FileData.Data, FileData.Size, &MP3Info->DecodeInfo.DecodedData[DecodeID], NULL, NULL);
+            mp3dec_load_buf(&Dec, FileData.Data, FileData.Size, MP3Info->DecodeInfo.DecodedData+DecodeID, NULL, NULL);
             
             i32 DecodeResult = MP3Info->DecodeInfo.DecodedData[DecodeID].samples ? 0 : -1;
             if(DecodeResult)
@@ -901,15 +924,7 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
                 DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
                 // Check if song duration was already saved, if not, create it.
-                if(~MP3Info->FileInfo.Metadata[FileID.ID].FoundFlags & metadata_Duration)
-                {
-                    mp3_metadata *MD = &MP3Info->FileInfo.Metadata[FileID.ID];
-                    mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
-                    
-                    MD->Duration = (u32)DInfo->samples/DInfo->channels/DInfo->hz*1000;
-                    MillisecondsToMinutes(&Bucket->Fixed, MD->Duration, &MD->DurationString);
-                    MD->FoundFlags |= metadata_Duration;
-                }
+                CreateSongDurationForMetadata(Bucket, MP3Info, FileID, DecodeID);
             }
         }
         else 
@@ -936,11 +951,151 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
     return LoadAndDecodeMP3Data(Bucket, MP3Info, FileID, DecodeID, DoMetadataExtraction);
 }
 
-internal void
-CrawlFileForMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
-                     mp3_metadata *MD, string_c *FilePath)
+internal mp3dec_file_info_t
+DecodeMP3StartFrames(mp3dec_t *MP3Decoder, read_file_result File, i16 Buffer[], u32 DecodeFrameAmount){
+    mp3dec_file_info_t Result = {Buffer};
+    
+    /*typedef struct
+   {
+       int frame_bytes;
+       int channels;
+       int hz;
+       int layer;
+       int bitrate_kbps;
+   } mp3dec_frame_info_t;*/
+    mp3dec_frame_info_t FrameInfo;
+    //i16 PCM[MINIMP3_MAX_SAMPLES_PER_FRAME];
+    
+    i16 *RunningBuffer = Buffer;
+    For(DecodeFrameAmount)
+    {
+        // mp3dec_decode_frame result:
+        // 0:    No MP3 data was found in the input buffer
+        // 384:  Layer 1
+        // 576:  MPEG 2 Layer 3
+        // 1152: Otherwise
+        u32 SampleCount = mp3dec_decode_frame(MP3Decoder, File.Data, File.Size, RunningBuffer, &FrameInfo);
+        
+        if(SampleCount > 0 && FrameInfo.frame_bytes > 0) // Succesfull decode.
+        {
+            File.Data += FrameInfo.frame_bytes;
+            File.Size -= FrameInfo.frame_bytes;
+            RunningBuffer  += SampleCount*FrameInfo.channels;
+            Result.samples += SampleCount*FrameInfo.channels;
+            
+            if(It == 0)
+            {
+                Result.channels = FrameInfo.channels;
+                Result.hz = FrameInfo.hz;
+                Result.layer = FrameInfo.layer;
+                Result.avg_bitrate_kbps = FrameInfo.bitrate_kbps;
+            }
+            Assert((MINIMP3_MAX_SAMPLES_PER_FRAME*DecodeFrameAmount) >= Result.samples);
+        }
+        else if(SampleCount == 0 && FrameInfo.frame_bytes > 0) // Decoder skipped ID3/invalid data (no samples were decoded).
+        {
+            File.Data += FrameInfo.frame_bytes;
+            File.Size -= FrameInfo.frame_bytes;
+            It--; // Try again to decode frame.
+        }
+        else if(SampleCount == 0 && FrameInfo.frame_bytes == 0) // Nothing was there to be decoded or skipped. EOF
+        {
+            break;
+        }
+        else 
+        {
+            //Assert(SampleCount != 0 || FrameInfo.frame_bytes != 0); // Insufficient data.
+            Assert(false); // Double Assert just to know if there can be another case I did not catch.
+        }
+    }
+    
+    return Result;
+}
+
+internal error_item
+LoadAndDecodeMP3StartFrames(bucket_allocator *Bucket, i32 SecondsToDecode, file_id FileID, 
+                            i32 DecodeID, mp3dec_file_info_t *DecodeResult)
 {
-    u32 DataLength = 0;
+    // 1. Build the complete filepath
+    // 2. Extract the size of the metadata
+    // 3. Decode first frame to get information of the file
+    // 4. Calculate maximum size to load for wanted amount
+    // 5. Load and decode the stuff
+    error_item Result = {(load_error_codes)DecodeID, FileID};
+    
+    mp3_info *MP3Info = GlobalGameState.MP3Info;
+    //mp3dec_file_info_t *DecodeResult = MP3Info->DecodeInfo.DecodedData + DecodeID;
+    i16 *ExistingBuffer = DecodeResult->buffer;
+    
+    // 1.
+    NewEmptyLocalString(FilePath, 255);
+    ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, MP3Info->FileInfo.SubPath + FileID.ID, MP3Info->FileInfo.FileName + FileID.ID);
+    
+    
+    mp3dec_t MP3Decoder = {};
+    mp3dec_init(&MP3Decoder);
+    
+    // 2.
+    u32 MetadataSize    = ExtractMetadataSize(&Bucket->Transient, &FilePath);
+    u32 ReadAmount      = MetadataSize + MINIMP3_MAX_SAMPLES_PER_FRAME + 512;
+    i16 *TmpInfoStorage = PushArrayOnBucket(&Bucket->Transient, ReadAmount, i16);
+    
+    read_file_result File = {};
+    if(ReadBeginningOfFile(&Bucket->Transient, &File, FilePath.S, ReadAmount))
+    {
+        // 3. 
+        *DecodeResult = DecodeMP3StartFrames(&MP3Decoder, File, TmpInfoStorage, 1);
+        FreeFileMemory(&Bucket->Transient, File.Data);
+        
+        u32 DecodeSampleAmount = DecodeResult->hz*SecondsToDecode; 
+        // samples has channels already in it. But I need the frame amount which is channel indipendent.
+        u32 DecodeFrameAmount  = DecodeSampleAmount/(u32)(DecodeResult->samples/DecodeResult->channels);
+        // 4. This should always be enough, as the mp3 file should be smaller, as it is compressed...
+        ReadAmount = DecodeSampleAmount*DecodeResult->channels*sizeof(i16) + DecodeFrameAmount*sizeof(u32) + MetadataSize; 
+        if(ReadBeginningOfFile(&Bucket->Transient, &File, FilePath.S, ReadAmount))
+        {
+            Assert(DecodeResult->hz <= 48000); // DecodeData[] in Decode_info size calc. is based on this as a max!
+            Assert(ExistingBuffer);
+            
+            // 5.
+            *DecodeResult = DecodeMP3StartFrames(&MP3Decoder, File, ExistingBuffer, DecodeFrameAmount);
+            
+            if(DecodeResult->samples == 0)
+            {
+                Result.Code = loadErrorCode_DecodingFailed;
+            }
+            else
+            {
+                Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
+                TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
+                DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
+                
+                CreateSongDurationForMetadata(Bucket, MP3Info, FileID, DecodeID);
+            }
+            
+            FreeFileMemory(&Bucket->Transient, File.Data);
+        }
+        else
+        {
+            Result.Code = loadErrorCode_FileLoadFailed;
+        }
+    }
+    else
+    {
+        Result.Code = loadErrorCode_FileLoadFailed;
+    }
+    
+    PopFromTransientBucket(&Bucket->Transient, TmpInfoStorage);
+    
+    if(DecodeID >= 0) MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = false;
+    return Result;
+}
+
+internal u32 
+ExtractMetadataSize(memory_bucket_container *TransientBucket, string_c *CompletePath)
+{
+    u32 Result = 0;
+    
     read_file_result FileData = {};
     // NOTE:: Two staged approach: try loading only header and extract tag length.
     // if not ID3v2/3 metadata, then load entire file for ID3v1 
@@ -949,7 +1104,7 @@ CrawlFileForMetadata(memory_bucket_container *MainBucket, memory_bucket_containe
     // Header:
     // 3 Byte | 2 Byte | 1 Byte | 4 Byte
     // Tag:ID3| Version| Flags  | Size
-    if(ReadBeginningOfFile(TransientBucket, &FileData, FilePath->S, 10)) 
+    if(ReadBeginningOfFile(TransientBucket, &FileData, CompletePath->S, 10)) 
     {
         u8 *Current = (u8 *)FileData.Data;
         Current[3] = 0;
@@ -958,12 +1113,21 @@ CrawlFileForMetadata(memory_bucket_container *MainBucket, memory_bucket_containe
         {
             Current += 3+2+1; // Skip header bytes, to size.
             // NOTE:: For size only the seven lower bits are used...
-            DataLength  = Current[0]<<21 | Current[1]<<14 | Current[2]<<7 | Current[3]<<0;
-            DataLength += 10; // Size excludes the header... so add it!
+            Result  = Current[0]<<21 | Current[1]<<14 | Current[2]<<7 | Current[3]<<0;
+            Result += 10; // Size excludes the header... so add it!
         }
         FreeFileMemory(TransientBucket, FileData.Data);
     }
     
+    return Result;
+}
+
+internal void
+CrawlFileForMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
+                     mp3_metadata *MD, string_c *FilePath)
+{
+    u32 DataLength = ExtractMetadataSize(TransientBucket, FilePath);
+    read_file_result FileData = {};
     if(DataLength > 0 && ReadBeginningOfFile(TransientBucket, &FileData, FilePath->S, DataLength)) 
     {
         ExtractMetadata(MainBucket, TransientBucket, &FileData, MD);
@@ -2453,24 +2617,9 @@ ChangeSong(game_state *GameState, playing_song *Song)
     if(FileID >= 0)
     {
         GameState->MusicInfo.CurrentlyChangingSong = true;
-        Song->DecodeID = AddJob_LoadMP3(GameState, &GameState->JobQueue, FileID);
+        Song->DecodeID = AddJob_LoadMP3(GameState, &GameState->JobQueue, FileID, 0, 1000000);
         
         Assert(Song->DecodeID >= 0);
-        /*
-        if(Song->DecodeID == loadErrorCode_FileLoadFailed)
-        {
-            RetraceFilePath(&GameState->Bucket, GameState->MP3Info, FileID);
-            Song->DecodeID = AddJob_LoadMP3(GameState, &GameState->JobQueue, FileID);
-            // TODO:: If I cannot find anything that matches in the restrace. I just fail for now.
-            // Should later give some message to the user!
-            Assert(Song->DecodeID != loadErrorCode_FileLoadFailed);
-            Assert(Song->DecodeID != loadErrorCode_DecodingFailed);
-        }
-        else if(Song->DecodeID == loadErrorCode_DecodingFailed)
-        {
-            Assert(false);
-        }
-        */
         if(!GameState->MP3Info->DecodeInfo.CurrentlyDecoding[Song->DecodeID])
         {
             FinishChangeSong(GameState, Song);
@@ -2800,7 +2949,19 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
 {
     job_load_decode_mp3 *JobInfo = (job_load_decode_mp3 *)Data;
     
+    
+#ifdef DECODE_STREAMING_TMP
+    mp3dec_file_info_t *DecodeResult = 0;
+    
+    if(JobInfo->PreloadSeconds == DECODE_PRELOAD_SECONDS) 
+        DecodeResult = JobInfo->MP3Info->DecodeInfo.DecodedData + JobInfo->DecodeID;
+    else DecodeResult = &JobInfo->MP3Info->DecodeInfo.PlayingDecoded;
+    
+    error_item Result = LoadAndDecodeMP3StartFrames(ThreadInfo->Bucket, JobInfo->PreloadSeconds, JobInfo->FileID, 
+                                                    JobInfo->DecodeID, DecodeResult);
+#else 
     error_item Result = LoadAndDecodeMP3Data(ThreadInfo->Bucket, JobInfo->MP3Info, JobInfo->FileID, JobInfo->DecodeID, false);
+#endif
     
     if(Result.Code < 0) PushErrorMessageFromThread(Result);
 }
@@ -2852,7 +3013,8 @@ AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
 }
 
 internal i32
-AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, array_u32 *IgnoreDecodeIDs)
+AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, 
+               array_u32 *IgnoreDecodeIDs, i32 PreloadSeconds)
 {
     mp3_info *MP3Info = GameState->MP3Info;
     if(FileID < 0) return -1;
@@ -2869,7 +3031,7 @@ AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id File
             Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
             MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = true;
             
-            job_load_decode_mp3 Data = {MP3Info, FileID, DecodeID};
+            job_load_decode_mp3 Data = {MP3Info, FileID, DecodeID, PreloadSeconds};
             AddJobToQueue(JobQueue, JobLoadAndDecodeMP3File, Data);
         }
     }

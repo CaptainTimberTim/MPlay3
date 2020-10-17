@@ -1911,22 +1911,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
     // Quit curtain ****************************
-    quit_animation *QuitStuff = &DisplayInfo->Quit;
-    
-    QuitStuff->Curtain = CreateRenderRect(Renderer, V2(WWidth, WHeight), -0.99f,
-                                          &DisplayInfo->ColorPalette.SliderGrabThing);
-    Translate(QuitStuff->Curtain, V2(WWidth/2, WHeight/2));
-    SetActive(QuitStuff->Curtain, false);
-    QuitStuff->dAnim = 0;
-    QuitStuff->Time = 0.8f;
-    
     string_c QuitText = NewStaticStringCompound("Goodbye!");
-    CreateRenderText(Renderer, Renderer->FontInfo.BigFont, &QuitText, &DisplayInfo->ColorPalette.Text, 
-                     &QuitStuff->Text, -0.999f, 0);
-    SetPosition(&QuitStuff->Text, V2(WWidth/2, WHeight/2));
-    SetActive(&QuitStuff->Text, false);
-    
-    QuitStuff->LastEscapePressTime = -10;
+    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, 0.8f);
     
     // User error text *************************************
     user_error_text *UserErrorText = &DisplayInfo->UserErrorText;

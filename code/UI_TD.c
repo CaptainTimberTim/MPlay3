@@ -612,8 +612,28 @@ CreateSlider(slider *Result, renderer *Renderer, v2 BGSize, v2 GrabSize, r32 Dep
 
 // Quit curtain ************************
 
-inline void
-SetQuitAnimation(quit_animation *Quit, b32 Activate)
+internal void
+CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime)
+{
+    renderer *Renderer = &GlobalGameState.Renderer;
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    
+    Result->Curtain = CreateRenderRect(Renderer, Size, -0.99f, &DisplayInfo->ColorPalette.SliderGrabThing);
+    Translate(Result->Curtain, Size/2.0f);
+    SetActive(Result->Curtain, false);
+    Result->dAnim = 0;
+    Result->Time = AnimationTime;
+    
+    CreateRenderText(Renderer, Renderer->FontInfo.BigFont, ClosingText, &DisplayInfo->ColorPalette.Text, 
+                     &Result->Text, -0.999f, 0);
+    SetPosition(&Result->Text, Size/2.0f);
+    SetActive(&Result->Text, false);
+    
+    Result->LastEscapePressTime = -10;
+}
+
+inline void 
+SetActive(quit_animation *Quit, b32 Activate)
 {
     Quit->AnimationStart = Activate;
     SetActive(Quit->Curtain, Activate);
@@ -621,17 +641,19 @@ SetQuitAnimation(quit_animation *Quit, b32 Activate)
 }
 
 internal b32
-QuitAnimation(quit_animation *Quit, r32 Dir)
+QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size)
 {
     b32 Result = false;
     
-    window_info *Window = &GlobalGameState.Renderer.Window;
+    if(!Quit->AnimationStart) SetActive(Quit, true);
+    
     time_management *Time = &GlobalGameState.Time;
     if(Quit->dAnim >= 1.0f || Quit->dAnim < 0.0f)
     {
         SetScale(Quit->Curtain, V2(1, 1));
-        SetLocalPositionY(Quit->Curtain, Window->CurrentDim.Height/2.0f);
+        SetLocalPositionY(Quit->Curtain, Position.y);
         Result = true;
+        Quit->Activated = Quit->dAnim >= 1.0f;
         Quit->dAnim = 0.0f;
     }
     else 
@@ -639,13 +661,13 @@ QuitAnimation(quit_animation *Quit, r32 Dir)
         Quit->dAnim += Time->dTime/Quit->Time * Dir;
         
         r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
-        SetSize(Quit->Curtain, V2((r32)Window->CurrentDim.Width, Window->CurrentDim.Height*NewYScale));
-        SetLocalPosition(Quit->Curtain, V2(Window->CurrentDim.Width/2.0f, 
-                                           Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
-        SetPosition(&Quit->Text, V2((Window->CurrentDim.Width - Quit->Text.CurrentP.x)/2.0f,
-                                    Window->CurrentDim.Height - GetSize(Quit->Curtain).y/2.0f));
+        SetSize(Quit->Curtain, V2(Size.x, Size.y*NewYScale));
         
-        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);//Max(0.85f, Quit->dAnim));
+        r32 CurrentHeight = GetSize(Quit->Curtain).y/2.0f;
+        SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
+        SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
+        
+        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
     }
     
     return Result;

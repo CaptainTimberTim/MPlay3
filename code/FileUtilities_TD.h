@@ -12,13 +12,13 @@ struct read_file_result
 // General file methods
 internal b32 WriteEntireFile(bucket_allocator *Bucket, u8 *Filename, u32 MemorySize, void *Memory);
 internal b32 WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory);
-internal void   FreeFileMemory(memory_bucket_container *BucketContainer, void *Memory);
+internal void   FreeFileMemory(memory_bucket_container *BucketContainer, u8 *Memory);
 internal b32 ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, u8 *Filename);
 internal b32 ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, string_w *Filename);
-internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount);
-internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount);
-internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount);
-internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount);
+internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
+internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
+internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
+internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
 internal b32 AppendToFile(memory_bucket_container *BucketContainer, char *FileName, u32 MemorySize, void *Memory);
 
 // .obj loader methods

@@ -79,6 +79,8 @@ struct color_picker
     button *Save;
     button *Cancel;
     button *Remove;
+    quit_animation NewAnim;
+    quit_animation SaveAnim;
     quit_animation RemoveAnim;
 };
 

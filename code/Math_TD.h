@@ -191,6 +191,7 @@ inline r32 Lerp(r32 A, r32 B, r32 T);
 inline r32 Lerp(i32 A, i32 B, r32 T);
 inline i32 Max(i32 A, i32 B);
 inline r32 Max(r32 A, r32 B);
+inline u64 Max(u64 A, u64 B);
 inline i32 Min(i32 A, i32 B);
 inline r32 Min(r32 A, r32 B);
 inline r32 Mod(r32 V, r32 M);

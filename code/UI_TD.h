@@ -186,10 +186,12 @@ struct quit_animation
     r32 Time;
     
     r64 LastEscapePressTime;
+    b32 Activated;
 };
 
-
-
+internal void CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime);
+inline void SetActive(quit_animation *Quit, b32 Activate);
+internal b32 QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size);
 
 
 

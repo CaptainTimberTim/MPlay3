@@ -40,7 +40,7 @@ WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory)
 }
 
 internal void 
-FreeFileMemory(memory_bucket_container *BucketContainer, void *Memory)
+FreeFileMemory(memory_bucket_container *BucketContainer, u8 *Memory)
 {
     if(Memory && !BucketContainer->IsFixedBucket)
     {
@@ -109,7 +109,7 @@ ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileD
 }
 
 internal b32 
-ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount)
+ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     
@@ -122,7 +122,7 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
 }
 
 internal b32 
-ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount)
+ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -132,6 +132,7 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
         if (GetFileSizeEx(FileHandle, &FileSize))
         {
             u32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
+            ReadAmount = (ReadAmount > FileSize32) ? FileSize32+1 : ReadAmount+1;
             FileData->Data = (u8 *)PushSizeOnBucket(Bucket, ReadAmount);
             if (FileData->Data)
             {
@@ -167,7 +168,7 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
 }
 
 internal b32 
-ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, i32 ReadAmount)
+ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     
@@ -180,7 +181,7 @@ ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *F
 }
 
 internal b32 
-ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, i32 ReadAmount)
+ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);

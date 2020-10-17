@@ -28,16 +28,18 @@
 // - go through and remove all gamestate/renderer/info juggling
 // - Switch openGL to directX?
 // - Add key shortcut button
-// - Implement better memory management
-// - add feature for user to add their own color palette
-// - fix bug: some colors in "pink dreams" are not correctly translated!
-// - add field for name in color picker
-// - add button to delete palette
+// - Implement partially decoding mp3s
+//      - Implement better memory management
+// - properly round for song panel time and slider
+// - create custom allocator for threads!
 
 #include "Sound_UI_TD.h"
 
 global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
 global_variable u32 CURRENT_LIBRARY_VERSION = 3;
+
+#define DECODE_STREAMING_TMP_
+#define CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE Gigabytes(1)
 
 enum column_type
 {
@@ -131,6 +133,7 @@ struct scroll_load_info
 
 #define MAX_MP3_INFO_COUNT 10000
 #define MAX_MP3_DECODE_COUNT 10
+#define DECODE_PRELOAD_SECONDS 5
 
 enum metadata_flags
 {
@@ -169,6 +172,7 @@ struct mp3_file_info //::FILE_ID
 
 struct mp3_decode_info
 {
+    mp3dec_file_info_t PlayingDecoded;
     mp3dec_file_info_t DecodedData[MAX_MP3_DECODE_COUNT];
     array_file_id FileID; // size: MAX_MP3_DECODE_COUNT
     u32 Count;
@@ -193,6 +197,7 @@ struct job_load_decode_mp3
     mp3_info *MP3Info;
     file_id FileID;
     i32 DecodeID;
+    i32 PreloadSeconds;
 };
 
 
@@ -240,13 +245,16 @@ struct thread_error_list
 };
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
-internal i32 AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, 
-                            array_u32 *IgnoreDecodeIDs = 0);
+internal i32  AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, 
+                             array_u32 *IgnoreDecodeIDs = 0, i32 PreloadSeconds = DECODE_PRELOAD_SECONDS);
 inline displayable_id FileIDToColumnDisplayID(music_display_column *DisplayColumn, file_id FileID);
-internal b32 AddJob_NextUndecodedInPlaylist();
+internal b32  AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
-internal b32 IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
+internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal void PushErrorMessageFromThread(error_item Error);
+internal u32  ExtractMetadataSize(memory_bucket_container *TransientBucket, string_c *CompletePath);
+
+
 
 global_variable string_compound GenreTypes[] =
 {

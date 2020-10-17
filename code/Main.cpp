@@ -77,6 +77,7 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 #include "MiniMP3_Ext.h"
 
 #include "Math_TD.h"
+#include "Allocator_TD.c"
 struct time_management
 {
     i32 GameHz;
@@ -138,7 +139,7 @@ WindowGotResized(game_state *GameState)
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Song, &DisplayInfo->Song.Base);
         
-        SetQuitAnimation(&DisplayInfo->Quit, false);
+        SetActive(&DisplayInfo->Quit, false);
         DisplayInfo->Quit.dAnim = 0;
         AnimateErrorMessage(&DisplayInfo->UserErrorText, 0);
         
@@ -247,7 +248,7 @@ WindowCallback(HWND Window,
         case WM_CLOSE: 
         { 
             quit_animation *Quit = &GlobalGameState.MusicInfo.DisplayInfo.Quit;
-            SetQuitAnimation(Quit, true);
+            SetActive(Quit, true);
             Quit->WindowExit = true;
             Quit->Time /= 2;
         } break;
@@ -707,10 +708,45 @@ WinMain(HINSTANCE Instance,
             AddJob_CheckMusicPathChanged(CheckMusicPath);
             ApplySettings(GameState, GameState->Settings);
             
-            
+            // Color Picker *******************************
             color_picker *ColorPicker = &GameState->ColorPicker;
             CreateColorPicker(ColorPicker, V2i(500, 500));
-            //SetActive(ColorPicker, false);
+            SetActive(ColorPicker, false);
+            
+            
+            
+            
+            // SamplesPerSecond = 48000
+            // SamplesPerFrame  = 1152
+            // Needed Frames for one second = 41.66
+            // For 15 seconds = 625
+            /*
+            mp3dec_t MP3Decoder;
+            mp3dec_init(&MP3Decoder);
+            const i32 DCount = 625; // includes 2 channels!
+            i16 PCM[MINIMP3_MAX_SAMPLES_PER_FRAME*DCount];
+            
+            //DecodeMP3StartFrames(&MP3Decoder, PCM, 50);
+            string_c TestPath = NewStaticStringCompound("D:\\Musik\\Tom Waits\\Bad As Me (Remastered)\\01 - Chicago (Remastered).mp3");
+            mp3dec_file_info_t DecodedFrames = LoadAndDecodeMP3StartFrames(&MP3Decoder, PCM, DCount, &TestPath);
+            */
+            
+            /*
+            arena_allocator Arena = {};
+            u32 *TestNumbers = AllocatePrivateArray(&Arena, 2500, u32);
+            u8 *MegaAllocation = AllocatePrivateMemory(&Arena, Megabytes(300));
+            u8 *Allocation2 = AllocateMemory(&Arena, Megabytes(3));
+            DeleteMemory(&Arena, TestNumbers);
+            DeleteMemory(&Arena, Allocation2);
+            DeleteMemory(&Arena, MegaAllocation);
+            
+            u8 *TransArena = AllocateTransientMemory(&Arena, Megabytes(6));
+            u8 *TransArena3 = AllocateTransientMemory(&Arena, Megabytes(80));
+            u8 *TransArena2 = AllocateTransientMemory(&Arena, Megabytes(200));
+            ResetTransientAllocator(&Arena);
+            u8 *TransArena4 = AllocateTransientMemory(&Arena, Megabytes(33));
+            */
+            
             
             
             // ********************************************
@@ -807,7 +843,7 @@ WinMain(HINSTANCE Instance,
                     }
                     else 
                     {
-                        SetQuitAnimation(&DisplayInfo->Quit, true);
+                        SetActive(&DisplayInfo->Quit, true);
                         if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) <= DOUBLE_CLICK_TIME)
                         {
                             DisplayInfo->Quit.WindowExit = true;
@@ -818,17 +854,18 @@ WinMain(HINSTANCE Instance,
                 }
                 if(Input->Pressed[KEY_ALT_LEFT] && Input->KeyChange[KEY_F4] == KeyDown) 
                 {
-                    SetQuitAnimation(&DisplayInfo->Quit, true);
+                    SetActive(&DisplayInfo->Quit, true);
                     DisplayInfo->Quit.WindowExit = true;
                     DisplayInfo->Quit.Time /= 2;
                 }
                 
                 if(DisplayInfo->Quit.AnimationStart)
                 {
+                    v2 Size = V2(Renderer->Window.CurrentDim.Dim);
                     if(Input->Pressed[KEY_ESCAPE] || DisplayInfo->Quit.WindowExit)
                     {
                         if(DisplayInfo->Quit.dAnim < 0) DisplayInfo->Quit.dAnim = 0;
-                        if(QuitAnimation(&DisplayInfo->Quit, 1))
+                        if(QuitAnimation(&DisplayInfo->Quit, 1, V2(Size.x/2.0f, Size.y), Size))
                         {
                             IsRunning = false;
                             continue;
@@ -837,7 +874,8 @@ WinMain(HINSTANCE Instance,
                     }
                     else if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) > DOUBLE_CLICK_TIME)
                     {
-                        if(QuitAnimation(&DisplayInfo->Quit, -1)) SetQuitAnimation(&DisplayInfo->Quit, false);
+                        if(QuitAnimation(&DisplayInfo->Quit, -1, V2(Size.x/2.0f, Size.y), Size)) 
+                            SetActive(&DisplayInfo->Quit, false);
                     }
                 }
                 

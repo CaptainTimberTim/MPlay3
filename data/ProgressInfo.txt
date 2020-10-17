@@ -63,3 +63,13 @@
 	- Added palette name display, which is editable for the custom ones.
 	- Added remove button, to delete custom palettes.
 - Moved quit_animation to ui-api, but not yet adapted properly.
+
+13.10.2020
+- Added feedback for pressing the color picker buttons.
+- Fixed a bug with determining the proper color for the picker in RGB to HSV conversion (H fell out of the 0-360 range).
+
+14.10.2020
+- Started converting from _load and decode entery file_ to decode only some mp3 frames at a time.
+
+17.10.2020
+- Implemented an arena allocator to switch to. As the original bucket allocator is too simple for my current needs.

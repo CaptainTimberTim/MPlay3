@@ -3,7 +3,6 @@
 #define _ALLOCATOR__T_D_H
 
 #define ARENA_BASE_SIZE Megabytes(256)
-#define MAX_EMPTY_ARENAS 2
 struct arena
 {
     struct arena *Prev;
@@ -23,37 +22,34 @@ struct arena_allocator
 {
     u32 ArenaCount;
     u32 EmptyArenaCount;
+    u32 MaxEmptyArenaCount; // Zero leaves one empty arena!
     
     arena *Base;
     arena *LastUsed;
-    
-    arena *TransientBase;
 };
 #define CreateArenaAllocator() {}
 
-inline   void  DeleteMemory(arena_allocator *Allocator, void *Memory);
+inline void FreeMemory(arena_allocator *Allocator, void *Memory);
 
-internal void *AllocateMemory_(arena_allocator *Allocator, u64 Size);
+// This can be called:
+// 1. Without VA_ARGS argument, then it is normal memory allocation
+// 2. With the keyword Private, then it becomes private allocation
+// Each procdeure is briefly described below.
+#define AllocateMemory(Allocator, Size,        ...) (u8 *)  AllocateMemory_##__VA_ARGS__(Allocator, Size)
+#define AllocateArray (Allocator, Count, Type, ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, (Count)*sizeof(Type))
+#define AllocateStruct(Allocator, Type,        ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, sizeof(Type))
+
+
 // Normal arena allocations. When created is persistent until DeleteMemory is called.
-#define AllocateMemory(Allocator, Size)         (u8 *)AllocateMemory_(Allocator, Size)
-#define AllocateArray(Allocator, Count, Type) (Type *)AllocateMemory_(Allocator, Count*sizeof(Type))
-#define AllocateStruct(Allocator, Type)       (Type *)AllocateMemory_(Allocator, sizeof(Type))
+internal void *AllocateMemory_(arena_allocator *Allocator, u64 Size);
 
 // Allocates a new arena that is exactly the given size. This is mainly useful for
 // allocating big memory blocks that _might_ get deleted at some point and 
 // having the whole arena empty again and not locking a big chunk of memory, 
 // because of some small persistent allocation. 
-internal void *AllocatePrivateMemory_(arena_allocator *Allocator, u64 Size);
-#define AllocatePrivateMemory(Allocator, Size)         (u8 *)AllocatePrivateMemory_(Allocator, Size)
-#define AllocatePrivateArray(Allocator, Count, Type) (Type *)AllocatePrivateMemory_(Allocator, Count*sizeof(Type))
-#define AllocatePrivateStruct(Allocator, Type)       (Type *)AllocatePrivateMemory_(Allocator, sizeof(Type))
+internal void *AllocateMemory_Private(arena_allocator *Allocator, u64 Size);
 
-internal void *AllocateTransientMemory_(arena_allocator *Allocator, u64 Size);
-// Transient arena allocations. Creates temporary memory, that is _only_ valid until ResetTransientAllocator is called.
-#define AllocateTransientMemory(Allocator, Size)         (u8 *)AllocateTransientMemory_(Allocator, Size)
-#define AllocateTransientArray(Allocator, Count, Type) (Type *)AllocateTransientMemory_(Allocator, Count*sizeof(Type))
-#define AllocateTransientStruct(Allocator, Type)       (Type *)AllocateTransientMemory_(Allocator, sizeof(Type))
-internal void ResetTransientAllocator(arena_allocator *Allocator);
+internal void ResetMemoryArena(arena_allocator *Allocator);
 
 
 

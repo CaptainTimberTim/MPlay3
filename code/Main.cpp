@@ -508,6 +508,7 @@ WinMain(HINSTANCE Instance,
         SetRandomSeed(FlipWallClock);
         
         // Initializing Allocator
+        GameState->FixArena.MaxEmptyArenaCount = 2;
         GameState->Bucket = {};
         if(!CreateBucketAllocator(&GameState->Bucket, Gigabytes(2), Megabytes(500))) return -1;
         if(!CreateBucketAllocator(&GameState->SoundThreadBucket, Megabytes(1), Megabytes(250))) return -1;
@@ -731,21 +732,6 @@ WinMain(HINSTANCE Instance,
             mp3dec_file_info_t DecodedFrames = LoadAndDecodeMP3StartFrames(&MP3Decoder, PCM, DCount, &TestPath);
             */
             
-            /*
-            arena_allocator Arena = {};
-            u32 *TestNumbers = AllocatePrivateArray(&Arena, 2500, u32);
-            u8 *MegaAllocation = AllocatePrivateMemory(&Arena, Megabytes(300));
-            u8 *Allocation2 = AllocateMemory(&Arena, Megabytes(3));
-            DeleteMemory(&Arena, TestNumbers);
-            DeleteMemory(&Arena, Allocation2);
-            DeleteMemory(&Arena, MegaAllocation);
-            
-            u8 *TransArena = AllocateTransientMemory(&Arena, Megabytes(6));
-            u8 *TransArena3 = AllocateTransientMemory(&Arena, Megabytes(80));
-            u8 *TransArena2 = AllocateTransientMemory(&Arena, Megabytes(200));
-            ResetTransientAllocator(&Arena);
-            u8 *TransArena4 = AllocateTransientMemory(&Arena, Megabytes(33));
-            */
             
             
             

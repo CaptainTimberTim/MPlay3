@@ -19,6 +19,7 @@ PrintLastWindowsError()
     Assert(false);
 }
 
+
 inline b32
 CreateBucketAllocator(bucket_allocator *BucketAllocator, u32 FixedSize, u32 HalfTransientSize)
 {

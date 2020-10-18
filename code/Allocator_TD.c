@@ -17,7 +17,7 @@ CreateNewArena(u64 Size, b32 IsPrivate = false)
 }
 
 inline void
-DeleteMemory(arena_allocator *Allocator, void *Memory)
+FreeMemory(arena_allocator *Allocator, void *Memory)
 {
     arena *Arena = Allocator->Base;
     
@@ -30,10 +30,10 @@ DeleteMemory(arena_allocator *Allocator, void *Memory)
             if(Arena->Count == 0) // If we completely emptied the arena, we can reset it!
             {
                 Arena->Position = 0;
-                Assert(Allocator->EmptyArenaCount <= MAX_EMPTY_ARENAS);
+                Assert(Allocator->EmptyArenaCount <= Allocator->MaxEmptyArenaCount);
                 // If we have more than the given limit or the arena size is small, delete it.
-                if(Allocator->EmptyArenaCount == MAX_EMPTY_ARENAS ||
-                   Arena->Size < ARENA_BASE_SIZE/2) 
+                u32 MaxEmpty = Allocator->MaxEmptyArenaCount ? Allocator->MaxEmptyArenaCount : 1;
+                if(Allocator->EmptyArenaCount == MaxEmpty || Arena->Size < ARENA_BASE_SIZE/2) 
                 {
                     if(Arena->Prev && Arena->Next) // Arena is in the middle.
                     {
@@ -70,6 +70,20 @@ AppendArena(arena **AppendTo, arena *Arena)
     else *AppendTo = Arena;
 }
 
+inline void *
+RetrieveMemoryFromArena(arena *Arena, u64 Size)
+{
+    Assert(Arena);
+    Assert(Arena->Memory != 0);
+    Assert(Arena->Position+Size <= Arena->Size);
+    
+    void *Result = Arena->Memory+Arena->Position;
+    Arena->Position += Size;
+    Arena->Count++;
+    
+    return Result;
+}
+
 internal void *
 AllocateMemory_(arena_allocator *Allocator, u64 Size)
 {
@@ -79,9 +93,7 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
     // allocation will fit in it.
     if(Allocator->LastUsed && (Allocator->LastUsed->Position+Size) < Allocator->LastUsed->Size)
     {
-        Result = Allocator->LastUsed->Memory+Allocator->LastUsed->Position;
-        Allocator->LastUsed->Position += Size;
-        Allocator->LastUsed->Count++;
+        Result = RetrieveMemoryFromArena(Allocator->LastUsed, Size);
     }
     else
     {
@@ -92,9 +104,7 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
         {
             if((Arena->Position+Size) < Arena->Size)
             {
-                Result = Arena->Memory+Arena->Position;
-                Arena->Position += Size;
-                Arena->Count++;
+                Result = RetrieveMemoryFromArena(Arena, Size);
                 break;
             }
             Arena = Arena->Next;
@@ -106,13 +116,9 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
             AppendArena(&Allocator->Base, Arena);
             Allocator->ArenaCount++;
             
-            Assert(Arena);
             Assert(Arena->Position == 0);
-            Assert(Arena->Memory != 0);
             
-            Result = Arena->Memory;
-            Arena->Position += Size;
-            Arena->Count++;
+            Result = RetrieveMemoryFromArena(Arena, Size);
         }
         Allocator->LastUsed = Arena;
     }
@@ -120,77 +126,50 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
 }
 
 internal void 
-ResetTransientAllocator(arena_allocator *Allocator)
+ResetMemoryArena(arena_allocator *Allocator)
 {
-    arena *Arena = Allocator->TransientBase;
+    arena *Arena = Allocator->Base;
     if(Arena)
     {
         while(Arena->Next) Arena = Arena->Next;
         while(Arena)
         {
-            Arena->Position = 0;
-            Arena->Count    = 0;
-            Arena->Next = 0;
             arena *Prev = Arena->Prev;
-            Arena->Prev = 0;
             
             if(Prev) VirtualFree(Arena->Memory, 0, MEM_RELEASE);
+            else
+            {
+                Arena->Position = 0;
+                Arena->Count    = 0;
+                Arena->Next     = 0;
+            }
             Arena = Prev;
         }
+        Allocator->ArenaCount      = 1;
+        Allocator->EmptyArenaCount = 1;
+        Allocator->LastUsed        = Allocator->Base;
     }
 }
 
 internal void *
-AllocateTransientMemory_(arena_allocator *Allocator, u64 Size)
-{
-    void *Result = 0;
-    
-    arena *Arena = Allocator->TransientBase;
-    
-    while(Arena)
-    {
-        if((Arena->Position+Size) < Arena->Size)
-        {
-            Result = Arena->Memory+Arena->Position;
-            Arena->Position += Size;
-            Arena->Count++;
-            break;
-        }
-        Arena = Arena->Next;
-    }
-    
-    if(!Result) // If we didn't find any open arenas, we make a new one.
-    {
-        Arena = CreateNewArena(Size);
-        
-        AppendArena(&Allocator->TransientBase, Arena);
-        
-        Assert(Arena);
-        Assert(Arena->Position == 0);
-        Assert(Arena->Memory != 0);
-        
-        Result = Arena->Memory;
-        Arena->Position += Size;
-        Arena->Count++;
-    }
-    return Result;
-}
-
-internal void *
-AllocatePrivateMemory_(arena_allocator *Allocator, u64 Size)
+AllocateMemory_Private(arena_allocator *Allocator, u64 Size)
 {
     void *Result = 0;
     
     arena *Arena = CreateNewArena(Size, true);
     AppendArena(&Allocator->Base, Arena);
     Allocator->ArenaCount++;
-    Assert(Arena);
-    Assert(Arena->Position == 0);
-    Assert(Arena->Memory != 0);
     
-    Result = Arena->Memory;
-    Arena->Position += Size;
-    Arena->Count++;
+    Assert(Arena->Position == 0);
+    Result = RetrieveMemoryFromArena(Arena, Size);
     
     return Result;
 }
+
+
+
+
+
+
+
+

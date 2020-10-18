@@ -1,8 +1,8 @@
 MPlay3Settings
 Version 4
 
-Volume: 0.256944
-LastPlayingSong: 7593
+Volume: 1.000000
+LastPlayingSong: 2587
 ColorPalette: 0
 GenreArtistEdgeXPercent: 0.211233
 ArtistAlbumEdgeXPercent: 0.404927
@@ -10,7 +10,7 @@ AlbumSongEdgeXPercent: 0.620092
 WindowDimensionX: 1531
 WindowDimensionY: 878
 Looping: 1
-Shuffle: 1
+Shuffle: 0
 Palette: Pink Dreams
 Text: 100 3 100
 ForegroundText: 20 3 20

@@ -47,6 +47,7 @@ struct job_thread_info
     u32 ThreadID;
     circular_job_queue *JobQueue;
     bucket_allocator *Bucket;
+    arena_allocator *Arena; 
 };
 
 

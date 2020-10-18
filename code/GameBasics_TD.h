@@ -88,6 +88,9 @@ struct game_state
 {
     string_c DataPath;
     bucket_allocator Bucket;
+    arena_allocator FixArena;
+    arena_allocator ScratchArena;
+    
     
     input_info Input;
     

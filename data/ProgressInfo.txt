@@ -73,3 +73,6 @@
 
 17.10.2020
 - Implemented an arena allocator to switch to. As the original bucket allocator is too simple for my current needs.
+
+18.10.2020
+- Changed arena allocator quite a bit. Now it is simpler again, with no additional transient memory.

@@ -63,6 +63,7 @@ inline b32 IsAddressFixed(bucket_allocator *Bucket, void *Address);
 
 internal bucket_allocator *CreateSubAllocator(bucket_allocator *Bucket, u32 FixedSize, u32 HalfTransientSize);
 
+
 // HashTable
 #define HASH_TABLE_KEY_LENGTH 30
 struct key_value_pair
@@ -87,11 +88,11 @@ struct hash_table
     b32 IsTransient;
 };
 
-inline hash_table HashTable(memory_bucket_container *BucketContainer, u32 Size);
+inline hash_table HashTable(arena_allocator *Arena, u32 Size);
 inline b32 AddToHashTable(hash_table *Table, u8 *Key, u32 Value);
 inline b32 GetFromHashTable(hash_table *Table, u8 *Key, u32 &Value);
 inline b32 UpdateValueInHashTable(hash_table *Table, u8 *Key, u32 NewValue);
-inline void DeleteHashTableTransient(bucket_allocator *BucketAllocator, hash_table *Table);
+inline void DeleteHashTableTransient(arena_allocator *Arena, hash_table *Table);
 inline u32 Hash(u32 Key);
 inline u32 UnHash(u32 HashedKey);
 inline u32 Hash_djb2(char *String);
@@ -120,9 +121,9 @@ struct heap
 #define RightChildIndex(N) (2*N+2)
 #define ParentIndex(N) ((N-1)/2)
 
-inline heap CreateTransientHeap(bucket_allocator *Bucket, u32 MinHeapSize);
-inline heap CreateFixedHeap(bucket_allocator *Bucket, u32 MinHeapSize);
-inline void InsertIntoHeap(memory_bucket_container *BucketContainer, heap *Heap, i32 Value, void* Data = 0);
+inline heap CreateTransientHeap(arena_allocator *Arena, u32 MinHeapSize);
+inline heap CreateFixedHeap(arena_allocator *Arena, u32 MinHeapSize);
+inline void InsertIntoHeap(arena_allocator *Arena, heap *Heap, i32 Value, void* Data = 0);
 inline heap_node ExtractHeapMinimum(heap *Heap);
 inline heap_node GetHeapMinimum(heap *Heap);
 inline b32 IsHeapEmpty(heap *Heap);
@@ -149,8 +150,8 @@ struct array_u32
     u32 *Slot;
 };
 
-inline array_u32 CreateArray(memory_bucket_container *Bucket, u32 Length);
-inline void DestroyArray(memory_bucket_container *Bucket, array_u32 Array);
+inline array_u32 CreateArray(arena_allocator *Arena, u32 Length);
+inline void DestroyArray(arena_allocator *Arena, array_u32 Array);
 inline void Put(array_u32 *Array, u32 Pos, u32 Item);
 inline u32  Get(array_u32 *Array, u32 Pos);
 inline u32  Take(array_u32 *Array, u32 Pos);

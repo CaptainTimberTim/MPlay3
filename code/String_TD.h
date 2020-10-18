@@ -18,8 +18,8 @@ struct string_compound
 typedef string_compound string_c;
 
 #define NewStaticStringCompound(String) {(u8 *)String, StringLength((u8 *)String), StringLength((u8 *)String)}
-inline string_c NewStringCompound(memory_bucket_container *BucketContainer, u32 Size);
-inline void DeleteStringCompound(memory_bucket_container *BucketContainer, string_compound *S);
+inline string_c NewStringCompound(memory_bucket_container *Arena, u32 Size);
+inline void DeleteStringCompound(memory_bucket_container *Arena, string_compound *S);
 #define ResetStringCompound(SC) {(SC).Pos = 0; (SC).S[0] = '\0';}
 
 #define NewEmptyLocalString(Name, Count)  \
@@ -38,7 +38,7 @@ inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter
 inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2); 
 
 inline void WipeStringCompound(string_compound *Comp);
-inline void CreateOrWipeStringComp(memory_bucket_container *Bucket, string_c *C);
+inline void CreateOrWipeStringComp(memory_bucket_container *Arena, string_c *C);
 
 inline void CombineStringCompounds(string_compound *Comp1, string_compound *Comp2);
 inline void CombineStringCompounds(string_compound *Buffer, string_compound *Comp1, string_compound *Comp2);
@@ -97,23 +97,23 @@ struct string_wide
 };
 typedef string_wide string_w;
 
-inline string_w NewStringW(memory_bucket_container *Bucket, u32 Size);
+inline string_w NewStringW(memory_bucket_container *Arena, u32 Size);
 inline void WipeStringW(string_w *S);
-inline void DeleteStringW(memory_bucket_container *BucketContainer, string_w *S);
-inline b32 ConvertString8To16(memory_bucket_container *Bucket, string_c *In, string_w *Out);
-inline b32 ConvertString8To16(memory_bucket_container *Bucket, u8 *In, string_w *Out);
-inline b32 ConvertString16To8(memory_bucket_container *Bucket, string_w *In, string_c *Out);
-inline b32 ConvertString16To8(memory_bucket_container *Bucket, wchar_t *In, string_c *Out);
+inline void DeleteStringW(memory_bucket_container *ArenaContainer, string_w *S);
+inline b32 ConvertString8To16(memory_bucket_container *Arena, string_c *In, string_w *Out);
+inline b32 ConvertString8To16(memory_bucket_container *Arena, u8 *In, string_w *Out);
+inline b32 ConvertString16To8(memory_bucket_container *Arena, string_w *In, string_c *Out);
+inline b32 ConvertString16To8(memory_bucket_container *Arena, wchar_t *In, string_c *Out);
 
 
 
 
 inline string_c
-NewStringCompound(memory_bucket_container *BucketContainer, u32 Size)
+NewStringCompound(memory_bucket_container *Arena, u32 Size)
 {
     Assert(Size >= 0);
     string_c Result;
-    Result.S = PushArrayOnBucket(BucketContainer, Size+1, u8);
+    Result.S = PushArrayOnBucket(Arena, Size+1, u8);
     Result.S[Size] = 0;
     Result.Pos = 0;
     Result.Length = Size;
@@ -212,12 +212,12 @@ WipeStringCompound(string_compound *Comp)
 }
 
 inline void 
-CreateOrWipeStringComp(memory_bucket_container *Bucket, string_c *C, i32 Size)
+CreateOrWipeStringComp(memory_bucket_container *Arena, string_c *C, i32 Size)
 {
     
     if(C->Length == 0) 
     {
-        *C = NewStringCompound(Bucket, Size);
+        *C = NewStringCompound(Arena, Size);
     }
     else if(C->Pos != 0)
     {
@@ -790,10 +790,10 @@ WipeStringW(string_w *S)
 }
 
 inline string_w
-NewStringW(memory_bucket_container *Bucket, u32 Size)
+NewStringW(memory_bucket_container *Arena, u32 Size)
 {
     string_w Result;
-    Result.S = PushArrayOnBucket(Bucket, Size+1, wchar_t);
+    Result.S = PushArrayOnBucket(Arena, Size+1, wchar_t);
     Result.S[Size] = 0;
     Result.Pos = 0;
     Result.Length = Size;
@@ -802,19 +802,19 @@ NewStringW(memory_bucket_container *Bucket, u32 Size)
 }
 
 inline void 
-DeleteStringW(memory_bucket_container *BucketContainer, string_w *S)
+DeleteStringW(memory_bucket_container *ArenaContainer, string_w *S)
 {
-    PopFromTransientBucket(BucketContainer, S->S);
+    PopFromTransientBucket(ArenaContainer, S->S);
 }
 
 inline b32
-ConvertString8To16(memory_bucket_container *Bucket, string_c *In, string_w *Out)
+ConvertString8To16(memory_bucket_container *Arena, string_c *In, string_w *Out)
 {
     b32 Result = false;
     i32 Size = MultiByteToWideChar(CP_UTF8, 0, (char *)In->S, -1, 0, 0);
     if(Size > 0)
     {
-        *Out = NewStringW(Bucket, Size);
+        *Out = NewStringW(Arena, Size);
         // TODO:: Write your own code for this? 
         MultiByteToWideChar(CP_UTF8, 0, (char *)In->S, -1, Out->S, Size);
         Out->Pos = Size;
@@ -824,13 +824,13 @@ ConvertString8To16(memory_bucket_container *Bucket, string_c *In, string_w *Out)
 }
 
 inline b32
-ConvertString8To16(memory_bucket_container *Bucket, u8 *In, string_w *Out)
+ConvertString8To16(memory_bucket_container *Arena, u8 *In, string_w *Out)
 {
     b32 Result = false;
     i32 Size = MultiByteToWideChar(CP_UTF8, 0, (char *)In, -1, 0, 0);
     if(Size > 0)
     {
-        *Out = NewStringW(Bucket, Size);
+        *Out = NewStringW(Arena, Size);
         // TODO:: Write your own code for this? 
         MultiByteToWideChar(CP_UTF8, 0, (char *)In, -1, Out->S, Size);
         Out->Pos = Size;
@@ -840,14 +840,14 @@ ConvertString8To16(memory_bucket_container *Bucket, u8 *In, string_w *Out)
 }
 
 inline b32
-ConvertString16To8(memory_bucket_container *Bucket, string_w *In, string_c *Out)
+ConvertString16To8(memory_bucket_container *Arena, string_w *In, string_c *Out)
 {
     b32 Result = false;
     
     i32 Size = WideCharToMultiByte(CP_UTF8, 0, In->S, -1, 0, 0, 0, 0);
     if(Size > 0)
     {
-        *Out = NewStringCompound(Bucket, Size);
+        *Out = NewStringCompound(Arena, Size);
         // TODO:: Write your own code for this? 
         WideCharToMultiByte(CP_UTF8, 0, In->S, -1, (char *)Out->S, Size, 0, 0);
         Out->Pos = Size-1;
@@ -858,14 +858,14 @@ ConvertString16To8(memory_bucket_container *Bucket, string_w *In, string_c *Out)
 }
 
 inline b32
-ConvertString16To8(memory_bucket_container *Bucket, wchar_t *In, string_c *Out)
+ConvertString16To8(memory_bucket_container *Arena, wchar_t *In, string_c *Out)
 {
     b32 Result = false;
     
     i32 Size = WideCharToMultiByte(CP_UTF8, 0, In, -1, 0, 0, 0, 0);
     if(Size > 0)
     {
-        *Out = NewStringCompound(Bucket, Size);
+        *Out = NewStringCompound(Arena, Size);
         // TODO:: Write your own code for this? 
         WideCharToMultiByte(CP_UTF8, 0, In, -1, (char *)Out->S, Size, 0, 0);
         Out->Pos = Size-1;

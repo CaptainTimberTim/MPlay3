@@ -33,6 +33,11 @@
 // - properly round for song panel time and slider
 // - create custom allocator for threads!
 
+// - arena:
+//      - think about thread stuff
+//      - make sound info stuff private memory
+//      - decode mp3s seems to leak?
+
 #include "Sound_UI_TD.h"
 
 global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
@@ -252,7 +257,7 @@ internal b32  AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
 internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal void PushErrorMessageFromThread(error_item Error);
-internal u32  ExtractMetadataSize(memory_bucket_container *TransientBucket, string_c *CompletePath);
+internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 
 
 

@@ -4,18 +4,16 @@ inline playlist_id GetSongAfterCurrent(play_list *Playlist, playlist_id Playlist
 inline playlist_id GetPreviousSong(play_list *Playlist, playlist_id PlaylistID);
 inline void SetPreviousSong(play_list *Playlist, playing_song *PlayingSong, play_loop Looping);
 inline file_id PlaylistIDToFileID(play_list *Playlist, playlist_id PlaylistID);
-internal void MillisecondsToMinutes(memory_bucket_container *Bucket, u32 Millis, string_c *Out);
 internal void MillisecondsToMinutes(u32 Millis, string_c *Out);
 internal void ChangeDisplayColumn_(music_display_column *DisplayColumn, renderer *Renderer, column_sorting_info *SortingColumn,
                                    i32 FileStartID, r32 StartY);
 internal void MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, 
                                 displayable_id DisplayableStartID = {0}, r32 StartY = 0);
 internal void SortDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo);
-internal b32 FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_container *TransientBucket,
-                                     string_compound *FolderPath, string_compound *SubPath, mp3_file_info *ResultingFileInfo);
-inline mp3_info *CreateMP3InfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount);
-inline mp3_file_info CreateFileInfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount);
-inline void DeleteFileInfoStruct(memory_bucket_container *Bucket, mp3_file_info *FileInfo);
+internal b32 FindAllMP3FilesInFolder(arena_allocator *TransientArena, string_compound *FolderPath, string_compound *SubPath, mp3_file_info *ResultingFileInfo);
+inline mp3_info *CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount);
+inline void CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount);
+inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
 inline void SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *SortingColumn, u32 ColumnDisplayID);
 internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
@@ -317,7 +315,7 @@ ProcessActiveSearch(renderer *Renderer, music_display_column *DisplayColumn, r32
 }
 
 internal search_bar
-CreateSearchBar(renderer *Renderer, memory_bucket_container *Bucket, music_display_info *DisplayInfo, music_display_column *DisplayColumn, entry_id *Parent, column_sorting_info *SortingInfo)
+CreateSearchBar(renderer *Renderer, arena_allocator *Arena, music_display_info *DisplayInfo, music_display_column *DisplayColumn, entry_id *Parent, column_sorting_info *SortingInfo)
 {
     search_bar Result = {};
     r32 BtnDepth        = -0.6f;
@@ -338,10 +336,10 @@ CreateSearchBar(renderer *Renderer, memory_bucket_container *Bucket, music_displ
     };
     Result.Button->OnPressed = {OnSearchPressed, &DisplayColumn->SearchInfo};
     
-    Result.InitialDisplayables.A = CreateArray(Bucket, SortingInfo->Displayable.A.Length);
+    Result.InitialDisplayables.A = CreateArray(Arena, SortingInfo->Displayable.A.Length);
     
     v2 TextFieldSize = V2(DisplayColumn->SlotWidth/2.0f, 50);
-    Result.TextField = CreateTextField(Renderer, Bucket, TextFieldSize, 
+    Result.TextField = CreateTextField(Renderer, Arena, TextFieldSize, 
                                        DisplayColumn->ZValue-0.029f, (u8 *)"Search...", DisplayColumn->SliderHorizontal.Background, 
                                        &DisplayInfo->ColorPalette.Text, &DisplayInfo->ColorPalette.ButtonActive);
     Translate(&Result.TextField, V2(0, 25+GetExtends(DisplayColumn->SliderHorizontal.Background).y));
@@ -350,7 +348,7 @@ CreateSearchBar(renderer *Renderer, memory_bucket_container *Bucket, music_displ
 }
 
 internal void
-CreateDisplayColumn(memory_bucket_container *Bucket, renderer *Renderer, music_display_info *DisplayInfo,
+CreateDisplayColumn(arena_allocator *Arena, renderer *Renderer, music_display_info *DisplayInfo,
                     music_display_column *DisplayColumn, column_sorting_info *SortingInfo, column_type Type,
                     r32 SlotHeight, r32 ZValue, 
                     entry_id *LeftBorder, entry_id *RightBorder, r32 TextLeftBorderOffset)
@@ -434,7 +432,7 @@ CreateDisplayColumn(memory_bucket_container *Bucket, renderer *Renderer, music_d
     DisplayColumn->BetweenSliderRect = CreateRenderRect(Renderer, BetweenRect, -0.5f, RightBorder, 
                                                         &Palette->Foreground);
     
-    DisplayColumn->Search = CreateSearchBar(Renderer, Bucket, DisplayInfo, DisplayColumn, DisplayColumn->BetweenSliderRect, 
+    DisplayColumn->Search = CreateSearchBar(Renderer, Arena, DisplayInfo, DisplayColumn, DisplayColumn->BetweenSliderRect, 
                                             SortingInfo);
     
     
@@ -712,7 +710,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
     mp3_decode_info *DecodeInfo = &GlobalGameState.MP3Info->DecodeInfo;
     
-    array_u32 IgnoreDecodeIDs = CreateArray(&GlobalGameState.Bucket.Transient, 2);
+    array_u32 IgnoreDecodeIDs = CreateArray(&GlobalGameState.ScratchArena, 2);
     
     // This finds the next and prev DecodeIDs in order to not evict them on the upcoming load
     if(MusicInfo->PlayingSong.PlaylistID.ID > -1)
@@ -743,7 +741,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
     }
     
     AddJobs_LoadOnScreenMP3s(&GlobalGameState, &GlobalGameState.JobQueue, &IgnoreDecodeIDs);
-    DestroyArray(&GlobalGameState.Bucket.Transient, IgnoreDecodeIDs);
+    DestroyArray(&GlobalGameState.ScratchArena, IgnoreDecodeIDs);
 }
 
 internal void
@@ -990,7 +988,7 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
                      &MD->TrackString, &DisplayColumn->Base->ColorPalette.Text, DisplaySong->SongTrack+ID, -0.12f, 
                      DisplayColumn->BGRects[ID], TrackP);
     
-    string_c YearAddon = NewStringCompound(&GlobalGameState.Bucket.Transient, 10);
+    string_c YearAddon = NewStringCompound(&GlobalGameState.ScratchArena, 10);
     string_c Addon = NewStaticStringCompound(" |");
     if(MD->YearString.Pos < 4) 
     {
@@ -1004,7 +1002,7 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
     CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, &YearAddon, &DisplayColumn->Base->ColorPalette.Text,
                      DisplaySong->SongYear+ID, -0.12f, DisplayColumn->BGRects[ID], YearP);
     
-    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &YearAddon);
+    DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
 }
 
 internal void
@@ -1077,7 +1075,7 @@ ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32
     
     if(CursorDiff != 0)
     {
-        i32 MaximumID = Max(0, SortingColumn->Displayable.A.Count - DisplayColumn->Count + 1);
+        i32 MaximumID = Max(0u, SortingColumn->Displayable.A.Count - DisplayColumn->Count + 1);
         MoveDisplayColumn(Renderer, DisplayColumn, NewDisplayableID(Min(NewCursorID, MaximumID)), NewY);
     }
     else
@@ -1102,7 +1100,7 @@ internal void
 BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, file_id FileID)
 {
     displayable_id DisplayID = FileIDToColumnDisplayID(DisplayColumn, FileID);
-    i32 MaximumID = Max(0, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
+    i32 MaximumID = Max(0u, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     
     MoveDisplayColumn(&GlobalGameState.Renderer, DisplayColumn, DisplayID, 0);
@@ -1112,7 +1110,7 @@ internal void
 BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, batch_id BatchID)
 {
     displayable_id DisplayID = SortingIDToColumnDisplayID(DisplayColumn, BatchID);
-    i32 MaximumID = Max(0, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
+    i32 MaximumID = Max(0u, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     
     MoveDisplayColumn(&GlobalGameState.Renderer, DisplayColumn, DisplayID, 0);
@@ -1525,7 +1523,7 @@ AddCustomColorPalette(color_palette *ColorPalette, string_c *Name)
     }
     else
     {
-        Settings->PaletteNames[Settings->PaletteCount] = NewStringCompound(&GlobalGameState.Bucket.Fixed, 100);
+        Settings->PaletteNames[Settings->PaletteCount] = NewStringCompound(&GlobalGameState.FixArena, 100);
         if(Name->Pos >= 100) Name->Pos = 100;
         AppendStringCompoundToCompound(Settings->PaletteNames+Settings->PaletteCount, Name);
         For(PALETTE_COLOR_AMOUNT)
@@ -1574,7 +1572,7 @@ OnMusicPathPressed(void *Data)
         UpdateTextField(&MusicBtnInfo->GameState->Renderer, &MusicPath->TextField);
         
         renderer *Renderer = &MusicBtnInfo->GameState->Renderer;
-        string_c PathText = NewStringCompound(&MusicBtnInfo->GameState->Bucket.Transient, 255+12);
+        string_c PathText = NewStringCompound(&MusicBtnInfo->GameState->ScratchArena, 255+12);
         AppendStringToCompound(&PathText, (u8 *)"Old Path:     ");
         if(MusicBtnInfo->GameState->MP3Info->FolderPath.Pos == 0)
             AppendStringToCompound(&PathText, (u8 *)" - ");
@@ -1582,7 +1580,7 @@ OnMusicPathPressed(void *Data)
         RemoveRenderText(&MusicPath->CurrentPath);
         CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, 
                          V2(0, 62));
-        DeleteStringCompound(&MusicBtnInfo->GameState->Bucket.Transient, &PathText);
+        DeleteStringCompound(&MusicBtnInfo->GameState->ScratchArena, &PathText);
     }
     else 
     {
@@ -1830,7 +1828,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     Translate(Parent, V2(WWidth/2.0f, WHeight - 200));
     TranslateWithScreen(&Renderer->TransformList, Parent, fixedTo_FixYToGiven_XLeft, 0.86f);
     
-    MusicPath->TextField = CreateTextField(Renderer, &GameState->Bucket.Fixed, V2(WWidth-WWidth*0.1f, 50), BtnDepth-0.001f,
+    MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, V2(WWidth-WWidth*0.1f, 50), BtnDepth-0.001f,
                                            (u8 *)"New Path...", 0, &DisplayInfo->ColorPalette.Text, 
                                            &DisplayInfo->ColorPalette.ButtonActive);
     Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - 200));
@@ -1856,7 +1854,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     Translate(MusicPath->Quit, V2(MediumRectS*3+10, -MediumRectS -25 -19));
     MusicPath->Quit->OnPressed = {OnMusicPathQuitPressed, &DisplayInfo->MusicBtnInfo};
     SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
-    MusicPath->OutputString = NewStringCompound(&GameState->Bucket.Fixed, 500);
+    MusicPath->OutputString = NewStringCompound(&GameState->FixArena, 500);
     
     v2 LoadingBarSize = V2(WWidth-WWidth*0.1f, 40);
     MusicPath->LoadingBar = CreateLoadingBar(LoadingBarSize, BtnDepth-0.0011f, 
@@ -1885,7 +1883,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     playing_song_panel *Panel = &DisplayInfo->PlayingSongPanel;
     Panel->MP3Info = MP3Info;
-    Panel->CurrentTimeString = NewStringCompound(&GameState->Bucket.Fixed, 10);
+    Panel->CurrentTimeString = NewStringCompound(&GameState->FixArena, 10);
     
     r32 TimelineX = PlayPauseX+204+10;
     Panel->Timeline.Background = CreateRenderRect(Renderer, {{TimelineX, 15+30}, {TimelineX+400, 15+30+10}}, BtnDepth,

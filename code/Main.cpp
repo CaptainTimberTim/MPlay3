@@ -509,12 +509,8 @@ WinMain(HINSTANCE Instance,
         
         // Initializing Allocator
         GameState->FixArena.MaxEmptyArenaCount = 2;
-        GameState->Bucket = {};
-        if(!CreateBucketAllocator(&GameState->Bucket, Gigabytes(2), Megabytes(500))) return -1;
-        if(!CreateBucketAllocator(&GameState->SoundThreadBucket, Megabytes(1), Megabytes(250))) return -1;
-        u8 BucketStatus[100];
-        BucketAllocatorFillStatus(&GameState->Bucket, BucketStatus);
-        printf("%s", BucketStatus);
+        GameState->ScratchArena = {arenaFlags_IsTransient, Megabytes(16)};
+        GameState->JobThreadsArena.Flags = arenaFlags_IsThreaded;
         
         // NOTE:: Loading Settings file
         GameState->Settings = TryLoadSettingsFile(GameState);
@@ -543,7 +539,7 @@ WinMain(HINSTANCE Instance,
             circular_job_queue *JobQueue = &GameState->JobQueue;
             *JobQueue = {};
             job_thread_info JobInfos[THREAD_COUNT];
-            InitializeJobThreads(&GameState->Bucket, JobHandles, JobQueue, JobInfos);
+            InitializeJobThreads(JobHandles, JobQueue, JobInfos);
             
             sound_thread_data SoundThreadData = {};
             sound_thread SoundThreadInfo = {};
@@ -552,8 +548,8 @@ WinMain(HINSTANCE Instance,
             SoundThreadInfo.Interface.ToneVolume = SoundThreadInfo.SoundInfo.ToneVolume = 0.5f;
             
             NewSoundInstance(&SoundThreadInfo.SoundInfo.SoundInstance, Window, 48000, 2, GameState->Time.GameHz);
-            SoundThreadInfo.SoundSamples = PushArrayOnBucket(&GameState->Bucket.Fixed, 
-                                                             SoundThreadInfo.SoundInfo.SoundInstance.BufferSize, i16);
+            SoundThreadInfo.SoundSamples = AllocateArray(&GameState->FixArena, 
+                                                         SoundThreadInfo.SoundInfo.SoundInstance.BufferSize, i16);
             GameState->ThreadErrorList.Mutex = CreateMutexExA(0, 0, 0, MUTEX_ALL_ACCESS);
             
             InitializeSoundThread(&SoundThreadData, ProcessSound, &SoundThreadInfo);
@@ -580,23 +576,23 @@ WinMain(HINSTANCE Instance,
             u32 FileInfoCount = 0;
             if(ConfirmLibraryWithCorrectVersionExists(GameState, CURRENT_LIBRARY_VERSION, &FileInfoCount))
             {
-                MP3Info = CreateMP3InfoStruct(&GameState->Bucket.Fixed, FileInfoCount);
+                MP3Info = CreateMP3InfoStruct(&GameState->FixArena, FileInfoCount);
                 LoadMP3LibraryFile(GameState, MP3Info);
                 LoadedLibraryFile = true;
             }
             else
             {
-                MP3Info = CreateMP3InfoStruct(&GameState->Bucket.Fixed, 0);
-                CreateOrWipeStringComp(&GameState->Bucket.Fixed, &MP3Info->FolderPath, 255);
+                MP3Info = CreateMP3InfoStruct(&GameState->FixArena, 0);
+                CreateOrWipeStringComp(&GameState->FixArena, &MP3Info->FolderPath, 255);
             }
             GameState->MP3Info = MP3Info;
             MP3Info->MusicInfo = &GameState->MusicInfo;
             
-            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->Bucket.Fixed, MP3Info->FileInfo.Count+200);
-            MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->Bucket.Fixed, 200);
+            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, MP3Info->FileInfo.Count+200);
+            MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->FixArena, 200);
             
             music_sorting_info *SortingInfo = &MusicInfo->SortingInfo;
-            CreateMusicSortingInfo(&GameState->Bucket, MP3Info);
+            CreateMusicSortingInfo();
             FillDisplayables(SortingInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(SortingInfo, &MP3Info->FileInfo);
             UseDisplayableAsPlaylist(MusicInfo);
@@ -620,25 +616,25 @@ WinMain(HINSTANCE Instance,
             
             r32 SlotHeight = 30;
             r32 DisplayColumnStartY = DisplayInfo->EdgeTop->ID->Vertice[0].y;
-            CreateDisplayColumn(&GameState->Bucket.Fixed, Renderer, DisplayInfo, &DisplayInfo->Genre, &SortingInfo->Genre,
+            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Genre, &SortingInfo->Genre,
                                 columnType_Genre, SlotHeight, -0.025f, DisplayInfo->EdgeLeft,
                                 DisplayInfo->GenreArtist.Edge, 28);
             MoveDisplayColumn(Renderer, &DisplayInfo->Genre);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Genre, &DisplayInfo->Genre);
             
-            CreateDisplayColumn(&GameState->Bucket.Fixed, Renderer, DisplayInfo, &DisplayInfo->Artist, &SortingInfo->Artist,
+            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Artist, &SortingInfo->Artist,
                                 columnType_Artist, SlotHeight, -0.05f, DisplayInfo->GenreArtist.Edge,
                                 DisplayInfo->ArtistAlbum.Edge, 20);
             MoveDisplayColumn(Renderer, &DisplayInfo->Artist);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Artist, &DisplayInfo->Artist);
             
-            CreateDisplayColumn(&GameState->Bucket.Fixed, Renderer, DisplayInfo, &DisplayInfo->Album, &SortingInfo->Album,
+            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Album, &SortingInfo->Album,
                                 columnType_Album, SlotHeight, -0.075f, DisplayInfo->ArtistAlbum.Edge,
                                 DisplayInfo->AlbumSong.Edge, 20);
             MoveDisplayColumn(Renderer, &DisplayInfo->Album);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
             
-            CreateDisplayColumn(&GameState->Bucket.Fixed, Renderer, DisplayInfo, Parent(&DisplayInfo->Song),
+            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, Parent(&DisplayInfo->Song),
                                 &SortingInfo->Song, columnType_Song, 100.0f, -0.1f, DisplayInfo->AlbumSong.Edge,
                                 DisplayInfo->EdgeRight, 35);
             MoveDisplayColumn(Renderer, &DisplayInfo->Song.Base);
@@ -706,6 +702,10 @@ WinMain(HINSTANCE Instance,
             
             
             check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
+            CreateFileInfoStruct(&CheckMusicPath->TestInfo, MAX_MP3_INFO_COUNT);
+            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->FixArena, MAX_MP3_INFO_COUNT);
+            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->FixArena, MAX_MP3_INFO_COUNT);
+            
             AddJob_CheckMusicPathChanged(CheckMusicPath);
             ApplySettings(GameState, GameState->Settings);
             
@@ -742,7 +742,7 @@ WinMain(HINSTANCE Instance,
             
             
             crawl_thread_out CrawlInfoOut = {false, false, false, 0};
-            GameState->CrawlInfo = {MP3Info, NewStringCompound(&GameState->Bucket.Fixed, 255), &CrawlInfoOut};
+            GameState->CrawlInfo = {MP3Info, NewStringCompound(&GameState->FixArena, 255), &CrawlInfoOut};
             
             // ********************************************
             // FPS ****************************************
@@ -765,6 +765,8 @@ WinMain(HINSTANCE Instance,
             IsRunning = true;
             while(IsRunning)
             {
+                ResetMemoryArena(&GameState->ScratchArena);
+                
                 LONGLONG CurrentCycleCount = GetWallClock();
                 GameState->Time.dTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, 
                                                           PrevCycleCount, CurrentCycleCount);
@@ -783,12 +785,12 @@ WinMain(HINSTANCE Instance,
                         dUpdateRate = 0.0f;
                         char FPSString[10];
                         sprintf_s(FPSString, "%.2f", CurrentFPS);
-                        string_c FPSComp = NewStringCompound(&GameState->Bucket.Transient, 10);
+                        string_c FPSComp = NewStringCompound(&GameState->ScratchArena, 10);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(&FPSText);
                         CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, 
                                          &FPSComp, &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
-                        DeleteStringCompound(&GameState->Bucket.Transient, &FPSComp);
+                        DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }
                     else dUpdateRate += GameState->Time.dTime/0.1f;
                     FPSCount = (FPSCount+1)%100;
@@ -1110,8 +1112,18 @@ WinMain(HINSTANCE Instance,
                 *ReRender = true;
                 if(!Renderer->Minimized) DisplayBufferInWindow(DeviceContext, Renderer);
                 
-                FlipWallClock = GetWallClock();
                 
+                // Allocation debug stuff
+#if DEBUG_TD
+                CollectArenaDebugFrameData(&GameState->FixArena.DebugData);
+                CollectArenaDebugFrameData(&GameState->ScratchArena.DebugData);
+                CollectArenaDebugFrameData(&GameState->JobThreadsArena.DebugData);
+                CollectArenaDebugFrameData(&GameState->SoundThreadArena.DebugData);
+#endif
+                
+                
+                
+                FlipWallClock = GetWallClock();
             }
             
             SaveSettingsFile(GameState, &GameState->Settings);

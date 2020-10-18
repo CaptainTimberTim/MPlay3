@@ -18,11 +18,11 @@ InitializeRenderer(game_state *GameState, HWND WindowHandle)
     Result.BackgroundColor = {0.5f, 0.5f, 0.5f, 1.0f};//{3.0f/255, 17.0f/255, 3.0f/255, 1};
     Result.DefaultEntryColor = {1, 1, 1};
     
-    Result.TransformList  = CreateScreenTransformList(&GameState->Bucket.Fixed);
+    Result.TransformList  = CreateScreenTransformList(&GameState->FixArena);
     
-    Result.RenderEntryList.Entries = PushArrayOnBucket(&GameState->Bucket.Fixed, START_RENDER_ENTRIES, render_entry);
-    Result.RenderEntryList.IDs     = PushArrayOnBucket(&GameState->Bucket.Fixed, START_RENDER_ENTRIES, entry_id);
-    Result.RenderEntryList.OpenSlots = PushArrayOnBucket(&GameState->Bucket.Fixed, START_RENDER_ENTRIES, b32);
+    Result.RenderEntryList.Entries = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, render_entry);
+    Result.RenderEntryList.IDs     = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, entry_id);
+    Result.RenderEntryList.OpenSlots = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, b32);
     Result.RenderEntryList.MaxCount = START_RENDER_ENTRIES;
     
     return Result;
@@ -84,27 +84,27 @@ MonoBitmapToRGBA(u8 *MonoBitmap, loaded_bitmap *Bitmap)
 internal render_text_atlas *
 InitSTBBakeFont(game_state *GameState, r32 FontHeightInPixel)
 {
-    render_text_atlas *Result = PushStructOnBucket(&GameState->Bucket.Fixed, render_text_atlas);
+    render_text_atlas *Result = AllocateStruct(&GameState->FixArena, render_text_atlas);
     
     read_file_result FontData = {};
-    if(ReadEntireFile(&GameState->Bucket.Transient, &FontData, (u8 *)"..\\data\\Fonts\\carmini.ttf"))
+    if(ReadEntireFile(&GameState->ScratchArena, &FontData, (u8 *)"..\\data\\Fonts\\carmini.ttf"))
     {
         u32 BitmapSize = 1200;
         loaded_bitmap Bitmap = {0, BitmapSize, BitmapSize, 0, colorFormat_RGBA, BitmapSize*4};
-        Bitmap.Pixels          = PushArrayOnBucket(&GameState->Bucket.Fixed, Bitmap.Width*Bitmap.Height, u32);
-        u8 *AlphaMap           = PushArrayOnBucket(&GameState->Bucket.Transient, Bitmap.Width*Bitmap.Height, u8);
+        Bitmap.Pixels          = AllocateArray(&GameState->FixArena, Bitmap.Width*Bitmap.Height, u32);
+        u8 *AlphaMap           = AllocateArray(&GameState->ScratchArena, Bitmap.Width*Bitmap.Height, u8);
         
         int BakeRet = stbtt_BakeFontBitmap(FontData.Data, 0, FontHeightInPixel, 
                                            AlphaMap, Bitmap.Width, Bitmap.Height, 
                                            32, ATLAS_LETTER_COUNT, Result->CharData);
         
         MonoBitmapToRGBA(AlphaMap, &Bitmap);
-        PopFromTransientBucket(&GameState->Bucket.Transient, AlphaMap);
+        FreeMemory(&GameState->ScratchArena, AlphaMap);
         
         Result->Bitmap = Bitmap;
         Result->GLID  = CreateGLTexture(Bitmap);
         
-        FreeFileMemory(&GameState->Bucket.Transient, FontData.Data);
+        FreeFileMemory(&GameState->ScratchArena, FontData.Data);
     }
     return Result;
 }
@@ -801,15 +801,15 @@ DistanceToRectEdge(entry_id *Entry, v2 Point)
 // Auto Screen transform *************************************************
 
 inline screen_transform_list
-CreateScreenTransformList(memory_bucket_container *Bucket, u32 Size)
+CreateScreenTransformList(arena_allocator *Arena, u32 Size)
 {
     screen_transform_list Result = {};
-    Result.Entries       = PushArrayOnBucket(Bucket, Size, entry_id *);
-    Result.FixToPosition = PushArrayOnBucket(Bucket, Size, v2);
-    Result.OriginalPosition = PushArrayOnBucket(Bucket, Size, v2);
-    Result.DoTranslation = PushArrayOnBucket(Bucket, Size, fixed_to);
-    Result.DoScale       = PushArrayOnBucket(Bucket, Size, scale_axis);
-    Result.OpenSlots     = PushArrayOnBucket(Bucket, Size, b32);
+    Result.Entries       = AllocateArray(Arena, Size, entry_id *);
+    Result.FixToPosition = AllocateArray(Arena, Size, v2);
+    Result.OriginalPosition = AllocateArray(Arena, Size, v2);
+    Result.DoTranslation = AllocateArray(Arena, Size, fixed_to);
+    Result.DoScale       = AllocateArray(Arena, Size, scale_axis);
+    Result.OpenSlots     = AllocateArray(Arena, Size, b32);
     Result.MaxCount      = Size;
     
     return Result;
@@ -1024,8 +1024,8 @@ CreateRenderText(renderer *Renderer, render_text_atlas *Atlas, string_c *Text,
     if(ResultText->MaxCount == 0)
     {
         ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
-        ResultText->RenderEntries    = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, ResultText->MaxCount, render_entry);
-        ResultText->StartPointOffset = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, ResultText->MaxCount, v2);
+        ResultText->RenderEntries    = AllocateArray(&GlobalGameState.FixArena, ResultText->MaxCount, render_entry);
+        ResultText->StartPointOffset = AllocateArray(&GlobalGameState.FixArena, ResultText->MaxCount, v2);
     }
     // TODO:: Maybe when this happens increase the size? With current allocater system
     // this would not work very well. But once it changed... maybe.

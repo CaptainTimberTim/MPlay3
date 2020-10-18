@@ -8,37 +8,69 @@ AdvanceToNewline(u8 **String)
     (*String)++;
 }
 
-inline mp3_file_info
-CreateFileInfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount)
+inline void
+ClearFileInfoStruct(mp3_file_info *FileInfo)
 {
-    mp3_file_info Result = {};
-    Result.FileName = PushArrayOnBucket(Bucket, FileInfoCount, string_c);
-    Result.SubPath  = PushArrayOnBucket(Bucket, FileInfoCount, string_c);
-    Result.Metadata = PushArrayOnBucket(Bucket, FileInfoCount, mp3_metadata);
-    Result.MaxCount = FileInfoCount;
+    For(FileInfo->MaxCount) ResetStringCompound(FileInfo->Metadata[It].DurationString);
+    ClearArray(FileInfo->FileName, FileInfo->MaxCount, string_c);
+    ClearArray(FileInfo->SubPath, FileInfo->MaxCount, string_c);
+    ClearArray(FileInfo->Metadata, FileInfo->MaxCount, mp3_metadata);
+    FileInfo->Count = 0;
+}
+
+inline void
+CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount)
+{
+    Assert(FileInfo->Count == 0);
+    u32 MemorySize = FileInfoCount*sizeof(string_c)*2 + FileInfoCount*sizeof(mp3_metadata) + FileInfoCount*14;
+    u8 *Memory = AllocateMemory(&GlobalGameState.JobThreadsArena, MemorySize, Private);
     
-    return Result;
+    FileInfo->FileName = (string_c *)Memory;
+    Memory += FileInfoCount*sizeof(string_c);
+    FileInfo->SubPath  = (string_c *)Memory;
+    Memory += FileInfoCount*sizeof(string_c);
+    FileInfo->Metadata = (mp3_metadata *)Memory;
+    Memory += FileInfoCount*sizeof(mp3_metadata);
+    
+    For(FileInfoCount)
+    {
+        Assert(FileInfo->Metadata[It].DurationString.Pos == 0);
+        FileInfo->Metadata[It].DurationString.S = Memory;
+        FileInfo->Metadata[It].DurationString.Length = 13;
+        Memory += 14;
+    }
+    FileInfo->MaxCount = FileInfoCount;
+    FileInfo->Count    = 0;
 }
 
 inline void
-DeleteFileInfoStruct(memory_bucket_container *Bucket, mp3_file_info *FileInfo)
+DeleteFileInfoStruct(mp3_file_info *FileInfo)
 {
-    PopFromTransientBucket(Bucket, FileInfo->FileName);
-    PopFromTransientBucket(Bucket, FileInfo->SubPath);
-    PopFromTransientBucket(Bucket, FileInfo->Metadata);
+    For(FileInfo->Count)
+    {
+        DeleteStringCompound(&GlobalGameState.JobThreadsArena, FileInfo->SubPath+It);
+        DeleteStringCompound(&GlobalGameState.JobThreadsArena, FileInfo->FileName+It);
+    }
+    // As I allocate all fileInfo memory as one big block, I just need to dealloc once!
+    FreeMemory(&GlobalGameState.JobThreadsArena, FileInfo->FileName);
+    FileInfo->Count = 0;
+    FileInfo->MaxCount = 0;
+    FileInfo->FileName = 0;
+    FileInfo->SubPath  = 0;
+    FileInfo->Metadata = 0;
 }
 
 inline void
-ResizeFileInfo(memory_bucket_container *Bucket, mp3_file_info *FileInfo, u32 NewMaxCount)
+ResizeFileInfo(arena_allocator *Arena, mp3_file_info *FileInfo, u32 NewMaxCount)
 {
     Assert(NewMaxCount >= 0);
     string_c *OldFileNames    = FileInfo->FileName;
     string_c *OldSubPaths     = FileInfo->SubPath;
     mp3_metadata *OldMetadata = FileInfo->Metadata;
     
-    FileInfo->FileName = PushArrayOnBucket(Bucket, NewMaxCount, string_c);
-    FileInfo->SubPath  = PushArrayOnBucket(Bucket, NewMaxCount, string_c);
-    FileInfo->Metadata = PushArrayOnBucket(Bucket, NewMaxCount, mp3_metadata);
+    FileInfo->FileName = AllocateArray(Arena, NewMaxCount, string_c);
+    FileInfo->SubPath  = AllocateArray(Arena, NewMaxCount, string_c);
+    FileInfo->Metadata = AllocateArray(Arena, NewMaxCount, mp3_metadata);
     
     for(u32 It = 0; 
         It < NewMaxCount && 
@@ -55,20 +87,20 @@ ResizeFileInfo(memory_bucket_container *Bucket, mp3_file_info *FileInfo, u32 New
 }
 
 inline mp3_info *
-CreateMP3InfoStruct(memory_bucket_container *Bucket, u32 FileInfoCount)
+CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount)
 {
-    mp3_info *Result = PushStructOnBucket(Bucket, mp3_info);
-    Result->FileInfo = CreateFileInfoStruct(Bucket, FileInfoCount);
-    Result->DecodeInfo.FileID.A      = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
-    Result->DecodeInfo.LastTouched   = CreateArray(Bucket, MAX_MP3_DECODE_COUNT);
+    mp3_info *Result = AllocateStruct(Arena, mp3_info);
+    CreateFileInfoStruct(&Result->FileInfo, FileInfoCount);
+    Result->DecodeInfo.FileID.A      = CreateArray(Arena, MAX_MP3_DECODE_COUNT);
+    Result->DecodeInfo.LastTouched   = CreateArray(Arena, MAX_MP3_DECODE_COUNT);
     
 #ifdef DECODE_STREAMING_TMP
     For(MAX_MP3_DECODE_COUNT)
     {
-        Result->DecodeInfo.DecodedData[It].buffer = PushArrayOnBucket(Bucket, 48000*2*DECODE_PRELOAD_SECONDS, i16);
+        Result->DecodeInfo.DecodedData[It].buffer = AllocateArray(Arena, 48000*2*DECODE_PRELOAD_SECONDS, i16);
     }
     
-    Result->DecodeInfo.PlayingDecoded.buffer = PushArrayOnBucket(Bucket, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
+    Result->DecodeInfo.PlayingDecoded.buffer = AllocateArray(Arena, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
 #endif
     return Result;
 }
@@ -419,17 +451,16 @@ UseDisplayableAsPlaylist(music_info *MusicInfo)
 }
 
 internal b32
-FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_container *TransientBucket,
-                        string_compound *FolderPath, string_compound *SubPath,
+FindAllMP3FilesInFolder(arena_allocator *TransientArena, string_compound *FolderPath, string_compound *SubPath,
                         mp3_file_info *ResultingFileInfo)
 {
     b32 Result = false;
-    string_compound FolderPathStar = NewStringCompound(TransientBucket, 255);
+    string_compound FolderPathStar = NewStringCompound(TransientArena, 255);
     ConcatStringCompounds(3, &FolderPathStar, FolderPath, SubPath);
     AppendCharToCompound(&FolderPathStar, '*');
     
     string_w WideFolderPath = {};
-    ConvertString8To16(TransientBucket, &FolderPathStar, &WideFolderPath);
+    ConvertString8To16(TransientArena, &FolderPathStar, &WideFolderPath);
     
     WIN32_FIND_DATAW FileData = {};
     HANDLE FileHandle = FindFirstFileExW(WideFolderPath.S, 
@@ -441,12 +472,12 @@ FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_cont
     if(FileHandle != INVALID_HANDLE_VALUE)
     {
         b32 HasNextFile = true;
-        string_compound FileType = NewStringCompound(TransientBucket, 16);
+        string_compound FileType = NewStringCompound(TransientArena, 16);
         
         while(HasNextFile && ResultingFileInfo->Count < ResultingFileInfo->MaxCount)
         {
             string_c FileName = {};
-            ConvertString16To8(TransientBucket, FileData.cFileName, &FileName);
+            ConvertString16To8(TransientArena, FileData.cFileName, &FileName);
             
             if     (CompareStringAndCompound(&FileName, (u8 *)".") ) {}
             else if(CompareStringAndCompound(&FileName, (u8 *)"..")) {}
@@ -455,12 +486,12 @@ FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_cont
                 if(FileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 {
                     i32 PathLength = FileName.Pos+SubPath->Pos+1;
-                    string_compound NewSubFolderPath = NewStringCompound(TransientBucket, PathLength);
+                    string_compound NewSubFolderPath = NewStringCompound(TransientArena, PathLength);
                     ConcatStringCompounds(3, &NewSubFolderPath, SubPath, &FileName);
                     AppendCharToCompound(&NewSubFolderPath, '\\');
                     
-                    FindAllMP3FilesInFolder(FixedBucket, TransientBucket, FolderPath, &NewSubFolderPath, ResultingFileInfo);
-                    DeleteStringCompound(TransientBucket, &NewSubFolderPath);
+                    FindAllMP3FilesInFolder(TransientArena, FolderPath, &NewSubFolderPath, ResultingFileInfo);
+                    DeleteStringCompound(TransientArena, &NewSubFolderPath);
                 }
                 else
                 {
@@ -472,14 +503,15 @@ FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_cont
                         if(CompareStringAndCompound(&FileType, MP3Extension))
                         {
                             ResultingFileInfo->SubPath[ResultingFileInfo->Count] = 
-                                NewStringCompound(FixedBucket, SubPath->Pos);
+                                NewStringCompound(&GlobalGameState.JobThreadsArena, SubPath->Pos);
                             AppendStringCompoundToCompound(ResultingFileInfo->SubPath+ResultingFileInfo->Count, SubPath);
                             
                             ResultingFileInfo->FileName[ResultingFileInfo->Count] =
-                                NewStringCompound(FixedBucket, FileName.Pos);
+                                NewStringCompound(&GlobalGameState.JobThreadsArena, FileName.Pos);
                             AppendStringCompoundToCompound(ResultingFileInfo->FileName+ResultingFileInfo->Count, &FileName);
                             
                             ResultingFileInfo->Count++;
+                            Assert(ResultingFileInfo->Count <= MAX_MP3_INFO_COUNT);
                             Result = true;
                         }
                         ResetStringCompound(FileType);
@@ -487,15 +519,15 @@ FindAllMP3FilesInFolder(memory_bucket_container *FixedBucket, memory_bucket_cont
                 }
             }
             HasNextFile = FindNextFileW(FileHandle, &FileData);
-            DeleteStringCompound(TransientBucket, &FileName);
+            DeleteStringCompound(TransientArena, &FileName);
         } 
-        DeleteStringCompound(TransientBucket, &FileType);
+        DeleteStringCompound(TransientArena, &FileType);
     }
     
     //DebugLog(555, "Found %i songs in folder %s.\n", ResultingFileInfo->Count, FolderPathStar.S);
     
-    DeleteStringW(TransientBucket, &WideFolderPath);
-    DeleteStringCompound(TransientBucket, &FolderPathStar);
+    DeleteStringW(TransientArena, &WideFolderPath);
+    DeleteStringCompound(TransientArena, &FolderPathStar);
     return Result;
 }
 
@@ -513,7 +545,7 @@ FoundAllMetadata(i32 Flags)
 }
 
 internal void
-MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metadata *Metadata)
+MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Metadata)
 {
     if(File->Size >= 128)
     {
@@ -542,7 +574,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
             if(~Metadata->FoundFlags & metadata_Title &&
                StringLength(Title) != 0)
             {
-                Metadata->Title  = NewStringCompound(Bucket, StringLength(Title));
+                Metadata->Title  = NewStringCompound(Arena, StringLength(Title));
                 AppendStringToCompound(&Metadata->Title, Title);
                 EatLeadingSpaces(&Metadata->Title);
                 EatTrailingSpaces(&Metadata->Title);
@@ -551,7 +583,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
             if(~Metadata->FoundFlags & metadata_Artist &&
                StringLength(Artist) != 0)
             {
-                Metadata->Artist = NewStringCompound(Bucket, StringLength(Artist));
+                Metadata->Artist = NewStringCompound(Arena, StringLength(Artist));
                 AppendStringToCompound(&Metadata->Artist, Artist);
                 EatLeadingSpaces(&Metadata->Artist);
                 EatTrailingSpaces(&Metadata->Artist);
@@ -560,7 +592,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
             if(~Metadata->FoundFlags & metadata_Album &&
                StringLength(Album) != 0)
             {
-                Metadata->Album  = NewStringCompound(Bucket, StringLength(Album));
+                Metadata->Album  = NewStringCompound(Arena, StringLength(Album));
                 AppendStringToCompound(&Metadata->Album, Album);
                 EatLeadingSpaces(&Metadata->Album);
                 EatTrailingSpaces(&Metadata->Album);
@@ -573,7 +605,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
                 u32 Y = ProcessNextU32InString(Year, '\0', Length);
                 if(Length > 0)
                 {
-                    Metadata->YearString = NewStringCompound(Bucket, 4);
+                    Metadata->YearString = NewStringCompound(Arena, 4);
                     AppendStringToCompound(&Metadata->YearString, Year);
                     Metadata->Year = Y;
                     Metadata->FoundFlags |= metadata_Year;
@@ -591,7 +623,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
             
             if(~Metadata->FoundFlags & metadata_Track)
             {
-                Metadata->TrackString = NewStringCompound(Bucket, 4);
+                Metadata->TrackString = NewStringCompound(Arena, 4);
                 I32ToString(&Metadata->TrackString, (Track<<0));
                 Metadata->Track = Track;
                 Metadata->FoundFlags |= metadata_Track;
@@ -601,7 +633,7 @@ MetadataID3v1(memory_bucket_container *Bucket, read_file_result *File, mp3_metad
 }
 
 internal i32
-MetadataID3v2_Helper(memory_bucket_container *Bucket, u8 *C, u8 *Frame, string_compound *S, u32 MinorVersion)
+MetadataID3v2_Helper(arena_allocator *Arena, u8 *C, u8 *Frame, string_compound *S, u32 MinorVersion)
 {
     // Header:
     // 4 Bytes | 4 Bytes | 2 Bytes
@@ -624,7 +656,7 @@ MetadataID3v2_Helper(memory_bucket_container *Bucket, u8 *C, u8 *Frame, string_c
         }
         else
         {
-            *S = NewStringCompound(Bucket, Length);
+            *S = NewStringCompound(Arena, Length);
             C = C+VersionHeaderLength;
             Result += VersionHeaderLength;
             // TODO:: This is a stupid hack. Read unicode wide and convert it to utf-8...
@@ -665,7 +697,7 @@ MetadataID3v2_Helper(memory_bucket_container *Bucket, u8 *C, u8 *Frame, string_c
 }
 
 internal u32
-MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
+MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena, 
                 read_file_result *File, mp3_metadata *Metadata)
 {
     // Spec: http://id3.org/id3v2.3.0
@@ -714,21 +746,21 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
         {
             if(~Metadata->FoundFlags & metadata_Title)
             {
-                JmpIter = MetadataID3v2_Helper(MainBucket, Current+It, TITLE, &Metadata->Title, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(MainArena, Current+It, TITLE, &Metadata->Title, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Title;
             }
             if(~Metadata->FoundFlags & metadata_Album)
             {
-                JmpIter = MetadataID3v2_Helper(MainBucket, Current+It, ALBUM, &Metadata->Album, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(MainArena, Current+It, ALBUM, &Metadata->Album, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Album;
             }
             if(~Metadata->FoundFlags & metadata_Artist)
             {
-                JmpIter = MetadataID3v2_Helper(MainBucket, Current+It, ARTIST, &Metadata->Artist, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(MainArena, Current+It, ARTIST, &Metadata->Artist, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Artist;
@@ -736,7 +768,7 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
             if(~Metadata->FoundFlags & metadata_Genre)
             {
                 string_compound GenreNr = {};
-                JmpIter = MetadataID3v2_Helper(TransientBucket, Current+It, GENRE, &GenreNr, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, GENRE, &GenreNr, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Genre;
@@ -746,30 +778,30 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
                     {
                         u8 L = 0;
                         u32 GNr = ProcessNextU32InString(GenreNr.S+1, ')', L);
-                        Metadata->Genre = NewStringCompound(MainBucket, GenreTypes[GNr].Pos);
+                        Metadata->Genre = NewStringCompound(MainArena, GenreTypes[GNr].Pos);
                         AppendStringCompoundToCompound(&Metadata->Genre, &GenreTypes[GNr]);
                     }
                     else if(IsStringCompANumber(&GenreNr))
                     {
                         u8 L = 0;
                         u32 GNr = ProcessNextU32InString(GenreNr.S, '\0', L);
-                        Metadata->Genre = NewStringCompound(MainBucket, GenreTypes[GNr].Pos);
+                        Metadata->Genre = NewStringCompound(MainArena, GenreTypes[GNr].Pos);
                         AppendStringCompoundToCompound(&Metadata->Genre, &GenreTypes[GNr]);
                     }
                     else 
                     {
-                        Metadata->Genre = NewStringCompound(MainBucket, GenreNr.Pos);
+                        Metadata->Genre = NewStringCompound(MainArena, GenreNr.Pos);
                         AppendStringCompoundToCompound(&Metadata->Genre, &GenreNr);
                     }
                     
-                    DeleteStringCompound(TransientBucket, &GenreNr);
+                    DeleteStringCompound(TransientArena, &GenreNr);
                 }
             }
             
             if(~Metadata->FoundFlags & metadata_Track)
             {
                 string_compound Track = {};
-                JmpIter = MetadataID3v2_Helper(TransientBucket, Current+It, TRACK, &Track, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, TRACK, &Track, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Track;
@@ -779,16 +811,16 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
                     if(SlashPos != -1) Track.Pos = SlashPos;
                     Metadata->Track = ConvertU32FromString(Track.S, Track.Pos);
                     Assert(Metadata->Track < 10000);
-                    Metadata->TrackString = NewStringCompound(MainBucket, 4);
+                    Metadata->TrackString = NewStringCompound(MainArena, 4);
                     I32ToString(&Metadata->TrackString, Metadata->Track);
                     
-                    DeleteStringCompound(TransientBucket, &Track);
+                    DeleteStringCompound(TransientArena, &Track);
                 }
             }
             if(~Metadata->FoundFlags & metadata_Year)
             {
                 string_compound Year = {};
-                JmpIter = MetadataID3v2_Helper(TransientBucket, Current+It, YEAR, &Year, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, YEAR, &Year, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Year;
@@ -797,15 +829,15 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
                     if(Year.Pos == 0) Metadata->Year = 0;
                     else Metadata->Year = ConvertU32FromString(Year.S, 4);
                     Assert(Metadata->Year < 10000);
-                    Metadata->YearString = NewStringCompound(MainBucket, 4);
+                    Metadata->YearString = NewStringCompound(MainArena, 4);
                     I32ToString(&Metadata->YearString, Metadata->Year);
-                    DeleteStringCompound(TransientBucket, &Year);
+                    DeleteStringCompound(TransientArena, &Year);
                 }
             }
             if(~Metadata->FoundFlags & metadata_Duration)
             {
                 string_c Duration = {};
-                JmpIter = MetadataID3v2_Helper(TransientBucket, Current+It, DURATION, &Duration, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, DURATION, &Duration, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Duration;
@@ -814,7 +846,7 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
                     if(Duration.Pos == 0) Metadata->Duration = 0;
                     else Metadata->Duration = ConvertU32FromString(Duration.S, Duration.Pos);
                     //DebugLog(20, "Duration: %i\n", Metadata->Duration);
-                    DeleteStringCompound(TransientBucket, &Duration);
+                    DeleteStringCompound(TransientArena, &Duration);
                 }
             }
             if(FoundAllMetadata(Metadata->FoundFlags)) break;
@@ -824,12 +856,12 @@ MetadataID3v2_3(memory_bucket_container *MainBucket, memory_bucket_container *Tr
 }
 
 inline u32
-ExtractMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, read_file_result *File, mp3_metadata *Metadata)
+ExtractMetadata(arena_allocator *MainArena, arena_allocator *TransientArena, read_file_result *File, mp3_metadata *Metadata)
 {
     u32 MetadataSize3 = 0;
     u32 MetadataSize2 = 0;
-    if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataSize3 = MetadataID3v2_3(MainBucket, TransientBucket, File, Metadata);
-    //if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataID3v1(MainBucket, File, Metadata);
+    if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataSize3 = MetadataID3v2_3(MainArena, TransientArena, File, Metadata);
+    //if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataID3v1(MainArena, File, Metadata);
     return (MetadataSize3 > 0) ? MetadataSize3 : MetadataSize2;
 }
 
@@ -871,7 +903,7 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
 }
 
 inline void
-CreateSongDurationForMetadata(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, i32 DecodeID)
+CreateSongDurationForMetadata(mp3_info *MP3Info, file_id FileID, i32 DecodeID)
 {
     if(~MP3Info->FileInfo.Metadata[FileID.ID].FoundFlags & metadata_Duration)
     {
@@ -879,30 +911,30 @@ CreateSongDurationForMetadata(bucket_allocator *Bucket, mp3_info *MP3Info, file_
         mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
         
         MD->Duration = (u32)DInfo->samples/DInfo->channels/DInfo->hz*1000;
-        MillisecondsToMinutes(&Bucket->Fixed, MD->Duration, &MD->DurationString);
+        MillisecondsToMinutes(MD->Duration, &MD->DurationString);
         MD->FoundFlags |= metadata_Duration;
     }
 }
 
 internal error_item
-LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, 
+LoadAndDecodeMP3Data(arena_allocator *ScratchArena, mp3_info *MP3Info, file_id FileID, 
                      i32 DecodeID, b32 DoMetadataExtraction = true)
 {
     error_item Result = {(load_error_codes)DecodeID, FileID};
-    string_compound FilePath = NewStringCompound(&Bucket->Transient, 255);
+    string_compound FilePath = NewStringCompound(ScratchArena, 255);
     ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, 
                           MP3Info->FileInfo.SubPath + FileID.ID, 
                           MP3Info->FileInfo.FileName + FileID.ID);
     
     read_file_result FileData = {};
-    if(ReadEntireFile(&Bucket->Transient, &FileData, FilePath.S))
+    if(ReadEntireFile(ScratchArena, &FileData, FilePath.S))
     {
         if(FileData.Size != 0)
         {
             if(DoMetadataExtraction)
             {
                 Assert(false); // Is this actually used? Does not seem like it!
-                ExtractMetadata(&Bucket->Fixed, &Bucket->Transient, &FileData, &MP3Info->FileInfo.Metadata[FileID.ID]);
+                //ExtractMetadata(FixArena, ScratchArena, &FileData, &MP3Info->FileInfo.Metadata[FileID.ID]);
             }
             
             mp3dec_t Dec = {};
@@ -924,31 +956,32 @@ LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID
                 DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
                 // Check if song duration was already saved, if not, create it.
-                CreateSongDurationForMetadata(Bucket, MP3Info, FileID, DecodeID);
+                CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
             }
         }
         else 
         {
             Result.Code = loadErrorCode_EmptyFile;
         }
-        FreeFileMemory(&Bucket->Transient, FileData.Data);
+        FreeFileMemory(ScratchArena, FileData.Data);
     }
     else 
     {
         OutputDebugStringA("ERROR:: Failed to load file.\n");
         Result.Code = loadErrorCode_FileLoadFailed;
     }
-    DeleteStringCompound(&Bucket->Transient, &FilePath);
+    DeleteStringCompound(ScratchArena, &FilePath);
     
     if(DecodeID >= 0) MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = false;
     return Result;
 }
 
 internal error_item
-LoadAndDecodeMP3Data(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID, b32 DoMetadataExtraction = true)
+LoadAndDecodeMP3Data(arena_allocator *ScratchArena, mp3_info *MP3Info, 
+                     file_id FileID, b32 DoMetadataExtraction = true)
 {
     i32 DecodeID = GetNextDecodeIDToEvict(&MP3Info->DecodeInfo);
-    return LoadAndDecodeMP3Data(Bucket, MP3Info, FileID, DecodeID, DoMetadataExtraction);
+    return LoadAndDecodeMP3Data(ScratchArena, MP3Info, FileID, DecodeID, DoMetadataExtraction);
 }
 
 internal mp3dec_file_info_t
@@ -1013,7 +1046,7 @@ DecodeMP3StartFrames(mp3dec_t *MP3Decoder, read_file_result File, i16 Buffer[], 
 }
 
 internal error_item
-LoadAndDecodeMP3StartFrames(bucket_allocator *Bucket, i32 SecondsToDecode, file_id FileID, 
+LoadAndDecodeMP3StartFrames(arena_allocator *FixArena, arena_allocator *ScratchArena, i32 SecondsToDecode, file_id FileID, 
                             i32 DecodeID, mp3dec_file_info_t *DecodeResult)
 {
     // 1. Build the complete filepath
@@ -1036,23 +1069,23 @@ LoadAndDecodeMP3StartFrames(bucket_allocator *Bucket, i32 SecondsToDecode, file_
     mp3dec_init(&MP3Decoder);
     
     // 2.
-    u32 MetadataSize    = ExtractMetadataSize(&Bucket->Transient, &FilePath);
+    u32 MetadataSize    = ExtractMetadataSize(ScratchArena, &FilePath);
     u32 ReadAmount      = MetadataSize + MINIMP3_MAX_SAMPLES_PER_FRAME + 512;
-    i16 *TmpInfoStorage = PushArrayOnBucket(&Bucket->Transient, ReadAmount, i16);
+    i16 *TmpInfoStorage = AllocateArray(ScratchArena, ReadAmount, i16);
     
     read_file_result File = {};
-    if(ReadBeginningOfFile(&Bucket->Transient, &File, FilePath.S, ReadAmount))
+    if(ReadBeginningOfFile(ScratchArena, &File, FilePath.S, ReadAmount))
     {
         // 3. 
         *DecodeResult = DecodeMP3StartFrames(&MP3Decoder, File, TmpInfoStorage, 1);
-        FreeFileMemory(&Bucket->Transient, File.Data);
+        FreeFileMemory(ScratchArena, File.Data);
         
         u32 DecodeSampleAmount = DecodeResult->hz*SecondsToDecode; 
         // samples has channels already in it. But I need the frame amount which is channel indipendent.
         u32 DecodeFrameAmount  = DecodeSampleAmount/(u32)(DecodeResult->samples/DecodeResult->channels);
         // 4. This should always be enough, as the mp3 file should be smaller, as it is compressed...
         ReadAmount = DecodeSampleAmount*DecodeResult->channels*sizeof(i16) + DecodeFrameAmount*sizeof(u32) + MetadataSize; 
-        if(ReadBeginningOfFile(&Bucket->Transient, &File, FilePath.S, ReadAmount))
+        if(ReadBeginningOfFile(ScratchArena, &File, FilePath.S, ReadAmount))
         {
             Assert(DecodeResult->hz <= 48000); // DecodeData[] in Decode_info size calc. is based on this as a max!
             Assert(ExistingBuffer);
@@ -1070,10 +1103,10 @@ LoadAndDecodeMP3StartFrames(bucket_allocator *Bucket, i32 SecondsToDecode, file_
                 TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
                 DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
-                CreateSongDurationForMetadata(Bucket, MP3Info, FileID, DecodeID);
+                CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
             }
             
-            FreeFileMemory(&Bucket->Transient, File.Data);
+            FreeFileMemory(ScratchArena, File.Data);
         }
         else
         {
@@ -1085,14 +1118,14 @@ LoadAndDecodeMP3StartFrames(bucket_allocator *Bucket, i32 SecondsToDecode, file_
         Result.Code = loadErrorCode_FileLoadFailed;
     }
     
-    PopFromTransientBucket(&Bucket->Transient, TmpInfoStorage);
+    FreeMemory(ScratchArena, TmpInfoStorage);
     
     if(DecodeID >= 0) MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = false;
     return Result;
 }
 
 internal u32 
-ExtractMetadataSize(memory_bucket_container *TransientBucket, string_c *CompletePath)
+ExtractMetadataSize(arena_allocator *TransientArena, string_c *CompletePath)
 {
     u32 Result = 0;
     
@@ -1104,7 +1137,7 @@ ExtractMetadataSize(memory_bucket_container *TransientBucket, string_c *Complete
     // Header:
     // 3 Byte | 2 Byte | 1 Byte | 4 Byte
     // Tag:ID3| Version| Flags  | Size
-    if(ReadBeginningOfFile(TransientBucket, &FileData, CompletePath->S, 10)) 
+    if(ReadBeginningOfFile(TransientArena, &FileData, CompletePath->S, 10)) 
     {
         u8 *Current = (u8 *)FileData.Data;
         Current[3] = 0;
@@ -1116,47 +1149,46 @@ ExtractMetadataSize(memory_bucket_container *TransientBucket, string_c *Complete
             Result  = Current[0]<<21 | Current[1]<<14 | Current[2]<<7 | Current[3]<<0;
             Result += 10; // Size excludes the header... so add it!
         }
-        FreeFileMemory(TransientBucket, FileData.Data);
+        FreeFileMemory(TransientArena, FileData.Data);
     }
     
     return Result;
 }
 
 internal void
-CrawlFileForMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
-                     mp3_metadata *MD, string_c *FilePath)
+CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c *FilePath)
 {
-    u32 DataLength = ExtractMetadataSize(TransientBucket, FilePath);
+    u32 DataLength = ExtractMetadataSize(TransientArena, FilePath);
     read_file_result FileData = {};
-    if(DataLength > 0 && ReadBeginningOfFile(TransientBucket, &FileData, FilePath->S, DataLength)) 
+    if(DataLength > 0 && ReadBeginningOfFile(TransientArena, &FileData, FilePath->S, DataLength)) 
     {
-        ExtractMetadata(MainBucket, TransientBucket, &FileData, MD);
-        FreeFileMemory(TransientBucket, FileData.Data);
+        ExtractMetadata(&GlobalGameState.JobThreadsArena, TransientArena, &FileData, MD);
+        FreeFileMemory(TransientArena, FileData.Data);
     }
     
     if(!FoundAllMetadata(MD->FoundFlags))
     {
-        if(ReadEndOfFile(TransientBucket, &FileData, FilePath->S, 128))
+        if(ReadEndOfFile(TransientArena, &FileData, FilePath->S, 128))
         {
-            MetadataID3v1(MainBucket, &FileData, MD);
-            FreeFileMemory(TransientBucket, FileData.Data);
+            MetadataID3v1(&GlobalGameState.JobThreadsArena, &FileData, MD);
+            FreeFileMemory(TransientArena, FileData.Data);
         }
     }
 }
 
 internal void
-CrawlFilesForMetadata(memory_bucket_container *MainBucket, memory_bucket_container *TransientBucket, 
-                      mp3_file_info *FileInfo, string_c *FolderPath, u32 *CurrentCrawlCount = 0)
+CrawlFilesForMetadata(arena_allocator *TransientArena, mp3_file_info *FileInfo, 
+                      string_c *FolderPath, u32 *CurrentCrawlCount = 0)
 {
     OutputDebugStringA("\n");
-    string_compound FilePath = NewStringCompound(TransientBucket, 255);
+    string_compound FilePath = NewStringCompound(TransientArena, 255);
     
     For(FileInfo->Count)
     {
         if(FoundAllMetadata(FileInfo->Metadata[It].FoundFlags)) continue;
         ConcatStringCompounds(4, &FilePath, FolderPath, FileInfo->SubPath+It, FileInfo->FileName+It);
         
-        CrawlFileForMetadata(MainBucket, TransientBucket, FileInfo->Metadata+It, &FilePath);
+        CrawlFileForMetadata(TransientArena, FileInfo->Metadata+It, &FilePath);
         
         WipeStringCompound(&FilePath);
         if(CurrentCrawlCount)
@@ -1168,7 +1200,7 @@ CrawlFilesForMetadata(memory_bucket_container *MainBucket, memory_bucket_contain
             DebugLog(500, "%i of %i\n", It, FileInfo->Count);
         }
     }
-    DeleteStringCompound(TransientBucket, &FilePath);
+    DeleteStringCompound(TransientArena, &FilePath);
 }
 
 internal void
@@ -1183,22 +1215,22 @@ RemoveFileFromInfo(mp3_file_info *FileInfo, u32 RemoveID)
 }
 
 internal b32
-AddFileToInfo(bucket_allocator *Bucket, mp3_file_info *FileInfo, string_c *SubPath, string_c *FileName)
+AddFileToInfo(mp3_file_info *FileInfo, string_c *SubPath, string_c *FileName)
 {
     b32 Result = false;
     if(FileInfo->Count < FileInfo->MaxCount)
     {
         Result = true;
-        FileInfo->SubPath[FileInfo->Count] = NewStringCompound(&GlobalGameState.Bucket.Fixed, SubPath->Pos);
+        FileInfo->SubPath[FileInfo->Count] = NewStringCompound(&GlobalGameState.FixArena, SubPath->Pos);
         AppendStringCompoundToCompound(FileInfo->SubPath+FileInfo->Count, SubPath);
-        FileInfo->FileName[FileInfo->Count] = NewStringCompound(&GlobalGameState.Bucket.Fixed, FileName->Pos);
+        FileInfo->FileName[FileInfo->Count] = NewStringCompound(&GlobalGameState.FixArena, FileName->Pos);
         AppendStringCompoundToCompound(FileInfo->FileName+FileInfo->Count, FileName);
         
-        string_c FilePath = NewStringCompound(&Bucket->Transient, 255);
+        string_c FilePath = NewStringCompound(&GlobalGameState.ScratchArena, 255);
         ConcatStringCompounds(4, &FilePath, &GlobalGameState.MP3Info->FolderPath, FileInfo->SubPath+FileInfo->Count, 
                               FileInfo->FileName+FileInfo->Count);
-        CrawlFileForMetadata(&Bucket->Fixed, &Bucket->Transient, FileInfo->Metadata+FileInfo->Count, &FilePath);
-        DeleteStringCompound(&Bucket->Transient, &FilePath);
+        CrawlFileForMetadata(&GlobalGameState.ScratchArena, FileInfo->Metadata+FileInfo->Count, &FilePath);
+        DeleteStringCompound(&GlobalGameState.ScratchArena, &FilePath);
         FileInfo->Count++;
     }
     return Result;
@@ -1219,26 +1251,6 @@ MillisecondsToMinutes(u32 Millis, string_c *Out)
     if(RestSeconds < 10) sprintf_s(B2, "0%i", RestSeconds);
     else                 sprintf_s(B2, "%i", RestSeconds);
     
-    AppendStringToCompound(Out, (u8 *)B);
-    AppendStringToCompound(Out, (u8 *)B2);
-}
-
-internal void
-MillisecondsToMinutes(memory_bucket_container *Bucket, u32 Millis, string_c *Out)
-{
-    r32 Seconds = Millis/1000.0f;
-    r32 Minutes = Seconds/60.0f;
-    i32 RestSeconds = Floor(60.0f*Abs(Minutes-Floor(Minutes)));
-    
-    Assert(RestSeconds < 60.0f);
-    char B[10];
-    if(Floor(Minutes) < 10) sprintf_s(B, "0%i:", Floor(Minutes));
-    else             sprintf_s(B, "%i:", Floor(Minutes));
-    char B2[3];
-    if(RestSeconds < 10) sprintf_s(B2, "0%i", RestSeconds);
-    else                 sprintf_s(B2, "%i", RestSeconds);
-    
-    *Out = NewStringCompound(Bucket, StringLength((u8 *)B)+2);
     AppendStringToCompound(Out, (u8 *)B);
     AppendStringToCompound(Out, (u8 *)B2);
 }
@@ -1290,9 +1302,9 @@ TryLoadSettingsFile(game_state *GameState)
     settings Result = {};
     
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, SETTINGS_FILE_NAME);
-    if(ReadEntireFile(&GameState->Bucket.Transient, &Data, FilePath.S))
+    if(ReadEntireFile(&GameState->ScratchArena, &Data, FilePath.S))
     {
         u8 *C = Data.Data;
         
@@ -1359,15 +1371,15 @@ TryLoadSettingsFile(game_state *GameState)
                     Result.PaletteCount++;
                 }
                 Result.PaletteMaxCount = Result.PaletteCount+10;
-                Result.PaletteNames  = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteMaxCount, string_c);
-                Result.Palettes      = PushArrayOnBucket(&GameState->Bucket.Fixed, Result.PaletteMaxCount, color_palette);
+                Result.PaletteNames  = AllocateArray(&GameState->FixArena, Result.PaletteMaxCount, string_c);
+                Result.Palettes      = AllocateArray(&GameState->FixArena, Result.PaletteMaxCount, color_palette);
                 
-                string_c PaletteName = NewStringCompound(&GameState->Bucket.Transient, 100);
+                string_c PaletteName = NewStringCompound(&GameState->ScratchArena, 100);
                 For(Result.PaletteCount)
                 {
                     C += StringLength((u8 *)"Palette: ");
                     CopyStringToCompound(&PaletteName, C, (u8)'\n');
-                    Result.PaletteNames[It] = NewStringCompound(&GameState->Bucket.Fixed, PaletteName.Pos);
+                    Result.PaletteNames[It] = NewStringCompound(&GameState->FixArena, PaletteName.Pos);
                     AppendStringCompoundToCompound(Result.PaletteNames+It, &PaletteName);
                     ResetStringCompound(PaletteName);
                     
@@ -1385,7 +1397,7 @@ TryLoadSettingsFile(game_state *GameState)
                     ProcessNextPaletteColor(&C, (u8 *)"Selected: ", &Palette->Selected);
                     ProcessNextPaletteColor(&C, (u8 *)"PlayingSong: ", &Palette->PlayingSong);
                 }
-                DeleteStringCompound(&GameState->Bucket.Transient, &PaletteName);
+                DeleteStringCompound(&GameState->ScratchArena, &PaletteName);
             }
             else
             {
@@ -1408,7 +1420,7 @@ TryLoadSettingsFile(game_state *GameState)
             if(Result.WindowDimY < GlobalMinWindowHeight) Result.WindowDimY = GlobalMinWindowHeight;
         }
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     
     return Result;
 }
@@ -1416,7 +1428,7 @@ TryLoadSettingsFile(game_state *GameState)
 internal void
 SaveSettingsFile(game_state *GameState, settings *Settings)
 {
-    string_c SaveData = NewStringCompound(&GameState->Bucket.Transient, 50000);
+    string_c SaveData = NewStringCompound(&GameState->ScratchArena, 50000);
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
     I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
@@ -1488,13 +1500,13 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     }
     
     
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, SETTINGS_FILE_NAME);
-    if(WriteEntireFile(&GameState->Bucket, FilePath.S, SaveData.Pos, SaveData.S))
+    if(WriteEntireFile(&GameState->ScratchArena, FilePath.S, SaveData.Pos, SaveData.S))
     {
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
-    DeleteStringCompound(&GameState->Bucket.Transient, &SaveData);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
 
 inline void
@@ -1601,10 +1613,10 @@ ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheck
 {
     b32 Result = false;
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
     u32 BegginingCount = StringLength((u8 *)"MP3Lib\nVersion XX\nP: \nC: XXXXX\n");
-    if(ReadBeginningOfFile(&GameState->Bucket.Transient, &Data, FilePath.S, BegginingCount+255))
+    if(ReadBeginningOfFile(&GameState->ScratchArena, &Data, FilePath.S, BegginingCount+255))
     {
         u8 *C = Data.Data;
         u8 *LibString = (u8 *)"MP3Lib";
@@ -1628,9 +1640,9 @@ ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheck
                 }
             }
         }
-        FreeFileMemory(&GameState->Bucket.Transient, Data.Data);
+        FreeFileMemory(&GameState->ScratchArena, Data.Data);
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     
     return Result;
 }
@@ -1640,9 +1652,9 @@ CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
 {
     b32 Result = false;
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(ReadEntireFile(&GameState->Bucket.Transient, &Data, FilePath.S))
+    if(ReadEntireFile(&GameState->ScratchArena, &Data, FilePath.S))
     {
         u8 *C = Data.Data;
         if(StringCompare(C, (u8 *)"MP3Lib", 0, 6))
@@ -1650,7 +1662,7 @@ CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
             C += 7; // MP3Lib
             C += 10; // Version 3
             C += 3; // P:_
-            string_c FolderPath = NewStringCompound(&GameState->Bucket.Transient, 255);
+            string_c FolderPath = NewStringCompound(&GameState->ScratchArena, 255);
             C += CopyUntilNewline(C, &FolderPath);
             
             if(CompareStringCompounds(&FolderPath, PathToCompare))
@@ -1658,10 +1670,10 @@ CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
                 Result = true;
             }
             
-            DeleteStringCompound(&GameState->Bucket.Transient, &FolderPath);
+            DeleteStringCompound(&GameState->ScratchArena, &FolderPath);
         }
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     
     return Result;
 }
@@ -1670,9 +1682,9 @@ internal void
 LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
 {
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(ReadEntireFile(&GameState->Bucket.Transient, &Data, FilePath.S))
+    if(ReadEntireFile(&GameState->ScratchArena, &Data, FilePath.S))
     {
         mp3_file_info *MP3FileInfo = &Info->FileInfo;
         
@@ -1697,17 +1709,17 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
         {
             AdvanceToNewline(&C);
             C += 3;
-            Info->FolderPath = NewStringCompound(&GameState->Bucket.Fixed, 255);
+            Info->FolderPath = NewStringCompound(&GameState->FixArena, 255);
             C += CopyUntilNewline(C, &Info->FolderPath);
             
             C += 3;
-            string_c CountS = NewStringCompound(&GameState->Bucket.Transient, CountToNewline(C));
+            string_c CountS = NewStringCompound(&GameState->ScratchArena, CountToNewline(C));
             C += CopyUntilNewline(C, &CountS);
             u32 SongCount = ConvertU32FromString(CountS.S, CountS.Pos);
-            DeleteStringCompound(&GameState->Bucket.Transient, &CountS);
+            DeleteStringCompound(&GameState->ScratchArena, &CountS);
             
             AdvanceToNewline(&C);
-            string_c CurrentSubPath = NewStringCompound(&GameState->Bucket.Transient, 255);
+            string_c CurrentSubPath = NewStringCompound(&GameState->ScratchArena, 255);
             For(SongCount)
             {
                 if(*C == 'P')
@@ -1720,15 +1732,15 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 
                 mp3_metadata *MD = MP3FileInfo->Metadata + It;
                 
-                MP3FileInfo->SubPath[It] = NewStringCompound(&GameState->Bucket.Fixed, CurrentSubPath.Pos);
+                MP3FileInfo->SubPath[It] = NewStringCompound(&GameState->JobThreadsArena, CurrentSubPath.Pos);
                 AppendStringCompoundToCompound(MP3FileInfo->SubPath+It, &CurrentSubPath);
-                MP3FileInfo->FileName[It] = NewStringCompound(&GameState->Bucket.Fixed, CountToNewline(++C));
+                MP3FileInfo->FileName[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
                 C += CopyUntilNewline(C, MP3FileInfo->FileName+It);
                 
                 u32 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    MD->Title = NewStringCompound(&GameState->Bucket.Fixed, Count);
+                    MD->Title = NewStringCompound(&GameState->FixArena, Count);
                     C += CopyUntilNewline(C, &MD->Title);
                     MD->FoundFlags |= metadata_Title;
                 }
@@ -1736,7 +1748,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    MD->Artist = NewStringCompound(&GameState->Bucket.Fixed, Count);
+                    MD->Artist = NewStringCompound(&GameState->FixArena, Count);
                     C += CopyUntilNewline(C, &MD->Artist);
                     MD->FoundFlags |= metadata_Artist;
                 }
@@ -1744,7 +1756,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    MD->Album = NewStringCompound(&GameState->Bucket.Fixed, Count);
+                    MD->Album = NewStringCompound(&GameState->FixArena, Count);
                     C += CopyUntilNewline(C, &MD->Album);
                     MD->FoundFlags |= metadata_Album;
                 }
@@ -1752,7 +1764,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    MD->Genre = NewStringCompound(&GameState->Bucket.Fixed, Count);
+                    MD->Genre = NewStringCompound(&GameState->FixArena, Count);
                     C += CopyUntilNewline(C, &MD->Genre);
                     MD->FoundFlags |= metadata_Genre;
                 }
@@ -1760,7 +1772,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    MD->TrackString = NewStringCompound(&GameState->Bucket.Fixed, Count);
+                    MD->TrackString = NewStringCompound(&GameState->FixArena, Count);
                     C += CopyUntilNewline(C, &MD->TrackString);
                     u8 Length = 0;
                     MD->Track = ProcessNextU32InString(MD->TrackString.S, '\0', Length);
@@ -1770,7 +1782,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    MD->YearString = NewStringCompound(&GameState->Bucket.Fixed, Count);
+                    MD->YearString = NewStringCompound(&GameState->FixArena, Count);
                     C += CopyUntilNewline(C, &MD->YearString);
                     u8 Length = 0;
                     MD->Year = ProcessNextU32InString(MD->YearString.S, '\0', Length);
@@ -1780,12 +1792,12 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 Count = CountToNewline(++C);
                 if(Count > 0)
                 {
-                    string_c Duration = NewStringCompound(&GameState->Bucket.Transient, Count);
+                    string_c Duration = NewStringCompound(&GameState->ScratchArena, Count);
                     C += CopyUntilNewline(C, &Duration);
                     u8 Length = 0;
                     MD->Duration = ProcessNextU32InString(Duration.S, '\0', Length);
-                    MillisecondsToMinutes(&GameState->Bucket.Fixed, MD->Duration, &MD->DurationString);
-                    DeleteStringCompound(&GameState->Bucket.Transient, &Duration);
+                    MillisecondsToMinutes(MD->Duration, &MD->DurationString);
+                    DeleteStringCompound(&GameState->ScratchArena, &Duration);
                     MD->FoundFlags |= metadata_Duration;
                 }
                 else AdvanceToNewline(&C);
@@ -1793,11 +1805,11 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 MP3FileInfo->Count++;
                 AdvanceToNewline(&C);
             }
-            DeleteStringCompound(&GameState->Bucket.Transient, &CurrentSubPath);
+            DeleteStringCompound(&GameState->ScratchArena, &CurrentSubPath);
         }
-        FreeFileMemory(&GameState->Bucket.Transient, Data.Data);
+        FreeFileMemory(&GameState->ScratchArena, Data.Data);
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
 }
 
 
@@ -1811,7 +1823,7 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     mp3_file_info *MP3FileInfo = &Info->FileInfo;
     if(MP3FileInfo->Count == 0) return;
     u32 StringSize = (30+255+5) + 7*255*MP3FileInfo->Count;
-    string_c SaveData = NewStringCompound(&GameState->Bucket.Transient, StringSize);
+    string_c SaveData = NewStringCompound(&GameState->ScratchArena, StringSize);
     
     AppendStringToCompound(&SaveData, (u8 *)"MP3Lib\n");
     AppendStringToCompound(&SaveData, (u8 *)"Version 3\n");
@@ -1821,8 +1833,8 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     AppendStringToCompound(&SaveData, (u8 *)CountS);
     
     u32 WrittenDataCount = 0;
-    b32 *Written = PushArrayOnBucket(&GameState->Bucket.Transient, Info->FileInfo.MaxCount, b32);
-    string_c CurrentSubPath = NewStringCompound(&GameState->Bucket.Transient, 255);
+    b32 *Written = AllocateArray(&GameState->ScratchArena, Info->FileInfo.MaxCount, b32);
+    string_c CurrentSubPath = NewStringCompound(&GameState->ScratchArena, 255);
     while(WrittenDataCount < MP3FileInfo->Count)
     {
         AppendStringCompoundToCompound(&SaveData, &Colon);
@@ -1892,32 +1904,32 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
         
         WipeStringCompound(&CurrentSubPath);
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &CurrentSubPath);
-    PopFromTransientBucket(&GameState->Bucket.Transient, Written);
+    DeleteStringCompound(&GameState->ScratchArena, &CurrentSubPath);
+    FreeMemory(&GameState->ScratchArena, Written);
     
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(WriteEntireFile(&GameState->Bucket, FilePath.S, SaveData.Pos, SaveData.S))
+    if(WriteEntireFile(&GameState->ScratchArena, FilePath.S, SaveData.Pos, SaveData.S))
     {
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
-    DeleteStringCompound(&GameState->Bucket.Transient, &SaveData);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
 
 internal void
 WipeMP3LibraryFile(game_state *GameState)
 {
-    string_c FilePath = NewStringCompound(&GameState->Bucket.Transient, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
+    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
     ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(WriteEntireFile(&GameState->Bucket, FilePath.S, 0, 0))
+    if(WriteEntireFile(&GameState->ScratchArena, FilePath.S, 0, 0))
     {
     }
-    DeleteStringCompound(&GameState->Bucket.Transient, &FilePath);
+    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
 }
 
 inline i32
-AddSongToSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, string_c *InsertCheck)
+AddSongToSortBatch(arena_allocator *Arena, sort_batch *Batch, string_c *InsertCheck)
 {
     i32 Result = -1;
     For(Batch->BatchCount)
@@ -1930,7 +1942,7 @@ AddSongToSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, string_c 
     }
     if(Result < 0)
     {
-        Batch->Names[Batch->BatchCount] = NewStringCompound(Bucket, InsertCheck->Pos);
+        Batch->Names[Batch->BatchCount] = NewStringCompound(Arena, InsertCheck->Pos);
         AppendStringCompoundToCompound(Batch->Names+Batch->BatchCount, InsertCheck);
         Result = Batch->BatchCount++;
     }
@@ -1938,51 +1950,54 @@ AddSongToSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, string_c 
 }
 
 inline void
-InitializeSortBatch(memory_bucket_container *Bucket, sort_batch *Batch, u32 BatchCount)
+InitializeSortBatch(arena_allocator *Arena, sort_batch *Batch, u32 BatchCount)
 {
-    Batch->Genre  = PushArrayOnBucket(Bucket, BatchCount, array_batch_id);
-    Batch->Artist = PushArrayOnBucket(Bucket, BatchCount, array_batch_id);
-    Batch->Album  = PushArrayOnBucket(Bucket, BatchCount, array_batch_id);
-    Batch->Song   = PushArrayOnBucket(Bucket, BatchCount, array_file_id);
-    Batch->Names  = PushArrayOnBucket(Bucket, BatchCount, string_c);
+    Batch->Genre  = AllocateArray(Arena, BatchCount, array_batch_id);
+    Batch->Artist = AllocateArray(Arena, BatchCount, array_batch_id);
+    Batch->Album  = AllocateArray(Arena, BatchCount, array_batch_id);
+    Batch->Song   = AllocateArray(Arena, BatchCount, array_file_id);
+    Batch->Names  = AllocateArray(Arena, BatchCount, string_c);
     Batch->MaxBatches = BatchCount;
     Batch->BatchCount = 0;
 }
 
 internal void
-CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
+CreateMusicSortingInfo()
 {
+    mp3_info *MP3Info = GlobalGameState.MP3Info;
     music_sorting_info *SortInfo = &MP3Info->MusicInfo->SortingInfo;
     mp3_file_info *FileInfo = &MP3Info->FileInfo;
+    arena_allocator *FixArena = &GlobalGameState.FixArena;
+    arena_allocator *ScratchArena = &GlobalGameState.ScratchArena;
     
     // TODO:: Push this from transient to fixed with correct size?
     sort_batch Genre  = {};
-    InitializeSortBatch(&Bucket->Fixed, &Genre, 256);
+    InitializeSortBatch(FixArena, &Genre, 256);
     sort_batch Artist = {};
-    InitializeSortBatch(&Bucket->Fixed, &Artist, 512);
+    InitializeSortBatch(FixArena, &Artist, 512);
     sort_batch Album  = {};
-    InitializeSortBatch(&Bucket->Fixed, &Album, 1024);
+    InitializeSortBatch(FixArena, &Album, 1024);
     
-    song_sort_info *SortBatchInfo = PushArrayOnBucket(&Bucket->Fixed, FileInfo->Count, song_sort_info);
+    song_sort_info *SortBatchInfo = AllocateArray(FixArena, FileInfo->Count, song_sort_info);
     
-    u32 *Genre_CountForBatches  = PushArrayOnBucket(&Bucket->Transient, Genre.MaxBatches, u32);
-    u32 *Artist_CountForBatches = PushArrayOnBucket(&Bucket->Transient, Artist.MaxBatches, u32);
-    u32 *Album_CountForBatches  = PushArrayOnBucket(&Bucket->Transient, Album.MaxBatches, u32);
+    u32 *Genre_CountForBatches  = AllocateArray(ScratchArena, Genre.MaxBatches, u32);
+    u32 *Artist_CountForBatches = AllocateArray(ScratchArena, Artist.MaxBatches, u32);
+    u32 *Album_CountForBatches  = AllocateArray(ScratchArena, Album.MaxBatches, u32);
     
     // NOTE:: Filling the first slot with the _no_genre/artist/album_ 
     string_c Empty = {};
-    AddSongToSortBatch(&Bucket->Fixed, &Genre, &Empty);
-    AddSongToSortBatch(&Bucket->Fixed, &Artist, &Empty);
-    AddSongToSortBatch(&Bucket->Fixed, &Album, &Empty);
+    AddSongToSortBatch(FixArena, &Genre, &Empty);
+    AddSongToSortBatch(FixArena, &Artist, &Empty);
+    AddSongToSortBatch(FixArena, &Album, &Empty);
     
     for(u32 FileID = 0; FileID < FileInfo->Count; FileID++)
     {
         mp3_metadata *MD = FileInfo->Metadata + FileID;
         
         // NOTE:: Fills the Batches with all different genres, artists, albums and gives the batch id back
-        i32 GenreID  = AddSongToSortBatch(&Bucket->Fixed, &Genre, &MD->Genre);
-        i32 ArtistID = AddSongToSortBatch(&Bucket->Fixed, &Artist, &MD->Artist);
-        i32 AlbumID  = AddSongToSortBatch(&Bucket->Fixed, &Album, &MD->Album);
+        i32 GenreID  = AddSongToSortBatch(FixArena, &Genre, &MD->Genre);
+        i32 ArtistID = AddSongToSortBatch(FixArena, &Artist, &MD->Artist);
+        i32 AlbumID  = AddSongToSortBatch(FixArena, &Album, &MD->Album);
         Assert(GenreID >= 0 && ArtistID >= 0 && AlbumID >= 0);
         
         // NOTE:: For each song note the corresponding IDs for the genre, artist, album
@@ -1998,25 +2013,25 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
     
     For(Genre.BatchCount)
     {
-        Genre.Artist[It].A = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
-        Genre.Album[It].A  = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
-        Genre.Song[It].A   = CreateArray(&Bucket->Fixed, Genre_CountForBatches[It]);
+        Genre.Artist[It].A = CreateArray(FixArena, Genre_CountForBatches[It]);
+        Genre.Album[It].A  = CreateArray(FixArena, Genre_CountForBatches[It]);
+        Genre.Song[It].A   = CreateArray(FixArena, Genre_CountForBatches[It]);
     }
     For(Artist.BatchCount)
     {
-        Artist.Album[It].A = CreateArray(&Bucket->Fixed, Artist_CountForBatches[It]);
-        Artist.Song[It].A  = CreateArray(&Bucket->Fixed, Artist_CountForBatches[It]);
+        Artist.Album[It].A = CreateArray(FixArena, Artist_CountForBatches[It]);
+        Artist.Song[It].A  = CreateArray(FixArena, Artist_CountForBatches[It]);
     }
     For(Album.BatchCount)
     {
-        Album.Song[It].A = CreateArray(&Bucket->Fixed, Album_CountForBatches[It]);
-        if(It == 0) Album.Genre[It].A = CreateArray(&Bucket->Fixed, 100);
-        else Album.Genre[It].A = CreateArray(&Bucket->Fixed, 10);
+        Album.Song[It].A = CreateArray(FixArena, Album_CountForBatches[It]);
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100);
+        else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
-    PopFromTransientBucket(&Bucket->Transient, Genre_CountForBatches);
-    PopFromTransientBucket(&Bucket->Transient, Artist_CountForBatches);
-    PopFromTransientBucket(&Bucket->Transient, Album_CountForBatches);
+    FreeMemory(ScratchArena, Genre_CountForBatches);
+    FreeMemory(ScratchArena, Artist_CountForBatches);
+    FreeMemory(ScratchArena, Album_CountForBatches);
     
     
     for(u32 FileID = 0; FileID < FileInfo->Count; FileID++)
@@ -2037,19 +2052,19 @@ CreateMusicSortingInfo(bucket_allocator *Bucket, mp3_info *MP3Info)
     }
     
     music_info *MusicInfo = MP3Info->MusicInfo;
-    MusicInfo->SortingInfo.Genre.Selected.A  = CreateArray(&Bucket->Fixed, Genre.BatchCount);
-    MusicInfo->SortingInfo.Artist.Selected.A = CreateArray(&Bucket->Fixed, Artist.BatchCount);
-    MusicInfo->SortingInfo.Album.Selected.A  = CreateArray(&Bucket->Fixed, Album.BatchCount);
-    MusicInfo->SortingInfo.Song.Selected.A   = CreateArray(&Bucket->Fixed, FileInfo->Count);
+    MusicInfo->SortingInfo.Genre.Selected.A  = CreateArray(FixArena, Genre.BatchCount);
+    MusicInfo->SortingInfo.Artist.Selected.A = CreateArray(FixArena, Artist.BatchCount);
+    MusicInfo->SortingInfo.Album.Selected.A  = CreateArray(FixArena, Album.BatchCount);
+    MusicInfo->SortingInfo.Song.Selected.A   = CreateArray(FixArena, FileInfo->Count);
     
-    MusicInfo->SortingInfo.Genre.Displayable.A  = CreateArray(&Bucket->Fixed, Genre.BatchCount);
+    MusicInfo->SortingInfo.Genre.Displayable.A  = CreateArray(FixArena, Genre.BatchCount);
     For(Genre.BatchCount)
     {
         Push(&MusicInfo->SortingInfo.Genre.Displayable, NewFileID(It));
     }
-    MusicInfo->SortingInfo.Artist.Displayable.A = CreateArray(&Bucket->Fixed, Artist.BatchCount);
-    MusicInfo->SortingInfo.Album.Displayable.A  = CreateArray(&Bucket->Fixed, Album.BatchCount);
-    MusicInfo->SortingInfo.Song.Displayable.A   = CreateArray(&Bucket->Fixed, MP3Info->FileInfo.Count);
+    MusicInfo->SortingInfo.Artist.Displayable.A = CreateArray(FixArena, Artist.BatchCount);
+    MusicInfo->SortingInfo.Album.Displayable.A  = CreateArray(FixArena, Album.BatchCount);
+    MusicInfo->SortingInfo.Song.Displayable.A   = CreateArray(FixArena, MP3Info->FileInfo.Count);
     
     MusicInfo->SortingInfo.Genre.Base = &MusicInfo->SortingInfo;
     MusicInfo->SortingInfo.Artist.Base = &MusicInfo->SortingInfo;
@@ -2525,17 +2540,17 @@ SortDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo)
     QuickSort(0, Song->Displayable.A.Count-1, &Song->Displayable, {CompareSongDisplayable, &SortSongInfo});
 }
 
-internal void
-RetraceFilePath(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID)
+/*internal void
+RetraceFilePath(arena_allocator *Arena, mp3_info *MP3Info, file_id FileID)
 {
-    mp3_file_info TmpFileInfo = CreateFileInfoStruct(&Bucket->Transient, 1000);
-    string_compound FilePath = NewStringCompound(&Bucket->Transient, 255);
+    mp3_file_info TmpFileInfo = CreateFileInfoStruct(&Arena->Transient, 1000);
+    string_compound FilePath = NewStringCompound(&Arena->Transient, 255);
     ConcatStringCompounds(2, &FilePath, &MP3Info->FolderPath);
-    string_compound SubPath = NewStringCompound(&Bucket->Transient, 255);;
+    string_compound SubPath = NewStringCompound(&Arena->Transient, 255);;
     ConcatStringCompounds(2, &SubPath, MP3Info->FileInfo.SubPath + FileID.ID);
     
-    FindAllMP3FilesInFolder(&Bucket->Transient, &Bucket->Transient, &FilePath, &SubPath, &TmpFileInfo);
-    CrawlFilesForMetadata(&Bucket->Transient, &Bucket->Transient, &TmpFileInfo, &MP3Info->FolderPath);
+    FindAllMP3FilesInFolder(&Arena->Transient, &Arena->Transient, &FilePath, &SubPath, &TmpFileInfo);
+    CrawlFilesForMetadata(&Arena->Transient, &Arena->Transient, &TmpFileInfo, &MP3Info->FolderPath);
     
     mp3_metadata *OldMD = MP3Info->FileInfo.Metadata+FileID.ID;
     b32 Found = false;
@@ -2553,32 +2568,33 @@ RetraceFilePath(bucket_allocator *Bucket, mp3_info *MP3Info, file_id FileID)
             
             if(NewFileName->Length < TmpFileInfo.FileName[It].Pos)
             {
-                *NewFileName = NewStringCompound(&Bucket->Fixed, TmpFileInfo.FileName[It].Pos);
+                *NewFileName = NewStringCompound(&Arena->Fixed, TmpFileInfo.FileName[It].Pos);
             }
             else ResetStringCompound(*NewFileName);
             AppendStringCompoundToCompound(NewFileName, TmpFileInfo.FileName+It);
             
             if(NewSubPath->Length < TmpFileInfo.SubPath[It].Pos)
             {
-                *NewSubPath = NewStringCompound(&Bucket->Fixed, TmpFileInfo.SubPath[It].Pos);
+                *NewSubPath = NewStringCompound(&Arena->Fixed, TmpFileInfo.SubPath[It].Pos);
             }
             else ResetStringCompound(*NewSubPath);
             AppendStringCompoundToCompound(NewSubPath, TmpFileInfo.SubPath+It);
         }
         
-        DeleteStringCompound(&Bucket->Transient, TmpFileInfo.FileName+It);
-        DeleteStringCompound(&Bucket->Transient, TmpFileInfo.SubPath+It);
-        DeleteStringCompound(&Bucket->Transient, &FoundMD->Title);
-        DeleteStringCompound(&Bucket->Transient, &FoundMD->Artist);
-        DeleteStringCompound(&Bucket->Transient, &FoundMD->Album);
-        DeleteStringCompound(&Bucket->Transient, &FoundMD->Genre);
-        DeleteStringCompound(&Bucket->Transient, &FoundMD->TrackString);
-        DeleteStringCompound(&Bucket->Transient, &FoundMD->YearString);
+        DeleteStringCompound(&Arena->Transient, TmpFileInfo.FileName+It);
+        DeleteStringCompound(&Arena->Transient, TmpFileInfo.SubPath+It);
+        DeleteStringCompound(&Arena->Transient, &FoundMD->Title);
+        DeleteStringCompound(&Arena->Transient, &FoundMD->Artist);
+        DeleteStringCompound(&Arena->Transient, &FoundMD->Album);
+        DeleteStringCompound(&Arena->Transient, &FoundMD->Genre);
+        DeleteStringCompound(&Arena->Transient, &FoundMD->TrackString);
+        DeleteStringCompound(&Arena->Transient, &FoundMD->YearString);
     }
-    DeleteStringCompound(&Bucket->Transient, &FilePath);
-    DeleteStringCompound(&Bucket->Transient, &SubPath);
-    DeleteFileInfoStruct(&Bucket->Transient, &TmpFileInfo);
+    DeleteStringCompound(&Arena->Transient, &FilePath);
+    DeleteStringCompound(&Arena->Transient, &SubPath);
+    DeleteFileInfoStruct(&Arena->Transient, &TmpFileInfo);
 }
+*/
 
 internal void
 FinishChangeSong(game_state *GameState, playing_song *Song)
@@ -2649,24 +2665,24 @@ HandleChangeToNextSong(game_state *GameState)
 internal void
 ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
 {
-    MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->Bucket.Fixed, GameState->MP3Info->FileInfo.Count+200);
-    MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->Bucket.Fixed, 200);
+    MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, GameState->MP3Info->FileInfo.Count+200);
+    MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->FixArena, 200);
     
     MusicInfo->PlayingSong = {-1, -1, -1, 0};
-    CreateMusicSortingInfo(&GameState->Bucket, GameState->MP3Info);
+    CreateMusicSortingInfo();
     FillDisplayables(&MusicInfo->SortingInfo, &GameState->MP3Info->FileInfo, &MusicInfo->DisplayInfo);
     SortDisplayables(&MusicInfo->SortingInfo, &GameState->MP3Info->FileInfo);
     UseDisplayableAsPlaylist(MusicInfo);
     UpdateAllDisplayColumns(GameState);
     SaveMP3LibraryFile(GameState, GameState->MP3Info);
     
-    MusicInfo->DisplayInfo.Genre.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+    MusicInfo->DisplayInfo.Genre.Search.InitialDisplayables.A = CreateArray(&GameState->FixArena, 
                                                                             MusicInfo->SortingInfo.Genre.Displayable.A.Length);
-    MusicInfo->DisplayInfo.Artist.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+    MusicInfo->DisplayInfo.Artist.Search.InitialDisplayables.A = CreateArray(&GameState->FixArena, 
                                                                              MusicInfo->SortingInfo.Artist.Displayable.A.Length);
-    MusicInfo->DisplayInfo.Album.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+    MusicInfo->DisplayInfo.Album.Search.InitialDisplayables.A = CreateArray(&GameState->FixArena, 
                                                                             MusicInfo->SortingInfo.Album.Displayable.A.Length);
-    MusicInfo->DisplayInfo.Song.Base.Search.InitialDisplayables.A = CreateArray(&GameState->Bucket.Fixed, 
+    MusicInfo->DisplayInfo.Song.Base.Search.InitialDisplayables.A = CreateArray(&GameState->FixArena, 
                                                                                 MusicInfo->SortingInfo.Song.Displayable.A.Length);
     
     MusicInfo->DisplayInfo.Genre.DisplayCursor = 0;
@@ -2686,11 +2702,11 @@ CreateNewMetadata(game_state *GameState)
     b32 Result = true;
     music_info *MusicInfo = &GameState->MusicInfo;
     string_c SubPath = {};
-    GameState->MP3Info->FileInfo = CreateFileInfoStruct(&GameState->Bucket.Fixed, MAX_MP3_INFO_COUNT);
-    Result = FindAllMP3FilesInFolder(&GameState->Bucket.Fixed, &GameState->Bucket.Transient, &GameState->MP3Info->FolderPath,
+    DeleteFileInfoStruct(&GameState->MP3Info->FileInfo);
+    CreateFileInfoStruct(&GameState->MP3Info->FileInfo, MAX_MP3_INFO_COUNT);
+    Result = FindAllMP3FilesInFolder(&GameState->ScratchArena, &GameState->MP3Info->FolderPath,
                                      &SubPath, &GameState->MP3Info->FileInfo);
-    CrawlFilesForMetadata(&GameState->Bucket.Fixed, &GameState->Bucket.Transient, &GameState->MP3Info->FileInfo,
-                          &GameState->MP3Info->FolderPath);
+    CrawlFilesForMetadata(&GameState->ScratchArena, &GameState->MP3Info->FileInfo, &GameState->MP3Info->FolderPath);
     
     ApplyNewMetadata(GameState, MusicInfo);
     return Result;
@@ -2802,13 +2818,14 @@ HandleActiveMusicPath(music_display_info *DisplayInfo, input_info *Input, crawl_
 }
 
 internal void
-LoadNewMetadata_Thread(bucket_allocator *Bucket, crawl_thread *CrawlInfo)
+LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
 {
     mp3_info *MP3Info = CrawlInfo->MP3Info;
     
     string_c SubPath = {};
-    mp3_file_info Test = CreateFileInfoStruct(&Bucket->Transient, MAX_MP3_INFO_COUNT);
-    FindAllMP3FilesInFolder(&Bucket->Transient, &Bucket->Transient, &CrawlInfo->TestPath, &SubPath, &Test);
+    mp3_file_info Test = {};
+    CreateFileInfoStruct(&Test, MAX_MP3_INFO_COUNT);
+    FindAllMP3FilesInFolder(ScratchArena, &CrawlInfo->TestPath, &SubPath, &Test);
     CrawlInfo->Out->TestCount = Test.Count;
     CrawlInfo->Out->DoneFolderSearch = true;
     
@@ -2816,17 +2833,16 @@ LoadNewMetadata_Thread(bucket_allocator *Bucket, crawl_thread *CrawlInfo)
     {
         ReplaceFolderPath(MP3Info, &CrawlInfo->TestPath);
         
-        MP3Info->FileInfo = CreateFileInfoStruct(&GlobalGameState.Bucket.Fixed, MAX_MP3_INFO_COUNT);
+        DeleteFileInfoStruct(&MP3Info->FileInfo);
+        CreateFileInfoStruct(&MP3Info->FileInfo, MAX_MP3_INFO_COUNT);
         SubPath = {};
-        FindAllMP3FilesInFolder(&GlobalGameState.Bucket.Fixed, &Bucket->Transient, &MP3Info->FolderPath, 
-                                &SubPath, &MP3Info->FileInfo);
+        FindAllMP3FilesInFolder(ScratchArena, &MP3Info->FolderPath, &SubPath, &MP3Info->FileInfo);
         
-        CrawlFilesForMetadata(&GlobalGameState.Bucket.Fixed, &Bucket->Transient, &MP3Info->FileInfo, &MP3Info->FolderPath, 
-                              &CrawlInfo->Out->CurrentCount);
+        CrawlFilesForMetadata(ScratchArena, &MP3Info->FileInfo, &MP3Info->FolderPath, &CrawlInfo->Out->CurrentCount);
         CrawlInfo->Out->DoneCrawling = true;
     }
     
-    DeleteFileInfoStruct(&Bucket->Transient, &Test);
+    DeleteFileInfoStruct(&Test);
     CrawlInfo->Out->ThreadIsRunning = false;
 }
 
@@ -2843,12 +2859,12 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
     
     if(CheckMusicPath->AddTestInfoIDs.Count > 0)
     {
-        ResizeFileInfo(&GlobalGameState.Bucket.Fixed, FileInfo, FileInfo->MaxCount+CheckMusicPath->AddTestInfoIDs.Count);
+        ResizeFileInfo(&GlobalGameState.FixArena, FileInfo, FileInfo->MaxCount+CheckMusicPath->AddTestInfoIDs.Count);
     }
     For(CheckMusicPath->AddTestInfoIDs.Count)
     {
         u32 NewIt = Get(&CheckMusicPath->AddTestInfoIDs, It);
-        b32 R = AddFileToInfo(&GlobalGameState.Bucket, FileInfo, TestInfo->SubPath+NewIt, TestInfo->FileName+NewIt);
+        b32 R = AddFileToInfo(FileInfo, TestInfo->SubPath+NewIt, TestInfo->FileName+NewIt);
         Assert(R);
     }
     
@@ -2874,9 +2890,10 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
                          &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
     }
     
-    DestroyArray(&GlobalGameState.Bucket.Transient, CheckMusicPath->AddTestInfoIDs);
-    DestroyArray(&GlobalGameState.Bucket.Transient, CheckMusicPath->RemoveIDs);
-    DeleteFileInfoStruct(&GlobalGameState.Bucket.Transient, TestInfo);
+    
+    Clear(&CheckMusicPath->AddTestInfoIDs);
+    Clear(&CheckMusicPath->RemoveIDs);
+    ClearFileInfoStruct(TestInfo);
     
     CheckMusicPath->State = threadState_Inactive;
 }
@@ -2890,11 +2907,11 @@ IsHigher(i32 T1, i32 T2, void *Data)
 }
 
 internal void
-CheckForMusicPathMP3sChanged_Thread(bucket_allocator *Bucket, check_music_path *CheckMusicPath)
+CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_path *CheckMusicPath)
 {
     string_c SubPath = {};
     mp3_file_info *TestInfo = &CheckMusicPath->TestInfo;
-    FindAllMP3FilesInFolder(&Bucket->Transient, &Bucket->Transient, &CheckMusicPath->MP3Info->FolderPath, &SubPath, TestInfo);
+    FindAllMP3FilesInFolder(ScratchArena, &CheckMusicPath->MP3Info->FolderPath, &SubPath, TestInfo);
     
     mp3_file_info *FileInfo = &CheckMusicPath->MP3Info->FileInfo;
     
@@ -2957,10 +2974,11 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
         DecodeResult = JobInfo->MP3Info->DecodeInfo.DecodedData + JobInfo->DecodeID;
     else DecodeResult = &JobInfo->MP3Info->DecodeInfo.PlayingDecoded;
     
-    error_item Result = LoadAndDecodeMP3StartFrames(ThreadInfo->Bucket, JobInfo->PreloadSeconds, JobInfo->FileID, 
+    error_item Result = LoadAndDecodeMP3StartFrames(ThreadInfo->Arena, JobInfo->PreloadSeconds, JobInfo->FileID, 
                                                     JobInfo->DecodeID, DecodeResult);
 #else 
-    error_item Result = LoadAndDecodeMP3Data(ThreadInfo->Bucket, JobInfo->MP3Info, JobInfo->FileID, JobInfo->DecodeID, false);
+    error_item Result = LoadAndDecodeMP3Data(&ThreadInfo->ScratchArena, JobInfo->MP3Info, 
+                                             JobInfo->FileID, JobInfo->DecodeID, false);
 #endif
     
     if(Result.Code < 0) PushErrorMessageFromThread(Result);
@@ -2969,13 +2987,13 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
 internal JOB_LIST_CALLBACK(JobLoadNewMetadata)
 {
     crawl_thread *JobInfo = (crawl_thread *)Data;
-    LoadNewMetadata_Thread(ThreadInfo->Bucket, JobInfo);
+    LoadNewMetadata_Thread(&ThreadInfo->ScratchArena, JobInfo);
 }
 
 internal JOB_LIST_CALLBACK(JobCheckMusicPathChanged)
 {
     check_music_path *JobInfo = *((check_music_path **)Data);
-    CheckForMusicPathMP3sChanged_Thread(ThreadInfo->Bucket, JobInfo);
+    CheckForMusicPathMP3sChanged_Thread(&ThreadInfo->ScratchArena, JobInfo);
 }
 
 internal b32
@@ -3005,10 +3023,8 @@ internal void
 AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
 {
     CheckMusicPath->MP3Info        = GlobalGameState.MP3Info;
-    CheckMusicPath->TestInfo       = CreateFileInfoStruct(&GlobalGameState.Bucket.Transient, MAX_MP3_INFO_COUNT);
-    CheckMusicPath->RemoveIDs      = CreateArray(&GlobalGameState.Bucket.Transient, MAX_MP3_INFO_COUNT);
-    CheckMusicPath->AddTestInfoIDs = CreateArray(&GlobalGameState.Bucket.Transient, MAX_MP3_INFO_COUNT);
     CheckMusicPath->State          = threadState_Running;
+    
     AddJobToQueue(&GlobalGameState.JobQueue, JobCheckMusicPathChanged, CheckMusicPath);
 }
 
@@ -3207,32 +3223,32 @@ ProcessThreadErrors()
             {
                 case loadErrorCode_DecodingFailed:
                 {
-                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.Bucket.Transient, 555);
+                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
                     AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not decode song. Is file corrupted? (");
                     AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileName + NextError.ID.ID);
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     PushUserErrorMessage(&ErrorMsg);
-                    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &ErrorMsg);
+                    DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
                 } break;
                 
                 case loadErrorCode_FileLoadFailed:
                 {
-                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.Bucket.Transient, 555);
+                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
                     AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song from disk. If files were moved, do a retrace. (");
                     AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileName + NextError.ID.ID);
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     PushUserErrorMessage(&ErrorMsg);
-                    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &ErrorMsg);
+                    DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
                 } break;
                 
                 case loadErrorCode_EmptyFile:
                 {
-                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.Bucket.Transient, 555);
+                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
                     AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song. File was empty. (");
                     AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileName + NextError.ID.ID);
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     PushUserErrorMessage(&ErrorMsg);
-                    DeleteStringCompound(&GlobalGameState.Bucket.Transient, &ErrorMsg);
+                    DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
                 } break;
             }
         }

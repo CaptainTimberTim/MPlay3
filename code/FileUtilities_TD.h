@@ -10,16 +10,16 @@ struct read_file_result
 };
 
 // General file methods
-internal b32 WriteEntireFile(bucket_allocator *Bucket, u8 *Filename, u32 MemorySize, void *Memory);
+internal b32 WriteEntireFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory);
 internal b32 WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory);
-internal void   FreeFileMemory(memory_bucket_container *BucketContainer, u8 *Memory);
-internal b32 ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, u8 *Filename);
-internal b32 ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, string_w *Filename);
-internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
-internal b32 ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
-internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
-internal b32 ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
-internal b32 AppendToFile(memory_bucket_container *BucketContainer, char *FileName, u32 MemorySize, void *Memory);
+internal void   FreeFileMemory(arena_allocator *Arena, u8 *Memory);
+internal b32 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename);
+internal b32 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename);
+internal b32 ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
+internal b32 ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
+internal b32 ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
+internal b32 ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
+internal b32 AppendToFile(arena_allocator *Arena, char *FileName, u32 MemorySize, void *Memory);
 
 // .obj loader methods
 
@@ -91,12 +91,12 @@ struct obj_data
     model_information Infos;
 };
 
-internal b32 LoadOBJFile(obj_data *Object, u8 *Filename, bucket_allocator *BucketAlloc);
+internal b32 LoadOBJFile(obj_data *Object, u8 *Filename, arena_allocator *ArenaAlloc);
 inline   u32 ProcessVectorLine(r32 *Results, u32 VectorDim, u8 *LineChar);
 inline   face_type IdentifyFaceType(u8 *Character);
 internal u8 *EvaluateNextFaceIndexGroup(hash_table *FaceTable, obj_data *Object, obj_material_group *CurrentGroup, u8 *Character, v3 *Vertice, v2 *TexCoords, v3 *Normals);
-internal obj_material_group CollectAllGroupsInOne(obj_data *Object, bucket_allocator *BucketAlloc);
-internal b32 LoadMtlFile(mtl_data *Materials, bucket_allocator *BucketAlloc, u8 *Path, u8 *CutPath);
+internal obj_material_group CollectAllGroupsInOne(obj_data *Object, arena_allocator *ArenaAlloc);
+internal b32 LoadMtlFile(mtl_data *Materials, arena_allocator *ArenaAlloc, u8 *Path, u8 *CutPath);
 
 // .bmp loader methods
 enum bitmap_color_format
@@ -118,7 +118,7 @@ struct loaded_bitmap
 };
 
 inline   bit_scan_result FindLeastSignificantSetBit(u32 Value);
-internal loaded_bitmap LoadBMPImage(memory_bucket_container *BucketContainer, u8 *FileName);
+internal loaded_bitmap LoadBMPImage(arena_allocator *Arena, u8 *FileName);
 
 #pragma pack(push, 1)
 struct bitmap_header

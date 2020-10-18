@@ -301,7 +301,7 @@ SetActiveAllButGiven(drag_list *DragList, entry_id *ID, b32 Activate)
 // Textfield stuff
 
 internal text_field
-CreateTextField(renderer *Renderer, memory_bucket_container *Bucket, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor)
+CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor)
 {
     text_field Result = {};
     
@@ -322,7 +322,7 @@ CreateTextField(renderer *Renderer, memory_bucket_container *Bucket, v2 Size, r3
     SetLocalPosition(Result.Cursor, V2(4, 0));
     Result.Cursor->ID->Render = false;
     
-    Result.TextString = NewStringCompound(Bucket, 255);
+    Result.TextString = NewStringCompound(Arena, 255);
     Result.DoMouseHover = true;
     
     return Result;
@@ -405,7 +405,7 @@ ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *T
             
             if(StringIsPasted) // Process pasted symbols
             {
-                string_c PastedString = NewStringCompound(&GlobalGameState.Bucket.Transient, 1500);
+                string_c PastedString = NewStringCompound(&GlobalGameState.ScratchArena, 1500);
                 if(TryGetClipboardText(&PastedString))
                 {
                     if(PastedString.Pos > TextField->TextString.Length-TextField->TextString.Pos)
@@ -415,7 +415,7 @@ ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *T
                     AppendStringCompoundToCompound(&TextField->TextString, &PastedString);
                     TextChanged = true;
                 }
-                DeleteStringCompound(&GlobalGameState.Bucket.Transient, &PastedString);
+                DeleteStringCompound(&GlobalGameState.ScratchArena, &PastedString);
             }
             else if(Input->CharCount > 0) // Process all symbols
             {

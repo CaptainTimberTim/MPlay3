@@ -19,7 +19,7 @@ PrintLastWindowsError()
     Assert(false);
 }
 
-
+/*
 inline b32
 CreateBucketAllocator(bucket_allocator *BucketAllocator, u32 FixedSize, u32 HalfTransientSize)
 {
@@ -285,20 +285,20 @@ CreateSubAllocator(bucket_allocator *Bucket, u32 FixedSize, u32 HalfTransientSiz
     
     return Result;
 }
-
+*/
 
 // HASH TABLE
 
 inline hash_table
-HashTable(memory_bucket_container *BucketContainer, u32 Size)
+HashTable(arena_allocator *Arena, u32 Size)
 {
     hash_table Result    = {};
     Result._TableSize    = Size;
-    Result.KeyValuePair  = PushArrayOnBucket(BucketContainer, Size, key_value_pair);
-    ClearToGiven(Result.KeyValuePair, sizeof(key_value_pair)*Size, 0);
+    Result.KeyValuePair  = AllocateArray(Arena, Size, key_value_pair);
+    ClearArray(Result.KeyValuePair, Size, key_value_pair);
     Result.CollisionSize = (u32)(Size*0.2f);
-    Result.Collisions    = PushArrayOnBucket(BucketContainer, Result.CollisionSize, key_value_pair);
-    ClearToGiven(Result.Collisions, sizeof(key_value_pair)*Result.CollisionSize, 0);
+    Result.Collisions    = AllocateArray(Arena, Result.CollisionSize, key_value_pair);
+    ClearArray(Result.Collisions, Result.CollisionSize, key_value_pair);
     Result.IsTransient = true;
     return Result;
 }
@@ -398,12 +398,12 @@ UpdateValueInHashTable(hash_table *Table, u8 *Key, u32 NewValue)
 }
 
 inline void
-DeleteHashTableTransient(bucket_allocator *BucketAllocator, hash_table *Table)
+DeleteHashTableTransient(arena_allocator *Arena, hash_table *Table)
 {
     if(Table->IsTransient)
     {
-        PopFromTransientBucket(BucketAllocator, Table->KeyValuePair);
-        PopFromTransientBucket(BucketAllocator, Table->Collisions);
+        FreeMemory(Arena, Table->KeyValuePair);
+        FreeMemory(Arena, Table->Collisions);
     }
 }
 
@@ -504,12 +504,12 @@ GetWeightedRandom01(u32 XTimesHigherPropabilityFor0)
 // HEAP
 
 inline heap
-CreateHeap(memory_bucket_container *BucketContainer, u32 MinHeapSize)
+CreateHeap(arena_allocator *Arena, u32 MinHeapSize)
 {
     heap Result = {};
     Result.Size = MinHeapSize;
-    Result.Nodes = PushArrayOnBucket(BucketContainer, MinHeapSize, heap_node);
-    ClearArrayToGiven(Result.Nodes, MinHeapSize, heap_node, 0);
+    Result.Nodes = AllocateArray(Arena, MinHeapSize, heap_node);
+    ClearArray(Result.Nodes, MinHeapSize, heap_node);
     
     return Result;
 }
@@ -547,13 +547,14 @@ SiftUpHeap(heap *Heap, u32 NodeID)
 }
 
 inline void
-InsertIntoHeap(memory_bucket_container *BucketContainer, heap *Heap, i32 Value, void *Data)
+InsertIntoHeap(arena_allocator *Arena, heap *Heap, i32 Value, void *Data)
 {
     if(Heap->Count >= Heap->Size)
     {
-        if(!BucketContainer->IsFixedBucket /*IsAddressTransient(Bucket, Heap->Nodes)*/)
+        if(Arena->Flags & arenaFlags_IsTransient)
         {
-            ResizeTransientArray(BucketContainer, Heap->Nodes, Heap->Size, Heap->Size*2, heap_node);
+            //ResizeTransientArray(BucketContainer, Heap->Nodes, Heap->Size, Heap->Size*2, heap_node);
+            Assert(false); // TODO:: Fix this, #ArenaAllocator
             Heap->Size *= 2;
         }
         else
@@ -607,28 +608,28 @@ ExtractHeapMinimum(heap *Heap)
 }
 
 inline void
-DeleteTransientHeap(bucket_allocator *Bucket, heap *Heap)
+DeleteTransientHeap(arena_allocator *Arena, heap *Heap)
 {
-    PopFromTransientBucket(Bucket, Heap->Nodes);
+    FreeMemory(Arena, Heap->Nodes);
 }
 
 // Array operations
 inline array_u32
-CreateArray(memory_bucket_container *Bucket, u32 Length)
+CreateArray(arena_allocator *Arena, u32 Length)
 {
     array_u32 Result = {};
     
     Result.Count  = 0;
     Result.Length = Length;
-    Result.Slot   = PushArrayOnBucket(Bucket, Length, u32);
+    Result.Slot   = AllocateArray(Arena, Length, u32);
     
     return Result;
 }
 
 inline void 
-DestroyArray(memory_bucket_container *Bucket, array_u32 Array)
+DestroyArray(arena_allocator *Arena, array_u32 Array)
 {
-    PopFromTransientBucket(Bucket, Array.Slot);
+    FreeMemory(Arena, Array.Slot);
 }
 
 inline void 

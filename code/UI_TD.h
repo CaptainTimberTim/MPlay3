@@ -127,7 +127,7 @@ struct text_field
     b32 IsActive;
 };
 
-internal text_field CreateTextField(renderer *Renderer, memory_bucket_container *Bucket, v2 Size, r32 ZValue, 
+internal text_field CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, 
                                     u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor);
 inline void Translate(text_field *TextField, v2 Translation);
 inline void SetActive(text_field *TextField, b32 MakeActive);

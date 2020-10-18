@@ -63,7 +63,7 @@ struct render_entry
     // TODO:: Cache the GLSpace data and us it in (isIn.. functions)
 };
 
-#define CHARACTERS_PER_TEXT_INFO 256
+#define CHARACTERS_PER_TEXT_INFO 256u
 struct render_text
 {
     v2 CurrentP;
@@ -307,7 +307,7 @@ inline v2 ClampToRect(v2 Pos, entry_id *Entry);
 inline v2 ClampToRect(v2 Pos, rect_2D Rect);
 
 // Auto screen transform stuff
-inline screen_transform_list CreateScreenTransformList(memory_bucket_container *Bucket, u32 Size = 128);
+inline screen_transform_list CreateScreenTransformList(arena_allocator *Arena, u32 Size = 128);
 inline void RemoveFromTransformList(screen_transform_list *List, entry_id *Entry);
 inline u32 TranslateWithScreen(screen_transform_list *List, entry_id *Entry, fixed_to FixedTo, r32 FixToPosition = 0);
 inline u32 TranslateWithScreen(screen_transform_list *List, entry_id *Entry, fixed_to FixedTo, v2  FixToPosition);

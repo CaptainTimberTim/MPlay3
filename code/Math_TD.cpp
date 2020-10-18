@@ -363,6 +363,13 @@ Max(u64 A, u64 B)
     return Result;
 }
 
+inline u32
+Max(u32 A, u32 B)
+{
+    u32 Result = max(A, B);
+    return Result;
+}
+
 inline i32
 Min(i32 A, i32 B)
 {

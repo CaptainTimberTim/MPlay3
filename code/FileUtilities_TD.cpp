@@ -1,14 +1,15 @@
 #include "FileUtilities_TD.h"
 
 internal b32
-WriteEntireFile(bucket_allocator *Bucket, u8 *Filename, u32 MemorySize, void *Memory)
+WriteEntireFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory)
 {
     b32 Result = false;
     
+    Assert(Arena->Flags & arenaFlags_IsTransient);
     string_w FileNameWide = {};
-    ConvertString8To16(&Bucket->Transient, Filename, &FileNameWide);
+    ConvertString8To16(Arena, Filename, &FileNameWide);
     Result = WriteEntireFile(&FileNameWide, MemorySize, Memory);
-    DeleteStringW(&Bucket->Transient, &FileNameWide);
+    DeleteStringW(Arena, &FileNameWide);
     
     return Result;
 }
@@ -40,29 +41,29 @@ WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory)
 }
 
 internal void 
-FreeFileMemory(memory_bucket_container *BucketContainer, u8 *Memory)
+FreeFileMemory(arena_allocator *Arena, u8 *Memory)
 {
-    if(Memory && !BucketContainer->IsFixedBucket)
+    if(Memory && Arena->Flags & arenaFlags_IsTransient)
     {
-        PopFromTransientBucket(BucketContainer, Memory);
+        FreeMemory(Arena, Memory);
     }
 }
 
 internal b32 
-ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, u8 *Filename)
+ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename)
 {
     b32 Result = false;
     
     string_w FileNameWide = {};
-    ConvertString8To16(&BucketContainer->Parent->Transient, Filename, &FileNameWide);
-    Result = ReadEntireFile(BucketContainer, FileData, &FileNameWide);
-    DeleteStringW(&BucketContainer->Parent->Transient, &FileNameWide);
+    ConvertString8To16(Arena, Filename, &FileNameWide); // TODO:: #ArenaAllocator, should maybe use scratch memory somhow...
+    Result = ReadEntireFile(Arena, FileData, &FileNameWide);
+    DeleteStringW(Arena, &FileNameWide);
     
     return Result;
 }
 
 internal b32 
-ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileData, string_w *Filename)
+ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename)
 {
     b32 Result = false;
     HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -72,7 +73,7 @@ ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileD
         if (GetFileSizeEx(FileHandle, &FileSize))
         {
             u32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
-            FileData->Data = (u8 *)PushSizeOnBucket(BucketContainer, FileSize32+1);
+            FileData->Data = AllocateMemory(Arena, FileSize32+1);
             if (FileData->Data)
             {
                 DWORD BytesRead;
@@ -85,7 +86,7 @@ ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileD
                 }
                 else
                 {
-                    FreeFileMemory(BucketContainer, FileData->Data);
+                    FreeFileMemory(Arena, FileData->Data);
                     FileData->Data = 0;
                     printf("Could not read the file.\n");
                 }
@@ -109,20 +110,20 @@ ReadEntireFile(memory_bucket_container *BucketContainer, read_file_result *FileD
 }
 
 internal b32 
-ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount)
+ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     
     string_w FileNameWide = {};
-    ConvertString8To16(&Bucket->Parent->Transient, Filename, &FileNameWide);
-    Result = ReadBeginningOfFile(Bucket, FileData, &FileNameWide, ReadAmount);
-    DeleteStringW(&Bucket->Parent->Transient, &FileNameWide);
+    ConvertString8To16(Arena, Filename, &FileNameWide); // TODO:: #ArenaAllocator, should maybe use scratch memory somhow...
+    Result = ReadBeginningOfFile(Arena, FileData, &FileNameWide, ReadAmount);
+    DeleteStringW(Arena, &FileNameWide);
     
     return Result;
 }
 
 internal b32 
-ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount)
+ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -133,7 +134,7 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
         {
             u32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
             ReadAmount = (ReadAmount > FileSize32) ? FileSize32+1 : ReadAmount+1;
-            FileData->Data = (u8 *)PushSizeOnBucket(Bucket, ReadAmount);
+            FileData->Data = AllocateMemory(Arena, ReadAmount);
             if (FileData->Data)
             {
                 DWORD BytesRead;
@@ -144,7 +145,7 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
                 }
                 else
                 {
-                    FreeFileMemory(Bucket, FileData->Data);
+                    FreeFileMemory(Arena, FileData->Data);
                     FileData->Data = 0;
                     printf("Could not read the file.\n");
                 }
@@ -168,20 +169,20 @@ ReadBeginningOfFile(memory_bucket_container *Bucket, read_file_result *FileData,
 }
 
 internal b32 
-ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, u8 *Filename, u32 ReadAmount)
+ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     
     string_w FileNameWide = {};
-    ConvertString8To16(&Bucket->Parent->Transient, Filename, &FileNameWide);
-    Result = ReadEndOfFile(Bucket, FileData, &FileNameWide, ReadAmount);
-    DeleteStringW(&Bucket->Parent->Transient, &FileNameWide);
+    ConvertString8To16(Arena, Filename, &FileNameWide); // TODO:: #ArenaAllocator, should maybe use scratch memory somhow...
+    Result = ReadEndOfFile(Arena, FileData, &FileNameWide, ReadAmount);
+    DeleteStringW(Arena, &FileNameWide);
     
     return Result;
 }
 
 internal b32 
-ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, string_w *Filename, u32 ReadAmount)
+ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount)
 {
     b32 Result = false;
     HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
@@ -192,7 +193,7 @@ ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, strin
         {
             Assert(FileSize.QuadPart < MAX_UINT32);
             u32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
-            FileData->Data = (u8 *)PushSizeOnBucket(Bucket, ReadAmount);
+            FileData->Data = AllocateMemory(Arena, ReadAmount);
             if (FileData->Data)
             {
                 // Now move the file pointer to start reading from the end
@@ -208,7 +209,7 @@ ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, strin
                     }
                     else
                     {
-                        FreeFileMemory(Bucket, FileData->Data);
+                        FreeFileMemory(Arena, FileData->Data);
                         FileData->Data = 0;
                         printf("Could not read the file.\n");
                     }
@@ -237,20 +238,20 @@ ReadEndOfFile(memory_bucket_container *Bucket, read_file_result *FileData, strin
 }
 
 internal b32
-AppendToFile(memory_bucket_container *BucketContainer, u8 *FileName, u32 MemorySize, void *Memory)
+AppendToFile(arena_allocator *Arena, u8 *FileName, u32 MemorySize, void *Memory)
 {
     b32 Result = false;
     read_file_result FileData = {};
-    if(ReadEntireFile(BucketContainer, &FileData, FileName))
+    if(ReadEntireFile(Arena, &FileData, FileName))
     {
         MemorySize += FileData.Size;
         char AllData[10000];
         sprintf_s(AllData, "%s\n%s\n\0",FileData.Data, (char *)Memory);
-        if(WriteEntireFile(BucketContainer->Parent, FileName, MemorySize, AllData))
+        if(WriteEntireFile(Arena, FileName, MemorySize, AllData))
         {
             Result = true;
         }
-        PopFromTransientBucket(BucketContainer, FileData.Data);
+        FreeFileMemory(Arena, FileData.Data);
     }
     return Result;
 }
@@ -278,12 +279,12 @@ FindLeastSignificantSetBit(u32 Value)
 }
 
 internal loaded_bitmap
-LoadBMPImage(memory_bucket_container *BucketContainer, u8 *FileName)
+LoadBMPImage(arena_allocator *Arena, u8 *FileName)
 {
     loaded_bitmap Result = {};
     Result.WasLoaded = false;
     read_file_result FileData = {};
-    if(ReadEntireFile(BucketContainer, &FileData, FileName))
+    if(ReadEntireFile(Arena, &FileData, FileName))
     {
         Result.WasLoaded = true;
         bitmap_header *Header = (bitmap_header *)FileData.Data;
@@ -345,7 +346,7 @@ LoadBMPImage(memory_bucket_container *BucketContainer, u8 *FileName)
 }
 
 internal loaded_bitmap
-ConvertBMPToBlackWhiteTransparent(memory_bucket_container *BucketContainer, loaded_bitmap *ExistingBitmap)
+ConvertBMPToBlackWhiteTransparent(arena_allocator *Arena, loaded_bitmap *ExistingBitmap)
 {
     loaded_bitmap Result = {};
     u32 Count = ExistingBitmap->Width*ExistingBitmap->Height;
@@ -353,8 +354,8 @@ ConvertBMPToBlackWhiteTransparent(memory_bucket_container *BucketContainer, load
     Result.ColorFormat = colorFormat_RGBA;
     Result.Width = ExistingBitmap->Width;
     Result.Height = ExistingBitmap->Height;
-    Result.Pixels = PushArrayOnBucket(BucketContainer, Count, u32);
-    ClearToGiven(Result.Pixels, Count, 0);
+    Result.Pixels = AllocateArray(Arena, Count, u32);
+    ClearMemory(Result.Pixels, Count);
     
     u8 *AlphaMap = (u8 *)ExistingBitmap->Pixels;
     u32 BitAlign = 4 - ((3*ExistingBitmap->Width)%4);

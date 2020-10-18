@@ -2,7 +2,32 @@
 #ifndef _ALLOCATOR__T_D_H
 #define _ALLOCATOR__T_D_H
 
-#define ARENA_BASE_SIZE Megabytes(256)
+#if DEBUG_TD // INFO:: Debug data for arenas
+struct arena_debug_data
+{
+    struct arena_allocator *Parent;
+    
+    u32 FrameCount;
+    
+    u32 AllocationCount;
+    u32 PrevAllocationCount; // Last frame
+    u32 FreeCount;
+    
+    u32 PrivateAllocationCount;
+    
+    u64 MaxAllocationSize;
+    
+    u64 HighestAllocationCountInFrame;
+    u64 LowestAllocationCountInFrame;
+    
+    u32 MaxArenaCount;
+    r32 MaxFillPercentage[20];
+    r32 CurrentFillP[20];
+};
+
+#endif
+
+#define ARENA_BASE_SIZE Megabytes(64)
 struct arena
 {
     struct arena *Prev;
@@ -14,18 +39,33 @@ struct arena
     u8 *Memory;
 };
 
+enum arena_flags
+{
+    arenaFlags_IsTransient = 1<<0,
+    arenaFlags_IsThreaded  = 1<<1,
+};
+
 // ZII: Zero is initialization!
 // Means that creating this struct with everything zero 
 // and just starting to use it is the intended way. 
 // No addidional initialization is needed.
 struct arena_allocator
 {
-    u32 ArenaCount;
-    u32 EmptyArenaCount;
-    u32 MaxEmptyArenaCount; // Zero leaves one empty arena!
+    i32 Flags;
+    u32 ArenaBaseSize;
+    u32 MaxEmptyArenaCount;
     
+    u32 EmptyArenaCount;
+    
+    u32 ArenaCount;
     arena *Base;
     arena *LastUsed;
+    
+    HANDLE Mutex; // Only used when Flag IsThreaded is set.
+    
+#if DEBUG_TD
+    struct arena_debug_data DebugData;
+#endif
 };
 #define CreateArenaAllocator() {}
 
@@ -36,7 +76,7 @@ inline void FreeMemory(arena_allocator *Allocator, void *Memory);
 // 2. With the keyword Private, then it becomes private allocation
 // Each procdeure is briefly described below.
 #define AllocateMemory(Allocator, Size,        ...) (u8 *)  AllocateMemory_##__VA_ARGS__(Allocator, Size)
-#define AllocateArray (Allocator, Count, Type, ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, (Count)*sizeof(Type))
+#define AllocateArray(Allocator, Count, Type,  ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, (Count)*sizeof(Type))
 #define AllocateStruct(Allocator, Type,        ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, sizeof(Type))
 
 
@@ -51,7 +91,9 @@ internal void *AllocateMemory_Private(arena_allocator *Allocator, u64 Size);
 
 internal void ResetMemoryArena(arena_allocator *Allocator);
 
-
+#define ClearMemory(Memory, Size)       Clear_(Memory, Size)
+#define ClearArray(Memory, Count, Type) Clear_(Memory, (Count)*sizeof(Type))
+inline void Clear_(void *Memory, u64 Size);
 
 
 

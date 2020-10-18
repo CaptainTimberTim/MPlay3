@@ -358,7 +358,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
 {
     sound_thread_interface *Interface = &ThreadInfo->Interface;
     sound_info *SoundInfo = &ThreadInfo->SoundInfo;
-    bucket_allocator *Bucket = &GlobalGameState.SoundThreadBucket;
+    arena_allocator *Arena = &GlobalGameState.SoundThreadArena;
     
     // Initializing clock
     LARGE_INTEGER PerfCountFrequencyResult;
@@ -414,9 +414,9 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
         {
             Interface->SongChangedToggle = false;
             
-            PopFromTransientBucket(&Bucket->Transient, MP3Decoded.buffer);
+            if(MP3Decoded.buffer) FreeMemory(Arena, MP3Decoded.buffer);
             MP3Decoded        = Interface->PlayingSongData;
-            MP3Decoded.buffer = PushArrayOnBucket(&Bucket->Transient, (u32)MP3Decoded.samples, i16);
+            MP3Decoded.buffer = AllocateArray(Arena, (u32)MP3Decoded.samples, i16);
             For(MP3Decoded.samples) MP3Decoded.buffer[It] = Interface->PlayingSongData.buffer[It];
             
             if(MP3Decoded.hz != SoundInfo->SoundInstance.SamplesPerSecond ||

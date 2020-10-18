@@ -18,8 +18,8 @@ struct string_compound
 typedef string_compound string_c;
 
 #define NewStaticStringCompound(String) {(u8 *)String, StringLength((u8 *)String), StringLength((u8 *)String)}
-inline string_c NewStringCompound(memory_bucket_container *Arena, u32 Size);
-inline void DeleteStringCompound(memory_bucket_container *Arena, string_compound *S);
+inline string_c NewStringCompound(arena_allocator *Arena, u32 Size);
+inline void DeleteStringCompound(arena_allocator *Arena, string_compound *S);
 #define ResetStringCompound(SC) {(SC).Pos = 0; (SC).S[0] = '\0';}
 
 #define NewEmptyLocalString(Name, Count)  \
@@ -38,7 +38,7 @@ inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter
 inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2); 
 
 inline void WipeStringCompound(string_compound *Comp);
-inline void CreateOrWipeStringComp(memory_bucket_container *Arena, string_c *C);
+inline void CreateOrWipeStringComp(arena_allocator *Arena, string_c *C);
 
 inline void CombineStringCompounds(string_compound *Comp1, string_compound *Comp2);
 inline void CombineStringCompounds(string_compound *Buffer, string_compound *Comp1, string_compound *Comp2);
@@ -97,23 +97,23 @@ struct string_wide
 };
 typedef string_wide string_w;
 
-inline string_w NewStringW(memory_bucket_container *Arena, u32 Size);
+inline string_w NewStringW(arena_allocator *Arena, u32 Size);
 inline void WipeStringW(string_w *S);
-inline void DeleteStringW(memory_bucket_container *ArenaContainer, string_w *S);
-inline b32 ConvertString8To16(memory_bucket_container *Arena, string_c *In, string_w *Out);
-inline b32 ConvertString8To16(memory_bucket_container *Arena, u8 *In, string_w *Out);
-inline b32 ConvertString16To8(memory_bucket_container *Arena, string_w *In, string_c *Out);
-inline b32 ConvertString16To8(memory_bucket_container *Arena, wchar_t *In, string_c *Out);
+inline void DeleteStringW(arena_allocator *Arena, string_w *S);
+inline b32 ConvertString8To16(arena_allocator *Arena, string_c *In, string_w *Out);
+inline b32 ConvertString8To16(arena_allocator *Arena, u8 *In, string_w *Out);
+inline b32 ConvertString16To8(arena_allocator *Arena, string_w *In, string_c *Out);
+inline b32 ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out);
 
 
 
 
 inline string_c
-NewStringCompound(memory_bucket_container *Arena, u32 Size)
+NewStringCompound(arena_allocator *Arena, u32 Size)
 {
     Assert(Size >= 0);
     string_c Result;
-    Result.S = PushArrayOnBucket(Arena, Size+1, u8);
+    Result.S = AllocateArray(Arena, Size+1, u8);
     Result.S[Size] = 0;
     Result.Pos = 0;
     Result.Length = Size;
@@ -122,9 +122,9 @@ NewStringCompound(memory_bucket_container *Arena, u32 Size)
 }
 
 inline void 
-DeleteStringCompound(memory_bucket_container *BucketContainer, string_compound *S)
+DeleteStringCompound(arena_allocator *Arena, string_compound *S)
 {
-    PopFromTransientBucket(BucketContainer, S->S);
+    FreeMemory(Arena, S->S);
 }
 
 inline void
@@ -207,12 +207,12 @@ PasteStringCompoundIntoCompound(string_compound *C1, u32 C1Start, string_compoun
 inline void 
 WipeStringCompound(string_compound *Comp)
 {
-    ClearToGiven(Comp->S, Comp->Length*sizeof(u8), 0);
+    ClearArray(Comp->S, Comp->Length, u8);
     Comp->Pos = 0;
 }
 
 inline void 
-CreateOrWipeStringComp(memory_bucket_container *Arena, string_c *C, i32 Size)
+CreateOrWipeStringComp(arena_allocator *Arena, string_c *C, i32 Size)
 {
     
     if(C->Length == 0) 
@@ -785,15 +785,15 @@ I32ToString(string_compound *Comp, i32 I)
 inline void
 WipeStringW(string_w *S)
 {
-    ClearToGiven(S->S, S->Length*sizeof(wchar_t), 0);
+    ClearArray(S->S, S->Length, wchar_t);
     S->Pos = 0;
 }
 
 inline string_w
-NewStringW(memory_bucket_container *Arena, u32 Size)
+NewStringW(arena_allocator *Arena, u32 Size)
 {
     string_w Result;
-    Result.S = PushArrayOnBucket(Arena, Size+1, wchar_t);
+    Result.S = AllocateArray(Arena, Size+1, wchar_t);
     Result.S[Size] = 0;
     Result.Pos = 0;
     Result.Length = Size;
@@ -802,13 +802,13 @@ NewStringW(memory_bucket_container *Arena, u32 Size)
 }
 
 inline void 
-DeleteStringW(memory_bucket_container *ArenaContainer, string_w *S)
+DeleteStringW(arena_allocator *Arena, string_w *S)
 {
-    PopFromTransientBucket(ArenaContainer, S->S);
+    FreeMemory(Arena, S->S);
 }
 
 inline b32
-ConvertString8To16(memory_bucket_container *Arena, string_c *In, string_w *Out)
+ConvertString8To16(arena_allocator *Arena, string_c *In, string_w *Out)
 {
     b32 Result = false;
     i32 Size = MultiByteToWideChar(CP_UTF8, 0, (char *)In->S, -1, 0, 0);
@@ -824,7 +824,7 @@ ConvertString8To16(memory_bucket_container *Arena, string_c *In, string_w *Out)
 }
 
 inline b32
-ConvertString8To16(memory_bucket_container *Arena, u8 *In, string_w *Out)
+ConvertString8To16(arena_allocator *Arena, u8 *In, string_w *Out)
 {
     b32 Result = false;
     i32 Size = MultiByteToWideChar(CP_UTF8, 0, (char *)In, -1, 0, 0);
@@ -840,7 +840,7 @@ ConvertString8To16(memory_bucket_container *Arena, u8 *In, string_w *Out)
 }
 
 inline b32
-ConvertString16To8(memory_bucket_container *Arena, string_w *In, string_c *Out)
+ConvertString16To8(arena_allocator *Arena, string_w *In, string_c *Out)
 {
     b32 Result = false;
     
@@ -858,7 +858,7 @@ ConvertString16To8(memory_bucket_container *Arena, string_w *In, string_c *Out)
 }
 
 inline b32
-ConvertString16To8(memory_bucket_container *Arena, wchar_t *In, string_c *Out)
+ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out)
 {
     b32 Result = false;
     

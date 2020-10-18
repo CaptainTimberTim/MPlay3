@@ -75,11 +75,10 @@ struct sound_thread_interface
 
 struct sound_thread
 {
-    bucket_allocator *Bucket;
+    arena_allocator *Arena;
     sound_thread_interface Interface;
     
     sound_info SoundInfo;
     i16 *SoundSamples;
 };
-
 

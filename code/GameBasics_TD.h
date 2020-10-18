@@ -87,7 +87,7 @@ struct color_picker
 struct game_state
 {
     string_c DataPath;
-    bucket_allocator Bucket;
+    //bucket_allocator Bucket;
     arena_allocator FixArena;
     arena_allocator ScratchArena;
     
@@ -107,8 +107,10 @@ struct game_state
     cursor_state CursorState;
     
     // Threading stuff
-    bucket_allocator SoundThreadBucket;
+    arena_allocator SoundThreadArena;
     sound_thread_interface *SoundThreadInterface;
+    
+    arena_allocator JobThreadsArena;
     circular_job_queue JobQueue;
     
     crawl_thread CrawlInfo;

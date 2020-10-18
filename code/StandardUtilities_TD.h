@@ -1,6 +1,6 @@
 #pragma once
 #include "Math_TD.h"
-
+/*
 #if DEBUG_TD
 LPVOID BaseMemoryAdress = (LPVOID)Terabytes(2);
 #else
@@ -62,7 +62,7 @@ inline void ClearToGiven_(void *Memory, u32 Size, i32 Given);
 inline b32 IsAddressFixed(bucket_allocator *Bucket, void *Address);
 
 internal bucket_allocator *CreateSubAllocator(bucket_allocator *Bucket, u32 FixedSize, u32 HalfTransientSize);
-
+*/
 
 // HashTable
 #define HASH_TABLE_KEY_LENGTH 30

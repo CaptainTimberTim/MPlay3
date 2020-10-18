@@ -76,3 +76,4 @@
 
 18.10.2020
 - Changed arena allocator quite a bit. Now it is simpler again, with no additional transient memory.
+- Switched away from old bucket allocator to the new arena allocator. Average memory footprint is now ~1/4th.

@@ -42,6 +42,7 @@ DoNextJobQueueEntry(job_thread_info *Info)
         if(Index == OriginalNextJobToRead)
         {
             job_queue_entry Entry = JobQueue->Entries[Index];
+            ResetMemoryArena(&Info->ScratchArena);
             Entry.Callback(Info, Entry.Data);
             InterlockedIncrement((LONG volatile *)&JobQueue->CompletionCount);
         }
@@ -88,8 +89,7 @@ EmptyJobQueueWhenPossible(circular_job_queue *JobQueue)
 }
 
 internal void
-InitializeJobThreads(bucket_allocator *Bucket, HANDLE *JobHandles, 
-                     circular_job_queue *JobQueue, job_thread_info *JobThreadInfos)
+InitializeJobThreads(HANDLE *JobHandles, circular_job_queue *JobQueue, job_thread_info *JobThreadInfos)
 {
     JobQueue->Semaphore = CreateSemaphoreEx(0, 0, THREAD_COUNT, 0, 0, SEMAPHORE_ALL_ACCESS);
     
@@ -97,7 +97,7 @@ InitializeJobThreads(bucket_allocator *Bucket, HANDLE *JobHandles,
     {
         JobThreadInfos[It].ThreadID = It;
         JobThreadInfos[It].JobQueue = JobQueue;
-        JobThreadInfos[It].Bucket   = CreateSubAllocator(Bucket, Megabytes(5), Megabytes(64));//Megabytes(2*64));
+        JobThreadInfos[It].ScratchArena = {arenaFlags_IsTransient};
         
         JobHandles[It] = CreateThread(0, 0, JobThreadProc, (LPVOID)(JobThreadInfos+It), 0, 0);
     }

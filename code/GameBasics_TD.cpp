@@ -132,7 +132,7 @@ UpdateColorPickerTexture(color_picker *ColorPicker, v3 NewColor)
 {
     loaded_bitmap *Bitmap = &ColorPicker->Bitmap;
     if(!Bitmap->Pixels) 
-        Bitmap->Pixels = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, Bitmap->Width*Bitmap->Height, u32);
+        Bitmap->Pixels = AllocateArray(&GlobalGameState.FixArena, Bitmap->Width*Bitmap->Height, u32);
     
     v3 NewColorInvert = V3(1)-NewColor;
     For(Bitmap->Height, Y_)
@@ -493,7 +493,7 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     
     // Create brightness slider
     loaded_bitmap ColorSpectrumBitmap = {};
-    ColorSpectrumBitmap.Pixels = PushArrayOnBucket(&GlobalGameState.Bucket.Fixed, ColorSpectrumSize.x*ColorSpectrumSize.y, u32);
+    ColorSpectrumBitmap.Pixels = AllocateArray(&GlobalGameState.FixArena, ColorSpectrumSize.x*ColorSpectrumSize.y, u32);
     ColorSpectrumBitmap.ColorFormat = colorFormat_RGBA;
     ColorSpectrumBitmap.Width  = ColorSpectrumSize.x;
     ColorSpectrumBitmap.Height = ColorSpectrumSize.y;
@@ -590,7 +590,7 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     CreateQuitAnimation(&Result->RemoveAnim, V2(BitmapSize), &RemoveText, 1.2f);
     
     // Create Textfield for palette names ****************
-    Result->PaletteName = CreateTextField(Renderer, &GlobalGameState.Bucket.Fixed, V2((r32)BitmapSize.x, 20.0f), 
+    Result->PaletteName = CreateTextField(Renderer, &GlobalGameState.FixArena, V2((r32)BitmapSize.x, 20.0f), 
                                           Depth-0.01f, (u8 *)"Custom Palette", Result->Background, 
                                           &Palette->ForegroundText, &Palette->Foreground);
     Translate(&Result->PaletteName, BGOffset + V2(-8.0f, BitmapSize.y*0.5f + 10 + 11));

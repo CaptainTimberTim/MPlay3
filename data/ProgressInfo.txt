@@ -77,3 +77,12 @@
 18.10.2020
 - Changed arena allocator quite a bit. Now it is simpler again, with no additional transient memory.
 - Switched away from old bucket allocator to the new arena allocator. Average memory footprint is now ~1/4th.
+
+19.10.2020
+- Created new files for SoundJob procedures
+- Created new files for SoundSerialization procedures
+- Removed unnesessary dependencies in Renderer.c
+- Switched all remaining .cpp files to .c files. Just for a bit more consistency. Maybe I should do it the other was round...
+- Renamed Sound_Backend_TD.* to Sound_Thread_TD.*, to fit more what it actually contains. 
+- Renamed Sound_TD.* to Sound_Backend_TD.*, as this name fits better to those files and they needed a suffix, as it was annoying to switch to them.
+

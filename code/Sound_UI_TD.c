@@ -204,7 +204,7 @@ OnSearchPressed(void *Data)
         {
             CopyBackDisplayable(SearchInfo->DisplayColumn);
             SearchInfo->DisplayInfo->SearchIsActive = -1;
-            RemoveRenderText(&Search->TextField.Text);
+            RemoveRenderText(SearchInfo->Renderer, &Search->TextField.Text);
         }
         else 
         {
@@ -947,11 +947,11 @@ inline void
 RemoveSongText(music_display_column *DisplayColumn, u32 ID)
 {
     display_column_song_extension *DisplaySong = ColumnExt(DisplayColumn);
-    RemoveRenderText(DisplaySong->SongTitle+ID);
-    RemoveRenderText(DisplaySong->SongArtist+ID);
-    RemoveRenderText(DisplaySong->SongAlbum+ID);
-    RemoveRenderText(DisplaySong->SongTrack+ID);
-    RemoveRenderText(DisplaySong->SongYear+ID);
+    RemoveRenderText(&GlobalGameState.Renderer, DisplaySong->SongTitle+ID);
+    RemoveRenderText(&GlobalGameState.Renderer, DisplaySong->SongArtist+ID);
+    RemoveRenderText(&GlobalGameState.Renderer, DisplaySong->SongAlbum+ID);
+    RemoveRenderText(&GlobalGameState.Renderer, DisplaySong->SongTrack+ID);
+    RemoveRenderText(&GlobalGameState.Renderer, DisplaySong->SongYear+ID);
 }
 
 inline void
@@ -970,21 +970,21 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
     }
     
     v2 SongP = {SONG_TITLE_X_OFFSET, SONG_FIRST_ROW_Y_OFFSET};
-    CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, Title, &DisplayColumn->Base->ColorPalette.Text,
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, Title, &DisplayColumn->Base->ColorPalette.Text,
                      DisplaySong->SongTitle+ID, -0.12f, DisplayColumn->BGRects[ID], SongP);
     
     if((MD->FoundFlags & metadata_Title) != metadata_Title) Title->Pos += 4;
     
     v2 AlbumP = {SONG_ALBUM_X_OFFSET, SONG_SECOND_ROW_Y_OFFSET}; 
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, &MD->Album, &DisplayColumn->Base->ColorPalette.Text,
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, &MD->Album, &DisplayColumn->Base->ColorPalette.Text,
                      DisplaySong->SongAlbum+ID, -0.12f, DisplayColumn->BGRects[ID], AlbumP);
     
     v2 ArtistP = {SONG_ARTIST_X_OFFSET, SONG_THIRD_ROW_Y_OFFSET};
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, &MD->Artist, &DisplayColumn->Base->ColorPalette.Text,
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, &MD->Artist, &DisplayColumn->Base->ColorPalette.Text,
                      DisplaySong->SongArtist+ID, -0.12f, DisplayColumn->BGRects[ID], ArtistP);
     
     v2 TrackP = {SONG_TRACK_X_OFFSET, SONG_FIRST_ROW_Y_OFFSET};
-    CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, 
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, 
                      &MD->TrackString, &DisplayColumn->Base->ColorPalette.Text, DisplaySong->SongTrack+ID, -0.12f, 
                      DisplayColumn->BGRects[ID], TrackP);
     
@@ -999,7 +999,7 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
     else ConcatStringCompounds(3, &YearAddon, &MD->YearString, &Addon);
     
     v2 YearP = {SONG_ARTIST_X_OFFSET, SONG_SECOND_ROW_Y_OFFSET};
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, &YearAddon, &DisplayColumn->Base->ColorPalette.Text,
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, &YearAddon, &DisplayColumn->Base->ColorPalette.Text,
                      DisplaySong->SongYear+ID, -0.12f, DisplayColumn->BGRects[ID], YearP);
     
     DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
@@ -1020,7 +1020,7 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
             RemoveSongText(DisplayColumn, It);
             SetSongButtonsActive(ColumnExt(DisplayColumn), It, false);
         }
-        else RemoveRenderText(DisplayColumn->Text+It);
+        else RemoveRenderText(Renderer, DisplayColumn->Text+It);
         DisplayColumn->BGRects[It]->ID->Render = false;
     }
     
@@ -1042,7 +1042,7 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
         else
         {
             string_c *Name  = SortingColumn->Batch.Names+Get(&SortingColumn->Displayable, NextID).ID;
-            CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, Name, &DisplayColumn->Base->ColorPalette.Text,
+            CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, Name, &DisplayColumn->Base->ColorPalette.Text,
                              DisplayColumn->Text+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[It]);
         }
         DisplayColumn->OnScreenIDs[It] = NextID;
@@ -1561,6 +1561,7 @@ OnMusicPathPressed(void *Data)
     music_btn *MusicBtnInfo = (music_btn *)Data;
     music_display_info *DisplayInfo = &MusicBtnInfo->GameState->MusicInfo.DisplayInfo;
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
+    renderer *Renderer = &MusicBtnInfo->GameState->Renderer;
     
     SetActive(&MusicPath->TextField, !MusicPath->TextField.IsActive);
     if(MusicPath->TextField.IsActive)
@@ -1571,20 +1572,19 @@ OnMusicPathPressed(void *Data)
         }
         UpdateTextField(&MusicBtnInfo->GameState->Renderer, &MusicPath->TextField);
         
-        renderer *Renderer = &MusicBtnInfo->GameState->Renderer;
         string_c PathText = NewStringCompound(&MusicBtnInfo->GameState->ScratchArena, 255+12);
         AppendStringToCompound(&PathText, (u8 *)"Old Path:     ");
         if(MusicBtnInfo->GameState->MP3Info->FolderPath.Pos == 0)
             AppendStringToCompound(&PathText, (u8 *)" - ");
         else AppendStringCompoundToCompound(&PathText, &MusicBtnInfo->GameState->MP3Info->FolderPath);
-        RemoveRenderText(&MusicPath->CurrentPath);
-        CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, 
+        RemoveRenderText(Renderer, &MusicPath->CurrentPath);
+        CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, 
                          V2(0, 62));
         DeleteStringCompound(&MusicBtnInfo->GameState->ScratchArena, &PathText);
     }
     else 
     {
-        RemoveRenderText(&MusicPath->TextField.Text);
+        RemoveRenderText(Renderer, &MusicPath->TextField.Text);
         SetActive(&MusicPath->LoadingBar, false);
     }
     MusicPath->Background->ID->Render = MusicPath->TextField.IsActive;
@@ -1592,7 +1592,7 @@ OnMusicPathPressed(void *Data)
     SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Rescan, MusicPath->TextField.IsActive);
-    RemoveRenderText(&MusicPath->Output);
+    RemoveRenderText(Renderer, &MusicPath->Output);
     
     ResetStringCompound(MusicPath->TextField.TextString);
     MusicPath->TextField.dBackspacePress = 0;
@@ -1610,8 +1610,8 @@ TestFolderSearchDone(music_path_ui *MusicPath, u32 FoundCount)
         AppendStringToCompound(&MusicPath->OutputString, (u8 *) "\n\nStarting to collect metadata.\nThis may take some time dependent on the amount of mp3 files.");
     }
     
-    RemoveRenderText(&MusicPath->Output);
-    CreateRenderText(&GlobalGameState.Renderer, GlobalGameState.Renderer.FontInfo.MediumFont, &MusicPath->OutputString,
+    RemoveRenderText(&GlobalGameState.Renderer, &MusicPath->Output);
+    CreateRenderText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
                      &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
 }
 
@@ -1647,8 +1647,8 @@ inline void
 FinishedSettingUpMusicPath(game_state *GameState, music_path_ui *MusicPath)
 {
     AppendStringToCompound(&MusicPath->OutputString, (u8 *)"\n\nFinished!");
-    RemoveRenderText(&MusicPath->Output);
-    CreateRenderText(&GameState->Renderer, GameState->Renderer.FontInfo.MediumFont, &MusicPath->OutputString,
+    RemoveRenderText(&GameState->Renderer, &MusicPath->Output);
+    CreateRenderText(&GameState->Renderer, &GameState->FixArena, font_Medium, &MusicPath->OutputString,
                      &GameState->MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
 }
 
@@ -1922,14 +1922,14 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
 internal void
 SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, music_info *MusicInfo)
 {
-    RemoveRenderText(&Panel->DurationText);
-    RemoveRenderText(&Panel->CurrentTimeText);
-    RemoveRenderText(&Panel->Title);
-    RemoveRenderText(&Panel->Artist);
-    RemoveRenderText(&Panel->Genre);
-    RemoveRenderText(&Panel->Album);
-    RemoveRenderText(&Panel->Year);
-    RemoveRenderText(&Panel->Track);
+    RemoveRenderText(Renderer, &Panel->DurationText);
+    RemoveRenderText(Renderer, &Panel->CurrentTimeText);
+    RemoveRenderText(Renderer, &Panel->Title);
+    RemoveRenderText(Renderer, &Panel->Artist);
+    RemoveRenderText(Renderer, &Panel->Genre);
+    RemoveRenderText(Renderer, &Panel->Album);
+    RemoveRenderText(Renderer, &Panel->Year);
+    RemoveRenderText(Renderer, &Panel->Track);
     
     string_c MissingData = NewStaticStringCompound(" -- ");
     string_c NoTime      = NewStaticStringCompound("00:00");
@@ -1975,29 +1975,30 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, music_info *
     r32 BaseX = 315;
     r32 BaseY = 80;
     
+    arena_allocator *Arena = &GlobalGameState.FixArena;
     string_c CurrentTime = NewStaticStringCompound("00:00 |");
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, &CurrentTime, TextColor, &Panel->CurrentTimeText, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, -0.6f, 0);
     SetPosition(&Panel->CurrentTimeText, V2(BaseX+22, BaseY+19));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
     SetPosition(&Panel->DurationText, V2(BaseX + 75 + 22, BaseY+19));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, TitleString, TextColor, &Panel->Title, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Medium, TitleString, TextColor, &Panel->Title, -0.6f, 0);
     SetPosition(&Panel->Title, V2(BaseX + 480, BaseY+15));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, TrackString, TextColor, &Panel->Track, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, TrackString, TextColor, &Panel->Track, -0.6f, 0);
     SetPosition(&Panel->Track, V2(BaseX + 440, BaseY + 8));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, ArtistString, TextColor, &Panel->Artist, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, ArtistString, TextColor, &Panel->Artist, -0.6f, 0);
     SetPosition(&Panel->Artist, V2(BaseX + 440, BaseY - 20));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, AlbumString, TextColor, &Panel->Album, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, AlbumString, TextColor, &Panel->Album, -0.6f, 0);
     SetPosition(&Panel->Album, V2(BaseX + 500, BaseY - 40));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, YearString, TextColor, &Panel->Year, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, YearString, TextColor, &Panel->Year, -0.6f, 0);
     SetPosition(&Panel->Year, V2(BaseX + 440, BaseY - 40));
     
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, GenreString, TextColor, &Panel->Genre, -0.6f, 0);
+    CreateRenderText(Renderer, Arena, font_Small, GenreString, TextColor, &Panel->Genre, -0.6f, 0);
     SetPosition(&Panel->Genre, V2(BaseX + 440, BaseY - 60));
 }
 
@@ -2010,8 +2011,8 @@ UpdatePanelTime(renderer *Renderer, playing_song_panel *Panel, r32 CurrentTime)
     MillisecondsToMinutes(Panel->CurrentTime, &Panel->CurrentTimeString);
     AppendStringToCompound(&Panel->CurrentTimeString, (u8 *)" |");
     
-    RemoveRenderText(&Panel->CurrentTimeText);
-    CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, -0.6f, 0);
+    RemoveRenderText(Renderer, &Panel->CurrentTimeText);
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, -0.6f, 0);
     SetPosition(&Panel->CurrentTimeText, V2(315+22, 80 + 19));
 }
 
@@ -2191,10 +2192,10 @@ PushUserErrorMessage(string_c *String)
     // For each output character we extend the visibility time of the message.
     ErrorInfo->AnimTime = 1.0f + String->Pos*0.1f; 
     
-    render_text_atlas *Atlas = Renderer->FontInfo.MediumFont;
-    if(String->Pos > 60) Atlas = Renderer->FontInfo.SmallFont;
+    font_size FontSize = font_Medium;
+    if(String->Pos > 60) FontSize = font_Small;
     
-    CreateRenderText(Renderer, Atlas, String,
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, FontSize, String,
                      &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText,
                      &ErrorInfo->Message, -0.8f, 0);
     SetTransparency(&ErrorInfo->Message, 0);
@@ -2210,7 +2211,7 @@ AnimateErrorMessage(user_error_text *ErrorInfo, r32 dTime)
         if(ErrorInfo->dAnim >= 1.0f)
         {
             SetActive(&ErrorInfo->Message, false);
-            RemoveRenderText(&ErrorInfo->Message);
+            RemoveRenderText(&GlobalGameState.Renderer, &ErrorInfo->Message);
             ErrorInfo->IsAnimating = false;
         }
         else 

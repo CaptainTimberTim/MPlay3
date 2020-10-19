@@ -349,17 +349,17 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
     TextField->dBlink = 0.0f;
     TextField->Cursor->ID->Render = true;
     
-    RemoveRenderText(&TextField->Text);
+    RemoveRenderText(Renderer, &TextField->Text);
     
-    CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, &TextField->TextString, 
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &TextField->TextString, 
                      TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
     Translate(&TextField->Text, V2(12, 10));
     SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0));
     
     if(TextField->TextString.Pos == 0)
     {
-        RemoveRenderText(&TextField->Text);
-        CreateRenderText(Renderer, Renderer->FontInfo.MediumFont, &TextField->NoText, 
+        RemoveRenderText(Renderer, &TextField->Text);
+        CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &TextField->NoText, 
                          TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
         SetTransparency(&TextField->Text, TextField->Transparency);
         Translate(&TextField->Text, V2(12, 10));
@@ -624,7 +624,7 @@ CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 
     Result->dAnim = 0;
     Result->Time = AnimationTime;
     
-    CreateRenderText(Renderer, Renderer->FontInfo.BigFont, ClosingText, &DisplayInfo->ColorPalette.Text, 
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Big, ClosingText, &DisplayInfo->ColorPalette.Text, 
                      &Result->Text, -0.999f, 0);
     SetPosition(&Result->Text, Size/2.0f);
     SetActive(&Result->Text, false);

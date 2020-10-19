@@ -257,7 +257,7 @@ internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, 
 internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID);
 internal entry_id *CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID);
 internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path);
-internal void RemoveRenderEntry(entry_id *EntryID);
+internal void RemoveRenderEntry(renderer *Renderer, entry_id *EntryID);
 
 inline void SetTransparency(entry_id *Entry, r32 T);
 inline void ApplyTransform(render_entry *Entry, v3 *Result);
@@ -321,7 +321,13 @@ inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixT
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff
-internal void CreateRenderText(renderer *Renderer, render_text_atlas *Atlas, string_c *Text, 
+enum font_size
+{
+    font_Big,
+    font_Medium,
+    font_Small,
+};
+internal void CreateRenderText(renderer *Renderer, arena_allocator *Arena, font_size Size, string_c *Text, 
                                v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP = {});
 
 inline void SetPosition(render_text *Info, v2 P);
@@ -332,5 +338,5 @@ inline void SetActive(render_text *Text, b32 Render);
 inline void SetColor(render_text *Text, v3 *Color);
 inline void Translate(render_text *Info, v2 Translation);
 inline v2   GetPosition(render_text *Info, u32 LetterID);
-inline void RemoveRenderText(render_text *Text);
+inline void RemoveRenderText(renderer *Renderer, render_text *Text);
 inline void SetTransparency(render_text *Text, r32 T);

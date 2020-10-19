@@ -1,30 +1,10 @@
 #pragma once
 #include "Renderer_TD.h"
+#include "Sound_Thread_TD.h"
 #include "Sound_Backend_TD.h"
-#include "Sound_TD.h"
+#include "Sound_Jobs.h"
+#include "Sound_Serialization.h"
 
-global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
-
-#define LIBRARY_CURRENT_VERSION 3
-#define SETTINGS_CURRENT_VERSION 4
-struct settings
-{
-    r32 Volume = 0.5f;
-    file_id PlayingSongID = {-1};
-    u32 ColorPaletteID = 0;
-    r32 GenreArtistEdgeXPercent = -1.0f;
-    r32 ArtistAlbumEdgeXPercent = -1.0f;
-    r32 AlbumSongEdgeXPercent = -1.0f;
-    i32 WindowDimX = 1416;
-    i32 WindowDimY = 1039;
-    b32 Looping = false;
-    b32 Shuffle = false;
-    
-    string_c *PaletteNames;
-    color_palette *Palettes;
-    u32 PaletteCount;
-    u32 PaletteMaxCount;
-};
 
 enum cursor_state
 {

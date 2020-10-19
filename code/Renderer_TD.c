@@ -215,10 +215,10 @@ UpdateEntryList(render_entry_list *EntryList)
 }
 
 inline i32 
-GetEntryID_ID(entry_id *EntryID)
+GetEntryID_ID(renderer *Renderer, entry_id *EntryID)
 {
     i32 Result = -1;
-    render_entry_list *EntryList = &GlobalGameState.Renderer.RenderEntryList;
+    render_entry_list *EntryList = &Renderer->RenderEntryList;
     
     For(EntryList->MaxCount)
     {
@@ -234,11 +234,11 @@ GetEntryID_ID(entry_id *EntryID)
 }
 
 internal void
-RemoveRenderEntry(entry_id *EntryID)
+RemoveRenderEntry(renderer *Renderer, entry_id *EntryID)
 {
-    render_entry_list *EntryList = &GlobalGameState.Renderer.RenderEntryList;
+    render_entry_list *EntryList = &Renderer->RenderEntryList;
     Assert(EntryID->ID >= 0);
-    i32 EntryID_ID = GetEntryID_ID(EntryID);
+    i32 EntryID_ID = GetEntryID_ID(Renderer, EntryID);
     if(!EntryList->OpenSlots[EntryID_ID])
     {
         EntryList->OpenSlots[EntryID_ID] = true;
@@ -1007,7 +1007,7 @@ CreateRenderTextEntry(renderer *Renderer, v2 Extends, r32 Depth, u32 BitmapID, v
 }
 
 internal void
-CreateRenderText(renderer *Renderer, render_text_atlas *Atlas, string_c *Text, 
+CreateRenderText(renderer *Renderer, arena_allocator *Arena, font_size Size, string_c *Text, 
                  v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP)
 {
     ResultText->Count = 0;
@@ -1015,6 +1015,14 @@ CreateRenderText(renderer *Renderer, render_text_atlas *Atlas, string_c *Text,
     ResultText->CurrentP = {};//StartP;
     r32 DepthOffset = ZValue;
     
+    render_text_atlas *Atlas = 0;
+    switch(Size)
+    {
+        case font_Big:    Atlas = Renderer->FontInfo.BigFont;    break;
+        case font_Medium: Atlas = Renderer->FontInfo.MediumFont; break;
+        case font_Small:  Atlas = Renderer->FontInfo.SmallFont;  break;
+        InvalidDefaultCase
+    }
     ResultText->Base = CreateRenderBitmap(Renderer, V2(0), DepthOffset, Parent, Atlas->GLID);
     SetPosition(ResultText->Base, StartP);
     ResultText->Base->ID->Type = renderType_Text;
@@ -1024,8 +1032,8 @@ CreateRenderText(renderer *Renderer, render_text_atlas *Atlas, string_c *Text,
     if(ResultText->MaxCount == 0)
     {
         ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
-        ResultText->RenderEntries    = AllocateArray(&GlobalGameState.FixArena, ResultText->MaxCount, render_entry);
-        ResultText->StartPointOffset = AllocateArray(&GlobalGameState.FixArena, ResultText->MaxCount, v2);
+        ResultText->RenderEntries    = AllocateArray(Arena, ResultText->MaxCount, render_entry);
+        ResultText->StartPointOffset = AllocateArray(Arena, ResultText->MaxCount, v2);
     }
     // TODO:: Maybe when this happens increase the size? With current allocater system
     // this would not work very well. But once it changed... maybe.
@@ -1143,12 +1151,12 @@ SetActive(render_text *Text, b32 Render)
 }
 
 inline void 
-RemoveRenderText(render_text *Text)
+RemoveRenderText(renderer *Renderer, render_text *Text)
 {
     Text->Count = 0;
     if(Text->Base) 
     {
-        RemoveRenderEntry(Text->Base);
+        RemoveRenderEntry(Renderer, Text->Base);
         Text->Base = 0;
     }
 }

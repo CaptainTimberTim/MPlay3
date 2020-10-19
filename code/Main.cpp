@@ -30,24 +30,27 @@ typedef double r64;
 for(u32 (__VA_ARGS__##It) = 0; \
 (__VA_ARGS__##It) < (until); \
 ++(__VA_ARGS__##It))
+// NOTE:: Counts the size of a fixed array.
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
-#define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) { \
-u32 MoveSize  = (ArrayCount-RemovePos)*sizeof(ArrayType); \
-u8 *GoalAddress  = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
-u8 *StartAddress = GoalAddress + sizeof(ArrayType); \
-memmove_s(GoalAddress, MoveSize, StartAddress, MoveSize); \
-} 
-
-#ifndef CombineDefine
-#define CombineDefine1(X, Y) X##Y
-#define CombineDefine(X, Y) CombineDefine1(X, Y)
+#ifndef __CD // Combine both params to a single name
+#define __CD2(X, Y) X##Y
+#define __CD(X, Y) __CD2(X, Y)
 #endif
 
+// NOTE:: General macro for removing an entry/item from an arbitrary array.
+#define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) { \
+u32 __CD(M, __LINE__)  = (ArrayCount-RemovePos)*sizeof(ArrayType); \
+u8 *__CD(G, __LINE__)  = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
+u8 *__CD(S, __LINE__)  = __CD(G, __LINE__) + sizeof(ArrayType); \
+memmove_s(__CD(G, __LINE__), __CD(M, __LINE__), __CD(S, __LINE__), __CD(M, __LINE__)); \
+} 
+
+// NOTE:: Simple DebugLog that simplifies just printing stuff to the debug output.
 #define DebugLog(Count, Text, ...) { \
-char CombineDefine(B, __LINE__)[Count]; \
-sprintf_s(CombineDefine(B, __LINE__), Text, __VA_ARGS__);\
-OutputDebugStringA(CombineDefine(B, __LINE__)); \
+char __CD(B, __LINE__)[Count]; \
+sprintf_s(__CD(B, __LINE__), Text, __VA_ARGS__);\
+OutputDebugStringA(__CD(B, __LINE__)); \
 }
 
 #if DEBUG_TD
@@ -65,16 +68,21 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 #define InvalidDefaultCase default: {Assert(false)}
 
 
+#define MINIMP3_IMPLEMENTATION
+#include "MiniMP3_Ext.h"
+
 // TODO:: Implement STBI_MALLOC, STBI_REALLOC and STBI_FREE!
 #define STB_IMAGE_IMPLEMENTATION
-//#define STBI_FAILURE_USERMSG
-#define STBI_NO_FAILURE_STRINGS
 #include "STB_Image.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "STB_Truetype.h"
 
-#define MINIMP3_IMPLEMENTATION
-#include "MiniMP3_Ext.h"
+#if DEBUG_TD
+#define STBI_ASSERT(x) if(!(x)) {*(int *)0 = 0;}
+#else
+#define STBI_ASSERT(x)
+#endif
+
 
 #include "Math_TD.h"
 #include "Allocator_TD.c"
@@ -92,31 +100,26 @@ internal b32 TryGetClipboardText(struct string_compound *String);
 internal void ApplyWindowResize(HWND Window, i32 NewWidth, i32 NewHeight, b32 ForceResize = false);
 inline v2i GetWindowSize();
 
-#include "Input_TD.cpp"
+#include "Input_TD.c"
 #include "String_TD.h"
-#include "StandardUtilities_TD.cpp"
+#include "StandardUtilities_TD.c"
 #include "Threading_TD.c"
-#include "Math_TD.cpp"
-#include "FileUtilities_TD.cpp"
+#include "Math_TD.c"
+#include "FileUtilities_TD.c"
 #include "GL_TD.c"
-
-#if DEBUG_TD
-#define STBI_ASSERT(x) if(!(x)) {*(int *)0 = 0;}
-#else
-#define STBI_ASSERT(x)
-#endif
+#include "Renderer_TD.c"
 
 global_variable game_state GlobalGameState;
-
 global_variable i32 GlobalMinWindowWidth  = 344;
 global_variable i32 GlobalMinWindowHeight = 190;
 
-#include "Sound_Backend_TD.c"
+#include "Sound_Thread_TD.c"
 #include "Sound_UI_TD.c"
-#include "Sound_TD.c"
-#include "Renderer_TD.cpp"
+#include "Sound_Backend_TD.c"
+#include "Sound_Jobs.c"
+#include "Sound_Serialization.c"
 #include "UI_TD.c"
-#include "GameBasics_TD.cpp"
+#include "GameBasics_TD.c"
 
 global_variable b32 IsRunning;
 HCURSOR ArrowCursor = 0;
@@ -716,7 +719,6 @@ WinMain(HINSTANCE Instance,
             
             
             
-            
             // SamplesPerSecond = 48000
             // SamplesPerFrame  = 1152
             // Needed Frames for one second = 41.66
@@ -787,9 +789,9 @@ WinMain(HINSTANCE Instance,
                         sprintf_s(FPSString, "%.2f", CurrentFPS);
                         string_c FPSComp = NewStringCompound(&GameState->ScratchArena, 10);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
-                        RemoveRenderText(&FPSText);
-                        CreateRenderText(Renderer, Renderer->FontInfo.SmallFont, 
-                                         &FPSComp, &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
+                        RemoveRenderText(Renderer, &FPSText);
+                        CreateRenderText(Renderer, &GameState->FixArena, font_Small, &FPSComp,
+                                         &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
                         DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }
                     else dUpdateRate += GameState->Time.dTime/0.1f;

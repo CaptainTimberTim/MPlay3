@@ -38,7 +38,7 @@ for(u32 (__VA_ARGS__##It) = 0; \
 #define __CD(X, Y) __CD2(X, Y)
 #endif
 
-// NOTE:: General macro for removing an entry/item from an arbitrary array.
+// NOTE:: General macro for removing an entry/item from an arbitrary array. Moving all following items one up.
 #define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) { \
 u32 __CD(M, __LINE__)  = (ArrayCount-RemovePos)*sizeof(ArrayType); \
 u8 *__CD(G, __LINE__)  = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
@@ -538,11 +538,10 @@ WinMain(HINSTANCE Instance,
             // Threading***********************************
             // ********************************************
             
-            HANDLE JobHandles[THREAD_COUNT];
             circular_job_queue *JobQueue = &GameState->JobQueue;
             *JobQueue = {};
-            job_thread_info JobInfos[THREAD_COUNT];
-            InitializeJobThreads(JobHandles, JobQueue, JobInfos);
+            job_thread_info *JobInfos = GameState->JobInfos;
+            InitializeJobThreads(GameState->JobHandles, JobQueue, JobInfos);
             
             sound_thread_data SoundThreadData = {};
             sound_thread SoundThreadInfo = {};
@@ -808,6 +807,7 @@ WinMain(HINSTANCE Instance,
                 
                 if(CheckMusicPath->State == threadState_Finished) 
                     CheckForMusicPathMP3sChanged_End(CheckMusicPath, &DisplayInfo->MusicPath);
+                
                 
                 // *******************************************
                 // Input handling ****************************

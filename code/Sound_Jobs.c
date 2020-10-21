@@ -346,13 +346,10 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
     
     
 #ifdef DECODE_STREAMING_TMP
-    mp3dec_file_info_t *DecodeResult = 0;
+    mp3dec_file_info_t *DecodeResult = JobInfo->MP3Info->DecodeInfo.DecodedData + JobInfo->DecodeID;
+    Assert(JobInfo->PreloadSeconds == DECODE_PRELOAD_SECONDS);
     
-    if(JobInfo->PreloadSeconds == DECODE_PRELOAD_SECONDS) 
-        DecodeResult = JobInfo->MP3Info->DecodeInfo.DecodedData + JobInfo->DecodeID;
-    else DecodeResult = &JobInfo->MP3Info->DecodeInfo.PlayingDecoded;
-    
-    error_item Result = LoadAndDecodeMP3StartFrames(ThreadInfo->Arena, JobInfo->PreloadSeconds, JobInfo->FileID, 
+    error_item Result = LoadAndDecodeMP3StartFrames(&ThreadInfo->ScratchArena, JobInfo->PreloadSeconds, JobInfo->FileID, 
                                                     JobInfo->DecodeID, DecodeResult);
 #else 
     error_item Result = LoadAndDecodeMP3Data(&ThreadInfo->ScratchArena, JobInfo->MP3Info, 
@@ -362,15 +359,26 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
     if(Result.Code < 0) PushErrorMessageFromThread(Result);
 }
 
+internal JOB_LIST_CALLBACK(JobLoadAndDecodeEntireMP3File)
+{
+    job_load_decode_mp3 *JobInfo = (job_load_decode_mp3 *)Data;
+    
+    mp3dec_file_info_t *DecodeResult = &JobInfo->MP3Info->DecodeInfo.PlayingDecoded.Data;
+    error_item Result = LoadAndDecodeMP3StartFrames(&ThreadInfo->ScratchArena, JobInfo->PreloadSeconds, JobInfo->FileID, 
+                                                    JobInfo->DecodeID, DecodeResult);
+    
+    if(Result.Code < 0) PushErrorMessageFromThread(Result);
+}
+
 internal i32
-AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id FileID, 
+AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID, 
                array_u32 *IgnoreDecodeIDs, i32 PreloadSeconds)
 {
-    mp3_info *MP3Info = GameState->MP3Info;
+    mp3_info *MP3Info = GlobalGameState.MP3Info;
     if(FileID < 0) return -1;
     
     i32 DecodeID = -1;
-    if(!IsSongDecoded(GameState->MP3Info, FileID, &DecodeID))
+    if(!IsSongDecoded(MP3Info, FileID, &DecodeID))
     {
         DecodeID = GetNextDecodeIDToEvict(&MP3Info->DecodeInfo, IgnoreDecodeIDs);
         Assert(DecodeID >= 0);
@@ -384,10 +392,43 @@ AddJob_LoadMP3(game_state *GameState, circular_job_queue *JobQueue, file_id File
             job_load_decode_mp3 Data = {MP3Info, FileID, DecodeID, PreloadSeconds};
             AddJobToQueue(JobQueue, JobLoadAndDecodeMP3File, Data);
         }
+        //else Assert(false); // TODO:: Think about killing/interrupting the worker thread to start new job.
     }
     
     Assert(DecodeID >= 0);
     TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
+    return DecodeID;
+}
+
+internal i32
+AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID)
+{
+    i32 DecodeID = AddJob_LoadMP3(JobQueue, FileID, 0);
+    
+    // TODO:: Problem is, that playingDecoded could also still decode the previous song...
+    // 1. We could make a job for just waiting until that other decode job is done and then 
+    //    start the new one. 
+    // 2. Or we can try to interrupt the decode job, but I do not think that
+    //    is easily doable as there are only 1-2 procedure calls that take 99% of the time 
+    //    (LoadFile and decodeData) and those cant just be stopped. 
+    // 3. Another idea would be to kill the worker and spawn a new one. I have no idea if that is 
+    //    a viable thing to do, though. We would need to know which is the correct worker.
+    // 4. We could also just create another instance of playing_decoded and decode into that.
+    //    And after the already running thread is finished decoding, then switch and delete the other.
+    // NOTE:: I did Nr. 3. for now. lets see if it works...
+    
+    mp3_decode_info *DecodeInfo = &GlobalGameState.MP3Info->DecodeInfo;
+    if(DecodeInfo->PlayingDecoded.CurrentlyDecoding)
+    {
+        DebugLog(235, "NOTE:: Did a Job Kill to load the new playing song!\n");
+        FindJobThreadStopAndRestartIt(GlobalGameState.JobHandles, GlobalGameState.JobInfos, JobLoadAndDecodeEntireMP3File);
+    }
+    
+    DecodeInfo->PlayingDecoded.DecodeID = DecodeID;
+    DecodeInfo->PlayingDecoded.CurrentlyDecoding = true;
+    job_load_decode_mp3 Data = {GlobalGameState.MP3Info, FileID, DecodeID, 1000000};
+    AddJobToQueue(JobQueue, JobLoadAndDecodeEntireMP3File, Data);
+    
     return DecodeID;
 }
 
@@ -413,13 +454,13 @@ AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 
             {
                 CurrentNext.ID = (CurrentNext.ID+1)%Playlist->Songs.A.Count;
                 file_id FileID = PlaylistIDToFileID(Playlist, CurrentNext);
-                AddJob_LoadMP3(GameState, JobQueue, FileID, IgnoreDecodeIDs);
+                AddJob_LoadMP3(JobQueue, FileID, IgnoreDecodeIDs);
             }
             else
             {
                 CurrentPrev = GetPreviousSong(Playlist, CurrentPrev);
                 file_id FileID = PlaylistIDToFileID(Playlist, CurrentPrev);
-                AddJob_LoadMP3(GameState, JobQueue, FileID, IgnoreDecodeIDs);
+                AddJob_LoadMP3(JobQueue, FileID, IgnoreDecodeIDs);
             }
             DoNext = !DoNext;
         }
@@ -441,7 +482,7 @@ AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, ar
         It++)
     {
         file_id FileID = PlaylistIDToFileID(Playlist, NewPlaylistID(DisplayColumn->OnScreenIDs[It]));
-        AddJob_LoadMP3(GameState, JobQueue, FileID, IgnoreDecodeIDs);
+        AddJob_LoadMP3(JobQueue, FileID, IgnoreDecodeIDs);
     }
 }
 
@@ -465,7 +506,7 @@ AddJob_NextUndecodedInPlaylist()
         if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, PID), &DecodeID))
         {
             Result = true;
-            AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
+            AddJob_LoadMP3(&GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
             break;
         }
         else TouchDecoded(DecodeInfo, DecodeID);
@@ -483,7 +524,7 @@ AddJob_NextUndecodedInPlaylist()
             if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, PID), &DecodeID))
             {
                 Result = true;
-                AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
+                AddJob_LoadMP3(&GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
                 break;
             }
             else TouchDecoded(DecodeInfo, DecodeID);

@@ -31,6 +31,7 @@
 // - Implement partially decoding mp3s
 //      - Implement better memory management
 // - properly round for song panel time and slider
+// - fix track number alignment for 100th
 
 // - remove all GlobalGameState references from UI.c
 
@@ -171,9 +172,17 @@ struct mp3_file_info //::FILE_ID
     u32 MaxCount;
 };
 
+struct playing_decoded
+{
+    mp3dec_file_info_t Data;
+    i32 DecodeID;
+    b32 volatile CurrentlyDecoding;
+};
+
 struct mp3_decode_info
 {
-    mp3dec_file_info_t PlayingDecoded;
+    playing_decoded PlayingDecoded;
+    
     mp3dec_file_info_t DecodedData[MAX_MP3_DECODE_COUNT];
     array_file_id FileID; // size: MAX_MP3_DECODE_COUNT
     u32 Count;

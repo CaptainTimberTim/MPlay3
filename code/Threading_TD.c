@@ -43,7 +43,11 @@ DoNextJobQueueEntry(job_thread_info *Info)
         {
             job_queue_entry Entry = JobQueue->Entries[Index];
             ResetMemoryArena(&Info->ScratchArena);
+            Info->CurrentJob = Entry.Callback;
+            
             Entry.Callback(Info, Entry.Data);
+            
+            Info->CurrentJob = 0;
             InterlockedIncrement((LONG volatile *)&JobQueue->CompletionCount);
         }
     }
@@ -101,6 +105,30 @@ InitializeJobThreads(HANDLE *JobHandles, circular_job_queue *JobQueue, job_threa
         
         JobHandles[It] = CreateThread(0, 0, JobThreadProc, (LPVOID)(JobThreadInfos+It), 0, 0);
     }
+}
+
+internal b32
+FindJobThreadStopAndRestartIt(HANDLE *ThreadHandles, job_thread_info *ThreadInfos, job_list_callback *JobCallback)
+{
+    b32 Result = false;
+    
+    For(THREAD_COUNT)
+    {
+        if(ThreadInfos[It].CurrentJob)
+        {
+            if(*ThreadInfos[It].CurrentJob == JobCallback)
+            {
+                Assert(TerminateThread(ThreadHandles[It], 0));
+                
+                ThreadInfos[It].CurrentJob = 0;
+                ThreadHandles[It] = CreateThread(0, 0, JobThreadProc, (LPVOID)(ThreadInfos+It), 0, 0);
+                
+                Result = true;
+            }
+        }
+    }
+    
+    return Result;
 }
 
 // Test code

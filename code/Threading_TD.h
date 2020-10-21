@@ -47,6 +47,8 @@ struct job_thread_info
     u32 ThreadID;
     circular_job_queue *JobQueue;
     arena_allocator ScratchArena;
+    
+    job_list_callback *CurrentJob;
 };
 
 

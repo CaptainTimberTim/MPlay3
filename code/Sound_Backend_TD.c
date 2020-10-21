@@ -11,7 +11,15 @@ AdvanceToNewline(u8 **String)
 inline void
 ClearFileInfoStruct(mp3_file_info *FileInfo)
 {
-    For(FileInfo->MaxCount) ResetStringCompound(FileInfo->Metadata[It].DurationString);
+    For(FileInfo->Count) 
+    {
+        if(!FileInfo->Metadata) break;
+        else if(!(FileInfo->Metadata+It)) break;
+        else if(FileInfo->Metadata[It].DurationString.S) 
+        {
+            ResetStringCompound(FileInfo->Metadata[It].DurationString);
+        }
+    }
     ClearArray(FileInfo->FileName, FileInfo->MaxCount, string_c);
     ClearArray(FileInfo->SubPath, FileInfo->MaxCount, string_c);
     ClearArray(FileInfo->Metadata, FileInfo->MaxCount, mp3_metadata);
@@ -100,7 +108,7 @@ CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount)
         Result->DecodeInfo.DecodedData[It].buffer = AllocateArray(Arena, 48000*2*DECODE_PRELOAD_SECONDS, i16);
     }
     
-    Result->DecodeInfo.PlayingDecoded.buffer = AllocateArray(Arena, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
+    //Result->DecodeInfo.PlayingDecoded.buffer = AllocateArray(Arena, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
 #endif
     return Result;
 }
@@ -1037,7 +1045,7 @@ DecodeMP3StartFrames(mp3dec_t *MP3Decoder, read_file_result File, i16 Buffer[], 
 }
 
 internal error_item
-LoadAndDecodeMP3StartFrames(arena_allocator *FixArena, arena_allocator *ScratchArena, i32 SecondsToDecode, file_id FileID, 
+LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, file_id FileID, 
                             i32 DecodeID, mp3dec_file_info_t *DecodeResult)
 {
     // 1. Build the complete filepath
@@ -1070,6 +1078,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *FixArena, arena_allocator *ScratchA
         // 3. 
         *DecodeResult = DecodeMP3StartFrames(&MP3Decoder, File, TmpInfoStorage, 1);
         FreeFileMemory(ScratchArena, File.Data);
+        
         
         u32 DecodeSampleAmount = DecodeResult->hz*SecondsToDecode; 
         // samples has channels already in it. But I need the frame amount which is channel indipendent.
@@ -1111,7 +1120,11 @@ LoadAndDecodeMP3StartFrames(arena_allocator *FixArena, arena_allocator *ScratchA
     
     FreeMemory(ScratchArena, TmpInfoStorage);
     
-    if(DecodeID >= 0) MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = false;
+    if(DecodeID >= 0) 
+    {
+        if(SecondsToDecode == DECODE_PRELOAD_SECONDS) MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = false;
+        else MP3Info->DecodeInfo.PlayingDecoded.CurrentlyDecoding = false;
+    }
     return Result;
 }
 
@@ -1825,62 +1838,6 @@ SortDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo)
     QuickSort(0, Song->Displayable.A.Count-1, &Song->Displayable, {CompareSongDisplayable, &SortSongInfo});
 }
 
-/*internal void
-RetraceFilePath(arena_allocator *Arena, mp3_info *MP3Info, file_id FileID)
-{
-    mp3_file_info TmpFileInfo = CreateFileInfoStruct(&Arena->Transient, 1000);
-    string_compound FilePath = NewStringCompound(&Arena->Transient, 255);
-    ConcatStringCompounds(2, &FilePath, &MP3Info->FolderPath);
-    string_compound SubPath = NewStringCompound(&Arena->Transient, 255);;
-    ConcatStringCompounds(2, &SubPath, MP3Info->FileInfo.SubPath + FileID.ID);
-    
-    FindAllMP3FilesInFolder(&Arena->Transient, &Arena->Transient, &FilePath, &SubPath, &TmpFileInfo);
-    CrawlFilesForMetadata(&Arena->Transient, &Arena->Transient, &TmpFileInfo, &MP3Info->FolderPath);
-    
-    mp3_metadata *OldMD = MP3Info->FileInfo.Metadata+FileID.ID;
-    b32 Found = false;
-    For(TmpFileInfo.Count)
-    {
-        mp3_metadata *FoundMD = TmpFileInfo.Metadata+It;
-        
-        if(!Found &&
-           CompareStringCompounds(&OldMD->Title, &FoundMD->Title) &&
-           CompareStringCompounds(&OldMD->Artist, &FoundMD->Artist) &&
-           CompareStringCompounds(&OldMD->Album, &FoundMD->Album))
-        {
-            string_c *NewFileName = MP3Info->FileInfo.FileName+FileID.ID;
-            string_c *NewSubPath = MP3Info->FileInfo.SubPath+FileID.ID;
-            
-            if(NewFileName->Length < TmpFileInfo.FileName[It].Pos)
-            {
-                *NewFileName = NewStringCompound(&Arena->Fixed, TmpFileInfo.FileName[It].Pos);
-            }
-            else ResetStringCompound(*NewFileName);
-            AppendStringCompoundToCompound(NewFileName, TmpFileInfo.FileName+It);
-            
-            if(NewSubPath->Length < TmpFileInfo.SubPath[It].Pos)
-            {
-                *NewSubPath = NewStringCompound(&Arena->Fixed, TmpFileInfo.SubPath[It].Pos);
-            }
-            else ResetStringCompound(*NewSubPath);
-            AppendStringCompoundToCompound(NewSubPath, TmpFileInfo.SubPath+It);
-        }
-        
-        DeleteStringCompound(&Arena->Transient, TmpFileInfo.FileName+It);
-        DeleteStringCompound(&Arena->Transient, TmpFileInfo.SubPath+It);
-        DeleteStringCompound(&Arena->Transient, &FoundMD->Title);
-        DeleteStringCompound(&Arena->Transient, &FoundMD->Artist);
-        DeleteStringCompound(&Arena->Transient, &FoundMD->Album);
-        DeleteStringCompound(&Arena->Transient, &FoundMD->Genre);
-        DeleteStringCompound(&Arena->Transient, &FoundMD->TrackString);
-        DeleteStringCompound(&Arena->Transient, &FoundMD->YearString);
-    }
-    DeleteStringCompound(&Arena->Transient, &FilePath);
-    DeleteStringCompound(&Arena->Transient, &SubPath);
-    DeleteFileInfoStruct(&Arena->Transient, &TmpFileInfo);
-}
-*/
-
 internal void
 FinishChangeSong(game_state *GameState, playing_song *Song)
 {
@@ -1918,7 +1875,12 @@ ChangeSong(game_state *GameState, playing_song *Song)
     if(FileID >= 0)
     {
         GameState->MusicInfo.CurrentlyChangingSong = true;
-        Song->DecodeID = AddJob_LoadMP3(GameState, &GameState->JobQueue, FileID, 0, 1000000);
+        
+#ifdef DECODE_STREAMING_TMP
+        Song->DecodeID = AddJob_LoadNewPlayingSong(&GameState->JobQueue, FileID);
+#else
+        Song->DecodeID = AddJob_LoadMP3(&GameState->JobQueue, FileID, 0, 1000000);
+#endif
         
         Assert(Song->DecodeID >= 0);
         if(!GameState->MP3Info->DecodeInfo.CurrentlyDecoding[Song->DecodeID])

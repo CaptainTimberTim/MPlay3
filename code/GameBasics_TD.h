@@ -91,6 +91,8 @@ struct game_state
     sound_thread_interface *SoundThreadInterface;
     
     arena_allocator JobThreadsArena;
+    HANDLE JobHandles[THREAD_COUNT];
+    job_thread_info JobInfos[THREAD_COUNT];
     circular_job_queue JobQueue;
     
     crawl_thread CrawlInfo;
@@ -106,7 +108,7 @@ inline void FreeImage_STB(loaded_bitmap Bitmap);
 
 #if DEBUG_TD
 inline timer StartTimer();
-inline void SnapTimer(timer *Timer);
+inline void SnapTimer(timer *Timer, string_c *Identification = 0);
 #else
 #define StartTimer() {}
 #define SnapTimer(f) 

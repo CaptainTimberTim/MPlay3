@@ -73,9 +73,11 @@ FreeMemory(arena_allocator *Allocator, void *Memory)
                     }
                     Assert(Allocator->ArenaCount >= 0);
                     
-                    
-                    
                     VirtualFree(Arena->Memory, 0, MEM_RELEASE);
+                    
+#if DEBUG_TD
+                    Allocator->DebugData.ArenaFreeCount++;
+#endif
                 }
                 else Allocator->EmptyArenaCount++;
                 
@@ -171,6 +173,10 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
             Assert(Arena->Position == 0);
             
             Result = RetrieveMemoryFromArena(Arena, Size);
+            
+#if DEBUG_TD
+            Allocator->DebugData.ArenaCreationCount++;
+#endif
         }
         Allocator->LastUsed = Arena;
     }
@@ -248,6 +254,7 @@ AllocateMemory_Private(arena_allocator *Allocator, u64 Size)
     Allocator->DebugData.PrivateAllocationCount++;
     Allocator->DebugData.MaxAllocationSize = Max(Allocator->DebugData.MaxAllocationSize, Size);
     Allocator->DebugData.MaxArenaCount = Max(Allocator->DebugData.MaxArenaCount, Allocator->ArenaCount);
+    Allocator->DebugData.ArenaCreationCount++;
 #endif
     
     return Result;

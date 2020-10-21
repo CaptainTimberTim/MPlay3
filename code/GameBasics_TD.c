@@ -48,12 +48,13 @@ StartTimer()
 }
 
 inline void
-SnapTimer(timer *Timer)
+SnapTimer(timer *Timer, string_c *Identification)
 {
     i64 NewSnap = GetWallClock();
     r32 CurrentSnap = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->LastSnap, NewSnap);
     r32 Total = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->Start, NewSnap);
-    DebugLog(255, "Timer snap %i: %.8f, total: %.8f\n", ++Timer->Count, CurrentSnap, Total);
+    u8 *Addon = Identification ? Identification->S : (u8 *)"";
+    DebugLog(255, "%s Timer snap %i: %.8f, total: %.8f\n", Addon, ++Timer->Count, CurrentSnap, Total);
     Timer->LastSnap = NewSnap;
 }
 #endif

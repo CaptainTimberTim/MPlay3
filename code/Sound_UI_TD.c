@@ -86,7 +86,7 @@ OnSongPlayPressed(void *Data)
         }
         ChangeSong(PlayInfo->GameState, &MusicInfo->PlayingSong);
         
-        AddJob_LoadMP3(PlayInfo->GameState, &PlayInfo->GameState->JobQueue,
+        AddJob_LoadMP3(&PlayInfo->GameState->JobQueue,
                        PlaylistIDToFileID(&MusicInfo->Playlist, PlaylistID));
         AddJobs_LoadMP3s(PlayInfo->GameState, &PlayInfo->GameState->JobQueue);
     }
@@ -110,7 +110,7 @@ OnSongAddPressed(void *Data)
     Push(&MusicInfo->Playlist.UpNext, FileID);
     if(MusicInfo->Playlist.UpNext.A.Count < MAX_MP3_DECODE_COUNT-1)
     {
-        AddJob_LoadMP3(PlayInfo->GameState, &PlayInfo->GameState->JobQueue, FileID);
+        AddJob_LoadMP3(&PlayInfo->GameState->JobQueue, FileID);
     }
 }
 
@@ -722,7 +722,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
         u32 PrevDecodeID = 0;
         if(!Find(&DecodeInfo->FileID, PrevFileID, &PrevDecodeID)) 
         {
-            AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, PrevFileID);
+            AddJob_LoadMP3(&GlobalGameState.JobQueue, PrevFileID);
             Assert(Find(&DecodeInfo->FileID, PrevFileID, &PrevDecodeID));
         }
         Push(&IgnoreDecodeIDs, PrevDecodeID);
@@ -734,7 +734,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
         u32 NextDecodeID = 0;
         if(!Find(&DecodeInfo->FileID, NextFileID, &NextDecodeID)) 
         {
-            AddJob_LoadMP3(&GlobalGameState, &GlobalGameState.JobQueue, NextFileID);
+            AddJob_LoadMP3(&GlobalGameState.JobQueue, NextFileID);
             if(!Find(&DecodeInfo->FileID, NextFileID, &NextDecodeID)) Assert(false);
         }
         Push(&IgnoreDecodeIDs, NextDecodeID);

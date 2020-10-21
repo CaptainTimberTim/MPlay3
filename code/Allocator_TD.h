@@ -23,6 +23,9 @@ struct arena_debug_data
     u32 MaxArenaCount;
     r32 MaxFillPercentage[20];
     r32 CurrentFillP[20];
+    
+    u32 ArenaCreationCount;
+    u32 ArenaFreeCount;
 };
 
 #endif

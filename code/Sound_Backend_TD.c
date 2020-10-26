@@ -60,7 +60,7 @@ DeleteFileInfoStruct(mp3_file_info *FileInfo)
         DeleteStringCompound(&GlobalGameState.JobThreadsArena, FileInfo->FileName+It);
     }
     // As I allocate all fileInfo memory as one big block, I just need to dealloc once!
-    FreeMemory(&GlobalGameState.JobThreadsArena, FileInfo->FileName);
+    if(FileInfo->MaxCount) FreeMemory(&GlobalGameState.JobThreadsArena, FileInfo->FileName);
     FileInfo->Count = 0;
     FileInfo->MaxCount = 0;
     FileInfo->FileName = 0;
@@ -108,7 +108,8 @@ CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount)
         Result->DecodeInfo.DecodedData[It].buffer = AllocateArray(Arena, 48000*2*DECODE_PRELOAD_SECONDS, i16);
     }
     
-    //Result->DecodeInfo.PlayingDecoded.buffer = AllocateArray(Arena, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
+    // TODO:: Think about how to make this dynamic!
+    Result->DecodeInfo.PlayingDecoded.Data.buffer = AllocateArray(Arena, CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE/2, i16);
 #endif
     return Result;
 }
@@ -915,7 +916,8 @@ CreateSongDurationForMetadata(mp3_info *MP3Info, file_id FileID, i32 DecodeID)
     if(~MP3Info->FileInfo.Metadata[FileID.ID].FoundFlags & metadata_Duration)
     {
         mp3_metadata *MD = &MP3Info->FileInfo.Metadata[FileID.ID];
-        mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
+        //mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
+        mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.PlayingDecoded.Data;
         
         MD->Duration = (u32)DInfo->samples/DInfo->channels/DInfo->hz*1000;
         MillisecondsToMinutes(MD->Duration, &MD->DurationString);
@@ -1103,7 +1105,8 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
                 TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
                 DebugLog(255, "Done loading mp3 file with name %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
-                CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
+                if(SecondsToDecode != DECODE_PRELOAD_SECONDS)
+                    CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
             }
             
             FreeFileMemory(ScratchArena, File.Data);
@@ -1839,6 +1842,13 @@ SortDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo)
 }
 
 internal void
+FinishChangeEntireSong(playing_song *Song)
+{
+    mp3dec_file_info_t *DInfo = &GlobalGameState.MP3Info->DecodeInfo.PlayingDecoded.Data;
+    PushSongLoadingComplete(GlobalGameState.SoundThreadInterface, DInfo);
+}
+
+internal void
 FinishChangeSong(game_state *GameState, playing_song *Song)
 {
     music_info *MusicInfo = &GameState->MusicInfo;
@@ -1880,6 +1890,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
         Song->DecodeID = AddJob_LoadNewPlayingSong(&GameState->JobQueue, FileID);
 #else
         Song->DecodeID = AddJob_LoadMP3(&GameState->JobQueue, FileID, 0, 1000000);
+        Assert(Song->DecodeID >= 0); // TODO:: This can trigger sometimes, as long as AddJob_LoadMP3 has a decode max.
 #endif
         
         Assert(Song->DecodeID >= 0);

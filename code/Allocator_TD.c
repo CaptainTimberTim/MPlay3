@@ -65,16 +65,13 @@ FreeMemory(arena_allocator *Allocator, void *Memory)
                         Allocator->Base = Arena->Next;
                     }
                     else if(Arena->Prev) Arena->Prev->Next = 0; // Arena is the last one.
+                    
                     Allocator->ArenaCount--;
-                    if(Allocator->ArenaCount == 0) 
-                    {
-                        Allocator->Base = 0;
-                        Allocator->LastUsed = 0;
-                    }
                     Assert(Allocator->ArenaCount >= 0);
+                    if(Allocator->ArenaCount == 0) Allocator->Base = 0;
                     
                     VirtualFree(Arena->Memory, 0, MEM_RELEASE);
-                    
+                    Allocator->LastUsed = 0;
 #if DEBUG_TD
                     Allocator->DebugData.ArenaFreeCount++;
 #endif

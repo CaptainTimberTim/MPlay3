@@ -23,6 +23,7 @@ inline playlist_id OnScreenIDToPlaylistID(music_info *MusicInfo, u32 OnScreenID,
 inline void HandleChangeToNextSong(game_state *GameState);
 internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
 internal void AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
+internal i32 AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID);
 internal b32 AddJob_LoadMetadata(game_state *GameState);
 internal void UseDisplayableAsPlaylist(music_info *MusicInfo);
 internal column_type UpdateSelectionArray(column_sorting_info *SortingColumn, music_display_column *DisplayColumn);

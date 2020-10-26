@@ -392,11 +392,15 @@ AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID,
             job_load_decode_mp3 Data = {MP3Info, FileID, DecodeID, PreloadSeconds};
             AddJobToQueue(JobQueue, JobLoadAndDecodeMP3File, Data);
         }
-        //else Assert(false); // TODO:: Think about killing/interrupting the worker thread to start new job.
+        else if((i32)Get(&MP3Info->DecodeInfo.FileID.A, DecodeID) != FileID.ID)
+        {
+            DecodeID = -1;
+            DebugLog(255, "Tried to add new song, while all slots were still decoding.\n");
+        }
+        else Assert(false); 
     }
     
-    Assert(DecodeID >= 0);
-    TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
+    if(DecodeID >= 0) TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
     return DecodeID;
 }
 
@@ -404,6 +408,7 @@ internal i32
 AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID)
 {
     i32 DecodeID = AddJob_LoadMP3(JobQueue, FileID, 0);
+    Assert(DecodeID >= 0);
     
     // TODO:: Problem is, that playingDecoded could also still decode the previous song...
     // 1. We could make a job for just waiting until that other decode job is done and then 

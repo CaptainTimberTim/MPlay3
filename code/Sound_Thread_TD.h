@@ -62,9 +62,10 @@ struct sound_thread_interface
     b32 IsPlaying;
     r32 ToneVolume;
     b32 ClearSoundBufferToggle;
-    b32 SongChangedToggle;
     mp3dec_file_info_t PlayingSongData;
     b32 ChangedTimeToggle;
+    b32 SongChangedToggle;
+    b32 SongFinishedLoadingToggle;
     
     // Out
     b32 IsFinishedPlayingToggle;

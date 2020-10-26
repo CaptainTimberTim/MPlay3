@@ -40,7 +40,7 @@
 global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
 global_variable u32 CURRENT_LIBRARY_VERSION = 3;
 
-#define DECODE_STREAMING_TMP_
+#define DECODE_STREAMING_TMP
 #define CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE Gigabytes(1)
 
 enum column_type
@@ -134,7 +134,7 @@ struct scroll_load_info
 };
 
 #define MAX_MP3_INFO_COUNT 10000
-#define MAX_MP3_DECODE_COUNT 10
+#define MAX_MP3_DECODE_COUNT 50
 #define DECODE_PRELOAD_SECONDS 5
 
 enum metadata_flags

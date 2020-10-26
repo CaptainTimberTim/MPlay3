@@ -26,10 +26,8 @@ typedef double r64;
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
 // NOTE:: For loop simplification macro. first param: Count until, second param(optional): Iterater name prefix ...It
-#define For(until, ...) \
-for(u32 (__VA_ARGS__##It) = 0; \
-(__VA_ARGS__##It) < (until); \
-++(__VA_ARGS__##It))
+#define For(until, ...) for(u32 (__VA_ARGS__##It) = 0; (__VA_ARGS__##It) < (until); ++(__VA_ARGS__##It))
+
 // NOTE:: Counts the size of a fixed array.
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
@@ -760,7 +758,8 @@ WinMain(HINSTANCE Instance,
             r32 dUpdateRate = 0.0f;
 #endif
             
-            b32 SongChangedIsCurrentlyDecoding = false;
+            b32 SongChangedIsCurrentlyDecoding      = true;
+            b32 SongChangedIsCurrentlyFullyDecoding = true;
             b32 PrevIsPlaying = MusicInfo->IsPlaying;
             scroll_load_info ScrollLoadInfo = {0, 0.5f, true};
             IsRunning = true;
@@ -1083,6 +1082,20 @@ WinMain(HINSTANCE Instance,
                         }
                     }
                     else SongChangedIsCurrentlyDecoding = true;
+                    
+                    
+                    // For loading the entire song
+                    if(!MP3Info->DecodeInfo.PlayingDecoded.CurrentlyDecoding)
+                    {
+                        if(MP3Info->DecodeInfo.PlayingDecoded.CurrentlyDecoding != SongChangedIsCurrentlyFullyDecoding)
+                        {
+                            SongChangedIsCurrentlyFullyDecoding = false;
+                            FinishChangeEntireSong(PlayingSong);
+                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, MusicInfo);
+                            DebugLog(255, "Finished loading entire song, swapping over now!\n");
+                        }
+                    }
+                    else SongChangedIsCurrentlyFullyDecoding = true;
                 }
                 
                 r32 PlayedSeconds = GetPlayedTime(GameState->SoundThreadInterface);

@@ -353,12 +353,25 @@ PushSongChanged(sound_thread_interface *Interface, mp3dec_file_info_t *SongData)
     ReleaseMutex(Interface->SoundMutex);
 }
 
+internal void
+PushSongLoadingComplete(sound_thread_interface *Interface, mp3dec_file_info_t *SongData)
+{
+    WaitForSingleObjectEx(Interface->SoundMutex, INFINITE, false);
+    Interface->SongFinishedLoadingToggle = true;
+    Interface->PlayingSongData           = *SongData;
+    // TODO:: Shouldn't we copy the data here instead of in the sound thread? I am not sure...
+    // The safe solution would be to have this as "passover" data, that is copied here and 
+    // _only_ used in mutax-land. The sound thread would need to, maybe, copy small portions
+    // of it every frame as needed. Or the whole thing. 
+    ReleaseMutex(Interface->SoundMutex);
+}
 
 internal SOUND_THREAD_CALLBACK(ProcessSound)
 {
     sound_thread_interface *Interface = &ThreadInfo->Interface;
     sound_info *SoundInfo = &ThreadInfo->SoundInfo;
     arena_allocator *Arena = &GlobalGameState.SoundThreadArena;
+    Arena->EmptyArenaCount = 1;
     
     // Initializing clock
     LARGE_INTEGER PerfCountFrequencyResult;
@@ -429,6 +442,20 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             SoundInfo->PlayedTime = 0;
             CurrentSongPlayltime = 0;
             SoundInfo->PlayedSampleCount = 0;
+            WaitForMainThread = false;
+        }
+        if(Interface->SongFinishedLoadingToggle) // When the song is finished fully loading.
+        {
+            Interface->SongFinishedLoadingToggle = false;
+            
+            Assert(Interface->PlayingSongData.hz == MP3Decoded.hz);
+            Assert(Interface->PlayingSongData.channels == MP3Decoded.channels);
+            
+            if(MP3Decoded.buffer) FreeMemory(Arena, MP3Decoded.buffer);
+            MP3Decoded        = Interface->PlayingSongData;
+            MP3Decoded.buffer = AllocateArray(Arena, (u32)MP3Decoded.samples, i16);
+            For(MP3Decoded.samples) MP3Decoded.buffer[It] = Interface->PlayingSongData.buffer[It];
+            
             WaitForMainThread = false;
         }
         

@@ -164,6 +164,7 @@ struct playing_song_panel
     render_text Track;
     
     slider Timeline;
+    b32 TimelineFreezeChange;
 };
 
 struct drag_edge

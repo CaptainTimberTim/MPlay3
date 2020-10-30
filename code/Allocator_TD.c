@@ -199,6 +199,21 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
     return Result;
 }
 
+internal void *
+ReallocateMemory_(arena_allocator *Allocator, void *Memory, u64 OldSize, u64 NewSize)
+{
+    void *Result = 0;
+    
+    Result = AllocateMemory_(Allocator, NewSize);
+    for(u32 It = 0; It < OldSize && It < NewSize; It++) 
+    {
+        ((u8 *)Result)[It] = ((u8 *)Memory)[It];
+    }
+    FreeMemory(Allocator, Memory);
+    
+    return Result;
+}
+
 internal void 
 ResetMemoryArena(arena_allocator *Allocator)
 {
@@ -257,11 +272,28 @@ AllocateMemory_Private(arena_allocator *Allocator, u64 Size)
     return Result;
 }
 
+internal void *
+ReallocateMemory_Private(arena_allocator *Allocator, void *Memory, u64 OldSize, u64 NewSize)
+{
+    void *Result = 0;
+    
+    Result = AllocateMemory_Private(Allocator, NewSize);
+    for(u32 It = 0; It < OldSize && It < NewSize; It++) 
+    {
+        ((u8 *)Result)[It] = ((u8 *)Memory)[It];
+    }
+    FreeMemory(Allocator, Memory);
+    
+    return Result;
+}
+
+
 inline void 
 Clear_(void *Memory, u64 Size)
 {
     memset(Memory, 0, Size);
 }
+
 
 
 

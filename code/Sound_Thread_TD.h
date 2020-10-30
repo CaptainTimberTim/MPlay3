@@ -7,6 +7,7 @@ typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
 enum load_error_codes
 {
+    loadErrorCode_DecodingCanceled = 1,
     loadErrorCode_NoError        =  0,
     loadErrorCode_FileLoadFailed = -1,
     loadErrorCode_DecodingFailed = -2,
@@ -69,6 +70,7 @@ struct sound_thread_interface
     
     // Out
     b32 IsFinishedPlayingToggle;
+    b32 PreloadIsActive;
     
     // In-Out
     r32 CurrentPlaytime;

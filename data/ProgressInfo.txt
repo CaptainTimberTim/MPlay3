@@ -89,3 +89,17 @@
 
 26.10.2020
 - Switched to a two stage .mp3 decoding procedure. Now it only preloads 5 seconds and only starts to fully load the one file that is selected for playing.
+
+27.10.2020
+- Reduced memory footprint by sizing the buffer for the loaded song properly. Should now be able to play .mp3 files of any size (smaller than 4GB)
+
+28.10.2020
+- Fixed bug with trying to read first .mp3 frame and not having the right metadata size (seems like faulty id3 tag data). Now it iteratively loads more of the file if the initial size was not enough until it can extract the first frame.
+
+29.10.2020
+- Implemented proper decode canceling for the full file decode. If the user skips through songs faster than decode speed. The decoding is now canceled and the new one is started immidiately after.
+- Fixed song skip if decoding of file takes longer than preload time of currently 5 seconds. This is done by using the partially decoded song, up to the point it currently is decoded.
+
+30.10.2020
+- Fixed time overflow at the end of song.
+- Added drag freezing for timeline slider, while song is not loaded.

@@ -338,23 +338,207 @@ AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
 // Job: Load and decode files ************
 // ***************************************
 
+internal void
+DecodeMP3StartFrames(arena_allocator *Arena, mp3dec_t *MP3Decoder, read_file_result File, mp3dec_file_info_t *DecodeResult,
+                     u32 BufferSize, u32 DecodeFrameAmount, b32 *BreakOnTrue, 
+                     b32 NoFinalResize = false, i32 *ConsumedBytes = 0)
+{
+    /*typedef struct
+   {
+       int frame_bytes;
+       int channels;
+       int hz;
+       int layer;
+       int bitrate_kbps;
+   } mp3dec_frame_info_t;*/
+    mp3dec_frame_info_t FrameInfo;
+    
+    u32 FrameCount = 0;
+    For(DecodeFrameAmount)
+    {
+        // Allocate more memory if necessary.
+        if((BufferSize - DecodeResult->samples) < MINIMP3_MAX_SAMPLES_PER_FRAME)
+        {
+            DecodeResult->buffer = ReallocateArray(Arena, DecodeResult->buffer, BufferSize, BufferSize*2, i16, Private);
+            BufferSize *= 2;
+            DebugLog(255, "Resized Buffer, new sample count: %i\n", BufferSize);
+        }
+        
+        // mp3dec_decode_frame result:
+        // 0:    No MP3 data was found in the input buffer
+        // 384:  Layer 1
+        // 576:  MPEG 2 Layer 3
+        // 1152: Otherwise
+        u32 SampleCount = mp3dec_decode_frame(MP3Decoder, File.Data, File.Size, 
+                                              DecodeResult->buffer+DecodeResult->samples, &FrameInfo);
+        
+        if(SampleCount > 0 && FrameInfo.frame_bytes > 0) // Succesfull decode.
+        {
+            File.Data += FrameInfo.frame_bytes;
+            File.Size -= FrameInfo.frame_bytes;
+            DecodeResult->samples += SampleCount*FrameInfo.channels;
+            DecodeResult->avg_bitrate_kbps += FrameInfo.bitrate_kbps;
+            FrameCount++;
+            
+            if(It == 0)
+            {
+                DecodeResult->channels = FrameInfo.channels;
+                DecodeResult->hz = FrameInfo.hz;
+                DecodeResult->layer = FrameInfo.layer;
+            }
+            Assert((MINIMP3_MAX_SAMPLES_PER_FRAME*DecodeFrameAmount) >= DecodeResult->samples);
+        }
+        else if(SampleCount == 0 && FrameInfo.frame_bytes > 0) // Decoder skipped ID3/invalid data (no samples were decoded).
+        {
+            File.Data += FrameInfo.frame_bytes;
+            File.Size -= FrameInfo.frame_bytes;
+            It--; // Try again to decode frame.
+        }
+        else if(SampleCount == 0 && FrameInfo.frame_bytes == 0) break; // Nothing was there to be decoded or skipped. EOF
+        else Assert(false); // Double Assert just to know if there can be another case I did not catch.
+        
+        if(ConsumedBytes) *ConsumedBytes += FrameInfo.frame_bytes;
+        if(*BreakOnTrue) break;
+    }
+    DecodeResult->avg_bitrate_kbps = SafeDiv(DecodeResult->avg_bitrate_kbps, FrameCount);
+    
+    // Fit buffer to actual size
+    if(!NoFinalResize && BufferSize != DecodeResult->samples)
+    {
+        DecodeResult->buffer = ReallocateArray(Arena, DecodeResult->buffer, BufferSize, 
+                                               DecodeResult->samples, i16, Private);
+    }
+}
+
+internal error_item
+LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, file_id FileID, 
+                            i32 DecodeID, mp3dec_file_info_t *DecodeResult)
+{
+    // 1. Build the complete filepath
+    // 2. Extract the size of the metadata
+    // 3. Decode first frame to get information of the file
+    // 4. Calculate maximum size to load for wanted amount
+    // 5. Claculate initial buffer size and create it if needed.
+    // 6. Load and decode the stuff
+    error_item Result = {(load_error_codes)DecodeID, FileID};
+    
+    mp3_info *MP3Info = GlobalGameState.MP3Info;
+    i16 *ExistingBuffer = DecodeResult->buffer;
+    u32 PrevSampleCount = (u32)DecodeResult->samples;
+    *DecodeResult = {};
+    
+    // 1.
+    NewEmptyLocalString(FilePath, 255);
+    ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, MP3Info->FileInfo.SubPath + FileID.ID, MP3Info->FileInfo.FileName + FileID.ID);
+    
+    mp3dec_t MP3Decoder = {};
+    mp3dec_init(&MP3Decoder);
+    
+    // 2.
+    DecodeResult->buffer = AllocateArray(ScratchArena, MINIMP3_MAX_SAMPLES_PER_FRAME, i16); // Temp buffer for one frame
+    u32 MetadataSize    = ExtractMetadataSize(ScratchArena, &FilePath);
+    i32 ConsumedBytes   = 0; // Is taken for the other load to alleviate MetadataSize being wrong sometimes.
+    u32 ReadAmount      = MetadataSize + MINIMP3_MAX_SAMPLES_PER_FRAME + 512;
+    b32 StubBreakOn     = false;
+    
+    read_file_result File = {};
+    // 3. 
+    // Because ExtractMetadataSize is sometimes not correct (must be because of wrong size information
+    // in the ID3 header), we loop until we get our first frame and increase the amount we read from the
+    // file every time.
+    while(!DecodeResult->channels)
+    {
+        if(ReadBeginningOfFile(ScratchArena, &File, FilePath.S, ReadAmount))
+        {
+            DecodeMP3StartFrames(ScratchArena, &MP3Decoder, File, DecodeResult, 
+                                 MINIMP3_MAX_SAMPLES_PER_FRAME, 1, &StubBreakOn, true, &ConsumedBytes);
+            FreeFileMemory(ScratchArena, File.Data);
+        }
+        else
+        {
+            Result.Code = loadErrorCode_FileLoadFailed;
+            break;
+        }
+        
+        ReadAmount *= 10;
+    }
+    FreeMemory(ScratchArena, DecodeResult->buffer);
+    
+    if(Result.Code != loadErrorCode_FileLoadFailed)
+    {
+        Assert(DecodeResult->channels);
+        Assert(DecodeResult->hz);
+        
+        u32 DecodeSampleAmount = DecodeResult->hz*SecondsToDecode; 
+        // samples has channels already in it. But I need the frame amount which is channel indipendent.
+        u32 DecodeFrameAmount  = DecodeSampleAmount/(u32)(DecodeResult->samples/DecodeResult->channels);
+        // 4. This should always be enough, as the mp3 file should be smaller, as it is compressed...
+        ReadAmount = DecodeSampleAmount*DecodeResult->channels*sizeof(i16) + DecodeFrameAmount*sizeof(u32) + ConsumedBytes; 
+        if(ReadBeginningOfFile(ScratchArena, &File, FilePath.S, ReadAmount))
+        {
+            // 5.
+            u32 InitialSampleCount = PrevSampleCount;
+            Assert((ExistingBuffer && PrevSampleCount) || (!ExistingBuffer && !PrevSampleCount));
+            
+            b32 *CancelDecode = &StubBreakOn;
+            if(SecondsToDecode != DECODE_PRELOAD_SECONDS) 
+            {
+                // For full songs we use the last buffersize or, if none exists, start with five minutes worth 
+                // of space for the song. Seems like a good middle, for most songs to not need to reallocate.
+                // Some need to do it once or max twice (like TOOL songs).
+                if(!InitialSampleCount) InitialSampleCount = DecodeResult->hz*DecodeResult->channels*300;
+                if(!ExistingBuffer)
+                    ExistingBuffer = AllocateArray(&GlobalGameState.JobThreadsArena, InitialSampleCount, i16, Private);
+                CancelDecode = (b32 *)&GlobalGameState.MP3Info->DecodeInfo.CancelDecoding;
+            }
+            else 
+            {
+                if(!InitialSampleCount) InitialSampleCount = DecodeFrameAmount*(u32)DecodeResult->samples;
+                if(!ExistingBuffer) ExistingBuffer = AllocateArray(&GlobalGameState.JobThreadsArena, InitialSampleCount, i16);
+            }
+            Assert(ExistingBuffer);
+            
+            // 6.
+            DecodeResult->buffer = ExistingBuffer;
+            DecodeResult->samples = 0;
+            DecodeMP3StartFrames(&GlobalGameState.JobThreadsArena, &MP3Decoder, File, DecodeResult, 
+                                 InitialSampleCount, DecodeFrameAmount, CancelDecode);
+            
+            if(MP3Info->DecodeInfo.CancelDecoding) Result.Code = loadErrorCode_DecodingCanceled;
+            else if(DecodeResult->samples == 0)    Result.Code = loadErrorCode_DecodingFailed;
+            else
+            {
+                Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
+                TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
+                DebugLog(255, "NOTE:: Loaded %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
+                
+                if(SecondsToDecode != DECODE_PRELOAD_SECONDS)
+                    CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
+            }
+            
+            FreeFileMemory(ScratchArena, File.Data);
+        }
+        else Result.Code = loadErrorCode_FileLoadFailed;
+    }
+    
+    if(DecodeID >= 0) 
+    {
+        if(SecondsToDecode == DECODE_PRELOAD_SECONDS) MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = false;
+        else MP3Info->DecodeInfo.PlayingDecoded.CurrentlyDecoding = false;
+    }
+    return Result;
+}
 
 
 internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
 {
     job_load_decode_mp3 *JobInfo = (job_load_decode_mp3 *)Data;
     
-    
-#ifdef DECODE_STREAMING_TMP
     mp3dec_file_info_t *DecodeResult = JobInfo->MP3Info->DecodeInfo.DecodedData + JobInfo->DecodeID;
     Assert(JobInfo->PreloadSeconds == DECODE_PRELOAD_SECONDS);
     
     error_item Result = LoadAndDecodeMP3StartFrames(&ThreadInfo->ScratchArena, JobInfo->PreloadSeconds, JobInfo->FileID, 
                                                     JobInfo->DecodeID, DecodeResult);
-#else 
-    error_item Result = LoadAndDecodeMP3Data(&ThreadInfo->ScratchArena, JobInfo->MP3Info, 
-                                             JobInfo->FileID, JobInfo->DecodeID);
-#endif
     
     if(Result.Code < 0) PushErrorMessageFromThread(Result);
 }
@@ -410,23 +594,18 @@ AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID)
     i32 DecodeID = AddJob_LoadMP3(JobQueue, FileID, 0);
     Assert(DecodeID >= 0);
     
-    // TODO:: Problem is, that playingDecoded could also still decode the previous song...
-    // 1. We could make a job for just waiting until that other decode job is done and then 
-    //    start the new one. 
-    // 2. Or we can try to interrupt the decode job, but I do not think that
-    //    is easily doable as there are only 1-2 procedure calls that take 99% of the time 
-    //    (LoadFile and decodeData) and those cant just be stopped. 
-    // 3. Another idea would be to kill the worker and spawn a new one. I have no idea if that is 
-    //    a viable thing to do, though. We would need to know which is the correct worker.
-    // 4. We could also just create another instance of playing_decoded and decode into that.
-    //    And after the already running thread is finished decoding, then switch and delete the other.
-    // NOTE:: I did Nr. 3. for now. lets see if it works...
-    
+    // The strategy for starting to load another song while the old one is still
+    // decoding is to have the job check every decode-frame if CancelDecoding is
+    // set. If so, stop immidiately. The main thread loops until that happened, 
+    // which is very quick, and then proceed as normal.
     mp3_decode_info *DecodeInfo = &GlobalGameState.MP3Info->DecodeInfo;
     if(DecodeInfo->PlayingDecoded.CurrentlyDecoding)
     {
-        DebugLog(235, "NOTE:: Did a Job Kill to load the new playing song!\n");
-        FindJobThreadStopAndRestartIt(GlobalGameState.JobHandles, GlobalGameState.JobInfos, JobLoadAndDecodeEntireMP3File);
+        DebugLog(235, "NOTE:: Canceled previous loading of song to load the new playing song!\n");
+        
+        DecodeInfo->CancelDecoding = true;
+        while(DecodeInfo->PlayingDecoded.CurrentlyDecoding) Sleep(1); // Loop 1 ms between checks. Seems fine for now.
+        DecodeInfo->CancelDecoding = false;
     }
     
     DecodeInfo->PlayingDecoded.DecodeID = DecodeID;

@@ -289,6 +289,13 @@ GetIsFinishedPlaying(sound_thread_interface *Interface)
     return Result;
 }
 
+internal b32
+GetIsPlayingPreload(sound_thread_interface *Interface)
+{
+    b32 Result = Interface->PreloadIsActive;
+    return Result;
+}
+
 internal r32 
 GetPlayedTime(sound_thread_interface *Interface)
 {
@@ -413,7 +420,11 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             
             //Interface->CurrentPlaytime = (SoundInfo->PlayedSampleCount/(r32)SoundInfo->SoundInstance.SamplesPerSecond);
             if(IsPlaying) CurrentSongPlayltime += Time.dTime;
+            r32 MaxSongPlaytime = MP3Decoded.samples/(r32)(MP3Decoded.hz*MP3Decoded.channels);
+            CurrentSongPlayltime = Min(CurrentSongPlayltime, MaxSongPlaytime);
             Interface->CurrentPlaytime = CurrentSongPlayltime;
+            
+            Assert(Interface->CurrentPlaytime <= MaxSongPlaytime);
         }
         else Interface->CurrentPlaytime = 0;
         
@@ -442,7 +453,9 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             SoundInfo->PlayedTime = 0;
             CurrentSongPlayltime = 0;
             SoundInfo->PlayedSampleCount = 0;
+            
             WaitForMainThread = false;
+            Interface->PreloadIsActive = true;
         }
         if(Interface->SongFinishedLoadingToggle) // When the song is finished fully loading.
         {
@@ -457,6 +470,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             For(MP3Decoded.samples) MP3Decoded.buffer[It] = Interface->PlayingSongData.buffer[It];
             
             WaitForMainThread = false;
+            Interface->PreloadIsActive = false;
         }
         
         DoSoundBufferClear = Interface->ClearSoundBufferToggle;
@@ -465,6 +479,23 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
         if(!IsPlaying && Interface->IsPlaying) WaitForMainThread = false;
         IsPlaying             = Interface->IsPlaying;
         SoundInfo->ToneVolume = Interface->ToneVolume;
+        
+        // Check if playing song preload is close to the preload amount. If so
+        // just use the currently decoded stuff of the full song. 
+        // NOTE:: This should only ever happen if the decoded file is really big.
+        playing_decoded *PlayingDecoding = &GlobalGameState.MP3Info->DecodeInfo.PlayingDecoded;
+        u32 QuarterSecondSamples = (MP3Decoded.hz*MP3Decoded.channels)/4;
+        b32 PreloadAlmostPlayed = (MP3Decoded.samples-SoundInfo->PlayedSampleCount*MP3Decoded.channels) < QuarterSecondSamples;
+        if(PlayState == playState_Playing && PreloadAlmostPlayed && PlayingDecoding->CurrentlyDecoding)
+        {
+            DebugLog(255, "NOTE:: Preload ended. Using half decoded file.\n");
+            if(MP3Decoded.buffer) FreeMemory(Arena, MP3Decoded.buffer);
+            MP3Decoded        = PlayingDecoding->Data;
+            MP3Decoded.buffer = AllocateArray(Arena, (u32)MP3Decoded.samples, i16);
+            For(MP3Decoded.samples) MP3Decoded.buffer[It] = PlayingDecoding->Data.buffer[It];
+            
+            WaitForMainThread = false;
+        }
         
         ReleaseMutex(Interface->SoundMutex); // *************************************************
         
@@ -479,16 +510,14 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             if(IsPlaying && !WaitForMainThread)
             {
                 PlayState = SimpleCalculateAndPlaySound(&Time, ThreadInfo, &MP3Decoded, PrevVolume != SoundInfo->ToneVolume);
+                
                 if(PlayState == playState_Done)
                 {
                     ClearSoundBuffer(&SoundInfo->SoundInstance);
                     SoundInfo->SoundIsValid = false;
                     WaitForMainThread = true;
                 }
-                else if(PlayState == playState_Error)
-                {
-                    IsPlaying = false;
-                }
+                else if(PlayState == playState_Error) IsPlaying = false;
             }
         }
         PrevVolume = SoundInfo->ToneVolume;

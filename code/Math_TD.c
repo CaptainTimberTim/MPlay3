@@ -401,6 +401,16 @@ SafeDiv(r32 A, r32 B)
     return Result;
 }
 
+inline i32
+SafeDiv(i32 A, i32 B)
+{
+    i32 Result = 0;
+    
+    if(B != 0) Result = A/B;
+    
+    return Result;
+}
+
 inline r32 
 Mod(r32 V, r32 M)
 {

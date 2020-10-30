@@ -546,6 +546,13 @@ SetActive(slider *Slider, b32 Activate)
     SetActive(Slider->GrabThing, Activate);
 }
 
+inline void 
+SetTransparency(slider *Slider, r32 Alpha)
+{
+    SetTransparency(Slider->Background, Alpha);
+    SetTransparency(Slider->GrabThing, Alpha);
+}
+
 inline void
 OnSliderDragStart(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {

@@ -2035,6 +2035,7 @@ struct timeline_slider_drag
 internal void
 OnTimelineDragStart(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
+    if(GetIsPlayingPreload(GlobalGameState.SoundThreadInterface)) return;
     timeline_slider_drag *Info = (timeline_slider_drag *)Data;
     
     if(Info->GameState->MusicInfo.IsPlaying)
@@ -2048,6 +2049,8 @@ OnTimelineDragStart(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, v
 internal void
 OnTimelineDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
+    if(GetIsPlayingPreload(GlobalGameState.SoundThreadInterface)) return;
+    
     timeline_slider_drag *Info = (timeline_slider_drag *)Data;
     music_display_info *DisplayInfo = &Info->GameState->MusicInfo.DisplayInfo;
     slider *Slider = &DisplayInfo->PlayingSongPanel.Timeline;
@@ -2066,6 +2069,8 @@ OnTimelineDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *
 internal void
 OnTimelineDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
+    if(GetIsPlayingPreload(GlobalGameState.SoundThreadInterface)) return;
+    
     timeline_slider_drag *Info = (timeline_slider_drag *)Data;
     
     if(Info->PausedForDragging)

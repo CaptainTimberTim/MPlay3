@@ -82,15 +82,21 @@ inline void FreeMemory(arena_allocator *Allocator, void *Memory);
 #define AllocateArray(Allocator, Count, Type,  ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, (Count)*sizeof(Type))
 #define AllocateStruct(Allocator, Type,        ...) (Type *)AllocateMemory_##__VA_ARGS__(Allocator, sizeof(Type))
 
+#define ReallocateMemory(Allocator, Memory, OldSize, NewSize, ...) \
+(u8 *)ReallocateMemory_##__VA_ARGS__(Allocator, Memory, OldSize, NewSize)
+#define ReallocateArray(Allocator, Memory, OldCount, NewCount, Type, ...) \
+(Type *)ReallocateMemory_##__VA_ARGS__(Allocator, Memory, (OldCount)*sizeof(Type), (NewCount)*sizeof(Type))
 
 // Normal arena allocations. When created is persistent until DeleteMemory is called.
 internal void *AllocateMemory_(arena_allocator *Allocator, u64 Size);
+internal void *ReallocateMemory_(arena_allocator *Allocator, void *Memory, u64 OldSize, u64 NewSize);
 
 // Allocates a new arena that is exactly the given size. This is mainly useful for
 // allocating big memory blocks that _might_ get deleted at some point and 
 // having the whole arena empty again and not locking a big chunk of memory, 
 // because of some small persistent allocation. 
 internal void *AllocateMemory_Private(arena_allocator *Allocator, u64 Size);
+internal void *ReallocateMemory_Private(arena_allocator *Allocator, void *Memory, u64 OldSize, u64 NewSize);
 
 internal void ResetMemoryArena(arena_allocator *Allocator);
 

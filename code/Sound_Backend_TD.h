@@ -32,6 +32,7 @@
 //      - Implement better memory management
 // - properly round for song panel time and slider
 // - fix track number alignment for 100th
+// - stop always jumping the column to the start on i.e. search end
 
 // - remove all GlobalGameState references from UI.c
 
@@ -39,9 +40,6 @@
 
 global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
 global_variable u32 CURRENT_LIBRARY_VERSION = 3;
-
-#define DECODE_STREAMING_TMP
-#define CURRENTLY_SUPPORTED_MAX_DECODED_FILE_SIZE Gigabytes(1)
 
 enum column_type
 {
@@ -182,6 +180,7 @@ struct playing_decoded
 struct mp3_decode_info
 {
     playing_decoded PlayingDecoded;
+    b32 volatile CancelDecoding; // Exclusively written in main thread.
     
     mp3dec_file_info_t DecodedData[MAX_MP3_DECODE_COUNT];
     array_file_id FileID; // size: MAX_MP3_DECODE_COUNT

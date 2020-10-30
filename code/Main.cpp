@@ -1065,6 +1065,14 @@ WinMain(HINSTANCE Instance,
                             ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
                         }
                     }
+                    
+                    b32 TimelineFreeze = GetIsPlayingPreload(GameState->SoundThreadInterface);
+                    if(DisplayInfo->PlayingSongPanel.TimelineFreezeChange != TimelineFreeze)
+                    {
+                        DisplayInfo->PlayingSongPanel.TimelineFreezeChange = TimelineFreeze;
+                        if(TimelineFreeze) SetTransparency(&DisplayInfo->PlayingSongPanel.Timeline, 0.5f);
+                        else               SetTransparency(&DisplayInfo->PlayingSongPanel.Timeline, 1.0f);
+                    }
                 }
                 
                 // *******************************************

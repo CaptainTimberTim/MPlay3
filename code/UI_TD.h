@@ -174,6 +174,8 @@ struct slider
     r32 OverhangP; // CLEANUP:: This is for the column stuff only
 };
 
+inline void SetTransparency(slider *Slider, r32 Alpha);
+
 // quit curtain
 
 struct quit_animation

@@ -199,6 +199,7 @@ inline r32 Mod(r32 V, r32 M);
 inline r64 Mod(r64 V, r64 M);
 
 inline r32 SafeDiv(r32 A, r32 B);
+inline i32 SafeDiv(i32 A, i32 B);
 // Vector Math *****************
 
 // 2D Vectors

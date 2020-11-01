@@ -393,6 +393,38 @@ ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheck
 }
 
 internal b32
+ConfirmLibraryMusicPathExists(game_state *GameState)
+{
+    b32 Result = false;
+    
+    NewEmptyLocalString(FilePath, 256);
+    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
+    
+    u32 BegginingCount = StringLength((u8 *)"MP3Lib\nVersion XX\nP: \nC: XXXXX\n");
+    read_file_result File = {};
+    if(ReadBeginningOfFile(&GameState->ScratchArena, &File, FilePath.S, BegginingCount+256))
+    {
+        u8 *C = File.Data;
+        C += 7; // MP3Lib
+        AdvanceToNewline(&C);
+        C += 3; // P:_
+        NewEmptyLocalString(FolderPath, 256);
+        C += CopyUntilNewline(C, &FolderPath);
+        AppendCharToCompound(&FolderPath, '*');
+        
+        string_w FolderPathWide = {};
+        ConvertString8To16(&GameState->ScratchArena, &FolderPath, &FolderPathWide);
+        
+        WIN32_FIND_DATAW FileData = {};
+        HANDLE FileHandle = FindFirstFileExW(FolderPathWide.S, FindExInfoBasic, &FileData, 
+                                             FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+        Result = FileHandle != INVALID_HANDLE_VALUE;
+    }
+    
+    return Result;
+}
+
+internal b32
 CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
 {
     b32 Result = false;

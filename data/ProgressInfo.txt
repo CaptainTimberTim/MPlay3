@@ -103,3 +103,11 @@
 30.10.2020
 - Fixed time overflow at the end of song.
 - Added drag freezing for timeline slider, while song is not loaded.
+
+01.10.2020
+- Moved library files into separate folder.
+- Removed the MiniMP3_Ext.h file from project, as it is no more needed.
+- Added fix for AMD driver bug for Windows 7. NOTE:: Not confirmed if it works!
+- Fixed bug in metadata extraction for converting the year string to a u32.
+- Added check if the folder path in the library file exists. If not, just do the same as if no library file exists.
+- Added fixed framerate even when VSYNC is disabled in the user driver. 

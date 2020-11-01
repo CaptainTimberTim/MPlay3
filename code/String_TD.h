@@ -80,6 +80,7 @@ inline r32 ProcessNextR32InString(u8 *Character, char Delimiter, u8 &NumberLengt
 inline b32 ProcessNextB32InString(u8 *Character);
 inline void ConvertV3To15Char(v3 P, u8 *Result);
 inline u32 ConvertU32FromString(u8 *Character, u32 NumberLength);
+inline u32 ConvertU32FromString(string_c *String);
 
 // Local string stuff
 #define R32ToLocalString(Name, Count, Value) NewEmptyLocalString(Name, Count) \
@@ -520,11 +521,23 @@ V3iToString(string_c *S, u8 Delimiter, v3i Vec)
 inline u32
 ConvertU32FromString(u8 *Character, u32 NumberLength)
 {
-    i32 Result = 0;
+    u32 Result = 0;
     For(NumberLength)
     {
         Result *= 10;
         Result += CharToU32(*Character++);
+    }
+    return Result;
+}
+
+inline u32 
+ConvertU32FromString(string_c *String)
+{
+    u32 Result = 0;
+    For(String->Pos)
+    {
+        Result *= 10;
+        Result += CharToU32(String->S[It]);
     }
     return Result;
 }

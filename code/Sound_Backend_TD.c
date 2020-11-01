@@ -809,7 +809,7 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                 {
                     i32 SlashPos = FindFirstOccurrenceOfCharInStringCompound(&Track, '/');
                     if(SlashPos != -1) Track.Pos = SlashPos;
-                    Metadata->Track = ConvertU32FromString(Track.S, Track.Pos);
+                    Metadata->Track = Clamp(ConvertU32FromString(&Track), 0, 9999);
                     Assert(Metadata->Track < 10000);
                     Metadata->TrackString = NewStringCompound(MainArena, 4);
                     I32ToString(&Metadata->TrackString, Metadata->Track);
@@ -826,8 +826,7 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Year;
                 if(Metadata->FoundFlags & metadata_Year)
                 {
-                    if(Year.Pos == 0) Metadata->Year = 0;
-                    else Metadata->Year = ConvertU32FromString(Year.S, 4);
+                    Metadata->Year = Clamp(ConvertU32FromString(&Year), 0, 9999);
                     Assert(Metadata->Year < 10000);
                     Metadata->YearString = NewStringCompound(MainArena, 4);
                     I32ToString(&Metadata->YearString, Metadata->Year);

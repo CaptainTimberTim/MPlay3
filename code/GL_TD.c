@@ -284,7 +284,4 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             InvalidDefaultCase;
         }
     }
-    
-    
-    SwapBuffers(DeviceContext);
 }

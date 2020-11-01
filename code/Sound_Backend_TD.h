@@ -21,20 +21,20 @@
 // - if glyphs not existing for font, use a backup font?
 //      - fix all the non-ascii problems...
 // - think about doing more than just a quad for text?
-// - files bigger than 64MB*2 just assert
-//      - skyrim atmospheres is 74MB as mp3 and decompressed ~400MB! Backend thread has not enough memory for that!
 // - fix cursor change on column edge drag
 // - still hardcapped at 10k mp3 files
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
 // - Add key shortcut button
-// - Implement partially decoding mp3s
-//      - Implement better memory management
 // - properly round for song panel time and slider
 // - fix track number alignment for 100th
 // - stop always jumping the column to the start on i.e. search end
 
 // - remove all GlobalGameState references from UI.c
+
+// - fix issues regarding handmade network comment
+//       - Find issue with drawing order bug. This one I have no clue right now...
+
 
 #include "Sound_UI_TD.h"
 

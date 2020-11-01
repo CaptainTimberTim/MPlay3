@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <windows.h>
 
+// NOTE:: internal is for procedures, to let the compiler know that it is only for this compilation unit
 #define internal        static
 #define local_persist   static 
 #define global_variable static
@@ -38,17 +39,17 @@ typedef double r64;
 
 // NOTE:: General macro for removing an entry/item from an arbitrary array. Moving all following items one up.
 #define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) { \
-u32 __CD(M, __LINE__)  = (ArrayCount-RemovePos)*sizeof(ArrayType); \
-u8 *__CD(G, __LINE__)  = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
-u8 *__CD(S, __LINE__)  = __CD(G, __LINE__) + sizeof(ArrayType); \
-memmove_s(__CD(G, __LINE__), __CD(M, __LINE__), __CD(S, __LINE__), __CD(M, __LINE__)); \
+u32 MoveSize = (ArrayCount-RemovePos)*sizeof(ArrayType); \
+u8 *Goal = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
+u8 *Start = Goal + sizeof(ArrayType); \
+memmove_s(Goal, MoveSize, Start, MoveSize); \
 } 
 
 // NOTE:: Simple DebugLog that simplifies just printing stuff to the debug output.
 #define DebugLog(Count, Text, ...) { \
-char __CD(B, __LINE__)[Count]; \
-sprintf_s(__CD(B, __LINE__), Text, __VA_ARGS__);\
-OutputDebugStringA(__CD(B, __LINE__)); \
+char B[Count]; \
+sprintf_s(B, Text, __VA_ARGS__);\
+OutputDebugStringA(B); \
 }
 
 #if DEBUG_TD
@@ -67,13 +68,13 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 
 
 #define MINIMP3_IMPLEMENTATION
-#include "MiniMP3_Ext.h"
+#include "Libraries\\MiniMP3.h"
 
 // TODO:: Implement STBI_MALLOC, STBI_REALLOC and STBI_FREE!
 #define STB_IMAGE_IMPLEMENTATION
-#include "STB_Image.h"
+#include "Libraries\\STB_Image.h"
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "STB_Truetype.h"
+#include "Libraries\\STB_Truetype.h"
 
 #if DEBUG_TD
 #define STBI_ASSERT(x) if(!(x)) {*(int *)0 = 0;}
@@ -93,6 +94,7 @@ struct time_management
     r32 CurrentTimeSpeed;
     
     i64 PerfCountFrequency;
+    b32 SleepIsGranular;
 };
 internal b32 TryGetClipboardText(struct string_compound *String);
 internal void ApplyWindowResize(HWND Window, i32 NewWidth, i32 NewHeight, b32 ForceResize = false);
@@ -496,6 +498,7 @@ WinMain(HINSTANCE Instance,
         GameState->Time.dTime            = 0.0f;
         GameState->Time.GameTime         = 0.0f;
         GameState->Time.CurrentTimeSpeed = 1.0f;
+        GameState->Time.SleepIsGranular = (timeBeginPeriod(1) == TIMERR_NOERROR); 
         GameState->Input                 = {};
         input_info *Input = &GameState->Input;
         
@@ -520,11 +523,11 @@ WinMain(HINSTANCE Instance,
         u32 InitialWindowHeight = GameState->Settings.WindowDimY;//1039;
         HWND Window = CreateWindowExA(0, WindowClass.lpszClassName, "MPlay3", 
                                       WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, 
-                                      CW_USEDEFAULT, InitialWindowWidth, InitialWindowHeight, 
+                                      CW_USEDEFAULT, InitialWindowWidth, -1, 
                                       0, 0, Instance, 0);
-        
         if(Window)
         {
+            SetWindowPos(Window, 0, 0, 0, InitialWindowWidth, InitialWindowHeight, SWP_NOMOVE); // NOTE:: AMD Win7 driver bug fix
             HDC DeviceContext = GetDC(Window);
             InitOpenGL(Window);
             
@@ -574,7 +577,8 @@ WinMain(HINSTANCE Instance,
             // Preparing arguments for loading files
             b32 LoadedLibraryFile = false;
             u32 FileInfoCount = 0;
-            if(ConfirmLibraryWithCorrectVersionExists(GameState, CURRENT_LIBRARY_VERSION, &FileInfoCount))
+            if(ConfirmLibraryWithCorrectVersionExists(GameState, CURRENT_LIBRARY_VERSION, &FileInfoCount) && 
+               ConfirmLibraryMusicPathExists(GameState))
             {
                 MP3Info = CreateMP3InfoStruct(&GameState->FixArena, FileInfoCount);
                 LoadMP3LibraryFile(GameState, MP3Info);
@@ -583,7 +587,7 @@ WinMain(HINSTANCE Instance,
             else
             {
                 MP3Info = CreateMP3InfoStruct(&GameState->FixArena, 0);
-                CreateOrWipeStringComp(&GameState->FixArena, &MP3Info->FolderPath, 255);
+                CreateOrWipeStringComp(&GameState->FixArena, &MP3Info->FolderPath, 256);
             }
             GameState->MP3Info = MP3Info;
             MP3Info->MusicInfo = &GameState->MusicInfo;
@@ -1144,9 +1148,26 @@ WinMain(HINSTANCE Instance,
                 CollectArenaDebugFrameData(&GameState->SoundThreadArena.DebugData);
 #endif
                 
+                // ****************************************************************
+                // Sleep if we are faster than targeted framerate. ****************
+                // ****************************************************************
+                r32 dFrameWorkTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, CurrentCycleCount, GetWallClock());
+                if(dFrameWorkTime < GameState->Time.GoalFrameRate)
+                {
+                    DWORD SleepMS = (DWORD)(1000.0f * (GameState->Time.GoalFrameRate - dFrameWorkTime));
+                    if(GameState->Time.SleepIsGranular)
+                    {
+                        if(SleepMS > 0) Sleep(SleepMS);
+                    }
+                    else
+                    {
+                        // NOTE:: Just guessing that 10 ms might be enough for the scheduling granularity 
+                        // to not oversleep.
+                        if(SleepMS > 10) Sleep(SleepMS); 
+                    }
+                }
                 
-                
-                FlipWallClock = GetWallClock();
+                SwapBuffers(DeviceContext);
             }
             
             SaveSettingsFile(GameState, &GameState->Settings);

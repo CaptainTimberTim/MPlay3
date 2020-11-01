@@ -35,6 +35,19 @@ extern "C" {
 #endif /* MINIMP3_FLOAT_OUTPUT */
     int mp3dec_decode_frame(mp3dec_t *dec, const uint8_t *mp3, int mp3_bytes, mp3d_sample_t *pcm, mp3dec_frame_info_t *info);
     
+    
+    // NOTE(Tim):: This struct was extracted from MiniMP3_Ext.h, as it
+    // was the only thing used from that.
+    typedef struct
+    {
+        mp3d_sample_t *buffer;
+        size_t samples; /* channels included, byte size = samples*sizeof(int16_t) */
+        int channels, hz, layer, avg_bitrate_kbps;
+    } mp3dec_file_info_t;
+    // ------------
+    
+    
+    
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
@@ -1339,7 +1352,7 @@ static void mp3d_DCT_II(float *grbuf, int n)
             VSAVE4(3, t[3][7]);
         }
     } else
-    #endif /* HAVE_SIMD */
+#endif /* HAVE_SIMD */
 #ifdef MINIMP3_ONLY_SIMD
     {}
 #else /* MINIMP3_ONLY_SIMD */
@@ -1563,7 +1576,7 @@ static void mp3d_synth(float *xl, mp3d_sample_t *dstl, int nch, float *lins)
 #endif /* MINIMP3_FLOAT_OUTPUT */
         }
     } else
-    #endif /* HAVE_SIMD */
+#endif /* HAVE_SIMD */
 #ifdef MINIMP3_ONLY_SIMD
     {}
 #else /* MINIMP3_ONLY_SIMD */
@@ -1620,7 +1633,7 @@ static void mp3d_synth_granule(float *qmf_state, float *grbuf, int nbands, int n
             qmf_state[i] = lins[nbands*64 + i];
         }
     } else
-    #endif /* MINIMP3_NONSTANDARD_BUT_LOGICAL */
+#endif /* MINIMP3_NONSTANDARD_BUT_LOGICAL */
     {
         memcpy(qmf_state, lins + nbands*64, sizeof(float)*15*64);
     }

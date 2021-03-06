@@ -13,24 +13,24 @@
 //
 // - generate huge amount of fake mp3 files and test with those!
 // - sub-pixel accuracy? 
-// - redraw only when necessary!
-//      - stop rendering when no user input and no song is playing
 // - Solidify playlists
 //      - show current playlist button
-// - -/+ for volume
 // - if glyphs not existing for font, use a backup font?
 //      - fix all the non-ascii problems...
 // - think about doing more than just a quad for text?
-// - fix cursor change on column edge drag
 // - still hardcapped at 10k mp3 files
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
 // - Add key shortcut button
 // - properly round for song panel time and slider
 // - fix track number alignment for 100th
-// - stop always jumping the column to the start on i.e. search end
 
 // - remove all GlobalGameState references from UI.c
+// - redraw only when necessary!
+//      - stop rendering when no user input and no song is playing
+// - stop always jumping the column to the start on i.e. search end
+// - color picker pops into original center. should at least be current center.
+
 
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...

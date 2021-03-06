@@ -763,7 +763,10 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                 JmpIter = MetadataID3v2_Helper(MainArena, Current+It, ARTIST, &Metadata->Artist, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
-                if(JmpIter > 0) Metadata->FoundFlags |= metadata_Artist;
+                if(JmpIter > 0) 
+                {
+                    Metadata->FoundFlags |= metadata_Artist;
+                }
             }
             if(~Metadata->FoundFlags & metadata_Genre)
             {
@@ -797,7 +800,6 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                     DeleteStringCompound(TransientArena, &GenreNr);
                 }
             }
-            
             if(~Metadata->FoundFlags & metadata_Track)
             {
                 string_compound Track = {};
@@ -833,6 +835,8 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                     DeleteStringCompound(TransientArena, &Year);
                 }
             }
+            
+#if 0 // Many duration tags are errounious and that causes some timeline problems. I rather always calculate the duration when the song is loaded the first time.
             if(~Metadata->FoundFlags & metadata_Duration)
             {
                 string_c Duration = {};
@@ -848,20 +852,11 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                     DeleteStringCompound(TransientArena, &Duration);
                 }
             }
+#endif
             if(FoundAllMetadata(Metadata->FoundFlags)) break;
         }
     }
     return DataLength;
-}
-
-inline u32
-ExtractMetadata(arena_allocator *MainArena, arena_allocator *TransientArena, read_file_result *File, mp3_metadata *Metadata)
-{
-    u32 MetadataSize3 = 0;
-    u32 MetadataSize2 = 0;
-    if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataSize3 = MetadataID3v2_3(MainArena, TransientArena, File, Metadata);
-    //if(!FoundAllMetadata(Metadata->FoundFlags)) MetadataID3v1(MainArena, File, Metadata);
-    return (MetadataSize3 > 0) ? MetadataSize3 : MetadataSize2;
 }
 
 inline void
@@ -953,7 +948,7 @@ CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c
     read_file_result FileData = {};
     if(DataLength > 0 && ReadBeginningOfFile(TransientArena, &FileData, FilePath->S, DataLength)) 
     {
-        ExtractMetadata(&GlobalGameState.JobThreadsArena, TransientArena, &FileData, MD);
+        MetadataID3v2_3(&GlobalGameState.JobThreadsArena, TransientArena, &FileData, MD);
         FreeFileMemory(TransientArena, FileData.Data);
     }
     

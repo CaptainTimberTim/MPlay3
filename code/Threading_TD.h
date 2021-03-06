@@ -12,7 +12,7 @@
 // - CreateSemaphoreEx() - returns handle that can be used for synchronisation functions (bottom msdn page)(access type: SEMAPHORE_ALL_ACCESS)
 //      - WaitForSingleObjectEX - suspends thread the specified amount of time, until semaphore handle "triggers" 
 //      - ReleaseSemaphore - Inreases semaphore count by specified amount, triggers for waitforsingle. When thread is released, it is decremented by 1
-#define THREAD_COUNT 1
+#define THREAD_COUNT 5
 
 #define JOB_LIST_CALLBACK(name) void name(struct job_thread_info *ThreadInfo, void *Data)
 typedef JOB_LIST_CALLBACK(job_list_callback);

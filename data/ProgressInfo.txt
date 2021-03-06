@@ -107,7 +107,26 @@
 01.10.2020
 - Moved library files into separate folder.
 - Removed the MiniMP3_Ext.h file from project, as it is no more needed.
-- Added fix for AMD driver bug for Windows 7. NOTE:: Not confirmed if it works!
-- Fixed bug in metadata extraction for converting the year string to a u32.
-- Added check if the folder path in the library file exists. If not, just do the same as if no library file exists.
-- Added fixed framerate even when VSYNC is disabled in the user driver. 
+- Fixing bugs found by mrmixer on handmade.network:
+    - Added fix for AMD driver bug for Windows 7. NOTE:: Not confirmed if it works!
+    - Fixed bug in metadata extraction for converting the year string to a u32.
+    - Added check if the folder path in the library file exists. If not, just do the same as if no library file exists.
+    - Added fixed framerate even when VSYNC is disabled in the user driver. 
+
+02.10.2020
+- Fixed bug with u32 underflow in BringDisplayablesOnScreen while calling a max function.
+
+11.11.2020
+- Fixed bug where making the vertical height of the window minimal the columns get scrolled to the bottom, because of a size < 0 error.
+- Fixed bug introduced through splitting SwapBuffers off of DisplayBufferInWindow, by adding it everywhere.
+
+12.11.2020
+- Changed extracting the song duration from metadata, as it was sometimes wrong. I rather calculate it all the time based on loaded sample count and hz. Wrong metadata was causing errors in the timeline.
+- Added popup to UI for the comming Help-shortcut button.
+- Added barebones of shortcut-help stuff.
+
+13.11.2020
+- Implemented most of the shortcut-help popups.
+
+14.11.2020
+- Finished shortcut-help popups. 

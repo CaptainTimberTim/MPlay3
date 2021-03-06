@@ -15,6 +15,7 @@ InitializeRenderer(game_state *GameState, HWND WindowHandle)
     Result.Window.CurrentReverseAspect = (r32)Result.Window.CurrentDim.Height/(r32)Result.Window.CurrentDim.Width;
     Result.Window.WindowHandle = WindowHandle;
     
+    Result.ColorPalette = &GameState->MusicInfo.DisplayInfo.ColorPalette;
     Result.BackgroundColor = {0.5f, 0.5f, 0.5f, 1.0f};//{3.0f/255, 17.0f/255, 3.0f/255, 1};
     Result.DefaultEntryColor = {1, 1, 1};
     
@@ -82,19 +83,21 @@ MonoBitmapToRGBA(u8 *MonoBitmap, loaded_bitmap *Bitmap)
 }
 
 internal render_text_atlas *
-InitSTBBakeFont(game_state *GameState, r32 FontHeightInPixel)
+InitSTBBakeFont(game_state *GameState, u32 FontHeightInPixel)
 {
     render_text_atlas *Result = AllocateStruct(&GameState->FixArena, render_text_atlas);
     
+    NewLocalString(FontPath, 260, GameState->DataPath.S);
+    AppendStringToCompound(&FontPath, (u8 *)"Fonts\\carmini.ttf");
     read_file_result FontData = {};
-    if(ReadEntireFile(&GameState->ScratchArena, &FontData, (u8 *)"..\\data\\Fonts\\carmini.ttf"))
+    if(ReadEntireFile(&GameState->ScratchArena, &FontData, FontPath.S))
     {
         u32 BitmapSize = 1200;
         loaded_bitmap Bitmap = {0, BitmapSize, BitmapSize, 0, colorFormat_RGBA, BitmapSize*4};
         Bitmap.Pixels          = AllocateArray(&GameState->FixArena, Bitmap.Width*Bitmap.Height, u32);
         u8 *AlphaMap           = AllocateArray(&GameState->ScratchArena, Bitmap.Width*Bitmap.Height, u8);
         
-        int BakeRet = stbtt_BakeFontBitmap(FontData.Data, 0, FontHeightInPixel, 
+        int BakeRet = stbtt_BakeFontBitmap(FontData.Data, 0, (r32)FontHeightInPixel, 
                                            AlphaMap, Bitmap.Width, Bitmap.Height, 
                                            32, ATLAS_LETTER_COUNT, Result->CharData);
         
@@ -526,6 +529,12 @@ SetActive(entry_id *Entry, b32 Activate)
     Entry->ID->Render = Activate;
 }
 
+inline b32
+IsActive(entry_id *Entry)
+{
+    return Entry->ID->Render;
+}
+
 inline void 
 SetColor(entry_id *Entry, v3 *Color)
 {
@@ -760,6 +769,31 @@ IsInRect(entry_id *Entry, v2 P)
     
     rect_2D Rect = ExtractScreenRect(Entry);
     Result = IsInRect(Rect, P);
+    
+    return Result;
+}
+
+inline b32 
+IsInRect(rect Rect1,  rect Rect2)
+{
+    b32 Result = false;
+    
+    if(Rect1.Min.x <= Rect2.Min.x && Rect1.Min.y <= Rect2.Min.y &&
+       Rect1.Max.x >= Rect2.Max.x && Rect1.Max.y >= Rect2.Max.y)
+    {
+        Result = true;
+    }
+    
+    return Result;
+}
+
+inline b32 
+IsInRect(rect Rect1,  entry_id *Entry)
+{
+    b32 Result = false;
+    
+    rect Rect2 = ExtractScreenRect(Entry);
+    Result = IsInRect(Rect1, Rect2);
     
     return Result;
 }
@@ -1033,7 +1067,6 @@ CreateRenderText(renderer *Renderer, arena_allocator *Arena, font_size Size, str
     {
         ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
         ResultText->RenderEntries    = AllocateArray(Arena, ResultText->MaxCount, render_entry);
-        ResultText->StartPointOffset = AllocateArray(Arena, ResultText->MaxCount, v2);
     }
     // TODO:: Maybe when this happens increase the size? With current allocater system
     // this would not work very well. But once it changed... maybe.
@@ -1179,6 +1212,20 @@ SetColor(render_text *Text, v3 *Color)
     }
 }
 
+inline u32 
+FontSizeToPixel(font_size FontSize)
+{
+    u32 Result = 0;
+    switch(FontSize)
+    {
+        case font_Small:  Result = 25; break;
+        case font_Medium: Result = 50; break;
+        case font_Big:    Result = 75; break;
+        InvalidDefaultCase;
+    }
+    
+    return Result;
+}
 
 // *******************  Sorting algorithms ***********************
 // 3-Way Quicksort ***********************************************

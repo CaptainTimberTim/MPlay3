@@ -209,6 +209,41 @@ struct user_error_text
     r32 AnimTime;
 };
 
+struct shortcut_popups
+{
+    string_c PaletteSwap; // 1
+    string_c ColorPicker; // 2
+    string_c MusicPath; // 3
+    string_c SongPlay; // 4
+    string_c SongAddToNextUp; // 5
+    string_c SearchGenre; // 6
+    string_c SearchArtist; // 7
+    string_c SearchAlbum; // 8
+    string_c SearchSong; // 9
+    string_c Loop; // 10
+    string_c Shuffle; // 11
+    string_c PlayPause; // 12
+    string_c Stop; // 13
+    string_c Previous; // 14
+    string_c Next; // 15
+    string_c Volume; // 16
+    string_c Timeline; // 17
+    string_c Help; // 18
+    string_c Quit; // 19
+    string_c SaveMusicPath; // 20
+    string_c CancelMusicPath; // 21
+    string_c RescanMetadata; // 22
+    string_c SavePalette; // 23
+    string_c CopyPalette; // 24
+    string_c DeletePalette; // 25
+    string_c CancelPicker; // 26
+    u32 ActiveText; // Is one of the values from the strings above (1-26).
+    b32 IsHovering;
+    
+    popup Popup;
+    b32 IsActive;
+};
+
 struct music_display_info
 {
     // General
@@ -242,7 +277,8 @@ struct music_display_info
     button *Next;
     button *PaletteSwap;
     button *ColorPicker;
-    button *ShowShortcuts; // TODO
+    button *Help;
+    shortcut_popups Popups;
     slider Volume;
     
     // Music play control

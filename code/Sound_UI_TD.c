@@ -322,10 +322,8 @@ CreateSearchBar(renderer *Renderer, arena_allocator *Arena, music_display_info *
     r32 BtnDepth        = -0.6f;
     r32 SearchExt       = 12;
     
-    loaded_bitmap SearchBitmap = LoadImage_STB((u8 *)"..\\data\\Buttons\\Search_Icon.png");
-    u32 SearchID= CreateGLTexture(SearchBitmap); 
-    FreeImage_STB(SearchBitmap);
     
+    u32 SearchID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Search_Icon.png");
     
     Result.Button = NewButton(Renderer, {{-SearchExt, -SearchExt},{SearchExt, SearchExt}}, 
                               BtnDepth, false, Renderer->ButtonBaseID, SearchID, Renderer->ButtonColors, Parent);
@@ -423,7 +421,7 @@ CreateDisplayColumn(arena_allocator *Arena, renderer *Renderer, music_display_in
     
     if(Type == columnType_Song) 
     {
-        ColumnExt(DisplayColumn)->AddGLID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Add_Icon.png");
+        ColumnExt(DisplayColumn)->AddGLID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Add_Icon.png");
         CreateDisplayColumnSong(Renderer, ColumnExt(DisplayColumn));
     }
     
@@ -658,7 +656,7 @@ UpdateColumnVerticalSlider(renderer *Renderer, music_display_column *DisplayColu
     
     v2 NewScale = {GetSize(Slider->GrabThing).x, Max(TotalScale.y*Slider->OverhangP, 5.0f)};
     SetSize(Slider->GrabThing, NewScale);
-    Slider->MaxSlidePix = (TotalScale.y - NewScale.y)/2.0f;
+    Slider->MaxSlidePix = Max(TotalScale.y - NewScale.y, 0.0f)/2.0f;
     UpdateColumnVerticalSliderPosition(Renderer, DisplayColumn, ColumnSorting);
 }
 
@@ -694,7 +692,7 @@ OnVerticalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, 
     r32 RemainingScale   = TotalSliderScale-GrabThingSize;
     r32 TopPositionY     = BGYPos+Slider->MaxSlidePix;
     
-    r32 TranslationPercentage = (TopPositionY-NewY)/(Slider->MaxSlidePix*2);
+    r32 TranslationPercentage = SafeDiv(TopPositionY-NewY,Slider->MaxSlidePix*2);
     if(TranslationPercentage > 0.999f) TranslationPercentage = 1;
     r32 TotalHeight = GetDisplayableHeight(SortingColumn, DisplayColumn->SlotHeight);
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
@@ -1101,7 +1099,7 @@ internal void
 BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, file_id FileID)
 {
     displayable_id DisplayID = FileIDToColumnDisplayID(DisplayColumn, FileID);
-    i32 MaximumID = Max(0u, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
+    i32 MaximumID = Max(0, (i32)DisplayColumn->SortingInfo->Displayable.A.Count-(i32)DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     
     MoveDisplayColumn(&GlobalGameState.Renderer, DisplayColumn, DisplayID, 0);
@@ -1111,7 +1109,7 @@ internal void
 BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, batch_id BatchID)
 {
     displayable_id DisplayID = SortingIDToColumnDisplayID(DisplayColumn, BatchID);
-    i32 MaximumID = Max(0u, DisplayColumn->SortingInfo->Displayable.A.Count-DisplayColumn->Count+1);
+    i32 MaximumID = Max(0, (i32)DisplayColumn->SortingInfo->Displayable.A.Count-(i32)DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     
     MoveDisplayColumn(&GlobalGameState.Renderer, DisplayColumn, DisplayID, 0);
@@ -1678,6 +1676,24 @@ OnColorPicker(void *Data)
     SetActive((color_picker *)Data, true);
 }
 
+inline void
+OnShortcutHelpOn(void *Data)
+{
+    shortcut_popups *Popups = (shortcut_popups *)Data;
+    Popups->IsActive = true;
+    ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, &Popups->Popup, Popups->Help, font_Medium);
+    Popups->ActiveText = 18;
+    Popups->IsHovering = false;
+}
+
+inline void
+OnShortcutHelpOff(void *Data)
+{
+    shortcut_popups *Popups = (shortcut_popups *)Data;
+    Popups->IsActive = false;
+    SetActive(&Popups->Popup, false);
+}
+
 internal void
 InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp3_info *MP3Info)
 {
@@ -1745,27 +1761,33 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
         &DisplayInfo->ColorPalette.SliderBackground, 
         &DisplayInfo->ColorPalette.Text,
     };
-    Renderer->ButtonBaseID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\PlayPause.png"); 
     
-    u32 ShuffleID          = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Shuffle_Icon.png"); 
-    u32 ShufflePressedID   = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Shuffle_Pressed_Icon.png"); 
-    u32 LoopID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Loop_Icon.png"); 
-    u32 LoopPressedID      = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Loop_Pressed_Icon.png"); 
-    u32 RandomizeID        = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Randomize_Icon.png"); 
-    u32 RandomizePressedID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Randomize_Pressed_Icon.png"); 
-    u32 PlayID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Play_Icon.png"); 
-    u32 PauseID            = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Pause_Icon.png"); 
-    u32 StopID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Stop_Icon.png"); 
-    u32 NextID             = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Next_Icon.png"); 
-    u32 PreviousID         = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Previous_Icon.png"); 
-    u32 MusicPathID        = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\MusicPath_Icon.png"); 
-    u32 ConfirmID          = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Confirm_Icon.png"); 
-    u32 CancelID           = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Cancel_Icon.png"); 
-    u32 PaletteID          = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\PaletteSwap_Icon2.png"); 
-    u32 RescanID           = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Rescan_Icon.png"); 
-    u32 ColorPickerID      = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\ColorPicker_Icon.png"); 
+    NewLocalString(BtnPath, 260, GameState->DataPath.S);
+    AppendStringToCompound(&BtnPath, (u8 *)"Buttons\\");
+    Renderer->ButtonBaseID = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"PlayPause.png"); 
+    
+    u32 ShuffleID          = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Shuffle_Icon.png"); 
+    u32 ShufflePressedID   = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Shuffle_Pressed_Icon.png"); 
+    u32 LoopID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Loop_Icon.png"); 
+    u32 LoopPressedID      = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Loop_Pressed_Icon.png"); 
+    u32 RandomizeID        = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Randomize_Icon.png"); 
+    u32 RandomizePressedID = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Randomize_Pressed_Icon.png"); 
+    u32 PlayID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Play_Icon.png"); 
+    u32 PauseID            = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Pause_Icon.png"); 
+    u32 StopID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Stop_Icon.png"); 
+    u32 NextID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Next_Icon.png"); 
+    u32 PreviousID         = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Previous_Icon.png"); 
+    u32 MusicPathID        = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"MusicPath_Icon.png"); 
+    u32 ConfirmID          = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Confirm_Icon.png"); 
+    u32 CancelID           = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Cancel_Icon.png"); 
+    u32 PaletteID          = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"PaletteSwap_Icon2.png"); 
+    u32 RescanID           = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Rescan_Icon.png"); 
+    u32 ColorPickerID      = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"ColorPicker_Icon.png"); 
+    u32 ShortcutID         = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Help_Icon.png"); 
+    u32 ShortcutPressedID  = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Help_Pressed_Icon.png"); 
     
     r32 BtnDepth = -0.6f;
+    r32 ButtonUpperLeftX = 40;
     
     r32 PlayPauseX  = 94+22;
     
@@ -1800,8 +1822,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     DisplayInfo->PaletteSwap = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
                                          Renderer->ButtonBaseID, PaletteID, Renderer->ButtonColors, 0);
-    //SetButtonTranslation(DisplayInfo->PaletteSwap, V2(PlayPauseX-64, 30));
-    SetLocalPosition(DisplayInfo->PaletteSwap, V2(40, Renderer->Window.CurrentDim.Height-25.0f));
+    SetLocalPosition(DisplayInfo->PaletteSwap, V2(ButtonUpperLeftX*2, Renderer->Window.CurrentDim.Height-25.0f));
     TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Entry, fixedTo_TopLeft);
     TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Icon, fixedTo_TopLeft);
     DisplayInfo->PaletteSwap->OnPressed = {OnPaletteSwap, &DisplayInfo->MusicBtnInfo};
@@ -1809,17 +1830,28 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     // Color picker button
     DisplayInfo->ColorPicker = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
                                          Renderer->ButtonBaseID, ColorPickerID, Renderer->ButtonColors, 0);
-    SetLocalPosition(DisplayInfo->ColorPicker, V2(80, Renderer->Window.CurrentDim.Height-25.0f));
+    SetLocalPosition(DisplayInfo->ColorPicker, V2(ButtonUpperLeftX*3, Renderer->Window.CurrentDim.Height-25.0f));
     TranslateWithScreen(&Renderer->TransformList, DisplayInfo->ColorPicker->Entry, fixedTo_TopLeft);
     TranslateWithScreen(&Renderer->TransformList, DisplayInfo->ColorPicker->Icon, fixedTo_TopLeft);
     DisplayInfo->ColorPicker->OnPressed = {OnColorPicker, &GameState->ColorPicker};
+    
+    // Shortcut-Help button
+    DisplayInfo->Help = NewButton(Renderer, SmallBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
+                                  ShortcutID, Renderer->ButtonColors, 0, ShortcutPressedID);
+    SetLocalPosition(DisplayInfo->Help, V2(ButtonUpperLeftX, Renderer->Window.CurrentDim.Height-25.0f));
+    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->Help->Entry, fixedTo_TopLeft);
+    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->Help->Icon, fixedTo_TopLeft);
+    
+    shortcut_popups *Popups = &DisplayInfo->Popups;
+    DisplayInfo->Help->OnPressed          = {OnShortcutHelpOn, Popups};
+    DisplayInfo->Help->OnPressedToggleOff = {OnShortcutHelpOff, Popups};
     
     // Music path stuff *******************************
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
     
     MusicPath->Button = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
                                   Renderer->ButtonBaseID, MusicPathID, Renderer->ButtonColors, 0);
-    SetLocalPosition(MusicPath->Button, V2(120, Renderer->Window.CurrentDim.Height-25.0f));
+    SetLocalPosition(MusicPath->Button, V2(ButtonUpperLeftX*4, Renderer->Window.CurrentDim.Height-25.0f));
     TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Entry, fixedTo_TopLeft);
     TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Icon, fixedTo_TopLeft);
     MusicPath->Button->OnPressed = {OnMusicPathPressed, &DisplayInfo->MusicBtnInfo};
@@ -1913,11 +1945,278 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     string_c QuitText = NewStaticStringCompound("Goodbye!");
     CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, 0.8f);
     
+    
+    
     // User error text *************************************
     user_error_text *UserErrorText = &DisplayInfo->UserErrorText;
     
     UserErrorText->AnimTime = 2.5f;
     UserErrorText->dAnim = 1.0f;
+}
+
+internal void
+CreateShortcutPopups(music_display_info *DisplayInfo)
+{
+    shortcut_popups *Popups = &DisplayInfo->Popups;
+    Popups->PaletteSwap = NewStaticStringCompound("Swap color palette. [F11]");
+    Popups->ColorPicker = NewStaticStringCompound("Modify and create new color palette.");
+    Popups->MusicPath = NewStaticStringCompound("Change path to music folder or rescan metadata.");
+    Popups->SongPlay = NewStaticStringCompound("Start playing this song.");
+    Popups->SongAddToNextUp = NewStaticStringCompound("Add this song to the \"Play Next\" list.");
+    Popups->SearchGenre = NewStaticStringCompound("Search genres by name. [F1]");
+    Popups->SearchArtist = NewStaticStringCompound("Search artists by name. [F2]");
+    Popups->SearchAlbum = NewStaticStringCompound("Search albums by name. [F3]");
+    Popups->SearchSong = NewStaticStringCompound("Search songs by name. [F4]");
+    Popups->Loop = NewStaticStringCompound("If active, loops current song list.");
+    Popups->Shuffle = NewStaticStringCompound("If active, shuffles current song list.");
+    Popups->PlayPause = NewStaticStringCompound("Start and pause the currently playing song. [Space]");
+    Popups->Stop = NewStaticStringCompound("Stop the currently playing song (jumps to start of song).");
+    Popups->Previous = NewStaticStringCompound("Jumps to start of the song, or to the previous song if already at the beginning.");
+    Popups->Next = NewStaticStringCompound("Jumps to the next song.");
+    Popups->Volume = NewStaticStringCompound("Regulate the volume of the music. [+/-]");
+    Popups->Timeline = NewStaticStringCompound("Shows the progress of the song.");
+    Popups->Help = NewStaticStringCompound("If active, shows tooltip-popups for various UI-Elements.");
+    Popups->Quit = NewStaticStringCompound("Hold or double tap [Escape] to quit application.");
+    
+    Popups->SaveMusicPath = NewStaticStringCompound("Starts using the given path and searches for .mp3 files.");
+    Popups->CancelMusicPath = NewStaticStringCompound("Quits the Music Path menu. [Escape].");
+    Popups->RescanMetadata = NewStaticStringCompound("Rescans the music folder and recollects all metadata.");
+    
+    Popups->SavePalette = NewStaticStringCompound("Saves the changes of the current palette (only for custom palettes).");
+    Popups->CopyPalette = NewStaticStringCompound("Copies the current palette and immidiately switches to it.");
+    Popups->DeletePalette = NewStaticStringCompound("Deletes the current palette (only for custom palettes).");
+    Popups->CancelPicker = NewStaticStringCompound("Quits the color-picker.");
+    
+    CreatePopup(&GlobalGameState.Renderer, &GlobalGameState.FixArena, &Popups->Popup, Popups->Help, 
+                font_Medium, -0.99f, 0.05f);
+    Popups->ActiveText = 19;
+}
+
+internal void
+ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
+{
+    if(Popups->IsActive)
+    {
+        music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+        
+        b32 PrevIsHovering = Popups->IsHovering;
+        Popups->IsHovering = false;
+        
+        if(!DisplayInfo->MusicPath.TextField.IsActive)
+        {
+            if(IsOnButton(GlobalGameState.ColorPicker.Save, MouseP))
+            {
+                if(Popups->ActiveText != 23) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->SavePalette, font_Medium);
+                Popups->ActiveText = 23;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(GlobalGameState.ColorPicker.New, MouseP))
+            {
+                if(Popups->ActiveText != 24) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->CopyPalette, font_Medium);
+                Popups->ActiveText = 24;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(GlobalGameState.ColorPicker.Remove, MouseP))
+            {
+                if(Popups->ActiveText != 25) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->DeletePalette, font_Medium);
+                Popups->ActiveText = 25;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(GlobalGameState.ColorPicker.Cancel, MouseP))
+            {
+                if(Popups->ActiveText != 26) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->CancelPicker, font_Medium);
+                Popups->ActiveText = 26;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->PaletteSwap))
+            {
+                if(Popups->ActiveText != 1) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->PaletteSwap, font_Medium);
+                Popups->ActiveText = 1;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->ColorPicker))
+            {
+                if(Popups->ActiveText != 2) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->ColorPicker, font_Medium);
+                Popups->ActiveText = 2;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->MusicPath.Button))
+            {
+                if(Popups->ActiveText != 3) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->MusicPath, font_Medium);
+                Popups->ActiveText = 3;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Genre.Search.Button))
+            {
+                if(Popups->ActiveText != 6) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->SearchGenre, font_Medium);
+                Popups->ActiveText = 6;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Artist.Search.Button))
+            {
+                if(Popups->ActiveText != 7) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->SearchArtist, font_Medium);
+                Popups->ActiveText = 7;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Album.Search.Button))
+            {
+                if(Popups->ActiveText != 8) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->SearchAlbum, font_Medium);
+                Popups->ActiveText = 8;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Song.Base.Search.Button))
+            {
+                if(Popups->ActiveText != 9) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                       &Popups->Popup, Popups->SearchSong, font_Medium);
+                Popups->ActiveText = 9;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->LoopPlaylist, MouseP))
+            {
+                if(Popups->ActiveText != 10) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Loop, font_Medium);
+                Popups->ActiveText = 10;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->ShufflePlaylist, MouseP))
+            {
+                if(Popups->ActiveText != 11) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Shuffle, font_Medium);
+                Popups->ActiveText = 11;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->PlayPause, MouseP))
+            {
+                if(Popups->ActiveText != 12) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->PlayPause, font_Medium);
+                Popups->ActiveText = 12;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Stop))
+            {
+                if(Popups->ActiveText != 13) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Stop, font_Medium);
+                Popups->ActiveText = 13;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Previous))
+            {
+                if(Popups->ActiveText != 14) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Previous, font_Medium);
+                Popups->ActiveText = 14;
+                Popups->IsHovering = true;
+            }
+            else if(IsButtonHovering(DisplayInfo->Next))
+            {
+                if(Popups->ActiveText != 15) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Next, font_Medium);
+                Popups->ActiveText = 15;
+                Popups->IsHovering = true;
+            }
+            else if(IsInRect(DisplayInfo->Volume.GrabThing, MouseP) || IsInRect(DisplayInfo->Volume.Background, MouseP))
+            {
+                if(Popups->ActiveText != 16) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Volume, font_Medium);
+                Popups->ActiveText = 16;
+                Popups->IsHovering = true;
+            }
+            else if(IsInRect(DisplayInfo->PlayingSongPanel.Timeline.GrabThing, MouseP) ||
+                    IsInRect(DisplayInfo->PlayingSongPanel.Timeline.Background, MouseP))
+            {
+                if(Popups->ActiveText != 17) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Timeline, font_Medium);
+                Popups->ActiveText = 17;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->Help, MouseP))
+            {
+                if(Popups->ActiveText != 18) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->Help, font_Medium);
+                Popups->ActiveText = 18;
+                Popups->IsHovering = true;
+            }
+            else if(IsInRect(DisplayInfo->Song.Base.Background, MouseP))
+            {
+                For(DisplayInfo->Song.Base.Count)
+                {
+                    if(IsButtonHovering(DisplayInfo->Song.Play[It]))
+                    {
+                        if(Popups->ActiveText != 4) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                               &Popups->Popup, Popups->SongPlay, font_Medium);
+                        Popups->ActiveText = 4;
+                        Popups->IsHovering = true;
+                        break;
+                    }
+                    else if(IsButtonHovering(DisplayInfo->Song.Add[It]))
+                    {
+                        if(Popups->ActiveText != 5) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                               &Popups->Popup, Popups->SongAddToNextUp, font_Medium);
+                        Popups->ActiveText = 5;
+                        Popups->IsHovering = true;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            if(IsOnButton(DisplayInfo->MusicPath.Save, MouseP))
+            {
+                if(Popups->ActiveText != 20) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->SaveMusicPath, font_Medium);
+                Popups->ActiveText = 20;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->MusicPath.Quit, MouseP))
+            {
+                if(Popups->ActiveText != 21) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->CancelMusicPath, font_Medium);
+                Popups->ActiveText = 21;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->MusicPath.Rescan, MouseP))
+            {
+                if(Popups->ActiveText != 22) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->RescanMetadata, font_Medium);
+                Popups->ActiveText = 22;
+                Popups->IsHovering = true;
+            }
+        }
+        
+        if(Popups->IsHovering != PrevIsHovering) SetActive(&Popups->Popup, Popups->IsHovering);
+        if(Popups->IsHovering || Popups->Popup.AnimDir != 0)
+        {
+            SetPosition(&Popups->Popup, MouseP);
+        }
+        
+        rect Screen = Rect(V2(0), V2(GlobalGameState.Renderer.Window.CurrentDim.Dim));
+        if(!IsInRect(Screen, Popups->Popup.BG))
+        {
+            rect PopupRect = ExtractScreenRect(Popups->Popup.BG);
+            v2 MaxDiff = PopupRect.Max - Screen.Max;
+            MaxDiff.x = Max(MaxDiff.x, 0.0f);
+            MaxDiff.y = Max(MaxDiff.y, 0.0f);
+            
+            v2 MinDiff = Screen.Min - PopupRect.Min;
+            MinDiff.x = Max(MinDiff.x, 0.0f);
+            MinDiff.y = Max(MinDiff.y, 0.0f);
+            
+            v2 Diff = -MaxDiff+MinDiff;
+            
+            Translate(Popups->Popup.Anchor, Diff);
+        }
+    }
+    DoAnimation(&Popups->Popup, dTime);
 }
 
 internal void

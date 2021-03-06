@@ -69,6 +69,8 @@ inline v2   GetPosition(button *Button);
 inline v2   GetLocalPosition(button *Button);
 inline void ToggleButtonVisuals(button *Button, b32 ToggleOn);
 internal void ButtonTestMouseInteraction(renderer *Renderer, input_info *Input, button *Button);
+inline b32 IsButtonHovering(button *Button);
+inline b32 IsOnButton(button *Button, v2 Position);
 
 // Dragable UI stuff
 struct drag_func_pointer
@@ -195,11 +197,26 @@ internal void CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *Clo
 inline void SetActive(quit_animation *Quit, b32 Activate);
 internal b32 QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size);
 
+// Popup text
 
+struct popup
+{
+    entry_id *Anchor;
+    entry_id *BG;
+    render_text Text;
+    
+    r32 AnimTime;
+    r32 dAnim;
+    i32 AnimDir;
+};
 
-
-
-
-
+inline void SetActive(popup *Popup, b32 Activate);
+inline b32 IsActive(popup *Popup);
+inline void SetPosition(popup *Popup, v2 P);
+inline void SetLocalPosition(popup *Popup, v2 P);
+inline void SetParent(popup *Popup, entry_id *Parent);
+internal void CreatePopup(renderer *Renderer, arena_allocator *Arena, popup *Result, string_c Text, font_size FontSize, r32 Depth = -0.95f, r32 AnimTime = 0.1f);
+internal void ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c NewText, font_size FontSize);
+internal void DoAnimation(popup *Popup, r32 dTime);
 
 #endif //_U_I__T_D_H

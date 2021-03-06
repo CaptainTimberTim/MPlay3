@@ -69,10 +69,17 @@ struct render_text
     v2 CurrentP;
     entry_id *Base; // StartP is the position of base parent
     render_entry *RenderEntries;
-    v2           *StartPointOffset;
     u32 Count;
     u32 MaxCount;
 };
+
+enum font_size
+{
+    font_Big,
+    font_Medium,
+    font_Small,
+};
+inline u32 FontSizeToPixel(font_size FontSize);
 
 #define ATLAS_LETTER_COUNT 255
 struct render_text_atlas
@@ -214,6 +221,7 @@ struct renderer
     font_info FontInfo;
     button_group ButtonGroup;
     
+    union color_palette *ColorPalette;
     v4 BackgroundColor;
     v3 DefaultEntryColor;
     
@@ -281,6 +289,7 @@ inline void SetLocalPositionX(entry_id *Entry, r32 NewX);
 inline void Translate(entry_id *Entry, v2 TranslationOffset); // Move Transform
 
 inline void SetActive(entry_id *Entry, b32 Activate);
+inline b32  IsActive(entry_id *Entry);
 inline void SetColor(entry_id *Entry, v3 *Color);
 inline v3   GetColor(entry_id *Entry);
 inline void SetParent(entry_id *Entry, entry_id *Parent);
@@ -290,6 +299,8 @@ inline rect ExtractScreenRect(entry_id *Entry);
 inline r32 DistanceToRectEdge(entry_id *Entry, v2 Point);
 inline b32 IsInRect(rect_2D Rect, v2 P);
 inline b32 IsInRect(entry_id *Entry, v2 P);
+inline b32 IsInRect(rect Rect1,  rect Rect2);
+inline b32 IsInRect(rect Rect1,  entry_id *Entry);
 
 inline b32 IsLowerThanRect(entry_id *Entry, entry_id *Rect);
 inline b32 IsHigherThanRect(entry_id *Entry, entry_id *Rect);
@@ -321,12 +332,6 @@ inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixT
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff
-enum font_size
-{
-    font_Big,
-    font_Medium,
-    font_Small,
-};
 internal void CreateRenderText(renderer *Renderer, arena_allocator *Arena, font_size Size, string_c *Text, 
                                v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP = {});
 

@@ -186,6 +186,7 @@ ApplyWindowResize(HWND Window, i32 NewWidth, i32 NewHeight, b32 ForceResize)
     
     HDC DeviceContext = GetDC(Window);
     DisplayBufferInWindow(DeviceContext, &GlobalGameState.Renderer);
+    
     ReleaseDC(Window, DeviceContext);
 }
 
@@ -265,6 +266,7 @@ WindowCallback(HWND Window,
             PAINTSTRUCT Paint;
             HDC DeviceContext = BeginPaint(Window, &Paint);
             DisplayBufferInWindow(DeviceContext, &GlobalGameState.Renderer);
+            SwapBuffers(DeviceContext);
             EndPaint(Window, &Paint);
             ReleaseDC(Window, DeviceContext);
         } break;
@@ -492,7 +494,8 @@ WinMain(HINSTANCE Instance,
         // Initializing GameState
         game_state *GameState = &GlobalGameState;
         *GameState = {};
-        GameState->DataPath = NewStaticStringCompound("..\\data\\");
+        //GameState->DataPath = NewStaticStringCompound("data\\"); // NOTE:: Used for release. TODO:: Make this a command line arg?
+        GameState->DataPath = NewStaticStringCompound("..\\ data\\");
         GameState->Time.GameHz           = 60; // TODO:: Get monitor refresh rate!?
         GameState->Time.GoalFrameRate    = 1.0f/GameState->Time.GameHz;
         GameState->Time.dTime            = 0.0f;
@@ -608,9 +611,9 @@ WinMain(HINSTANCE Instance,
             r32 WMid    = WWidth*0.5f;
             r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
             
-            Renderer->FontInfo.BigFont    = InitSTBBakeFont(GameState, 75);
-            Renderer->FontInfo.MediumFont = InitSTBBakeFont(GameState, 50);
-            Renderer->FontInfo.SmallFont  = InitSTBBakeFont(GameState, 25);
+            Renderer->FontInfo.BigFont    = InitSTBBakeFont(GameState, FontSizeToPixel(font_Big));
+            Renderer->FontInfo.MediumFont = InitSTBBakeFont(GameState, FontSizeToPixel(font_Medium));
+            Renderer->FontInfo.SmallFont  = InitSTBBakeFont(GameState, FontSizeToPixel(font_Small));
             
             
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
@@ -718,26 +721,7 @@ WinMain(HINSTANCE Instance,
             CreateColorPicker(ColorPicker, V2i(500, 500));
             SetActive(ColorPicker, false);
             
-            
-            
-            // SamplesPerSecond = 48000
-            // SamplesPerFrame  = 1152
-            // Needed Frames for one second = 41.66
-            // For 15 seconds = 625
-            /*
-            mp3dec_t MP3Decoder;
-            mp3dec_init(&MP3Decoder);
-            const i32 DCount = 625; // includes 2 channels!
-            i16 PCM[MINIMP3_MAX_SAMPLES_PER_FRAME*DCount];
-            
-            //DecodeMP3StartFrames(&MP3Decoder, PCM, 50);
-            string_c TestPath = NewStaticStringCompound("D:\\Musik\\Tom Waits\\Bad As Me (Remastered)\\01 - Chicago (Remastered).mp3");
-            mp3dec_file_info_t DecodedFrames = LoadAndDecodeMP3StartFrames(&MP3Decoder, PCM, DCount, &TestPath);
-            */
-            
-            
-            
-            
+            CreateShortcutPopups(DisplayInfo);
             // ********************************************
             // Threading **********************************
             // ********************************************
@@ -1117,6 +1101,8 @@ WinMain(HINSTANCE Instance,
                 }
                 UpdatePanelTimeline(&DisplayInfo->PlayingSongPanel, PlayedSeconds);
                 
+                ProcessShortcutPopup(&DisplayInfo->Popups, GameState->Time.dTime, Input->MouseP);
+                
                 // *******************************************
                 // Sound *************************************
                 // *******************************************
@@ -1167,7 +1153,7 @@ WinMain(HINSTANCE Instance,
                     }
                 }
                 
-                SwapBuffers(DeviceContext);
+                if(!Input->Pressed[KEY_F8]) SwapBuffers(DeviceContext);
             }
             
             SaveSettingsFile(GameState, &GameState->Settings);

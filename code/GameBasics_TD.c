@@ -556,10 +556,10 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     
     
     // Create Buttons
-    u32 NewID    = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Add_Icon.png"); 
-    u32 RemoveID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Minus_Icon.png"); 
-    u32 SaveID   = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Save_Icon.png"); 
-    u32 CancelID = LoadAndCreateGLTexture((u8 *)"..\\data\\Buttons\\Cancel_Icon.png");
+    u32 NewID    = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Add_Icon.png"); 
+    u32 RemoveID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Minus_Icon.png"); 
+    u32 SaveID   = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Save_Icon.png"); 
+    u32 CancelID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Cancel_Icon.png");
     rect BtnRect = {{-21,-21},{21,21}};
     Result->New    = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, NewID, 
                                Renderer->ButtonColors, Result->Background);

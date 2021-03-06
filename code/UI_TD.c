@@ -184,6 +184,19 @@ UpdateButtons(renderer *Renderer, input_info *Input)
     }
 }
 
+inline b32 
+IsButtonHovering(button *Button)
+{
+    return Button->State == buttonState_Hover;
+}
+
+inline b32 
+IsOnButton(button *Button, v2 Position)
+{
+    b32 Result = IsInRect(Button->Entry, Position);
+    return Result;
+}
+
 inline void
 SetActive(button *Button, b32 SetActive)
 {
@@ -221,7 +234,6 @@ GetLocalPosition(button *Button)
 {
     return GetLocalPosition(Button->Entry);
 }
-
 
 // Dragable stuff
 
@@ -681,10 +693,107 @@ QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size)
 }
 
 
+// Popup text
 
+inline void 
+SetActive(popup *Popup, b32 Activate)
+{
+    SetActive(Popup->BG, true);
+    SetActive(&Popup->Text, false);
+    Popup->AnimDir = Activate ? 1 : -1;
+    
+    SetScale(Popup->BG, V2(1-(r32)Activate));
+}
 
+inline b32
+IsActive(popup *Popup)
+{
+    return Popup->BG->ID->Render;
+}
 
+inline void
+SetPosition(popup *Popup, v2 P)
+{
+    SetPosition(Popup->Anchor, P);
+}
 
+inline void
+SetLocalPosition(popup *Popup, v2 P)
+{
+    SetLocalPosition(Popup->Anchor, P);
+}
+
+inline void
+SetParent(popup *Popup, entry_id *Parent)
+{
+    SetParent(Popup->Anchor, Parent);
+}
+
+internal void
+DoAnimation(popup *Popup, r32 dTime)
+{
+    if(Popup->AnimDir != 0)
+    {
+        if(Popup->dAnim > 1.0f || Popup->dAnim < 0.0f)
+        {
+            Popup->dAnim = Clamp01(Popup->dAnim);
+            if(Popup->AnimDir == 1) SetActive(&Popup->Text, true);
+            else SetActive(Popup->BG, false);
+            
+            SetScale(Popup->BG, V2(1));
+            Popup->AnimDir = 0;
+        }
+        else
+        {
+            SetScale(Popup->BG, V2(Popup->dAnim));
+            Popup->dAnim += (dTime/Popup->AnimTime)*Popup->AnimDir;
+        }
+    }
+}
+
+internal void
+CreatePopup(renderer *Renderer, arena_allocator *Arena, popup *Result, string_c Text, font_size FontSize, r32 Depth, r32 AnimTime)
+{
+    Result->Anchor = CreateRenderRect(Renderer, V2(0,0), Depth, 0);
+    SetActive(Result->Anchor, false);
+    
+    CreateRenderText(Renderer, Arena, FontSize, &Text, &Renderer->ColorPalette->Text, &Result->Text, Depth-0.00001f, 0);
+    
+    v2 Size = {Result->Text.CurrentP.x - GetPosition(Result->Text.Base).x, (r32)FontSizeToPixel(FontSize)};
+    Result->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth, &Renderer->ColorPalette->SliderGrabThing, Result->Anchor);
+    SetLocalPosition(Result->BG, V2(Size.x + 40, -Size.y)/2.0f);
+    
+    SetParent(Result->Text.Base, Result->BG);
+    SetLocalPosition(&Result->Text, V2(-Size.x/2.0f, Size.y*0.2f));
+    
+    SetActive(Result->BG, false);
+    SetActive(&Result->Text, false);
+    Result->AnimTime = AnimTime;
+    Result->dAnim = 0.0f;
+    Result->AnimDir = 0;
+}
+
+internal void 
+ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c NewText, font_size FontSize)
+{
+    b32 BGActive = IsActive(Popup->BG);
+    b32 TextActive = IsActive(Popup->Text.Base);
+    r32 Depth = Popup->Text.Base->ID->Vertice[0].z;
+    RemoveRenderText(Renderer, &Popup->Text);
+    CreateRenderText(Renderer, Arena, FontSize, &NewText, &Renderer->ColorPalette->Text, &Popup->Text, Depth, 0);
+    
+    v2 Size = {Popup->Text.CurrentP.x - GetPosition(Popup->Text.Base).x, (r32)FontSizeToPixel(FontSize)};
+    RemoveRenderEntry(Renderer, Popup->BG);
+    Popup->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth+0.00001f, 
+                                 &Renderer->ColorPalette->SliderGrabThing, Popup->Anchor);
+    SetLocalPosition(Popup->BG, V2(Size.x + 40, -Size.y)/2.0f);
+    
+    SetParent(Popup->Text.Base, Popup->BG);
+    SetLocalPosition(&Popup->Text, V2(-Size.x/2.0f, Size.y*0.2f));
+    
+    SetActive(Popup->BG, BGActive);
+    SetActive(&Popup->Text, TextActive);
+}
 
 
 

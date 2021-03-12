@@ -148,24 +148,24 @@ TryLoadSettingsFile(game_state *GameState)
             {
                 DebugLog(255, "WARNING:: Library file had wrong version. Needs Version %i!\n", SETTINGS_CURRENT_VERSION);
             }
-            
-            // If anything is wrong with the saved values, just use the default percentages
-            if(Result.GenreArtistEdgeXPercent < 0.037143f || Result.GenreArtistEdgeXPercent > 0.920000f || 
-               Result.ArtistAlbumEdgeXPercent < 0.058571f || Result.ArtistAlbumEdgeXPercent > 0.941429f ||
-               Result.AlbumSongEdgeXPercent   < 0.087143f || Result.AlbumSongEdgeXPercent   > 0.962857f || 
-               Result.GenreArtistEdgeXPercent >= Result.ArtistAlbumEdgeXPercent ||
-               Result.ArtistAlbumEdgeXPercent >= Result.AlbumSongEdgeXPercent) 
-            {
-                Result.GenreArtistEdgeXPercent = 0.2f;
-                Result.ArtistAlbumEdgeXPercent = 0.4f;
-                Result.AlbumSongEdgeXPercent   = 0.6f;
-            }
-            
-            if(Result.WindowDimX < GlobalMinWindowWidth)  Result.WindowDimX = GlobalMinWindowWidth;
-            if(Result.WindowDimY < GlobalMinWindowHeight) Result.WindowDimY = GlobalMinWindowHeight;
         }
     }
     DeleteStringCompound(&GameState->ScratchArena, &FilePath);
+    
+    // If anything is wrong with the saved values, just use the default percentages
+    if(Result.GenreArtistEdgeXPercent < 0.0f || Result.GenreArtistEdgeXPercent > 1.0f || 
+       Result.ArtistAlbumEdgeXPercent < 0.0f || Result.ArtistAlbumEdgeXPercent > 1.0f ||
+       Result.AlbumSongEdgeXPercent   < 0.0f || Result.AlbumSongEdgeXPercent   > 1.0f || 
+       Result.GenreArtistEdgeXPercent >= Result.ArtistAlbumEdgeXPercent ||
+       Result.ArtistAlbumEdgeXPercent >= Result.AlbumSongEdgeXPercent) 
+    {
+        Result.GenreArtistEdgeXPercent = 0.2f;
+        Result.ArtistAlbumEdgeXPercent = 0.4f;
+        Result.AlbumSongEdgeXPercent   = 0.6f;
+    }
+    
+    if(Result.WindowDimX < GlobalMinWindowWidth)  Result.WindowDimX = GlobalMinWindowWidth;
+    if(Result.WindowDimY < GlobalMinWindowHeight) Result.WindowDimY = GlobalMinWindowHeight;
     
     return Result;
 }

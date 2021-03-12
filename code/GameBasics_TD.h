@@ -104,6 +104,7 @@ struct game_state
 };
 
 internal loaded_bitmap LoadImage_STB(u8 *Path);
+internal loaded_bitmap LoadImage_STB(read_file_result Memory);
 inline void FreeImage_STB(loaded_bitmap Bitmap);
 
 #if DEBUG_TD

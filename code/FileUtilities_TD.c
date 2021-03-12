@@ -244,10 +244,17 @@ AppendToFile(arena_allocator *Arena, u8 *FileName, u32 MemorySize, void *Memory)
     read_file_result FileData = {};
     if(ReadEntireFile(Arena, &FileData, FileName))
     {
+        u8 *AllData = AllocateMemory(Arena, FileData.Size+MemorySize+3);
+        u8 *DataBegin = AllData;
+        For(FileData.Size) *AllData++ = *FileData.Data++;
+        *AllData++ = '\n';
+        u8 *UMemory = (u8 *)Memory;
+        For(MemorySize) *AllData++ = *UMemory++;
+        *AllData++ = '\n';
+        *AllData++ = 0;
+        
         MemorySize += FileData.Size;
-        char AllData[10000];
-        sprintf_s(AllData, "%s\n%s\n\0",FileData.Data, (char *)Memory);
-        if(WriteEntireFile(Arena, FileName, MemorySize, AllData))
+        if(WriteEntireFile(Arena, FileName, MemorySize, DataBegin))
         {
             Result = true;
         }

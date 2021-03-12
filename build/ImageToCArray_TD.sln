@@ -1,14 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2047
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30128.74
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "Main", "Main.exe", "{295183BA-AF2E-4B2A-8353-5D56057C2428}"
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "ImageToCArray_TD", "ImageToCArray_TD.exe", "{233B4BD5-1712-4EDB-886F-6611CAE324E5}"
 	ProjectSection(DebuggerProjectSystem) = preProject
 		PortSupplier = 00000000-0000-0000-0000-000000000000
-		Executable = C:\Workspace\Programming\CPP_Projects\MPlay3\build\Main.exe
+		Executable = C:\Workspace\Programming\CPP_Projects\MPlay3\build\ImageToCArray_TD.exe
 		RemoteMachine = DESKTOP-PR7GBHP
 		StartingDirectory = C:\Workspace\Programming\CPP_Projects\MPlay3\build
+		Arguments = "ResourceListing.txt" "Outfile.h"
 		Environment = Default
 		LaunchingEngine = 00000000-0000-0000-0000-000000000000
 		UseLegacyDebugEngines = No
@@ -21,12 +22,12 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{295183BA-AF2E-4B2A-8353-5D56057C2428}.Release|x64.ActiveCfg = Release|x64
+		{233B4BD5-1712-4EDB-886F-6611CAE324E5}.Release|x64.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E395DB0B-A2EA-4BCF-A234-F4D28AF7DCBE}
+		SolutionGuid = {E0A2801C-8814-4548-A75A-EC91CBCCBB11}
 	EndGlobalSection
 EndGlobal

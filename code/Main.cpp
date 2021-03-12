@@ -1,71 +1,5 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <windows.h>
-
-// NOTE:: internal is for procedures, to let the compiler know that it is only for this compilation unit
-#define internal        static
-#define local_persist   static 
-#define global_variable static
-
-typedef int8_t  i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
-typedef i32     b32;
-
-typedef uint8_t   u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef float  r32;
-typedef double r64;
-
-#define Kilobytes(Value) ((Value)*1024LL)
-#define Megabytes(Value) (Kilobytes(Value)*1024LL)
-#define Gigabytes(Value) (Megabytes(Value)*1024LL)
-#define Terabytes(Value) (Gigabytes(Value)*1024LL)
-
-// NOTE:: For loop simplification macro. first param: Count until, second param(optional): Iterater name prefix ...It
-#define For(until, ...) for(u32 (__VA_ARGS__##It) = 0; (__VA_ARGS__##It) < (until); ++(__VA_ARGS__##It))
-
-// NOTE:: Counts the size of a fixed array.
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-
-#ifndef __CD // Combine both params to a single name
-#define __CD2(X, Y) X##Y
-#define __CD(X, Y) __CD2(X, Y)
-#endif
-
-// NOTE:: General macro for removing an entry/item from an arbitrary array. Moving all following items one up.
-#define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) { \
-u32 MoveSize = (ArrayCount-RemovePos)*sizeof(ArrayType); \
-u8 *Goal = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
-u8 *Start = Goal + sizeof(ArrayType); \
-memmove_s(Goal, MoveSize, Start, MoveSize); \
-} 
-
-// NOTE:: Simple DebugLog that simplifies just printing stuff to the debug output.
-#define DebugLog(Count, Text, ...) { \
-char B[Count]; \
-sprintf_s(B, Text, __VA_ARGS__);\
-OutputDebugStringA(B); \
-}
-
-#if DEBUG_TD
-#define Assert(Expression)  {            \
-if(!(Expression))                        \
-{                                        \
-DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
-*(int *)0 = 0;                       \
-} }                                       
-#else
-#define Assert(Expression)
-#endif
-#define InvalidCodePath    Assert(!"InvalidCodePath")
-#define NotImplemented     Assert(!"NotImplementedYet")
-#define InvalidDefaultCase default: {Assert(false)}
-
+#include "Definitions_TD.h"
+#include "../data/resources/EmbeddedResources.h"
 
 #define MINIMP3_IMPLEMENTATION
 #include "Libraries\\MiniMP3.h"
@@ -82,9 +16,6 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 #define STBI_ASSERT(x)
 #endif
 
-
-#include "Math_TD.h"
-#include "Allocator_TD.c"
 struct time_management
 {
     i32 GameHz;
@@ -96,6 +27,10 @@ struct time_management
     i64 PerfCountFrequency;
     b32 SleepIsGranular;
 };
+
+#include "Math_TD.h"
+#include "Allocator_TD.c"
+
 internal b32 TryGetClipboardText(struct string_compound *String);
 internal void ApplyWindowResize(HWND Window, i32 NewWidth, i32 NewHeight, b32 ForceResize = false);
 inline v2i GetWindowSize();
@@ -466,26 +401,23 @@ GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End)
     return(Result);
 }
 
-#ifdef CONSOLE_APP
-int main(int argv, char** arcs) 
-#else
 i32 CALLBACK 
-WinMain(HINSTANCE Instance, 
-        HINSTANCE PrevInstance, 
-        LPSTR CmdLine, 
+WinMain(HINSTANCE Instance,
+        HINSTANCE PrevInstance,
+        LPSTR CmdLine,
         i32 ShowCmd)
-#endif
 {
     // Hey, baby! Check out the nil-value _I'm_ dereferencing.
     
     ArrowCursor = LoadCursor(0, IDC_ARROW);
     DragCursor = LoadCursor(0, IDC_SIZEWE);
     
-    WNDCLASSA WindowClass = {};
-    WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
-    WindowClass.lpfnWndProc = WindowCallback;
-    WindowClass.hInstance = Instance;
-    WindowClass.hCursor = ArrowCursor;
+    WNDCLASSA WindowClass     = {};
+    WindowClass.style         = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
+    WindowClass.lpfnWndProc   = WindowCallback;
+    WindowClass.hInstance     = Instance;
+    WindowClass.hCursor       = ArrowCursor;
+    WindowClass.hIcon         = LoadIcon(Instance, MAKEINTRESOURCE(102));
     WindowClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     WindowClass.lpszClassName = "MPlay3ClassName";
     
@@ -494,8 +426,8 @@ WinMain(HINSTANCE Instance,
         // Initializing GameState
         game_state *GameState = &GlobalGameState;
         *GameState = {};
-        //GameState->DataPath = NewStaticStringCompound("data\\"); // NOTE:: Used for release. TODO:: Make this a command line arg?
-        GameState->DataPath = NewStaticStringCompound("..\\ data\\");
+        GameState->DataPath = NewStaticStringCompound("");
+        //GameState->DataPath = NewStaticStringCompound("..\\data\\");
         GameState->Time.GameHz           = 60; // TODO:: Get monitor refresh rate!?
         GameState->Time.GoalFrameRate    = 1.0f/GameState->Time.GameHz;
         GameState->Time.dTime            = 0.0f;
@@ -655,7 +587,7 @@ WinMain(HINSTANCE Instance,
             drag_list *DragableList = &GameState->DragableList;
             DragableList->DraggingID = -1;
             
-            
+            // Column edges
             column_edge_drag EdgeGenreArtistDrag = {DisplayInfo->EdgeLeft, 40, DisplayInfo->ArtistAlbum.Edge, 30, 
                 &DisplayInfo->GenreArtist.XPercent, DisplayInfo, SortingInfo};
             AddDragable(DragableList, DisplayInfo->GenreArtist.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeGenreArtistDrag}, {});
@@ -664,11 +596,11 @@ WinMain(HINSTANCE Instance,
                 &DisplayInfo->ArtistAlbum.XPercent, DisplayInfo, SortingInfo};
             AddDragable(DragableList, DisplayInfo->ArtistAlbum.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeArtistAlbumDrag}, {});
             
-            column_edge_drag EdgeAlbumSongDrag = {DisplayInfo->ArtistAlbum.Edge, 40, DisplayInfo->EdgeRight, 40, 
+            column_edge_drag EdgeAlbumSongDrag = {DisplayInfo->ArtistAlbum.Edge, 30, DisplayInfo->EdgeRight, 40, 
                 &DisplayInfo->AlbumSong.XPercent, DisplayInfo, SortingInfo};
             AddDragable(DragableList, DisplayInfo->AlbumSong.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeAlbumSongDrag}, {});
             
-            
+            // Sliders
             drag_slider_data GenreDrag  = {MusicInfo, &DisplayInfo->Genre, &SortingInfo->Genre};
             drag_slider_data ArtistDrag = {MusicInfo, &DisplayInfo->Artist, &SortingInfo->Artist};
             drag_slider_data AlbumDrag  = {MusicInfo, &DisplayInfo->Album, &SortingInfo->Album};
@@ -693,6 +625,7 @@ WinMain(HINSTANCE Instance,
                         {OnSliderDragStart, &DisplayInfo->Song.Base.SliderVertical}, {OnVerticalSliderDrag, &SongDrag},
                         {OnSongDragEnd, &SongDrag});
             
+            // Timeline stuff
             AddDragable(DragableList, DisplayInfo->Volume.Background,{},{OnVolumeDrag, GameState},{});
             timeline_slider_drag TimelineDragInfo = {GameState, false};
             // Adding this twice, once for grabbing the small nubs and for the thin bar.
@@ -730,6 +663,8 @@ WinMain(HINSTANCE Instance,
             
             crawl_thread_out CrawlInfoOut = {false, false, false, 0};
             GameState->CrawlInfo = {MP3Info, NewStringCompound(&GameState->FixArena, 255), &CrawlInfoOut};
+            
+            
             
             // ********************************************
             // FPS ****************************************

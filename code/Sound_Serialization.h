@@ -10,7 +10,7 @@ struct settings
 {
     r32 Volume = 0.5f;
     file_id PlayingSongID = {-1};
-    u32 ColorPaletteID = 0;
+    u32 ColorPaletteID = 4;
     r32 GenreArtistEdgeXPercent = -1.0f;
     r32 ArtistAlbumEdgeXPercent = -1.0f;
     r32 AlbumSongEdgeXPercent = -1.0f;

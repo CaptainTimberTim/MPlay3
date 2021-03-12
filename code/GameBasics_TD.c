@@ -31,6 +31,37 @@ LoadImage_STB(u8 *Path)
     return Result;
 }
 
+internal loaded_bitmap 
+LoadImage_STB(read_file_result Memory)
+{
+    loaded_bitmap Result = {};
+    
+    read_file_result ImageTest = {};
+    i32 BG_X, BG_Y, BG_N;
+    Result.Pixels = (u32 *)stbi_load_from_memory(Memory.Data, Memory.Size, &BG_X, &BG_Y, &BG_N, 0);
+    Result.Width = BG_X;
+    Result.Height = BG_Y;
+    if(Result.Pixels) 
+    {
+        Result.WasLoaded = true;
+        switch(BG_N)
+        {
+            case 3:
+            {
+                Result.ColorFormat = colorFormat_RGB;
+            } break;
+            case 4:
+            {
+                Result.ColorFormat = colorFormat_RGBA;
+            } break;
+            
+            InvalidDefaultCase
+        }
+    }
+    
+    return Result;
+}
+
 inline void
 FreeImage_STB(loaded_bitmap Bitmap)
 {
@@ -556,10 +587,11 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     
     
     // Create Buttons
-    u32 NewID    = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Add_Icon.png"); 
-    u32 RemoveID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Minus_Icon.png"); 
-    u32 SaveID   = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Save_Icon.png"); 
-    u32 CancelID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Cancel_Icon.png");
+    u32 NewID    = DecodeAndCreateGLTexture(Add_Icon_ByteDataCount,    (u8 *)Add_Icon_ByteData);
+    u32 RemoveID = DecodeAndCreateGLTexture(Minus_Icon_ByteDataCount,  (u8 *)Minus_Icon_ByteData);
+    u32 SaveID   = DecodeAndCreateGLTexture(Save_Icon_ByteDataCount,   (u8 *)Save_Icon_ByteData);
+    u32 CancelID = DecodeAndCreateGLTexture(Cancel_Icon_ByteDataCount, (u8 *)Cancel_Icon_ByteData);
+    
     rect BtnRect = {{-21,-21},{21,21}};
     Result->New    = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, NewID, 
                                Renderer->ButtonColors, Result->Background);

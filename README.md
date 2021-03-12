@@ -1,6 +1,6 @@
 # MPlay3
 
-MPlay3 is a music player that lists and plays all .mp3 files in a given folder. 
+MPlay3 is a music player that lists and plays all .mp3 files in a given folder (more info: https://handmade.network/p/mplay3/). 
 It lists all Genres, Artists, Albums and Songs in four different columns. If one or multiple entries in a column are selected all subsequent columns will be adjusted to only display the entries corresponding to the selected ones. <br>
 For example: if the genre _rock_ is selected, then only artists that are in the category _rock_ are shown in the artist column. Based on that, only albums created by the artists that are still visible are in the album column and only the songs on those albums are then shown in the song column.<br>
 This enables you to very quickly assemble a list of songs. Additional features are basic stuff like music shuffle, looping, a search for each column and mulitple color-palettes.

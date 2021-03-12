@@ -87,28 +87,22 @@ InitSTBBakeFont(game_state *GameState, u32 FontHeightInPixel)
 {
     render_text_atlas *Result = AllocateStruct(&GameState->FixArena, render_text_atlas);
     
-    NewLocalString(FontPath, 260, GameState->DataPath.S);
-    AppendStringToCompound(&FontPath, (u8 *)"Fonts\\carmini.ttf");
-    read_file_result FontData = {};
-    if(ReadEntireFile(&GameState->ScratchArena, &FontData, FontPath.S))
-    {
-        u32 BitmapSize = 1200;
-        loaded_bitmap Bitmap = {0, BitmapSize, BitmapSize, 0, colorFormat_RGBA, BitmapSize*4};
-        Bitmap.Pixels          = AllocateArray(&GameState->FixArena, Bitmap.Width*Bitmap.Height, u32);
-        u8 *AlphaMap           = AllocateArray(&GameState->ScratchArena, Bitmap.Width*Bitmap.Height, u8);
-        
-        int BakeRet = stbtt_BakeFontBitmap(FontData.Data, 0, (r32)FontHeightInPixel, 
-                                           AlphaMap, Bitmap.Width, Bitmap.Height, 
-                                           32, ATLAS_LETTER_COUNT, Result->CharData);
-        
-        MonoBitmapToRGBA(AlphaMap, &Bitmap);
-        FreeMemory(&GameState->ScratchArena, AlphaMap);
-        
-        Result->Bitmap = Bitmap;
-        Result->GLID  = CreateGLTexture(Bitmap);
-        
-        FreeFileMemory(&GameState->ScratchArena, FontData.Data);
-    }
+    read_file_result FontData = {carmini_ByteDataCount, (u8 *)carmini_ByteData};
+    u32 BitmapSize = 1200;
+    loaded_bitmap Bitmap = {0, BitmapSize, BitmapSize, 0, colorFormat_RGBA, BitmapSize*4};
+    Bitmap.Pixels          = AllocateArray(&GameState->FixArena, Bitmap.Width*Bitmap.Height, u32);
+    u8 *AlphaMap           = AllocateArray(&GameState->ScratchArena, Bitmap.Width*Bitmap.Height, u8);
+    
+    int BakeRet = stbtt_BakeFontBitmap(FontData.Data, 0, (r32)FontHeightInPixel, 
+                                       AlphaMap, Bitmap.Width, Bitmap.Height, 
+                                       32, ATLAS_LETTER_COUNT, Result->CharData);
+    
+    MonoBitmapToRGBA(AlphaMap, &Bitmap);
+    FreeMemory(&GameState->ScratchArena, AlphaMap);
+    
+    Result->Bitmap = Bitmap;
+    Result->GLID  = CreateGLTexture(Bitmap);
+    
     return Result;
 }
 

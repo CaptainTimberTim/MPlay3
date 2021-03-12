@@ -3,25 +3,27 @@
 IF NOT EXIST "../build" mkdir "../build"
 pushd "../build"
 
-set buildFlags= -DDEBUG_TD=1 -DCONSOLE_APP_
-set optimize= -O2
+set flags= -nologo -GR- -EHa- -Z7 -FeMPlay3.exe
+set optimizeFlags= -O2 -MT -Oi -DDEBUG_TD=0
+set debugFlags= -F20000000 -Od -MTd -FC -DDEBUG_TD=1
 
-	REM Now using MD instead of -MTd for external symbol resolving of linker
-set compilerFlags= -MD -Gm- -nologo -GR- -EHa- -Od -Oi -FC -Z7 
-set compilerWarningLevel= -WX -W4 -wd4201 -wd4100 -wd4189 -wd4456 -wd4505 -wd4005 -wd4239 -wd4706 -wd4127 -wd4390
+set compilerWarnings= -WX -W4 -wd4201 -wd4100 -wd4189 -wd4456 -wd4505 -wd4005 -wd4239 -wd4706 -wd4127 -wd4390
 
-	REM subsystem for x86 need 5.1 || 'console' for main(), 'windows' for WinMain
+REM subsystem for x86 need 5.1 || 'console' for main(), 'windows' for WinMain
 set linkerFlags= /link -incremental:no -opt:ref 
-	REM -subsystem:windows,5.2 
-set libIncludes=  User32.lib Gdi32.lib winmm.lib opengl32.lib
-	REM /NODEFAULTLIB:LIBCMT kernel32.lib shell32.lib  glew32s.lib glfw3.lib
 
-	REM This is for OpenGL, also the additional libIncludes, of course
-	REM set addIncludeDir= /I "..\data\glew-2.1.0\include" /I "..\data\glfw-3.2.1\include"
-	REM set addLinkerLibs= /LIBPATH:"..\data\glew-2.1.0\lib\Release\x64" -LIBPATH:"..\data\glfw-3.2.1\lib-vc2015"
+REM -subsystem:windows,5.2 
+set libIncludes=  User32.lib Gdi32.lib winmm.lib 
+REM opengl32.lib // Lives now in the GL_TD.h, a bit cleaner?
 
-cl -F20000000 -EHsc %compilerFlags% %buildFlags% %compilerWarningLevel% "../code/Main.cpp" %linkerFlags%  %libIncludes% 
+set resources= "../data/resources/Resources.res"
+rc -x -nologo -fo %resources% "../data/resources/Resource.rc"
 
-REM cl -EHsc %optimize% -nologo %buildFlags% %addIncludeDir% %compilerWarningLevel% "../code/Main.cpp" %linkerFlags% %addLinkerLibs%  %libIncludes% 
+cl %flags% %debugFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
+REM cl %flags% %optimizeFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
+
+
+
+REM cl -nologo -GR- -EHa- -Z7 %debugFlags% %compilerWarnings% "../code/ImageToCArray_TD.cpp" %linkerFlags% %libIncludes%
 
 popd

@@ -322,8 +322,7 @@ CreateSearchBar(renderer *Renderer, arena_allocator *Arena, music_display_info *
     r32 BtnDepth        = -0.6f;
     r32 SearchExt       = 12;
     
-    
-    u32 SearchID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Search_Icon.png");
+    u32 SearchID = DecodeAndCreateGLTexture(Search_Icon_ByteDataCount, (u8 *)Search_Icon_ByteData);
     
     Result.Button = NewButton(Renderer, {{-SearchExt, -SearchExt},{SearchExt, SearchExt}}, 
                               BtnDepth, false, Renderer->ButtonBaseID, SearchID, Renderer->ButtonColors, Parent);
@@ -421,7 +420,7 @@ CreateDisplayColumn(arena_allocator *Arena, renderer *Renderer, music_display_in
     
     if(Type == columnType_Song) 
     {
-        ColumnExt(DisplayColumn)->AddGLID = LoadAndCreateGLTexture(GlobalGameState.DataPath.S, (u8 *)"Buttons\\Add_Icon.png");
+        ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(Add_Icon_ByteDataCount, (u8 *)Add_Icon_ByteData);
         CreateDisplayColumnSong(Renderer, ColumnExt(DisplayColumn));
     }
     
@@ -1213,7 +1212,6 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
                              GetLocalPosition(Info->LeftEdge).x + Info->LeftOffset, 
                              GetLocalPosition(Info->RightEdge).x - Info->RightOffset);
     
-    
     SetLocalPosition(Dragable, V2(AdjustedMouseP.x, GetLocalPosition(Dragable).y));
     *Info->XPercent = GetPosition(Dragable).x/(r32)Renderer->Window.CurrentDim.Width;
     
@@ -1762,29 +1760,29 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
         &DisplayInfo->ColorPalette.Text,
     };
     
-    NewLocalString(BtnPath, 260, GameState->DataPath.S);
-    AppendStringToCompound(&BtnPath, (u8 *)"Buttons\\");
-    Renderer->ButtonBaseID = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"PlayPause.png"); 
+    // NOTE:: This data is included binary data, which is generated from the actual image files and put into C-Arrays.
+    Renderer->ButtonBaseID = DecodeAndCreateGLTexture(PlayPause_ByteDataCount, (u8 *)PlayPause_ByteData);
     
-    u32 ShuffleID          = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Shuffle_Icon.png"); 
-    u32 ShufflePressedID   = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Shuffle_Pressed_Icon.png"); 
-    u32 LoopID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Loop_Icon.png"); 
-    u32 LoopPressedID      = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Loop_Pressed_Icon.png"); 
-    u32 RandomizeID        = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Randomize_Icon.png"); 
-    u32 RandomizePressedID = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Randomize_Pressed_Icon.png"); 
-    u32 PlayID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Play_Icon.png"); 
-    u32 PauseID            = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Pause_Icon.png"); 
-    u32 StopID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Stop_Icon.png"); 
-    u32 NextID             = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Next_Icon.png"); 
-    u32 PreviousID         = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Previous_Icon.png"); 
-    u32 MusicPathID        = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"MusicPath_Icon.png"); 
-    u32 ConfirmID          = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Confirm_Icon.png"); 
-    u32 CancelID           = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Cancel_Icon.png"); 
-    u32 PaletteID          = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"PaletteSwap_Icon2.png"); 
-    u32 RescanID           = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Rescan_Icon.png"); 
-    u32 ColorPickerID      = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"ColorPicker_Icon.png"); 
-    u32 ShortcutID         = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Help_Icon.png"); 
-    u32 ShortcutPressedID  = LoadAndCreateGLTexture(BtnPath.S, (u8 *)"Help_Pressed_Icon.png"); 
+    u32 ShuffleID          = DecodeAndCreateGLTexture(Shuffle_Icon_ByteDataCount, (u8 *)Shuffle_Icon_ByteData);
+    u32 ShufflePressedID   = DecodeAndCreateGLTexture(Shuffle_Pressed_Icon_ByteDataCount, (u8 *)Shuffle_Pressed_Icon_ByteData);
+    u32 LoopID             = DecodeAndCreateGLTexture(Loop_Icon_ByteDataCount, (u8 *)Loop_Icon_ByteData);
+    u32 LoopPressedID      = DecodeAndCreateGLTexture(Loop_Pressed_Icon_ByteDataCount, (u8 *)Loop_Pressed_Icon_ByteData);
+    u32 RandomizeID        = DecodeAndCreateGLTexture(Randomize_Icon_ByteDataCount, (u8 *)Randomize_Icon_ByteData);
+    u32 RandomizePressedID = DecodeAndCreateGLTexture(Randomize_Pressed_Icon_ByteDataCount, (u8 *)Randomize_Pressed_Icon_ByteData);
+    u32 PlayID             = DecodeAndCreateGLTexture(Play_Icon_ByteDataCount, (u8 *)Play_Icon_ByteData);
+    u32 PauseID            = DecodeAndCreateGLTexture(Pause_Icon_ByteDataCount, (u8 *)Pause_Icon_ByteData);
+    u32 StopID             = DecodeAndCreateGLTexture(Stop_Icon_ByteDataCount, (u8 *)Stop_Icon_ByteData);
+    u32 NextID             = DecodeAndCreateGLTexture(Next_Icon_ByteDataCount, (u8 *)Next_Icon_ByteData);
+    u32 PreviousID         = DecodeAndCreateGLTexture(Previous_Icon_ByteDataCount, (u8 *)Previous_Icon_ByteData);
+    u32 MusicPathID        = DecodeAndCreateGLTexture(MusicPath_Icon_ByteDataCount, (u8 *)MusicPath_Icon_ByteData);
+    u32 ConfirmID          = DecodeAndCreateGLTexture(Confirm_Icon_ByteDataCount, (u8 *)Confirm_Icon_ByteData);
+    u32 CancelID           = DecodeAndCreateGLTexture(Cancel_Icon_ByteDataCount, (u8 *)Cancel_Icon_ByteData);
+    u32 PaletteID          = DecodeAndCreateGLTexture(PaletteSwap_Icon2_ByteDataCount, (u8 *)PaletteSwap_Icon2_ByteData);
+    u32 RescanID           = DecodeAndCreateGLTexture(Rescan_Icon_ByteDataCount, (u8 *)Rescan_Icon_ByteData);
+    u32 ColorPickerID      = DecodeAndCreateGLTexture(ColorPicker_Icon_ByteDataCount, (u8 *)ColorPicker_Icon_ByteData);
+    u32 ShortcutID         = DecodeAndCreateGLTexture(Help_Icon_ByteDataCount, (u8 *)Help_Icon_ByteData);
+    u32 ShortcutPressedID  = DecodeAndCreateGLTexture(Help_Pressed_Icon_ByteDataCount, (u8 *)Help_Pressed_Icon_ByteData);
+    
     
     r32 BtnDepth = -0.6f;
     r32 ButtonUpperLeftX = 40;

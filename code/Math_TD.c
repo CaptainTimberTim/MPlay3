@@ -255,6 +255,12 @@ RoundReal32ToInt32(r32 Value)
     return(Result);
 }
 
+inline u32
+SafeTruncateUInt64(u64 Value)
+{
+    u32 Result = (u32)Value;
+    return(Result);
+}
 
 inline u32
 RoundReal32ToUInt32(r32 Value)
@@ -495,7 +501,7 @@ operator+(v2 A, v2i B)
 }
 
 inline v2 &
-operator+=(v2 &A, v2 &B)
+operator+=(v2 &A, v2 B)
 {
     A = A + B;
     

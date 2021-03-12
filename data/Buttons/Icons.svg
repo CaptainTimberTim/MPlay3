@@ -98,14 +98,14 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="8"
-     inkscape:cx="103.24426"
-     inkscape:cy="571.49664"
+     inkscape:cx="76.74426"
+     inkscape:cy="831.49664"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="3840"
      inkscape:window-height="2066"
-     inkscape:window-x="-11"
+     inkscape:window-x="2869"
      inkscape:window-y="-11"
      inkscape:window-maximized="1" />
   <metadata
@@ -578,7 +578,8 @@
        y="63.640293"
        ry="0"
        inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-ydpi="1459"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsICO\Play_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7"
@@ -612,12 +613,13 @@
     </g>
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.28865531px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 49.830606,66.356914 4.049008,2.837727 -4.049008,2.631761 z"
+       d="m 49.512058,66.017079 4.049008,2.837727 -4.049008,2.631761 z"
        id="path4549-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc"
        inkscape:export-xdpi="1459.4167"
-       inkscape:export-ydpi="1459.4167" />
+       inkscape:export-ydpi="1459.4167"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsICO\Play_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1"

@@ -43,7 +43,6 @@ InitOpenGL(HWND Window, b32 DoBackfaceCulling = true)
     else InvalidCodePath; // Should never really happen
     
     ReleaseDC(Window, WindowDC);
-    
 }
 
 internal void 
@@ -150,6 +149,16 @@ LoadAndCreateGLTexture(u8 *Path, u8 *Filename)
     NewLocalString(PathName, 260, Path);
     AppendStringToCompound(&PathName, Filename);
     loaded_bitmap NewTexBitmap = LoadImage_STB(PathName.S);
+    u32 Result = CreateGLTexture(NewTexBitmap);
+    FreeImage_STB(NewTexBitmap);
+    
+    return Result;
+}
+
+inline u32
+DecodeAndCreateGLTexture(u32 DataSize, u8 *Data)
+{
+    loaded_bitmap NewTexBitmap = LoadImage_STB({DataSize, Data});
     u32 Result = CreateGLTexture(NewTexBitmap);
     FreeImage_STB(NewTexBitmap);
     

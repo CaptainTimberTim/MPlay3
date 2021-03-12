@@ -1,12 +1,5 @@
 #include "StandardUtilities_TD.h"
 
-inline u32
-SafeTruncateUInt64(u64 Value)
-{
-    u32 Result = (u32)Value;
-    return(Result);
-}
-
 inline void
 PrintLastWindowsError()
 {

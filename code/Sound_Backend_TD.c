@@ -1650,8 +1650,15 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
     DebugLog(1255, "Nr.%i: %s (%s) by %s \n%i - %s - %s - %i Hz\n", MD->Track, MD->Title.S, MD->Album.S, MD->Artist.S, MD->Year, MD->Genre.S, MD->DurationString.S, DInfo->hz);
     
     char WinText[512];
-    sprintf_s(WinText, "%s (%s)\n", MD->Title.S, MD->Artist.S);
-    SetWindowText(GameState->Renderer.Window.WindowHandle, WinText);
+    if(MD->Title.Pos > 0 && MD->Artist.Pos > 0) sprintf_s(WinText, "%s (%s)\n", MD->Title.S, MD->Artist.S);
+    else if(MD->Title.Pos > 0) sprintf_s(WinText, "%s\n", MD->Title.S);
+    else if(MD->Artist.Pos > 0) sprintf_s(WinText, "MPlay3 (%s)\n", MD->Artist.S);
+    else sprintf_s(WinText, "MPlay3\n");
+    //SetWindowText(GameState->Renderer.Window.WindowHandle, WinText);
+    
+    string_w WWinText = {};
+    ConvertString8To16(&GameState->ScratchArena, (u8 *)WinText, &WWinText);
+    SetWindowTextW(GameState->Renderer.Window.WindowHandle, WWinText.S);
 }
 
 internal void

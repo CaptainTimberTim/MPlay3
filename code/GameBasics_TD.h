@@ -66,8 +66,9 @@ struct color_picker
 
 struct game_state
 {
-    string_c DataPath;
-    //bucket_allocator Bucket;
+    string_c SettingsPath;
+    string_c LibraryPath;
+    
     arena_allocator FixArena;     // Never gets reset (except if a bucket is emptied again)
     arena_allocator ScratchArena; // Gets reset every frame.
     
@@ -109,7 +110,7 @@ inline void FreeImage_STB(loaded_bitmap Bitmap);
 
 #if DEBUG_TD
 inline timer StartTimer();
-inline void SnapTimer(timer *Timer, string_c *Identification = 0);
+inline void SnapTimer(timer *Timer, string_c Identification = {});
 #else
 #define StartTimer() {}
 #define SnapTimer(f) 

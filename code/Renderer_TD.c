@@ -87,7 +87,7 @@ InitSTBBakeFont(game_state *GameState, u32 FontHeightInPixel)
 {
     render_text_atlas *Result = AllocateStruct(&GameState->FixArena, render_text_atlas);
     
-    read_file_result FontData = {carmini_ByteDataCount, (u8 *)carmini_ByteData};
+    read_file_result FontData = GetUsedFontData(GameState);
     u32 BitmapSize = 1200;
     loaded_bitmap Bitmap = {0, BitmapSize, BitmapSize, 0, colorFormat_RGBA, BitmapSize*4};
     Bitmap.Pixels          = AllocateArray(&GameState->FixArena, Bitmap.Width*Bitmap.Height, u32);

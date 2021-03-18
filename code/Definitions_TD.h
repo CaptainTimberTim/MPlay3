@@ -2,8 +2,7 @@
 #ifndef _DEFINITIONS__T_D_H
 #define _DEFINITIONS__T_D_H
 #include <stdint.h>
-#include <stdio.h>
-#include <windows.h>
+
 
 // NOTE:: internal is for procedures, to let the compiler know that it is only for this compilation unit
 #define internal        static
@@ -72,9 +71,10 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 #else
 #define Assert(Expression)
 #endif
+
 #define InvalidCodePath    Assert(!"InvalidCodePath")
 #define NotImplemented     Assert(!"NotImplementedYet")
-#define InvalidDefaultCase default: {Assert(false)}
+#define InvalidDefaultCase default: {Assert(!"InvalidDefaultCase")}
 
 
 

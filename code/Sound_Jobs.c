@@ -199,7 +199,8 @@ AddFileToInfo(mp3_file_info *FileInfo, string_c *SubPath, string_c *FileName)
         string_c FilePath = NewStringCompound(&GlobalGameState.ScratchArena, 255);
         ConcatStringCompounds(4, &FilePath, &GlobalGameState.MP3Info->FolderPath, FileInfo->SubPath+FileInfo->Count, 
                               FileInfo->FileName+FileInfo->Count);
-        CrawlFileForMetadata(&GlobalGameState.ScratchArena, FileInfo->Metadata+FileInfo->Count, &FilePath);
+        CrawlFileForMetadata(&GlobalGameState.ScratchArena, FileInfo->Metadata+FileInfo->Count, &FilePath,
+                             FileInfo->FileName[FileInfo->Count]);
         DeleteStringCompound(&GlobalGameState.ScratchArena, &FilePath);
         FileInfo->Count++;
     }

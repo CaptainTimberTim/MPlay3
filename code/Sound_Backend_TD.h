@@ -35,6 +35,7 @@
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...
 // - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
+// - maybe have the icons in the exact size we use them...
 
 #include "Sound_UI_TD.h"
 
@@ -207,7 +208,7 @@ internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 
 
-
+// These are all genres that were available for the ID3v1 metadata.
 global_variable string_compound GenreTypes[] =
 {
     NewStaticStringCompound("Blues"),

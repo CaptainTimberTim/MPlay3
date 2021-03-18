@@ -119,7 +119,6 @@ inline void
 CreateSongButtons(renderer *Renderer, display_column_song_extension *SongColumn, u32 ID)
 {
     u32 ButtonID = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
-    u32 PlayID = SongColumn->Base.Base->PlayPause->Icon->ID->TexID;
     
     color_palette *Palette = &SongColumn->Base.Base->ColorPalette;
     
@@ -127,7 +126,7 @@ CreateSongButtons(renderer *Renderer, display_column_song_extension *SongColumn,
     
     r32 HalfSize = 22;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
-    SongColumn->Play[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, PlayID, Renderer->ButtonColors, 
+    SongColumn->Play[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
                                      SongColumn->Base.BGRects[ID]);
     Translate(SongColumn->Play[ID], V2(0, SONG_PLAY_BUTTON_Y_OFFSET));
     SongColumn->PlayBtnData[ID] = {ID, &GlobalGameState};
@@ -322,7 +321,12 @@ CreateSearchBar(renderer *Renderer, arena_allocator *Arena, music_display_info *
     r32 BtnDepth        = -0.6f;
     r32 SearchExt       = 12;
     
-    u32 SearchID = DecodeAndCreateGLTexture(Search_Icon_ByteDataCount, (u8 *)Search_Icon_ByteData);
+#if RESOURCE_PNG
+    u32 SearchID = DecodeAndCreateGLTexture(Search_Icon_DataCount, (u8 *)Search_Icon_Data);
+#else
+    loaded_bitmap Bitmap   = {1, Search_Icon_Width, Search_Icon_Height, (u32 *)Search_Icon_Data, colorFormat_RGBA, ArrayCount(Search_Icon_Data)};
+    u32 SearchID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+#endif
     
     Result.Button = NewButton(Renderer, {{-SearchExt, -SearchExt},{SearchExt, SearchExt}}, 
                               BtnDepth, false, Renderer->ButtonBaseID, SearchID, Renderer->ButtonColors, Parent);
@@ -420,7 +424,15 @@ CreateDisplayColumn(arena_allocator *Arena, renderer *Renderer, music_display_in
     
     if(Type == columnType_Song) 
     {
-        ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(Add_Icon_ByteDataCount, (u8 *)Add_Icon_ByteData);
+#if RESOURCE_PNG
+        ColumnExt(DisplayColumn)->PlayPauseGLID = DecodeAndCreateGLTexture(PlayPause_Icon_DataCount, (u8 *)PlayPause_Icon_Data);
+        ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(AddSong_Icon_DataCount, (u8 *)AddSong_Icon_Data);
+#else
+        loaded_bitmap Bitmap = {1, PlayPause_Icon_Width, PlayPause_Icon_Height, (u32 *)PlayPause_Icon_Data, colorFormat_RGBA, ArrayCount(PlayPause_Icon_Data)};
+        ColumnExt(DisplayColumn)->PlayPauseGLID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+        Bitmap = {1, AddSong_Icon_Width, AddSong_Icon_Height, (u32 *)AddSong_Icon_Data, colorFormat_RGBA, ArrayCount(AddSong_Icon_Data)};
+        ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+#endif
         CreateDisplayColumnSong(Renderer, ColumnExt(DisplayColumn));
     }
     
@@ -959,19 +971,9 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
     file_id NextSongID = Get(&SortingColumn->Displayable, NextID);
     mp3_metadata *MD = &DisplaySong->FileInfo->Metadata[NextSongID.ID];
     
-    string_c *Title = 0;
-    if((MD->FoundFlags & metadata_Title) == metadata_Title) Title  = &MD->Title;
-    else 
-    {
-        Title = &DisplaySong->FileInfo->FileName[NextSongID.ID];
-        Title->Pos -= 4;
-    }
-    
     v2 SongP = {SONG_TITLE_X_OFFSET, SONG_FIRST_ROW_Y_OFFSET};
-    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, Title, &DisplayColumn->Base->ColorPalette.Text,
+    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &MD->Title, &DisplayColumn->Base->ColorPalette.Text,
                      DisplaySong->SongTitle+ID, -0.12f, DisplayColumn->BGRects[ID], SongP);
-    
-    if((MD->FoundFlags & metadata_Title) != metadata_Title) Title->Pos += 4;
     
     v2 AlbumP = {SONG_ALBUM_X_OFFSET, SONG_SECOND_ROW_Y_OFFSET}; 
     CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, &MD->Album, &DisplayColumn->Base->ColorPalette.Text,
@@ -1695,6 +1697,8 @@ OnShortcutHelpOff(void *Data)
 internal void
 InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp3_info *MP3Info)
 {
+    timer T = StartTimer();
+    
     renderer *Renderer = &GameState->Renderer;
     r32 WWidth = (r32)Renderer->Window.FixedDim.Width;
     r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
@@ -1707,7 +1711,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 BottomMargin = EdgeMargin*5;
     r32 LeftX = -688;
     
-    
     DisplayInfo->EdgeTop = CreateRenderRect(Renderer, {{0, WHeight-TopMargin},{WWidth, WHeight}}, -0.5f,
                                             0, &DisplayInfo->ColorPalette.Foreground);
     TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeTop, fixedTo_TopCenter, scaleAxis_X);
@@ -1717,12 +1720,12 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     r32 HeightEdge = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
     
-    DisplayInfo->EdgeLeft   = CreateRenderRect(Renderer, {{0,BottomMargin},{EdgeMargin,WHeight-TopMargin}}, -0.5f,
-                                               0, &DisplayInfo->ColorPalette.Foreground);
+    DisplayInfo->EdgeLeft = CreateRenderRect(Renderer, {{0,BottomMargin},{EdgeMargin,WHeight-TopMargin}}, -0.5f,
+                                             0, &DisplayInfo->ColorPalette.Foreground);
     TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeLeft, fixedTo_MiddleLeft, scaleAxis_Y);
     r32 RightX = 688;
-    DisplayInfo->EdgeRight  = CreateRenderRect(Renderer, {{WWidth-EdgeMargin,BottomMargin},{WWidth,WHeight-TopMargin}}, 
-                                               -0.5f, 0, &DisplayInfo->ColorPalette.Foreground);
+    DisplayInfo->EdgeRight = CreateRenderRect(Renderer, {{WWidth-EdgeMargin,BottomMargin},{WWidth,WHeight-TopMargin}}, 
+                                              -0.5f, 0, &DisplayInfo->ColorPalette.Foreground);
     TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeRight, fixedTo_MiddleRight, scaleAxis_Y);
     
     r32 EdgeWidth = 6;
@@ -1751,7 +1754,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->AlbumSong.OriginalYHeight = GetPosition(DisplayInfo->AlbumSong.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->AlbumSong.Edge, scaleAxis_Y);
     
-    
     Renderer->ButtonColors = 
     {
         &DisplayInfo->ColorPalette.SliderGrabThing,
@@ -1761,28 +1763,66 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     };
     
     // NOTE:: This data is included binary data, which is generated from the actual image files and put into C-Arrays.
-    Renderer->ButtonBaseID = DecodeAndCreateGLTexture(PlayPause_ByteDataCount, (u8 *)PlayPause_ByteData);
+#if RESOURCE_PNG
     
-    u32 ShuffleID          = DecodeAndCreateGLTexture(Shuffle_Icon_ByteDataCount, (u8 *)Shuffle_Icon_ByteData);
-    u32 ShufflePressedID   = DecodeAndCreateGLTexture(Shuffle_Pressed_Icon_ByteDataCount, (u8 *)Shuffle_Pressed_Icon_ByteData);
-    u32 LoopID             = DecodeAndCreateGLTexture(Loop_Icon_ByteDataCount, (u8 *)Loop_Icon_ByteData);
-    u32 LoopPressedID      = DecodeAndCreateGLTexture(Loop_Pressed_Icon_ByteDataCount, (u8 *)Loop_Pressed_Icon_ByteData);
-    u32 RandomizeID        = DecodeAndCreateGLTexture(Randomize_Icon_ByteDataCount, (u8 *)Randomize_Icon_ByteData);
-    u32 RandomizePressedID = DecodeAndCreateGLTexture(Randomize_Pressed_Icon_ByteDataCount, (u8 *)Randomize_Pressed_Icon_ByteData);
-    u32 PlayID             = DecodeAndCreateGLTexture(Play_Icon_ByteDataCount, (u8 *)Play_Icon_ByteData);
-    u32 PauseID            = DecodeAndCreateGLTexture(Pause_Icon_ByteDataCount, (u8 *)Pause_Icon_ByteData);
-    u32 StopID             = DecodeAndCreateGLTexture(Stop_Icon_ByteDataCount, (u8 *)Stop_Icon_ByteData);
-    u32 NextID             = DecodeAndCreateGLTexture(Next_Icon_ByteDataCount, (u8 *)Next_Icon_ByteData);
-    u32 PreviousID         = DecodeAndCreateGLTexture(Previous_Icon_ByteDataCount, (u8 *)Previous_Icon_ByteData);
-    u32 MusicPathID        = DecodeAndCreateGLTexture(MusicPath_Icon_ByteDataCount, (u8 *)MusicPath_Icon_ByteData);
-    u32 ConfirmID          = DecodeAndCreateGLTexture(Confirm_Icon_ByteDataCount, (u8 *)Confirm_Icon_ByteData);
-    u32 CancelID           = DecodeAndCreateGLTexture(Cancel_Icon_ByteDataCount, (u8 *)Cancel_Icon_ByteData);
-    u32 PaletteID          = DecodeAndCreateGLTexture(PaletteSwap_Icon2_ByteDataCount, (u8 *)PaletteSwap_Icon2_ByteData);
-    u32 RescanID           = DecodeAndCreateGLTexture(Rescan_Icon_ByteDataCount, (u8 *)Rescan_Icon_ByteData);
-    u32 ColorPickerID      = DecodeAndCreateGLTexture(ColorPicker_Icon_ByteDataCount, (u8 *)ColorPicker_Icon_ByteData);
-    u32 ShortcutID         = DecodeAndCreateGLTexture(Help_Icon_ByteDataCount, (u8 *)Help_Icon_ByteData);
-    u32 ShortcutPressedID  = DecodeAndCreateGLTexture(Help_Pressed_Icon_ByteDataCount, (u8 *)Help_Pressed_Icon_ByteData);
+    Renderer->ButtonBaseID = DecodeAndCreateGLTexture(Background_Icon_DataCount, (u8 *)Background_Icon_Data);
+    u32 LoopID             = DecodeAndCreateGLTexture(Loop_Icon_DataCount, (u8 *)Loop_Icon_Data);
+    u32 LoopPressedID      = DecodeAndCreateGLTexture(Loop_Pressed_Icon_DataCount, (u8 *)Loop_Pressed_Icon_Data);
+    u32 RandomizeID        = DecodeAndCreateGLTexture(Randomize_Icon_DataCount, (u8 *)Randomize_Icon_Data);
+    u32 RandomizePressedID = DecodeAndCreateGLTexture(Randomize_Pressed_Icon_DataCount, (u8 *)Randomize_Pressed_Icon_Data);
+    u32 PlayID             = DecodeAndCreateGLTexture(Play_Icon_DataCount, (u8 *)Play_Icon_Data);
+    u32 PauseID            = DecodeAndCreateGLTexture(Pause_Icon_DataCount, (u8 *)Pause_Icon_Data);
+    u32 StopID             = DecodeAndCreateGLTexture(Stop_Icon_DataCount, (u8 *)Stop_Icon_Data);
+    u32 NextID             = DecodeAndCreateGLTexture(Next_Icon_DataCount, (u8 *)Next_Icon_Data);
+    u32 PreviousID         = DecodeAndCreateGLTexture(Previous_Icon_DataCount, (u8 *)Previous_Icon_Data);
+    u32 MusicPathID        = DecodeAndCreateGLTexture(MusicPath_Icon_DataCount, (u8 *)MusicPath_Icon_Data);
+    u32 ConfirmID          = DecodeAndCreateGLTexture(Confirm_Icon_DataCount, (u8 *)Confirm_Icon_Data);
+    u32 CancelID           = DecodeAndCreateGLTexture(Cancel_Icon_DataCount, (u8 *)Cancel_Icon_Data);
+    u32 PaletteID          = DecodeAndCreateGLTexture(PaletteSwap_Icon_DataCount, (u8 *)PaletteSwap_Icon_Data);
+    u32 RescanID           = DecodeAndCreateGLTexture(Rescan_Icon_DataCount, (u8 *)Rescan_Icon_Data);
+    u32 ColorPickerID      = DecodeAndCreateGLTexture(ColorPicker_Icon_DataCount, (u8 *)ColorPicker_Icon_Data);
+    u32 ShortcutID         = DecodeAndCreateGLTexture(Help_Icon_DataCount, (u8 *)Help_Icon_Data);
+    u32 ShortcutPressedID  = DecodeAndCreateGLTexture(Help_Pressed_Icon_DataCount, (u8 *)Help_Pressed_Icon_Data);
+#else
     
+    bitmap_color_format cF = colorFormat_RGBA;
+    loaded_bitmap Bitmap = {1, Background_Icon_Width, Background_Icon_Height, (u32 *)Background_Icon_Data, cF, ArrayCount(Background_Icon_Data)};
+    Renderer->ButtonBaseID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Loop_Icon_Width, Loop_Icon_Height, (u32 *)Loop_Icon_Data, cF, ArrayCount(Loop_Icon_Data)};
+    u32 LoopID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Loop_Pressed_Icon_Width, Loop_Pressed_Icon_Height, (u32 *)Loop_Pressed_Icon_Data, cF, ArrayCount(Loop_Pressed_Icon_Data)};
+    u32 LoopPressedID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Randomize_Icon_Width, Randomize_Icon_Height, (u32 *)Randomize_Icon_Data, cF, ArrayCount(Randomize_Icon_Data)};
+    u32 RandomizeID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Randomize_Pressed_Icon_Width, Randomize_Pressed_Icon_Height, (u32 *)Randomize_Pressed_Icon_Data, cF, ArrayCount(Randomize_Pressed_Icon_Data)};
+    u32 RandomizePressedID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Play_Icon_Width, Play_Icon_Height, (u32 *)Play_Icon_Data, cF, ArrayCount(Play_Icon_Data)};
+    u32 PlayID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Pause_Icon_Width, Pause_Icon_Height, (u32 *)Pause_Icon_Data, cF, ArrayCount(Pause_Icon_Data)};
+    u32 PauseID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Stop_Icon_Width, Stop_Icon_Height, (u32 *)Stop_Icon_Data, cF, ArrayCount(Stop_Icon_Data)};
+    u32 StopID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Next_Icon_Width, Next_Icon_Height, (u32 *)Next_Icon_Data, cF, ArrayCount(Next_Icon_Data)};
+    u32 NextID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Previous_Icon_Width, Previous_Icon_Height, (u32 *)Previous_Icon_Data, cF, ArrayCount(Previous_Icon_Data)};
+    u32 PreviousID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, MusicPath_Icon_Width, MusicPath_Icon_Height, (u32 *)MusicPath_Icon_Data, cF, ArrayCount(MusicPath_Icon_Data)};
+    u32 MusicPathID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Confirm_Icon_Width, Confirm_Icon_Height, (u32 *)Confirm_Icon_Data, cF, ArrayCount(Confirm_Icon_Data)};
+    u32 ConfirmID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Cancel_Icon_Width, Cancel_Icon_Height, (u32 *)Cancel_Icon_Data, cF, ArrayCount(Cancel_Icon_Data)};
+    u32 CancelID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, PaletteSwap_Icon_Width, PaletteSwap_Icon_Height, (u32 *)PaletteSwap_Icon_Data, cF, ArrayCount(PaletteSwap_Icon_Data)};
+    u32 PaletteID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Rescan_Icon_Width, Rescan_Icon_Height, (u32 *)Rescan_Icon_Data, cF, ArrayCount(Rescan_Icon_Data)};
+    u32 RescanID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, ColorPicker_Icon_Width, ColorPicker_Icon_Height, (u32 *)ColorPicker_Icon_Data, cF, ArrayCount(ColorPicker_Icon_Data)};
+    u32 ColorPickerID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Help_Icon_Width, Help_Icon_Height, (u32 *)Help_Icon_Data, cF, ArrayCount(Help_Icon_Data)};
+    u32 ShortcutID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Help_Pressed_Icon_Width, Help_Pressed_Icon_Height, (u32 *)Help_Pressed_Icon_Data, cF, ArrayCount(Help_Pressed_Icon_Data)};
+    u32 ShortcutPressedID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+#endif
     
     r32 BtnDepth = -0.6f;
     r32 ButtonUpperLeftX = 40;
@@ -1803,18 +1843,17 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->PlayPause->OnPressed = {OnPlayPauseSongToggleOn, &DisplayInfo->MusicBtnInfo};
     DisplayInfo->PlayPause->OnPressedToggleOff = {OnPlayPauseSongToggleOff, &DisplayInfo->MusicBtnInfo};
     
-    DisplayInfo->Stop      = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                       Renderer->ButtonBaseID, StopID, Renderer->ButtonColors, 0);
+    DisplayInfo->Stop = NewButton(Renderer, LargeBtnRect, BtnDepth, false, Renderer->ButtonBaseID, StopID, Renderer->ButtonColors, 0);
     SetLocalPosition(DisplayInfo->Stop, V2(PlayPauseX + 74, 80.75f));
     DisplayInfo->Stop->OnPressed = {OnStopSong, &DisplayInfo->MusicBtnInfo};
     
-    DisplayInfo->Previous  = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                       Renderer->ButtonBaseID, PreviousID, Renderer->ButtonColors, 0);
+    DisplayInfo->Previous = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
+                                      Renderer->ButtonBaseID, PreviousID, Renderer->ButtonColors, 0);
     SetLocalPosition(DisplayInfo->Previous, V2(PlayPauseX+74+53, 80.75f));
     DisplayInfo->Previous->OnPressed = {OnPreviousSong, &DisplayInfo->MusicBtnInfo};
     
-    DisplayInfo->Next      = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                       Renderer->ButtonBaseID, NextID, Renderer->ButtonColors, 0);
+    DisplayInfo->Next = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
+                                  Renderer->ButtonBaseID, NextID, Renderer->ButtonColors, 0);
     SetLocalPosition(DisplayInfo->Next, V2(PlayPauseX+74+53*2, 80.75f));
     DisplayInfo->Next->OnPressed = {OnNextSong, &DisplayInfo->MusicBtnInfo};
     
@@ -1843,6 +1882,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     shortcut_popups *Popups = &DisplayInfo->Popups;
     DisplayInfo->Help->OnPressed          = {OnShortcutHelpOn, Popups};
     DisplayInfo->Help->OnPressedToggleOff = {OnShortcutHelpOff, Popups};
+    
     
     // Music path stuff *******************************
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
@@ -1902,7 +1942,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     SetActive(MusicPath->Rescan, false);
     MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
     
-    
     // Song panel stuff ****************************
     DisplayInfo->Volume.Background = CreateRenderRect(Renderer, {{PlayPauseX+50, 15}, {PlayPauseX+204, 52}}, BtnDepth,
                                                       0, &DisplayInfo->ColorPalette.SliderBackground);
@@ -1942,7 +1981,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     // Quit curtain ****************************
     string_c QuitText = NewStaticStringCompound("Goodbye!");
     CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, 0.8f);
-    
     
     
     // User error text *************************************

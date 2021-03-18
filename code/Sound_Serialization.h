@@ -5,9 +5,11 @@
 global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
 
 #define LIBRARY_CURRENT_VERSION 3
-#define SETTINGS_CURRENT_VERSION 4
+#define SETTINGS_CURRENT_VERSION 5
 struct settings
 {
+    string_c FontPath = {0, 0, 0}; // Only for users at this point.
+    
     r32 Volume = 0.5f;
     file_id PlayingSongID = {-1};
     u32 ColorPaletteID = 4;
@@ -35,5 +37,7 @@ internal void LoadMP3LibraryFile(game_state *GameState, mp3_info *Info);
 internal void SaveMP3LibraryFile(game_state *GameState, mp3_info *Info);
 internal void WipeMP3LibraryFile(game_state *GameState);
 
+internal read_file_result GetUsedFontData(game_state *GameState);
+internal loaded_bitmap DecodeIcon(arena_allocator *Arena, u32 Width, u32 Height, u8 *Data, u32 Size);
 
 #endif //_SOUND__SERIALIZATION_H

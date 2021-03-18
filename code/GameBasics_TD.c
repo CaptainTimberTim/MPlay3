@@ -79,12 +79,12 @@ StartTimer()
 }
 
 inline void
-SnapTimer(timer *Timer, string_c *Identification)
+SnapTimer(timer *Timer, string_c Identification)
 {
     i64 NewSnap = GetWallClock();
     r32 CurrentSnap = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->LastSnap, NewSnap);
     r32 Total = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->Start, NewSnap);
-    u8 *Addon = Identification ? Identification->S : (u8 *)"";
+    u8 *Addon = Identification.Pos ? Identification.S : (u8 *)"";
     DebugLog(255, "%s Timer snap %i: %.8f, total: %.8f\n", Addon, ++Timer->Count, CurrentSnap, Total);
     Timer->LastSnap = NewSnap;
 }
@@ -587,10 +587,24 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     
     
     // Create Buttons
-    u32 NewID    = DecodeAndCreateGLTexture(Add_Icon_ByteDataCount,    (u8 *)Add_Icon_ByteData);
-    u32 RemoveID = DecodeAndCreateGLTexture(Minus_Icon_ByteDataCount,  (u8 *)Minus_Icon_ByteData);
-    u32 SaveID   = DecodeAndCreateGLTexture(Save_Icon_ByteDataCount,   (u8 *)Save_Icon_ByteData);
-    u32 CancelID = DecodeAndCreateGLTexture(Cancel_Icon_ByteDataCount, (u8 *)Cancel_Icon_ByteData);
+#if RESOURCE_PNG
+    u32 NewID    = DecodeAndCreateGLTexture(Plus_Icon_DataCount, (u8 *)Plus_Icon_Data);
+    u32 RemoveID = DecodeAndCreateGLTexture(Minus_Icon_DataCount, (u8 *)Minus_Icon_Data);
+    u32 SaveID   = DecodeAndCreateGLTexture(Save_Icon_DataCount, (u8 *)Save_Icon_Data);
+    u32 CancelID = DecodeAndCreateGLTexture(Cancel_Icon_DataCount, (u8 *)Cancel_Icon_Data);
+#else
+    loaded_bitmap Bitmap = {1, Plus_Icon_Width, Plus_Icon_Height, (u32 *)Plus_Icon_Data, colorFormat_RGBA, ArrayCount(Plus_Icon_Data)};
+    u32 NewID    = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+    
+    Bitmap = {1, Minus_Icon_Width, Minus_Icon_Height, (u32 *)Minus_Icon_Data, colorFormat_RGBA, ArrayCount(Minus_Icon_Data)};
+    u32 RemoveID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+    
+    Bitmap = {1, Save_Icon_Width, Save_Icon_Height, (u32 *)Save_Icon_Data, colorFormat_RGBA, ArrayCount(Save_Icon_Data)};
+    u32 SaveID   = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+    
+    Bitmap = {1, Cancel_Icon_Width, Cancel_Icon_Height, (u32 *)Cancel_Icon_Data, colorFormat_RGBA, ArrayCount(Cancel_Icon_Data)};
+    u32 CancelID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+#endif
     
     rect BtnRect = {{-21,-21},{21,21}};
     Result->New    = NewButton(Renderer, BtnRect, Depth-0.001f, false, Renderer->ButtonBaseID, NewID, 

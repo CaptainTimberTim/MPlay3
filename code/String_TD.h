@@ -63,6 +63,7 @@ inline u8 *AdvanceToLineEnd(u8 *Char);
 inline u8 *AdvanceToNextLine(u8 *Char);
 inline u8 *AdvanceAfterConsecutiveGivenChar(u8 *Character, u8 Given);
 inline i32 FirstOccurranceOfCharacterInString(u8 CharToFind, u8 *String, u8 Delimiter);
+inline i32 LastOccurrenceOfCharacterInString(u8 CharToFind, u8 *String, u8 Delimiter);
 inline u32 StringLengthUntilChar(u8 *Character, u8 Delimiter);
 inline u32 CopyStringUntilChar(u8 *Dest, u8 *Source, u8 Delimiter);
 inline void CopyString(u8 *Dest, u8 *Source, u32 Size);
@@ -106,7 +107,6 @@ inline b32 ConvertString8To16(arena_allocator *Arena, string_c *In, string_w *Ou
 inline b32 ConvertString8To16(arena_allocator *Arena, u8 *In, string_w *Out);
 inline b32 ConvertString16To8(arena_allocator *Arena, string_w *In, string_c *Out);
 inline b32 ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out);
-
 
 
 
@@ -159,7 +159,7 @@ CopyStringToCompound(string_compound *Comp, u8 *String, u32 StartPos)
 inline void
 CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To)
 {
-    Assert(To > From);
+    Assert(To >= From);
     Assert(Comp->Length-Comp->Pos >= To-From);
     
     u8 *S = String+From;

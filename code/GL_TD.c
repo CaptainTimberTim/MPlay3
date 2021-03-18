@@ -165,6 +165,17 @@ DecodeAndCreateGLTexture(u32 DataSize, u8 *Data)
     return Result;
 }
 
+inline u32
+DecodeAndCreateGLTexture(arena_allocator *Arena, loaded_bitmap Bitmap)
+{
+    loaded_bitmap IconBitmap = DecodeIcon(Arena, Bitmap.Width, Bitmap.Height, 
+                                          (u8 *)Bitmap.Pixels, Bitmap.Pitch); // Abusing pitch for memory size
+    u32 Result = CreateGLTexture(IconBitmap);
+    FreeMemory(Arena, IconBitmap.Pixels);
+    
+    return Result;
+}
+
 inline void
 UpdateGLTexture(loaded_bitmap Bitmap, GLuint TexID)
 {

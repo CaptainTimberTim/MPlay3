@@ -1,5 +1,3 @@
 #include "resource.h"
 
 MAIN_ICON ICON    "../data/Logo_V0.1.ico"
-
-PLAY_ICON BITMAP  "../data/ButtonsICO/Play_Icon.bmp"

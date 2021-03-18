@@ -1,5 +1,12 @@
+#include <Shlobj.h>
+#include <windows.h>
+
 #include "Definitions_TD.h"
-#include "../data/resources/EmbeddedResources.h"
+#if RESOURCE_PNG
+#include "..\\data\\resources\\EmbeddedResourcesExactSize_png.h"
+#else
+#include "..\\data\\resources\\EmbeddedResourcesExactSize_huf.h"
+#endif
 
 #define MINIMP3_IMPLEMENTATION
 #include "Libraries\\MiniMP3.h"
@@ -401,6 +408,44 @@ GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End)
     return(Result);
 }
 
+inline void
+RetrieveAndSetDataPaths(game_state *GameState)
+{
+    wchar_t *WAppdataPath;
+    if(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, 0, &WAppdataPath) == S_OK) // Get appdata path
+    {
+        string_c MPlay3Folder = NewStaticStringCompound("\\MPlay3Data\\");
+        string_c AppdataPath = {};
+        if(ConvertString16To8(&GameState->ScratchArena, WAppdataPath, &AppdataPath))
+        {
+            string_c DataPath = NewStringCompound(&GameState->ScratchArena, AppdataPath.Pos+MPlay3Folder.Pos);
+            ConcatStringCompounds(3, &DataPath, &AppdataPath, &MPlay3Folder);
+            
+            NewLocalString(SettingsPath, MAX_PATH, DataPath.S);
+            AppendStringCompoundToCompound(&SettingsPath, &SETTINGS_FILE_NAME);
+            read_file_result R = {};
+            if(ReadBeginningOfFile(&GameState->ScratchArena, &R, SettingsPath.S, 1)) // If we can read 1 byt from it, it exists
+            {
+                GameState->SettingsPath = NewStringCompound(&GameState->FixArena, SettingsPath.Pos);
+                AppendStringCompoundToCompound(&GameState->SettingsPath, &SettingsPath);
+            }
+            
+            NewLocalString(LibraryPath, MAX_PATH, DataPath.S);
+            AppendStringCompoundToCompound(&LibraryPath, &LIBRARY_FILE_NAME);
+            if(ReadBeginningOfFile(&GameState->ScratchArena, &R, LibraryPath.S, 1))
+            {
+                GameState->LibraryPath = NewStringCompound(&GameState->FixArena, LibraryPath.Pos);
+                AppendStringCompoundToCompound(&GameState->LibraryPath, &LibraryPath);
+            }
+        }
+    }
+    CoTaskMemFree(WAppdataPath);
+    
+    // If still 0 length, we put it in the local folder, aka just using the name.
+    if(GameState->SettingsPath.Pos == 0) GameState->SettingsPath = SETTINGS_FILE_NAME;
+    if(GameState->LibraryPath.Pos == 0)  GameState->LibraryPath  = LIBRARY_FILE_NAME;
+}
+
 i32 CALLBACK 
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
@@ -408,7 +453,6 @@ WinMain(HINSTANCE Instance,
         i32 ShowCmd)
 {
     // Hey, baby! Check out the nil-value _I'm_ dereferencing.
-    
     ArrowCursor = LoadCursor(0, IDC_ARROW);
     DragCursor = LoadCursor(0, IDC_SIZEWE);
     
@@ -426,8 +470,6 @@ WinMain(HINSTANCE Instance,
         // Initializing GameState
         game_state *GameState = &GlobalGameState;
         *GameState = {};
-        GameState->DataPath = NewStaticStringCompound("");
-        //GameState->DataPath = NewStaticStringCompound("..\\data\\");
         GameState->Time.GameHz           = 60; // TODO:: Get monitor refresh rate!?
         GameState->Time.GoalFrameRate    = 1.0f/GameState->Time.GameHz;
         GameState->Time.dTime            = 0.0f;
@@ -444,6 +486,8 @@ WinMain(HINSTANCE Instance,
         LONGLONG PrevCycleCount = GetWallClock();
         LONGLONG FlipWallClock  = GetWallClock();
         
+        timer StartupTimer = StartTimer();
+        
         SetRandomSeed(FlipWallClock);
         
         // Initializing Allocator
@@ -452,6 +496,7 @@ WinMain(HINSTANCE Instance,
         GameState->JobThreadsArena.Flags = arenaFlags_IsThreaded;
         
         // NOTE:: Loading Settings file
+        RetrieveAndSetDataPaths(GameState);
         GameState->Settings = TryLoadSettingsFile(GameState);
         
         u32 InitialWindowWidth  = GameState->Settings.WindowDimX;//1416;
@@ -502,7 +547,6 @@ WinMain(HINSTANCE Instance,
             ReshapeGLWindow(&GameState->Renderer);
             b32 *ReRender = &Renderer->Rerender;
             
-            
             // Preparing base structs
             music_info *MusicInfo = &GameState->MusicInfo;
             playing_song *PlayingSong = &MusicInfo->PlayingSong;
@@ -551,7 +595,6 @@ WinMain(HINSTANCE Instance,
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
             InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info);
             music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
-            
             
             r32 SlotHeight = 30;
             r32 DisplayColumnStartY = DisplayInfo->EdgeTop->ID->Vertice[0].y;
@@ -639,7 +682,6 @@ WinMain(HINSTANCE Instance,
                         {OnTimelineDragEnd, &TimelineDragInfo});
             
             if(!LoadedLibraryFile) OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
-            
             
             check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
             CreateFileInfoStruct(&CheckMusicPath->TestInfo, MAX_MP3_INFO_COUNT);

@@ -3,8 +3,26 @@
 // NOTE:: Settings file specifications
 //
 // MPlay3Settings
-// Version 4
-// 
+// Version 5
+// # NOTE 1:: This file is not generally designed for user
+// # editing. This means that random spaces between words
+// # or at the end of lines, or extra lines, will break 
+// # the parsing. But editing values, especially the FontPath
+// # is possible.
+//
+// # NOTE 2:: If you don't want this file and the Library 
+// # file to be in the same directory as the executable, you 
+// # can put them into the '%appdata%\Roaming\MPlay3Data'
+// # folder. If they can be found -by the program- in 
+// # that specific location, it will overwrite them in there.
+//
+// # NOTE 3:: If you want to use a different font than the
+// # default, you can add it here right behind the 'FontPath'
+// # identifier. Only *.ttf files work! Be careful though, it 
+// # _needs_ to have only one space between the colon and the 
+// # path itself. No quotation marks are needed as well.
+//
+// FontPath: <Path/to/font>
 // Volume: <Between 0 and 1>
 // LastPlayingSong: <FileName>
 // ColorPalette: <ID>
@@ -41,15 +59,40 @@ ProcessNextPaletteColor(u8 **C, u8 *ColorName, v3 *Color)
     AdvanceToNewline(C);
 }
 
+inline u32
+CountToNewline(u8 *C)
+{
+    u32 Count = 0;
+    while(*C != '\r' && *C++ != '\n') Count++;
+    return Count;
+}
+
+inline u32
+CopyUntilNewline(u8 *C, string_c *Result)
+{
+    u32 Count = 0;
+    while(*C != '\r' && *C != '\n')
+    {
+        AppendCharToCompound(Result, *C++);
+        Count++;
+    }
+    if(*C == '\r') Count++;
+    return ++Count;
+}
+
+inline void
+TryEatComment(u8 **C)
+{
+    if(**C == '#') AdvanceToNewline(C);
+}
+
 internal settings
 TryLoadSettingsFile(game_state *GameState)
 {
     settings Result = {};
     
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, SETTINGS_FILE_NAME);
-    if(ReadEntireFile(&GameState->ScratchArena, &Data, FilePath.S))
+    if(ReadEntireFile(&GameState->ScratchArena, &Data, GameState->SettingsPath.S))
     {
         u8 *C = Data.Data;
         
@@ -63,46 +106,68 @@ TryLoadSettingsFile(game_state *GameState)
             if(StringCompare(C, VersionString, 0, VersionLength) &&
                CharToU32(C[VersionLength]) == SETTINGS_CURRENT_VERSION)
             {
+                AdvanceToNewline(&C); // Version 5
+                For(5) TryEatComment(&C);    // # NOTE 1::
                 AdvanceToNewline(&C);
+                For(5) TryEatComment(&C);    // # NOTE 2::
                 AdvanceToNewline(&C);
+                For(5) TryEatComment(&C);    // # NOTE 3::
+                AdvanceToNewline(&C); 
                 u8 Length;
                 
+                TryEatComment(&C);
+                C += StringLength((u8 *)"FontPath: ");
+                u32 PLen = CountToNewline(C);
+                Result.FontPath = NewStringCompound(&GameState->FixArena, PLen);
+                CopyStringToCompound(&Result.FontPath, C, 0, PLen);
+                AdvanceToNewline(&C);
+                
+                TryEatComment(&C);
                 C += StringLength((u8 *)"Volume: ");
                 Result.Volume = ProcessNextR32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"LastPlayingSong: ");
                 Result.PlayingSongID.ID = ProcessNextI32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"ColorPalette: ");
                 Result.ColorPaletteID = ProcessNextU32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"GenreArtistEdgeXPercent: ");
                 Result.GenreArtistEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"ArtistAlbumEdgeXPercent: ");
                 Result.ArtistAlbumEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"AlbumSongEdgeXPercent: ");
                 Result.AlbumSongEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"WindowDimensionX: ");
                 Result.WindowDimX = ProcessNextU32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"WindowDimensionY: ");
                 Result.WindowDimY = ProcessNextU32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"Looping: ");
                 Result.Looping = ProcessNextB32InString(C);
                 AdvanceToNewline(&C);
                 
+                TryEatComment(&C);
                 C += StringLength((u8 *)"Shuffle: ");
                 Result.Shuffle = ProcessNextB32InString(C);
                 AdvanceToNewline(&C);
@@ -150,7 +215,6 @@ TryLoadSettingsFile(game_state *GameState)
             }
         }
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     
     // If anything is wrong with the saved values, just use the default percentages
     if(Result.GenreArtistEdgeXPercent < 0.0f || Result.GenreArtistEdgeXPercent > 1.0f || 
@@ -177,8 +241,13 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
     I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
-    AppendStringToCompound(&SaveData, (u8 *)"\n\n");
+    AppendStringToCompound(&SaveData, (u8 *) "\n# NOTE 1:: This file is not generally designed for user\n# editing. This means that random spaces between words\n# or at the end of lines, or extra lines, will break\n# the parsing. But editing values, especially the FontPath\n# is possible.\n\n");
     
+    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
+    
+    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 3:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! Be careful though, it\n# _needs_ to have only one space between the colon and the\n# path itself. No quotation marks are needed as well.\n\n");
+    
+    NewLocalString(FontPath,        280, "FontPath: ");
     NewLocalString(FileVolume,       50, "Volume: ");
     NewLocalString(FileLastSong,     50, "LastPlayingSong: ");
     NewLocalString(FileColorPalette, 50, "ColorPalette: ");
@@ -191,6 +260,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     NewLocalString(Shuffle,          50, "Shuffle: ");
     
     v2i Dim = GetWindowSize();
+    AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
     I32ToString(&FileLastSong, GameState->MusicInfo.PlayingSong.FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
@@ -203,7 +273,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
     string_c LB = NewStaticStringCompound("\n");
-    ConcatStringCompounds(21, &SaveData, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB);
+    ConcatStringCompounds(23, &SaveData, &FontPath, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB);
     
     string_c Palette           = NewStaticStringCompound("Palette: ");
     string_c P_Text            = NewStaticStringCompound("\nText: ");
@@ -245,12 +315,10 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     }
     
     
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+SETTINGS_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, SETTINGS_FILE_NAME);
-    if(WriteEntireFile(&GameState->ScratchArena, FilePath.S, SaveData.Pos, SaveData.S))
+    if(WriteEntireFile(&GameState->ScratchArena, GameState->SettingsPath.S, SaveData.Pos, SaveData.S))
     {
+        DebugLog(255, "ERROR:: Could not write out settings file!\n");
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
 
@@ -332,36 +400,13 @@ ApplySettings(game_state *GameState, settings Settings)
 // >FILE_1_DURATION
 // 
 
-inline u32
-CountToNewline(u8 *C)
-{
-    u32 Count = 0;
-    while(*C != '\r' && *C++ != '\n') Count++;
-    return Count;
-}
-
-inline u32
-CopyUntilNewline(u8 *C, string_c *Result)
-{
-    u32 Count = 0;
-    while(*C != '\r' && *C != '\n')
-    {
-        AppendCharToCompound(Result, *C++);
-        Count++;
-    }
-    if(*C == '\r') Count++;
-    return ++Count;
-}
-
 internal b32
 ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheckFor, u32 *FileInfoCount)
 {
     b32 Result = false;
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
     u32 BegginingCount = StringLength((u8 *)"MP3Lib\nVersion XX\nP: \nC: XXXXX\n");
-    if(ReadBeginningOfFile(&GameState->ScratchArena, &Data, FilePath.S, BegginingCount+255))
+    if(ReadBeginningOfFile(&GameState->ScratchArena, &Data, GameState->LibraryPath.S, BegginingCount+255))
     {
         u8 *C = Data.Data;
         u8 *LibString = (u8 *)"MP3Lib";
@@ -387,7 +432,6 @@ ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheck
         }
         FreeFileMemory(&GameState->ScratchArena, Data.Data);
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     
     return Result;
 }
@@ -397,12 +441,9 @@ ConfirmLibraryMusicPathExists(game_state *GameState)
 {
     b32 Result = false;
     
-    NewEmptyLocalString(FilePath, 256);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    
     u32 BegginingCount = StringLength((u8 *)"MP3Lib\nVersion XX\nP: \nC: XXXXX\n");
     read_file_result File = {};
-    if(ReadBeginningOfFile(&GameState->ScratchArena, &File, FilePath.S, BegginingCount+256))
+    if(ReadBeginningOfFile(&GameState->ScratchArena, &File, GameState->LibraryPath.S, BegginingCount+256))
     {
         u8 *C = File.Data;
         C += 7; // MP3Lib
@@ -429,9 +470,7 @@ CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
 {
     b32 Result = false;
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(ReadEntireFile(&GameState->ScratchArena, &Data, FilePath.S))
+    if(ReadEntireFile(&GameState->ScratchArena, &Data, GameState->LibraryPath.S))
     {
         u8 *C = Data.Data;
         if(StringCompare(C, (u8 *)"MP3Lib", 0, 6))
@@ -450,7 +489,6 @@ CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
             DeleteStringCompound(&GameState->ScratchArena, &FolderPath);
         }
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     
     return Result;
 }
@@ -459,9 +497,7 @@ internal void
 LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
 {
     read_file_result Data = {};
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(ReadEntireFile(&GameState->ScratchArena, &Data, FilePath.S))
+    if(ReadEntireFile(&GameState->ScratchArena, &Data, GameState->LibraryPath.S))
     {
         mp3_file_info *MP3FileInfo = &Info->FileInfo;
         
@@ -586,7 +622,6 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
         }
         FreeFileMemory(&GameState->ScratchArena, Data.Data);
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
 }
 
 internal void
@@ -684,22 +719,71 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     FreeMemory(&GameState->ScratchArena, Written);
     
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(WriteEntireFile(&GameState->ScratchArena, FilePath.S, SaveData.Pos, SaveData.S))
+    if(WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, SaveData.Pos, SaveData.S))
     {
+        DebugLog(255, "ERROR:: Could not write out library file!\n");
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
     DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
 
 internal void
 WipeMP3LibraryFile(game_state *GameState)
 {
-    string_c FilePath = NewStringCompound(&GameState->ScratchArena, GameState->DataPath.Pos+LIBRARY_FILE_NAME.Pos);
-    ConcatStringCompounds(3, &FilePath, &GameState->DataPath, LIBRARY_FILE_NAME);
-    if(WriteEntireFile(&GameState->ScratchArena, FilePath.S, 0, 0))
+    if(WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, 0, 0))
     {
+        DebugLog(255, "ERROR:: Could not write out library file!\n");
     }
-    DeleteStringCompound(&GameState->ScratchArena, &FilePath);
 }
+
+internal read_file_result
+GetUsedFontData(game_state *GameState)
+{
+    read_file_result Result = {carmini_DataCount, (u8 *)carmini_Data};
+    
+    if(GameState->Settings.FontPath.Pos > 0)
+    {
+        read_file_result FontFile = {};
+        if(ReadEntireFile(&GameState->ScratchArena, &FontFile, GameState->Settings.FontPath.S))
+        {
+            Result = FontFile;
+        }
+    }
+    
+    return Result;
+}
+
+internal loaded_bitmap
+DecodeIcon(arena_allocator *Arena, u32 Width, u32 Height, u8 *Data, u32 Size)
+{
+    loaded_bitmap Result = {1, };
+    Result.Width = Width;
+    Result.Height = Height;
+    Result.Pixels = AllocateArray(Arena, Width*Height, u32);
+    u8 *Pixel = (u8 *)Result.Pixels;
+    For(Size)
+    {
+        u8 Count = *Data++;
+        For(Count, P) 
+        {
+            
+            *Pixel++ = Data[0];
+            *Pixel++ = Data[1];
+            *Pixel++ = Data[2];
+            *Pixel++ = Data[3];
+        }
+        Data += 4;
+        It   += 4;
+    }
+    
+    return Result;
+}
+
+
+
+
+
+
+
+
+
+

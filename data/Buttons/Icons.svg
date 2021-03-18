@@ -97,9 +97,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="8"
-     inkscape:cx="76.74426"
-     inkscape:cy="831.49664"
+     inkscape:zoom="5.6568543"
+     inkscape:cx="123.35715"
+     inkscape:cy="793.26049"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -132,8 +132,9 @@
        x="33.893116"
        y="63.757225"
        ry="0"
-       inkscape:export-xdpi="979.46021"
-       inkscape:export-ydpi="979.46021" />
+       inkscape:export-xdpi="102.78615"
+       inkscape:export-ydpi="102.78615"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PlayPause_Icon.png" />
     <circle
        style="opacity:1;fill:#0e2311;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0347243;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="path841-4-8"
@@ -334,13 +335,15 @@
        x="21.715649"
        y="63.874157"
        ry="0"
-       inkscape:export-xdpi="979.46021"
-       inkscape:export-ydpi="979.46021" />
+       inkscape:export-xdpi="210.24471"
+       inkscape:export-ydpi="210.24471"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Background_Icon.png" />
     <g
        id="g4583"
        transform="translate(11.989547,-0.11693042)"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979">
+       inkscape:export-xdpi="102.78615"
+       inkscape:export-ydpi="102.78615"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PlayPause_Icon.png">
       <path
          inkscape:export-ydpi="1459.4167"
          inkscape:export-xdpi="1459.4167"
@@ -374,8 +377,9 @@
        x="21.79917"
        y="75.834473"
        ry="0"
-       inkscape:export-xdpi="979.46021"
-       inkscape:export-ydpi="979.46021" />
+       inkscape:export-xdpi="112.13034"
+       inkscape:export-ydpi="112.13034"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Stop_Icon.png" />
     <rect
        style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.68354839;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4628"
@@ -384,8 +388,9 @@
        x="24.187891"
        y="78.223198"
        ry="0"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="112.13034"
+       inkscape:export-ydpi="112.13034"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Stop_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-2-4"
@@ -394,13 +399,15 @@
        x="33.926529"
        y="76.068329"
        ry="0"
-       inkscape:export-xdpi="979.46021"
-       inkscape:export-ydpi="979.46021" />
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Next_Icon.png" />
     <g
        id="g4690"
        transform="translate(0.06682026,-0.63476482)"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979">
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Next_Icon.png">
       <path
          inkscape:export-ydpi="1459.4167"
          inkscape:export-xdpi="1459.4167"
@@ -434,13 +441,15 @@
        x="21.481789"
        y="87.243538"
        ry="0"
-       inkscape:export-xdpi="979.46021"
-       inkscape:export-ydpi="979.46021" />
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Previous_Icon.png" />
     <g
        id="g4690-7"
        transform="rotate(-180,32.782277,87.084844)"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979">
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Previous_Icon.png">
       <path
          inkscape:export-ydpi="1459.4167"
          inkscape:export-xdpi="1459.4167"
@@ -628,24 +637,27 @@
        x="46.399536"
        y="87.795502"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Plus_Icon.png" />
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 48.779196,92.042623 h 5.463739 v 1.728818 h -5.463739 z"
        id="path4551-7-4-1"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="1459.4167"
-       inkscape:export-ydpi="1459.4167" />
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Plus_Icon.png" />
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 52.375475,90.175162 v 5.463739 h -1.728818 v -5.463739 z"
        id="path4551-7-4-1-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="1459.4167"
-       inkscape:export-ydpi="1459.4167" />
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Plus_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-2-4-7-8-8"
@@ -654,13 +666,15 @@
        x="33.864906"
        y="98.511124"
        ry="0"
-       inkscape:export-xdpi="1460.0305"
-       inkscape:export-ydpi="1460.0305" />
+       inkscape:export-xdpi="56.07"
+       inkscape:export-ydpi="56.07"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Search_Icon.png" />
     <g
        id="g923"
        transform="rotate(-45,37.979293,104.30751)"
-       inkscape:export-xdpi="1460"
-       inkscape:export-ydpi="1460">
+       inkscape:export-xdpi="56.07"
+       inkscape:export-ydpi="56.07"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Search_Icon.png">
       <circle
          transform="scale(1,-1)"
          r="1.8427683"
@@ -711,13 +725,15 @@
        x="21.361517"
        y="110.10844"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Icon.png" />
     <g
        id="g1031"
        transform="translate(-0.09153907,-0.54788723)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459">
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Icon.png">
       <path
          transform="matrix(0.90974023,0.14512302,-0.14512302,0.90974023,19.321617,6.9840091)"
          d="m 26.32254,112.13144 c 1.75381,-0.0218 3.237788,1.42578 3.259574,3.17959 0.02179,1.75381 -1.425777,3.23779 -3.179587,3.25957 -1.75381,0.0218 -3.237788,-1.42578 -3.259574,-3.17959 -0.0084,-0.67631 0.200647,-1.34797 0.591378,-1.90006"
@@ -746,8 +762,9 @@
        x="34.228703"
        y="110.13626"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png" />
     <rect
        style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.77021897;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.98832685;paint-order:stroke fill markers"
        id="rect1057"
@@ -756,12 +773,18 @@
        x="95.218597"
        y="68.497009"
        transform="rotate(35.078583)"
-       ry="1.211599" />
+       ry="1.211599"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001" />
     <path
        style="opacity:1;fill:#4f4f4f;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2.28847671;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke fill markers"
        d="m 38.974443,112.13332 a 0.8265307,0.8265307 0 0 0 -0.710466,0.35087 0.8265307,0.8265307 0 0 0 0.201262,1.15123 0.8265307,0.8265307 0 0 0 1.151242,-0.20126 0.8265307,0.8265307 0 0 0 -0.201266,-1.15191 0.8265307,0.8265307 0 0 0 -0.440772,-0.14893 z m 2.688238,1.88787 a 0.8265307,0.8265307 0 0 0 -0.710468,0.3502 0.8265307,0.8265307 0 0 0 0.201266,1.15191 0.8265307,0.8265307 0 0 0 1.151238,-0.20127 0.8265307,0.8265307 0 0 0 -0.201266,-1.15191 0.8265307,0.8265307 0 0 0 -0.44077,-0.14893 z m -2.288391,0.40052 a 0.8265307,0.8265307 0 0 0 -0.710468,0.35087 0.8265307,0.8265307 0 0 0 0.201268,1.15124 0.8265307,0.8265307 0 0 0 1.151238,-0.20127 0.8265307,0.8265307 0 0 0 -0.201266,-1.15124 0.8265307,0.8265307 0 0 0 -0.440772,-0.1496 z m -2.288389,0.40118 a 0.8265307,0.8265307 0 0 0 -0.710468,0.35088 0.8265307,0.8265307 0 0 0 0.201266,1.15124 0.8265307,0.8265307 0 0 0 1.151239,-0.20127 0.8265307,0.8265307 0 0 0 -0.201267,-1.15191 0.8265307,0.8265307 0 0 0 -0.44077,-0.14894 z m 2.688236,1.88788 a 0.8265307,0.8265307 0 0 0 -0.710468,0.35087 0.8265307,0.8265307 0 0 0 0.201268,1.15124 0.8265307,0.8265307 0 0 0 1.151238,-0.20126 0.8265307,0.8265307 0 0 0 -0.201264,-1.15192 0.8265307,0.8265307 0 0 0 -0.440774,-0.14893 z"
        id="path1065-3"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-5"
@@ -812,8 +835,9 @@
        x="9.9366474"
        y="110.08665"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Pressed_Icon.png" />
     <rect
        style="opacity:1;fill:url(#radialGradient972-3);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-5-4-6"
@@ -822,13 +846,15 @@
        x="10.200504"
        y="110.35051"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Pressed_Icon.png" />
     <g
        id="g1031-8"
        transform="translate(-11.516409,-0.56967265)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459">
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Pressed_Icon.png">
       <path
          transform="matrix(0.90974023,0.14512302,-0.14512302,0.90974023,19.321617,6.9840091)"
          d="m 26.32254,112.13144 c 1.75381,-0.0218 3.237788,1.42578 3.259574,3.17959 0.02179,1.75381 -1.425777,3.23779 -3.179587,3.25957 -1.75381,0.0218 -3.237788,-1.42578 -3.259574,-3.17959 -0.0084,-0.67631 0.200647,-1.34797 0.591378,-1.90006"
@@ -857,8 +883,9 @@
        x="46.29108"
        y="110.20199"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png" />
     <rect
        style="opacity:1;fill:url(#radialGradient972-3-1);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-5-4-6-9"
@@ -867,15 +894,17 @@
        x="46.554939"
        y="110.46584"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Pressed_Icon.png" />
     <path
        style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:6.69059134;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.98832685;paint-order:stroke fill markers"
        d="M 192.52344 420.73242 C 191.0549 420.70474 189.60263 421.38602 188.69141 422.68359 L 180.01367 435.03906 C 178.55571 437.11519 179.05474 439.96 181.13086 441.41797 L 193.48438 450.09375 C 195.5605 451.55171 198.40727 451.05464 199.86523 448.97852 L 208.54102 436.62305 C 209.99898 434.54692 209.5019 431.70211 207.42578 430.24414 L 195.07031 421.56641 C 194.29177 421.01967 193.40456 420.74903 192.52344 420.73242 z M 192.89453 424.05859 A 3.1238956 3.1238956 0 0 1 194.56055 424.62305 A 3.1238956 3.1238956 0 0 1 195.32227 428.97656 A 3.1238956 3.1238956 0 0 1 190.9707 429.73633 A 3.1238956 3.1238956 0 0 1 190.20898 425.38477 A 3.1238956 3.1238956 0 0 1 192.89453 424.05859 z M 203.05469 431.19531 A 3.1238956 3.1238956 0 0 1 204.7207 431.75781 A 3.1238956 3.1238956 0 0 1 205.48242 436.11133 A 3.1238956 3.1238956 0 0 1 201.13086 436.87109 A 3.1238956 3.1238956 0 0 1 200.36914 432.51758 A 3.1238956 3.1238956 0 0 1 203.05469 431.19531 z M 194.40625 432.70898 A 3.1238956 3.1238956 0 0 1 196.07227 433.27344 A 3.1238956 3.1238956 0 0 1 196.83203 437.625 A 3.1238956 3.1238956 0 0 1 192.48242 438.38477 A 3.1238956 3.1238956 0 0 1 191.7207 434.03516 A 3.1238956 3.1238956 0 0 1 194.40625 432.70898 z M 185.75781 434.22461 A 3.1238956 3.1238956 0 0 1 187.42383 434.78711 A 3.1238956 3.1238956 0 0 1 188.18359 439.14062 A 3.1238956 3.1238956 0 0 1 183.83203 439.90234 A 3.1238956 3.1238956 0 0 1 183.07227 435.55078 A 3.1238956 3.1238956 0 0 1 185.75781 434.22461 z M 195.91797 441.35938 A 3.1238956 3.1238956 0 0 1 197.58398 441.92383 A 3.1238956 3.1238956 0 0 1 198.34375 446.27734 A 3.1238956 3.1238956 0 0 1 193.99219 447.03711 A 3.1238956 3.1238956 0 0 1 193.23242 442.68555 A 3.1238956 3.1238956 0 0 1 195.91797 441.35938 z "
        transform="scale(0.26458333)"
        id="rect1057-2"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-9-8-5"
@@ -884,15 +913,17 @@
        x="21.446024"
        y="121.39758"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\MusicPath_Icon.png" />
     <path
        style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers"
        d="m 23.435522,130.3913 v -7.76438 h 6.244063 v 5.55108 l -2.2133,2.2133 z m 2.798279,-1.77095 v -0.001 l 0.03101,0.001 -0.100252,-3.39824 a 1.5420247,0.98805335 0 0 0 1.092958,0.29197 1.5420247,0.98805335 0 0 0 1.542023,-0.98806 1.5420247,0.98805335 0 0 0 -1.542023,-0.98753 1.5420247,0.98805335 0 0 0 -1.538926,0.92862 h -0.0067 l 0.08837,2.83446 -1.014925,0.0434 v 0.27389 h 1.024744 l 0.01964,0.62942 H 24.3156 v 0.32866 z"
        id="rect932"
        inkscape:connector-curvature="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\MusicPath_Icon.png" />
     <g
        transform="translate(-21.711684,0.70068909)"
        id="g955-7">
@@ -931,16 +962,18 @@
        x="34.177094"
        y="121.73132"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Confirm_Icon.png" />
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.35233399px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 36.259376,127.49805 -0.95241,-0.9524 2.773871,-2.77385 5.189444,5.18944 -0.952688,0.95267 -4.237036,-4.23704 z"
        id="path941"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccccc"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Confirm_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-9-8-5-4-7"
@@ -949,13 +982,15 @@
        x="46.465683"
        y="121.67871"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Cancel_Icon.png" />
     <g
        id="g979"
        transform="translate(0.03611023,-0.12805295)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459">
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Cancel_Icon.png">
       <rect
          transform="rotate(45)"
          y="49.630238"
@@ -981,64 +1016,72 @@
        x="9.8321772"
        y="98.462181"
        ry="0"
-       inkscape:export-xdpi="979.46021"
-       inkscape:export-ydpi="979.46021" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 10.908591,107.5824 18.94649,99.544499 H 10.908591 Z"
+       d="m 10.90734,107.58402 8.037899,-8.037896 H 10.90734 Z"
        id="path893-3"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
-       style="fill:#676767;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#a0a0a0;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 10.908591,107.58277 8.050078,-1e-5 -0.01343,-8.036636 -4.018321,4.018316 z"
        id="path899-6"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 10.908591,107.58277 2.875985,-1e-5 -1.437992,-1.43798 z"
        id="path901-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
-       style="fill:#f1f1f1;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#f7f7f7;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 13.784576,107.58276 2.221662,-8.5e-4 -2.5274,-2.56939 -1.132254,1.13226 z"
        id="path903-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
-       style="fill:#d1d1d1;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#e4e4e4;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 16.006238,107.58191 2.952431,8.5e-4 -4.025044,-4.02503 -1.454787,1.45479 z"
        id="path905-1"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
-       style="fill:#b5b5b5;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#cfcfcf;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 18.978823,107.60292 -5e-6,-2.66768 -2.71135,-2.71136 -1.333843,1.33385 z"
        id="path907-4"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <path
-       style="fill:#8f8f8f;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#b6b6b6;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 18.978794,104.93522 -0.02687,-2.49969 -1.41445,-1.48164 -1.270005,1.27 z"
        id="path909-2"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-9-8-5-4-7-7"
@@ -1047,13 +1090,15 @@
        x="21.431675"
        y="132.90988"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Rescan_Icon.png" />
     <g
        id="g1087"
        transform="matrix(1,0,0,-1,0.26265417,276.60356)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459">
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Rescan_Icon.png">
       <path
          id="rect932-3"
          transform="scale(0.26458333)"
@@ -1086,13 +1131,15 @@
        x="34.311386"
        y="132.97311"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Save_Icon.png" />
     <g
        id="g1009"
        transform="matrix(1,0,0,-1,-0.07312313,276.67308)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459">
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Save_Icon.png">
       <path
          id="path962"
          transform="scale(0.26458333)"
@@ -1133,8 +1180,9 @@
        x="46.43261"
        y="133.25423"
        ry="0"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png" />
     <g
        id="g1124"
        transform="translate(9.4919273,0.84335937)">
@@ -1189,9 +1237,10 @@
     </g>
     <g
        id="g1116"
-       inkscape:export-xdpi="979"
-       inkscape:export-ydpi="979"
-       transform="matrix(0.65025007,-1.3207824,-1.3207824,-0.65025007,199.77327,294.54978)">
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="matrix(0.65025007,-1.3207824,-1.3207824,-0.65025007,199.77327,294.54978)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png">
       <path
          sodipodi:nodetypes="cccccc"
          inkscape:connector-curvature="0"
@@ -1223,16 +1272,18 @@
        x="57.743549"
        y="87.812035"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Minus_Icon.png" />
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 60.123208,92.059159 h 5.463739 v 1.728818 h -5.463739 z"
        id="path4551-7-4-1-5"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc"
-       inkscape:export-xdpi="1459.4167"
-       inkscape:export-ydpi="1459.4167" />
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Minus_Icon.png" />
     <rect
        style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-9-8-5-4-7-7-7"
@@ -1241,16 +1292,18 @@
        x="21.379877"
        y="-155.03627"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459"
-       transform="scale(1,-1)" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="scale(1,-1)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Shortcut_Icon.png" />
     <flowRoot
        xml:space="preserve"
        id="flowRoot984"
        style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none"
        transform="matrix(0.2952101,0,0,-0.2952101,6.8419472,314.4889)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459"><flowRegion
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Shortcut_Icon.png"><flowRegion
          id="flowRegion986"
          style="fill:#ffffff;fill-opacity:1"><rect
            id="rect988"
@@ -1268,9 +1321,10 @@
        x="10.136199"
        y="-155.15338"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459"
-       transform="scale(1,-1)" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="scale(1,-1)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Help_Pressed_Icon.png" />
     <rect
        style="opacity:1;fill:url(#radialGradient972-3-9);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
        id="rect4533-1-1-7-1-7-5-4-6-97"
@@ -1279,15 +1333,17 @@
        x="10.400056"
        y="145.19418"
        ry="0"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459" />
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Help_Pressed_Icon.png" />
     <flowRoot
        xml:space="preserve"
        id="flowRoot984-6"
        style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none"
        transform="matrix(0.2952101,0,0,-0.2952101,-4.4017326,314.60601)"
-       inkscape:export-xdpi="1459"
-       inkscape:export-ydpi="1459"><flowRegion
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Help_Pressed_Icon.png"><flowRegion
          id="flowRegion986-2"
          style="fill:#ffffff;fill-opacity:1"><rect
            id="rect988-2"

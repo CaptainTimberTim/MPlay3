@@ -130,6 +130,7 @@ struct display_column_song_extension
     button *Play[MAX_DISPLAY_SONG_COUNT];
     struct song_play_btn PlayBtnData[MAX_DISPLAY_SONG_COUNT];
     button  *Add[MAX_DISPLAY_SONG_COUNT];
+    u32 PlayPauseGLID;
     u32 AddGLID;
     
     struct mp3_file_info *FileInfo;

@@ -246,7 +246,8 @@ AppendToFile(arena_allocator *Arena, u8 *FileName, u32 MemorySize, void *Memory)
     {
         u8 *AllData = AllocateMemory(Arena, FileData.Size+MemorySize+3);
         u8 *DataBegin = AllData;
-        For(FileData.Size) *AllData++ = *FileData.Data++;
+        u8 *FileData2 = FileData.Data;
+        For(FileData.Size) *AllData++ = *FileData2++;
         *AllData++ = '\n';
         u8 *UMemory = (u8 *)Memory;
         For(MemorySize) *AllData++ = *UMemory++;

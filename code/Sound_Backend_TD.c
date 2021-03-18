@@ -942,7 +942,7 @@ ExtractMetadataSize(arena_allocator *TransientArena, string_c *CompletePath)
 }
 
 internal void // #ThreadedUse
-CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c *FilePath)
+CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c *FilePath, string_c FileName)
 {
     u32 DataLength = ExtractMetadataSize(TransientArena, FilePath);
     read_file_result FileData = {};
@@ -960,6 +960,17 @@ CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c
             FreeFileMemory(TransientArena, FileData.Data);
         }
     }
+    
+    if(MD->Title.Pos == 0)
+    {
+        // If we did not get a title, we use the filename.
+        FileName.Pos -= 4; // Local variable, so no problem!
+        Assert(FileName.Pos > 0);
+        MD->Title = NewStringCompound(&GlobalGameState.JobThreadsArena, FileName.Pos);
+        AppendStringCompoundToCompound(&MD->Title, &FileName);
+        MD->FoundFlags |= metadata_Title;
+        DebugLog(255, "Title: %s\n", MD->Title.S);
+    }
 }
 
 internal void // #ThreadedUse
@@ -974,16 +985,12 @@ CrawlFilesForMetadata(arena_allocator *TransientArena, mp3_file_info *FileInfo,
         if(FoundAllMetadata(FileInfo->Metadata[It].FoundFlags)) continue;
         ConcatStringCompounds(4, &FilePath, FolderPath, FileInfo->SubPath+It, FileInfo->FileName+It);
         
-        CrawlFileForMetadata(TransientArena, FileInfo->Metadata+It, &FilePath);
+        CrawlFileForMetadata(TransientArena, FileInfo->Metadata+It, &FilePath, FileInfo->FileName[It]);
         
         WipeStringCompound(&FilePath);
         if(CurrentCrawlCount)
         {
             *CurrentCrawlCount = It;
-        }
-        if(It%100==0) 
-        {
-            DebugLog(500, "%i of %i\n", It, FileInfo->Count);
         }
     }
     DeleteStringCompound(TransientArena, &FilePath);
@@ -1650,15 +1657,13 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
     DebugLog(1255, "Nr.%i: %s (%s) by %s \n%i - %s - %s - %i Hz\n", MD->Track, MD->Title.S, MD->Album.S, MD->Artist.S, MD->Year, MD->Genre.S, MD->DurationString.S, DInfo->hz);
     
     char WinText[512];
-    if(MD->Title.Pos > 0 && MD->Artist.Pos > 0) sprintf_s(WinText, "%s (%s)\n", MD->Title.S, MD->Artist.S);
-    else if(MD->Title.Pos > 0) sprintf_s(WinText, "%s\n", MD->Title.S);
-    else if(MD->Artist.Pos > 0) sprintf_s(WinText, "MPlay3 (%s)\n", MD->Artist.S);
-    else sprintf_s(WinText, "MPlay3\n");
-    //SetWindowText(GameState->Renderer.Window.WindowHandle, WinText);
+    Assert(MD->Title.Pos > 0);
+    if(MD->Artist.Pos > 0) sprintf_s(WinText, "%s (%s)\n", MD->Title.S, MD->Artist.S);
+    else                   sprintf_s(WinText, "%s\n", MD->Title.S);
     
     string_w WWinText = {};
     ConvertString8To16(&GameState->ScratchArena, (u8 *)WinText, &WWinText);
-    SetWindowTextW(GameState->Renderer.Window.WindowHandle, WWinText.S);
+    SetWindowTextA(GameState->Renderer.Window.WindowHandle, WinText);
 }
 
 internal void

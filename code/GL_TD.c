@@ -96,7 +96,7 @@ ReshapeGLWindow(renderer *Renderer)
 }
 
 inline u32
-CreateGLTexture(loaded_bitmap Bitmap)
+CreateGLTexture(loaded_bitmap Bitmap, b32 DoSameColorFormat = false)
 {
     u32 ID;
     
@@ -116,13 +116,20 @@ CreateGLTexture(loaded_bitmap Bitmap)
             BitmapColorFormat = GL_RGBA;
         } break;
         
+        case colorFormat_Alpha:
+        {
+            BitmapColorFormat = GL_ALPHA;
+        } break;
+        
         InvalidDefaultCase
     }
     
     glGenTextures(1, &ID);
     glBindTexture(GL_TEXTURE_2D, ID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Bitmap.Width, Bitmap.Height, 0, BitmapColorFormat, 
-                 GL_UNSIGNED_BYTE, Bitmap.Pixels);
+    if(DoSameColorFormat) glTexImage2D(GL_TEXTURE_2D, 0, BitmapColorFormat, Bitmap.Width, Bitmap.Height, 0, BitmapColorFormat, 
+                                       GL_UNSIGNED_BYTE, Bitmap.Pixels);
+    else glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, Bitmap.Width, Bitmap.Height, 0, BitmapColorFormat, 
+                      GL_UNSIGNED_BYTE, Bitmap.Pixels);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -130,7 +137,7 @@ CreateGLTexture(loaded_bitmap Bitmap)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     
-    return ++ID;
+    return ++ID; // ZII:: We increment texIDs on creation to have 0 be default
 }
 
 inline u32

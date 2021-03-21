@@ -17,10 +17,10 @@ set libIncludes=  User32.lib Gdi32.lib winmm.lib Shell32.lib Ole32.lib
 REM opengl32.lib // Lives now in the GL_TD.h, a bit cleaner?
 
 set resources= "../data/resources/Resources.res"
-rc -x -nologo -fo %resources% "../data/resources/Resource.rc"
+REM rc -x -nologo -fo %resources% "../data/resources/Resource.rc"
 
-REM cl %flags% %debugFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
-cl %flags% %optimizeFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
+cl %flags% %debugFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
+REM cl %flags% %optimizeFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
 
 
 

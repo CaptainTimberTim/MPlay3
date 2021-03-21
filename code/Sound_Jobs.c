@@ -247,8 +247,8 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
         AppendStringToCompound(&MusicPath->OutputString, (u8 *)" songs from old path.");
         
         RemoveRenderText(&GlobalGameState.Renderer, &MusicPath->Output);
-        CreateRenderText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
-                         &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
+        RenderText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
+                   &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
     }
     
     

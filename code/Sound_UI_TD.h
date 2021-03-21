@@ -138,15 +138,14 @@ struct display_column_song_extension
 #define Parent(name) &(name)->Base
 #define ColumnExt(name)  ((display_column_song_extension *)(name))
 
-#define SONG_TITLE_X_OFFSET 55
-#define SONG_ARTIST_X_OFFSET 105
-#define SONG_ALBUM_X_OFFSET  (SONG_ARTIST_X_OFFSET+70)
-#define SONG_TRACK_X_OFFSET  -5
+#define SONG_X_OFFSET              92
+#define SONG_ALBUM_X_OFFSET       (SONG_X_OFFSET+70)
+#define SONG_TRACK_X_OFFSET       -18
 #define SONG_PLAY_BUTTON_X_OFFSET  40
-#define SONG_PLAY_BUTTON_Y_OFFSET  -22
-#define SONG_FIRST_ROW_Y_OFFSET  27
-#define SONG_SECOND_ROW_Y_OFFSET -8
-#define SONG_THIRD_ROW_Y_OFFSET -33
+#define SONG_PLAY_BUTTON_Y_OFFSET -22
+#define SONG_FIRST_ROW_Y_OFFSET    32
+#define SONG_SECOND_ROW_Y_OFFSET   -8
+#define SONG_THIRD_ROW_Y_OFFSET   -33
 
 struct playing_song_panel
 {

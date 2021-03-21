@@ -5,7 +5,7 @@
 global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
 
 #define LIBRARY_CURRENT_VERSION 3
-#define SETTINGS_CURRENT_VERSION 5
+#define SETTINGS_CURRENT_VERSION 6
 struct settings
 {
     string_c FontPath = {0, 0, 0}; // Only for users at this point.
@@ -20,6 +20,7 @@ struct settings
     i32 WindowDimY = 1039;
     b32 Looping = false;
     b32 Shuffle = false;
+    i32 FontHeightOffset = 0;
     
     string_c *PaletteNames;
     color_palette *Palettes;

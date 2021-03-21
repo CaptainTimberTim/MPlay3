@@ -71,29 +71,7 @@ struct render_text
     render_entry *RenderEntries;
     u32 Count;
     u32 MaxCount;
-};
-
-enum font_size
-{
-    font_Big,
-    font_Medium,
-    font_Small,
-};
-inline u32 FontSizeToPixel(font_size FontSize);
-
-#define ATLAS_LETTER_COUNT 255
-struct render_text_atlas
-{
-    stbtt_bakedchar CharData[ATLAS_LETTER_COUNT];
-    loaded_bitmap Bitmap;
-    u32 GLID;
-};
-
-struct font_info
-{
-    render_text_atlas *BigFont;
-    render_text_atlas *MediumFont;
-    render_text_atlas *SmallFont;
+    v2 Height;
 };
 
 enum axis
@@ -218,7 +196,7 @@ struct renderer
     
     window_info Window;
     
-    font_info FontInfo;
+    fonts FontInfo;
     button_group ButtonGroup;
     
     union color_palette *ColorPalette;
@@ -332,9 +310,6 @@ inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixT
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff
-internal void CreateRenderText(renderer *Renderer, arena_allocator *Arena, font_size Size, string_c *Text, 
-                               v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP = {});
-
 inline void SetPosition(render_text *Info, v2 P);
 inline void SetPositionX(render_text *Info, r32 X);
 inline void SetPositionY(render_text *Info, r32 Y);
@@ -345,3 +320,4 @@ inline void Translate(render_text *Info, v2 Translation);
 inline v2   GetPosition(render_text *Info, u32 LetterID);
 inline void RemoveRenderText(renderer *Renderer, render_text *Text);
 inline void SetTransparency(render_text *Text, r32 T);
+inline void CenterText(render_text *Text);

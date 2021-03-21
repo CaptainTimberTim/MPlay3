@@ -62,51 +62,6 @@ RectToRectPE(rect Rect)
 }
 
 inline void
-MonoBitmapToRGBA(u8 *MonoBitmap, loaded_bitmap *Bitmap)
-{
-    u8 *Source = MonoBitmap;
-    u8 *DestRow = (u8 *)Bitmap->Pixels;
-    for(u32 Y = 0; Y < Bitmap->Height; Y++)
-    {
-        u32 *Dest = (u32 *)DestRow;
-        for(u32 X = 0; X < Bitmap->Width; X++)
-        {
-            u8 Alpha = *Source++;
-            *Dest++ = ((Alpha << 24) |
-                       (Alpha << 16) | 
-                       (Alpha << 8)  |
-                       (Alpha << 0));
-        }
-        DestRow += Bitmap->Pitch;
-    }
-    Bitmap->WasLoaded = true;
-}
-
-internal render_text_atlas *
-InitSTBBakeFont(game_state *GameState, u32 FontHeightInPixel)
-{
-    render_text_atlas *Result = AllocateStruct(&GameState->FixArena, render_text_atlas);
-    
-    read_file_result FontData = GetUsedFontData(GameState);
-    u32 BitmapSize = 1200;
-    loaded_bitmap Bitmap = {0, BitmapSize, BitmapSize, 0, colorFormat_RGBA, BitmapSize*4};
-    Bitmap.Pixels          = AllocateArray(&GameState->FixArena, Bitmap.Width*Bitmap.Height, u32);
-    u8 *AlphaMap           = AllocateArray(&GameState->ScratchArena, Bitmap.Width*Bitmap.Height, u8);
-    
-    int BakeRet = stbtt_BakeFontBitmap(FontData.Data, 0, (r32)FontHeightInPixel, 
-                                       AlphaMap, Bitmap.Width, Bitmap.Height, 
-                                       32, ATLAS_LETTER_COUNT, Result->CharData);
-    
-    MonoBitmapToRGBA(AlphaMap, &Bitmap);
-    FreeMemory(&GameState->ScratchArena, AlphaMap);
-    
-    Result->Bitmap = Bitmap;
-    Result->GLID  = CreateGLTexture(Bitmap);
-    
-    return Result;
-}
-
-inline void
 ApplyTransform(render_entry *Entry, v3 *Result)
 {
     transform_2D *T = &Entry->Transform;
@@ -1013,114 +968,6 @@ PerformScreenTransform(renderer *Renderer)
 
 // Render Text********************************************************
 
-internal render_entry
-CreateRenderTextEntry(renderer *Renderer, v2 Extends, r32 Depth, u32 BitmapID, v3 *Color, entry_id *Parent = 0)
-{
-    render_entry Result = {};
-    
-    Result.Type = renderType_Text;
-    Result.Render = true;
-    Result.Transform = {};
-    Result.Transform.Scale = {1,1};
-    Result.Vertice[0] = {-Extends.x, -Extends.y, Depth};
-    Result.Vertice[1] = {-Extends.x,  Extends.y, Depth};
-    Result.Vertice[2] = { Extends.x,  Extends.y, Depth};
-    Result.Vertice[3] = { Extends.x, -Extends.y, Depth};
-    Result.Parent = Parent;
-    Result.Transparency = 1.0f;
-    Result.Color = Color;
-    Result.TexID = BitmapID;
-    
-    return Result;
-}
-
-internal void
-CreateRenderText(renderer *Renderer, arena_allocator *Arena, font_size Size, string_c *Text, 
-                 v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP)
-{
-    ResultText->Count = 0;
-    if(Parent) StartP += GetPosition(Parent);
-    ResultText->CurrentP = {};//StartP;
-    r32 DepthOffset = ZValue;
-    
-    render_text_atlas *Atlas = 0;
-    switch(Size)
-    {
-        case font_Big:    Atlas = Renderer->FontInfo.BigFont;    break;
-        case font_Medium: Atlas = Renderer->FontInfo.MediumFont; break;
-        case font_Small:  Atlas = Renderer->FontInfo.SmallFont;  break;
-        InvalidDefaultCase
-    }
-    ResultText->Base = CreateRenderBitmap(Renderer, V2(0), DepthOffset, Parent, Atlas->GLID);
-    SetPosition(ResultText->Base, StartP);
-    ResultText->Base->ID->Type = renderType_Text;
-    ResultText->Base->ID->Text = ResultText;
-    Parent = ResultText->Base;
-    
-    if(ResultText->MaxCount == 0)
-    {
-        ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
-        ResultText->RenderEntries    = AllocateArray(Arena, ResultText->MaxCount, render_entry);
-    }
-    // TODO:: Maybe when this happens increase the size? With current allocater system
-    // this would not work very well. But once it changed... maybe.
-    Assert(Text->Pos < ResultText->MaxCount); 
-    
-    // Calculate baseline offset positions
-    v2 TP = StartP;
-    stbtt_aligned_quad TestQ;
-    stbtt_GetBakedQuad(Atlas->CharData, Atlas->Bitmap.Width, Atlas->Bitmap.Height, 'o'-32, &TP.x, &TP.y, &TestQ, 1);
-    r32 NewBaseline = TestQ.y0;
-    r32 OldBaseline = TestQ.y1;
-    
-    v2 BaseP = {};
-    For(Text->Pos)
-    {
-        u8 NextSymbol = Text->S[It];
-        if(Text->S[It] >= 128)
-        {
-            for(i32 SymbolID = 0; SymbolID < ArrayCount(BasicSymbolsGer); SymbolID++)
-            {
-                if(CompareStringAndCompound(&BasicSymbolsGer[SymbolID].UTF8, Text->S+It))
-                {
-                    NextSymbol = BasicSymbolsGer[SymbolID].ANSI;
-                    It++;
-                }
-            }
-        }
-        if(NextSymbol >= 32 && NextSymbol < ATLAS_LETTER_COUNT)
-        {
-            stbtt_aligned_quad A;
-            stbtt_GetBakedQuad(Atlas->CharData, 
-                               Atlas->Bitmap.Width, Atlas->Bitmap.Height, NextSymbol-32,
-                               &ResultText->CurrentP.x, &ResultText->CurrentP.y, &A, 1);
-            
-            rect Rect = {{A.x0, A.y0}, {A.x1, A.y1}};
-            rect_pe RectPE = RectToRectPE(Rect);
-            ResultText->RenderEntries[ResultText->Count] = CreateRenderTextEntry(Renderer, RectPE.Extends, DepthOffset, 
-                                                                                 Atlas->GLID, Color, Parent);
-            render_entry *Entry  = ResultText->RenderEntries+ResultText->Count++;
-            entry_id EntryID = {Entry};
-            SetLocalPosition(&EntryID, GetCenter(Rect));
-            
-            r32 DistToBaseline = GetRect(&EntryID).Max.y - OldBaseline;
-            r32 BaselineOffset = GetRect(&EntryID).Min.y - NewBaseline;
-            Translate(&EntryID, V2(0, -(BaselineOffset + DistToBaseline)));
-            
-            Entry->TexCoords[0] = {A.s0, A.t1};
-            Entry->TexCoords[1] = {A.s0, A.t0};
-            Entry->TexCoords[2] = {A.s1, A.t0};
-            Entry->TexCoords[3] = {A.s1, A.t1};
-            
-            DepthOffset -= 0.000001f;
-        }
-        if(NextSymbol == 10)
-        {
-            ResultText->CurrentP = V2(0/*StartP.x*/, ResultText->CurrentP.y + (OldBaseline-NewBaseline)*2);
-        }
-    }
-}
-
 inline void
 SetPosition(render_text *Text, v2 P)
 {
@@ -1206,19 +1053,13 @@ SetColor(render_text *Text, v3 *Color)
     }
 }
 
-inline u32 
-FontSizeToPixel(font_size FontSize)
+inline void
+CenterText(render_text *Text)
 {
-    u32 Result = 0;
-    switch(FontSize)
-    {
-        case font_Small:  Result = 25; break;
-        case font_Medium: Result = 50; break;
-        case font_Big:    Result = 75; break;
-        InvalidDefaultCase;
-    }
+    r32 NewY = Abs(Text->Height.E[0]) + Abs(Text->Height.E[1]);
+    NewY /= 2;
     
-    return Result;
+    Translate(Text, V2(0, CeilingR32(NewY)-7));
 }
 
 // *******************  Sorting algorithms ***********************

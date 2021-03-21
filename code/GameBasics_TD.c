@@ -237,8 +237,8 @@ CreateRenderTextFromColor(color_picker *ColorPicker, v3 NewColor)
     I32ToString(&ColorString, Blue);
     
     RemoveRenderText(Renderer, &ColorPicker->RGBText);
-    CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &ColorString, &Palette->ForegroundText, 
-                     &ColorPicker->RGBText, -0.9f, ColorPicker->Background);
+    RenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &ColorString, &Palette->ForegroundText, 
+               &ColorPicker->RGBText, -0.9f, ColorPicker->Background);
     SetLocalPosition(&ColorPicker->RGBText, ColorPicker->_BGOffset+V2(ColorPicker->RGBText.CurrentP.x*-0.5f, 
                                                                       ColorPicker->Bitmap.Height*-0.5f - 20.0f));
 }
@@ -574,8 +574,8 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
         SetLocalPosition(C->Outline, StartP + V2(0, YDown));
         C->Preview = CreateRenderRect(Renderer, V2(25,25), Depth-0.002f, 
                                       Palette->Colors+It, C->Outline);
-        CreateRenderText(Renderer, &GlobalGameState.FixArena, font_Small, GlobalPaletteColorNames+It,
-                         &Palette->ForegroundText, &C->Name, Depth-0.001f, C->Preview, V2(20, 0));
+        RenderText(Renderer, &GlobalGameState.FixArena, font_Small, GlobalPaletteColorNames+It,
+                   &Palette->ForegroundText, &C->Name, Depth-0.001f, C->Preview, V2(20, 0));
         
         YDown -= 51;
     }

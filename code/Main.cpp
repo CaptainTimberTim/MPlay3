@@ -14,6 +14,8 @@
 // TODO:: Implement STBI_MALLOC, STBI_REALLOC and STBI_FREE!
 #define STB_IMAGE_IMPLEMENTATION
 #include "Libraries\\STB_Image.h"
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "Libraries\\STB_Rect_Pack.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "Libraries\\STB_Truetype.h"
 
@@ -49,6 +51,7 @@ inline v2i GetWindowSize();
 #include "Math_TD.c"
 #include "FileUtilities_TD.c"
 #include "GL_TD.c"
+#include "Font_TD.c"
 #include "Renderer_TD.c"
 
 global_variable game_state GlobalGameState;
@@ -587,10 +590,15 @@ WinMain(HINSTANCE Instance,
             r32 WMid    = WWidth*0.5f;
             r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
             
-            Renderer->FontInfo.BigFont    = InitSTBBakeFont(GameState, FontSizeToPixel(font_Big));
-            Renderer->FontInfo.MediumFont = InitSTBBakeFont(GameState, FontSizeToPixel(font_Medium));
-            Renderer->FontInfo.SmallFont  = InitSTBBakeFont(GameState, FontSizeToPixel(font_Small));
-            
+            r32 FontSizes[] = {
+                FontSizeToPixel(font_Small),
+                FontSizeToPixel(font_Medium),
+                FontSizeToPixel(font_Big),
+            };
+            Renderer->FontInfo = LoadFonts(&GameState->FixArena, 
+                                           {FontSizes, ArrayCount(FontSizes)}, 
+                                           (u8 *)GetUsedFontData(GameState).Data);
+            Renderer->FontInfo.HeightOffset = GameState->Settings.FontHeightOffset;
             
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
             InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info);
@@ -706,6 +714,15 @@ WinMain(HINSTANCE Instance,
             crawl_thread_out CrawlInfoOut = {false, false, false, 0};
             GameState->CrawlInfo = {MP3Info, NewStringCompound(&GameState->FixArena, 255), &CrawlInfoOut};
             
+            // ********************************************
+            // Test Area **********************************
+            // ********************************************
+            
+            
+            
+            
+            
+            
             
             
             // ********************************************
@@ -753,8 +770,8 @@ WinMain(HINSTANCE Instance,
                         string_c FPSComp = NewStringCompound(&GameState->ScratchArena, 10);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(Renderer, &FPSText);
-                        CreateRenderText(Renderer, &GameState->FixArena, font_Small, &FPSComp,
-                                         &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
+                        RenderText(Renderer, &GameState->FixArena, font_Small, &FPSComp,
+                                   &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
                         DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }
                     else dUpdateRate += GameState->Time.dTime/0.1f;

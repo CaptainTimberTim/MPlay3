@@ -21,8 +21,11 @@
 // # identifier. Only *.ttf files work! Be careful though, it 
 // # _needs_ to have only one space between the colon and the 
 // # path itself. No quotation marks are needed as well.
+// # With FontHeightOffset the vertical position of the text
+// # can be adjusted (only integers allowed).
 //
 // FontPath: <Path/to/font>
+// FontHeightOffset: <0>
 // Volume: <Between 0 and 1>
 // LastPlayingSong: <FileName>
 // ColorPalette: <ID>
@@ -107,11 +110,11 @@ TryLoadSettingsFile(game_state *GameState)
                CharToU32(C[VersionLength]) == SETTINGS_CURRENT_VERSION)
             {
                 AdvanceToNewline(&C); // Version 5
-                For(5) TryEatComment(&C);    // # NOTE 1::
+                For(5) TryEatComment(&C); // # NOTE 1::
                 AdvanceToNewline(&C);
-                For(5) TryEatComment(&C);    // # NOTE 2::
+                For(5) TryEatComment(&C); // # NOTE 2::
                 AdvanceToNewline(&C);
-                For(5) TryEatComment(&C);    // # NOTE 3::
+                For(7) TryEatComment(&C); // # NOTE 3::
                 AdvanceToNewline(&C); 
                 u8 Length;
                 
@@ -120,6 +123,11 @@ TryLoadSettingsFile(game_state *GameState)
                 u32 PLen = CountToNewline(C);
                 Result.FontPath = NewStringCompound(&GameState->FixArena, PLen);
                 CopyStringToCompound(&Result.FontPath, C, 0, PLen);
+                AdvanceToNewline(&C);
+                
+                TryEatComment(&C);
+                C += StringLength((u8 *)"FontHeightOffset: ");
+                Result.FontHeightOffset = ProcessNextI32InString(C, '\n', Length);
                 AdvanceToNewline(&C);
                 
                 TryEatComment(&C);
@@ -245,9 +253,10 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
     
-    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 3:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! Be careful though, it\n# _needs_ to have only one space between the colon and the\n# path itself. No quotation marks are needed as well.\n\n");
+    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 3:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! Be careful though, it\n# _needs_ to have only one space between the colon and the\n# path itself. No quotation marks are needed as well.\n# With FontHeightOffset the vertical position of the text\n# can be adjusted (only integers allowed).\n\n");
     
     NewLocalString(FontPath,        280, "FontPath: ");
+    NewLocalString(FileFontOffset,   50, "FontHeightOffset: ");
     NewLocalString(FileVolume,       50, "Volume: ");
     NewLocalString(FileLastSong,     50, "LastPlayingSong: ");
     NewLocalString(FileColorPalette, 50, "ColorPalette: ");
@@ -261,6 +270,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     v2i Dim = GetWindowSize();
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
+    I32ToString(&FileFontOffset, Settings->FontHeightOffset);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
     I32ToString(&FileLastSong, GameState->MusicInfo.PlayingSong.FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
@@ -273,7 +283,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
     string_c LB = NewStaticStringCompound("\n");
-    ConcatStringCompounds(23, &SaveData, &FontPath, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB);
+    ConcatStringCompounds(25, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB);
     
     string_c Palette           = NewStaticStringCompound("Palette: ");
     string_c P_Text            = NewStaticStringCompound("\nText: ");

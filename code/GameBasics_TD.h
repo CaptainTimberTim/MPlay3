@@ -110,10 +110,10 @@ inline void FreeImage_STB(loaded_bitmap Bitmap);
 
 #if DEBUG_TD
 inline timer StartTimer();
-inline void SnapTimer(timer *Timer, string_c Identification = {});
+inline void SnapTimer(timer *Timer, string_c Identification);
 #else
 #define StartTimer() {}
-#define SnapTimer(f) 
+#define SnapTimer(f, s)
 #endif
 
 // Color Picker

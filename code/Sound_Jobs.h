@@ -10,7 +10,6 @@ struct job_load_decode_mp3
     i32 PreloadSeconds;
 };
 
-
 struct crawl_thread_out
 {
     b32 ThreadIsRunning;
@@ -27,6 +26,14 @@ struct crawl_thread
     string_c TestPath;
     
     crawl_thread_out *Out;
+};
+
+struct sub_crawl_thread
+{
+    crawl_thread CrawlThread;
+    u32 StartIt;
+    u32 EndIt;
+    u32 *CurrentCount;
 };
 
 struct check_music_path

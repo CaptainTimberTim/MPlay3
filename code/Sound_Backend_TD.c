@@ -974,13 +974,12 @@ CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c
 }
 
 internal void // #ThreadedUse
-CrawlFilesForMetadata(arena_allocator *TransientArena, mp3_file_info *FileInfo, 
+CrawlFilesForMetadata(arena_allocator *TransientArena, mp3_file_info *FileInfo, u32 StartIt, u32 EndIt,
                       string_c *FolderPath, u32 *CurrentCrawlCount = 0)
 {
-    OutputDebugStringA("\n");
     string_compound FilePath = NewStringCompound(TransientArena, 255);
     
-    For(FileInfo->Count)
+    for(u32 It = StartIt; It < EndIt; ++It)
     {
         if(FoundAllMetadata(FileInfo->Metadata[It].FoundFlags)) continue;
         ConcatStringCompounds(4, &FilePath, FolderPath, FileInfo->SubPath+It, FileInfo->FileName+It);
@@ -990,7 +989,7 @@ CrawlFilesForMetadata(arena_allocator *TransientArena, mp3_file_info *FileInfo,
         WipeStringCompound(&FilePath);
         if(CurrentCrawlCount)
         {
-            *CurrentCrawlCount = It;
+            ++(*CurrentCrawlCount);// = It;
         }
     }
     DeleteStringCompound(TransientArena, &FilePath);
@@ -1436,7 +1435,7 @@ FillDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo, mu
     if(SortingInfo->Album.Displayable.A.Count > 0) RemoveCheckValueFromArray(SortingInfo->Album.Displayable.A, CheckValue);
     if(SortingInfo->Song.Displayable.A.Count > 0) RemoveCheckValueFromArray(SortingInfo->Song.Displayable.A, CheckValue);
 #endif
-    SnapTimer(&Timer);
+    SnapTimer(&Timer, {});
     
     if(SortingInfo->Genre.Selected.A.Count == 0)
     {
@@ -1750,7 +1749,8 @@ CreateNewMetadata(game_state *GameState)
     CreateFileInfoStruct(&GameState->MP3Info->FileInfo, MAX_MP3_INFO_COUNT);
     Result = FindAllMP3FilesInFolder(&GameState->ScratchArena, &GameState->MP3Info->FolderPath,
                                      &SubPath, &GameState->MP3Info->FileInfo);
-    CrawlFilesForMetadata(&GameState->ScratchArena, &GameState->MP3Info->FileInfo, &GameState->MP3Info->FolderPath);
+    InvalidCodePath;
+    //CrawlFilesForMetadata(&GameState->ScratchArena, &GameState->MP3Info->FileInfo, &GameState->MP3Info->FolderPath);
     
     ApplyNewMetadata(GameState, MusicInfo);
     return Result;

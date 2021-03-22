@@ -8,13 +8,16 @@ internal void // Only called from Main thread
 HandleActiveMusicPath(music_display_info *DisplayInfo, input_info *Input, crawl_thread_out *CrawlInfoOut)
 {
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
+    // This procedure is tightly coupled with LoadNewMetadata_Thread.
     
     if(CrawlInfoOut->DoneFolderSearch && MusicPath->CrawlThreadStateCount == 2) 
     {
-        if(CrawlInfoOut->ThreadIsRunning) MusicPath->CrawlThreadStateCount = 5;
+        // If the crawling thread is done with searching the folder
+        if(CrawlInfoOut->TestCount > 0) MusicPath->CrawlThreadStateCount = 5;
         else MusicPath->CrawlThreadStateCount = 4;
     }
-    if(CrawlInfoOut->DoneCrawling && MusicPath->CrawlThreadStateCount == 6) MusicPath->CrawlThreadStateCount = 7;
+    if(CrawlInfoOut->DoneCrawling && MusicPath->CrawlThreadStateCount == 6) 
+        MusicPath->CrawlThreadStateCount = 7;
     
     switch(MusicPath->CrawlThreadStateCount)
     {
@@ -25,6 +28,7 @@ HandleActiveMusicPath(music_display_info *DisplayInfo, input_info *Input, crawl_
             ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, MusicPath->Save);
             ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, MusicPath->Quit);
             ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, MusicPath->Rescan);
+            
         } break;
         
         case 1: // #Once: Started search
@@ -56,7 +60,6 @@ HandleActiveMusicPath(music_display_info *DisplayInfo, input_info *Input, crawl_
             SetActive(&MusicPath->LoadingBar, false);
             
             CrawlInfoOut->DoneFolderSearch = false;
-            SetActive(&MusicPath->LoadingBar, false);
             MusicPath->CrawlThreadStateCount = 0;
         } break;
         
@@ -95,11 +98,11 @@ HandleActiveMusicPath(music_display_info *DisplayInfo, input_info *Input, crawl_
                 MusicPath->CrawlThreadStateCount = 0;
             }
             else MusicPath->dWaitThenCancelTime += GlobalGameState.Time.dTime/1.5f;
+            
         } break;
         
         InvalidDefaultCase;
     }
-    
 }
 
 inline void 
@@ -108,6 +111,17 @@ ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath)
     ResetStringCompound(MP3Info->FolderPath);
     AppendStringCompoundToCompound(&MP3Info->FolderPath, NewPath);
 }
+
+
+internal JOB_LIST_CALLBACK(JobCrawlPartialMetadata)
+{
+    sub_crawl_thread *JobInfo = (sub_crawl_thread *)Data;
+    
+    CrawlFilesForMetadata(&ThreadInfo->ScratchArena, &JobInfo->CrawlThread.MP3Info->FileInfo, 
+                          JobInfo->StartIt, JobInfo->EndIt, &JobInfo->CrawlThread.MP3Info->FolderPath, 
+                          JobInfo->CurrentCount);
+}
+
 
 internal void
 LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
@@ -130,7 +144,73 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
         SubPath = {};
         FindAllMP3FilesInFolder(ScratchArena, &MP3Info->FolderPath, &SubPath, &MP3Info->FileInfo);
         
-        CrawlFilesForMetadata(ScratchArena, &MP3Info->FileInfo, &MP3Info->FolderPath, &CrawlInfo->Out->CurrentCount);
+        // We split the big job of crawling all the mp3 
+        // files into multiple smaller ones. This thread
+        // is then only monitoring the sub-threads for 
+        // updating the current crawl count, for the loading
+        // bar.
+#define DO_SUB_CRAWL
+        timer T = StartTimer();
+#ifdef  DO_SUB_CRAWL
+        
+        // Preparing crawl jobs.
+        // Each crawl job will get SUB_CRAWLER_COUNT
+        // files that it will process. The amount of
+        // crawlers is calculated based on that and
+        // the total files to crawl.
+#define SUB_CRAWLER_COUNT 40.0f
+        r32 SubCrawlerCount = SUB_CRAWLER_COUNT;
+        u32 JobCount= Ceiling(Test.Count/SubCrawlerCount);
+        if(JobCount > MAX_ACTIVE_JOBS - 2) // Just for the rare case that we have more Jobs than possible
+        {
+            JobCount = MAX_ACTIVE_JOBS - 2;
+            SubCrawlerCount = CeilingR32(Test.Count/(r32)JobCount);
+        }
+        
+        DebugLog(250, "Starting %i sub crawler.\n", JobCount);
+        sub_crawl_thread *CrawlThreadInfos = AllocateArray(ScratchArena, JobCount, sub_crawl_thread);
+        u32 *JobCrawlCount = AllocateArray(ScratchArena, JobCount, u32);
+        u32 *JobCountCount = AllocateArray(ScratchArena, JobCount, u32);
+        For(JobCount)
+        {
+            JobCountCount[It] = JobCrawlCount[It] = 0;
+            
+            CrawlThreadInfos[It].CrawlThread.MP3Info  = MP3Info;
+            CrawlThreadInfos[It].CrawlThread.TestPath = MP3Info->FolderPath;
+            CrawlThreadInfos[It].CrawlThread.Out      = NULL;
+            CrawlThreadInfos[It].CurrentCount = JobCrawlCount+It;
+            CrawlThreadInfos[It].StartIt      = (u32)(It*SubCrawlerCount);
+            CrawlThreadInfos[It].EndIt        = Min((i32)(SubCrawlerCount + It*SubCrawlerCount), (i32)Test.Count);
+            
+            // I can only call AddJobToQueue here, inside a thread, because I can guarantee that
+            // the main thread is not going to add any jobs, while this one is active.
+            AddJobToQueue(&GlobalGameState.JobQueue, JobCrawlPartialMetadata, CrawlThreadInfos[It]);
+        }
+        
+        // Looping until all crawler threads have finished.
+        while(CrawlInfo->Out->CurrentCount != Test.Count)
+        {
+            // Count all the crawler thread progresses to know
+            // when they are all done _and_ to update the progress
+            // bar.
+            For(JobCount)
+            {
+                if(JobCrawlCount[It] > JobCountCount[It])
+                {
+                    CrawlInfo->Out->CurrentCount += JobCrawlCount[It] - JobCountCount[It];
+                    JobCountCount[It] = JobCrawlCount[It];
+                    Assert(CrawlInfo->Out->CurrentCount <= Test.Count);
+                }
+            }
+            Sleep(16);
+        }
+        Assert(CrawlInfo->Out->CurrentCount == Test.Count);
+#else
+        CrawlFilesForMetadata(ScratchArena, &MP3Info->FileInfo, 0, MP3Info->FileInfo.Count, &MP3Info->FolderPath, &CrawlInfo->Out->CurrentCount);
+#endif
+        string_c TText = NewStaticStringCompound("MetadataCrawl");
+        SnapTimer(&T, TText);
+        
         CrawlInfo->Out->DoneCrawling = true;
     }
     

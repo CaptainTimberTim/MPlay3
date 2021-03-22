@@ -325,7 +325,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     }
     
     
-    if(WriteEntireFile(&GameState->ScratchArena, GameState->SettingsPath.S, SaveData.Pos, SaveData.S))
+    if(!WriteEntireFile(&GameState->ScratchArena, GameState->SettingsPath.S, SaveData.Pos, SaveData.S))
     {
         DebugLog(255, "ERROR:: Could not write out settings file!\n");
     }
@@ -729,7 +729,7 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     FreeMemory(&GameState->ScratchArena, Written);
     
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
-    if(WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, SaveData.Pos, SaveData.S))
+    if(!WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, SaveData.Pos, SaveData.S))
     {
         DebugLog(255, "ERROR:: Could not write out library file!\n");
     }
@@ -739,7 +739,7 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
 internal void
 WipeMP3LibraryFile(game_state *GameState)
 {
-    if(WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, 0, 0))
+    if(!WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, 0, 0))
     {
         DebugLog(255, "ERROR:: Could not write out library file!\n");
     }

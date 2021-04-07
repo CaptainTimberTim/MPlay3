@@ -1,4 +1,5 @@
 #include <Shlobj.h>
+#define UNICODE
 #include <windows.h>
 
 #include "Definitions_TD.h"
@@ -242,7 +243,7 @@ ProcessPendingMessages(input_info *Input, HWND Window)
     ResetKeys(Input);
     
     MSG Message = {};
-    while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
+    while(PeekMessageW(&Message, 0, 0, 0, PM_REMOVE))
     {
         switch(Message.message)
         {
@@ -253,7 +254,14 @@ ProcessPendingMessages(input_info *Input, HWND Window)
             } break;
             case WM_CHAR: 
             {
-                UpdateTypedCharacters(Input, (u8)Message.wParam);
+                // Converts the incomming utf-16 to utf-8.
+                u8 UTF8[4] = {};
+                i32 Count = ArrayCount(UTF8);
+                // This should never happening as the docu says, but how do, for instance, 
+                // Chinese traditional characters fit?
+                Assert(Message.wParam <= MAX_UINT16);
+                ConvertChar16To8((wchar_t)Message.wParam, UTF8, &Count);
+                UpdateTypedCharacters(Input, UTF8, Count);
             } break;
             case WM_SYSKEYDOWN: 
             case WM_SYSKEYUP: 
@@ -261,7 +269,7 @@ ProcessPendingMessages(input_info *Input, HWND Window)
             case WM_KEYUP:
             {
                 u32 Scancode = (Message.lParam & 0x00ff0000) >> 16;
-                i32 Extended  = (Message.lParam & 0x01000000) != 0;
+                i32 Extended = (Message.lParam & 0x01000000) != 0;
                 
                 switch (Message.wParam) {
                     case VK_SHIFT:
@@ -288,7 +296,7 @@ ProcessPendingMessages(input_info *Input, HWND Window)
                         {
                             // If we don't process this message, try translating it to WM_CHAR
                             TranslateMessage(&Message);
-                            DispatchMessage(&Message);
+                            DispatchMessageW(&Message);
                         }
                     } break;    
                 }
@@ -362,17 +370,20 @@ TryGetClipboardText(string_c *String)
     if (OpenClipboard(0))
     {
         // Get handle of clipboard object for ANSI text
-        HANDLE Data = GetClipboardData(CF_TEXT);
+        HANDLE Data = GetClipboardData(CF_UNICODETEXT);
         if (Data)
         {
             // Lock the handle to get the actual text pointer
-            u8 *Text = (u8 *)GlobalLock(Data);
+            wchar_t *Text = (wchar_t *)GlobalLock(Data);
             if (Text)
             {
                 Result = true;
                 
                 if(StringLength(Text) >= String->Length) Text[String->Length-1] = 0;
-                else AppendStringToCompound(String, Text);
+                string_c TextUTF8;
+                ConvertString16To8(&GlobalGameState.ScratchArena, Text, &TextUTF8);
+                AppendStringCompoundToCompound(String, &TextUTF8);
+                DeleteStringCompound(&GlobalGameState.ScratchArena, &TextUTF8);
                 
                 // Release the lock
                 GlobalUnlock(Data);
@@ -411,7 +422,7 @@ GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End)
     return(Result);
 }
 
-inline void
+internal void
 RetrieveAndSetDataPaths(game_state *GameState)
 {
     wchar_t *WAppdataPath;
@@ -447,6 +458,24 @@ RetrieveAndSetDataPaths(game_state *GameState)
     // If still 0 length, we put it in the local folder, aka just using the name.
     if(GameState->SettingsPath.Pos == 0) GameState->SettingsPath = SETTINGS_FILE_NAME;
     if(GameState->LibraryPath.Pos == 0)  GameState->LibraryPath  = LIBRARY_FILE_NAME;
+}
+
+inline b32
+GetDefaultFontDir(arena_allocator *Arena, string_c *Path)
+{
+    b32 Result = false;
+    
+    wchar_t *WFontPath;
+    if(SHGetKnownFolderPath(FOLDERID_Fonts, 0, 0, &WFontPath) == S_OK)
+    {
+        if(ConvertString16To8(Arena, WFontPath, Path))
+        {
+            Result = true;
+        }
+    }
+    CoTaskMemFree(WFontPath);
+    
+    return Result;
 }
 
 i32 CALLBACK 
@@ -584,21 +613,31 @@ WinMain(HINSTANCE Instance,
             UseDisplayableAsPlaylist(MusicInfo);
             
             // ********************************************
-            // UI rendering stuff   ***********************
+            // FONT stuff *********************************
             // ********************************************
-            r32 WWidth = (r32)Renderer->Window.FixedDim.Width;
-            r32 WMid    = WWidth*0.5f;
-            r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
-            
+            string_c DefFontPath = {};
+            GetDefaultFontDir(&GameState->FixArena, &DefFontPath);
+            //FindAndPrintFontNameForEveryUnicodeGroup(&GameState->ScratchArena, DefFontPath);
             r32 FontSizes[] = {
                 FontSizeToPixel(font_Small),
                 FontSizeToPixel(font_Medium),
                 FontSizeToPixel(font_Big),
             };
-            Renderer->FontInfo = LoadFonts(&GameState->FixArena, 
-                                           {FontSizes, ArrayCount(FontSizes)}, 
-                                           (u8 *)GetUsedFontData(GameState).Data);
-            Renderer->FontInfo.HeightOffset = GameState->Settings.FontHeightOffset;
+            u32 GroupCodepoints[] = {0x80, 0x00};
+            Renderer->FontAtlas = NewFontAtlas(FontSizes, ArrayCount(FontSizes), GameState->Settings.FontHeightOffset);
+            LoadFonts(&GameState->FixArena, &GameState->ScratchArena, &Renderer->FontAtlas,
+                      (u8 *)GetUsedFontData(GameState).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
+            
+            
+            //entry_id *FontMap1 = CreateRenderBitmap(Renderer, {{0,0},{1000,800}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[0].GLID);
+            //entry_id *FontMap2 = CreateRenderBitmap(Renderer, {{1000,0},{2000,800}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[1].GLID);
+            
+            // ********************************************
+            // UI rendering stuff   ***********************
+            // ********************************************
+            r32 WWidth = (r32)Renderer->Window.FixedDim.Width;
+            r32 WMid    = WWidth*0.5f;
+            r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
             
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
             InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info);

@@ -544,6 +544,37 @@ FoundAllMetadata(i32 Flags)
     return Result;
 }
 
+inline void
+TryInsertFoundMetadataID3v1(arena_allocator *Arena, mp3_metadata *MD, string_c *MDOutString, metadata_flags CheckFlag, u8 *ID3Value)
+{
+    if(~MD->FoundFlags & CheckFlag && StringLength(ID3Value) != 0)
+    {
+        u8 Temp[31*2] = {};
+        
+        u32 Count = 0;
+        For(30)
+        {
+            if(ID3Value[It] != '\0') 
+            {
+                if(     ID3Value[It] < 128) Temp[Count++] = ID3Value[It];
+                else if(ID3Value[It] < 256)
+                {
+                    // NOTE:: This conversion to utf-8 is from: https://stackoverflow.com/a/4059934
+                    Temp[Count++] = 0xc2 + (ID3Value[It] > 0xbf);
+                    Temp[Count++] = (ID3Value[It] & 0x3f) + 0x80;
+                }
+                else Temp[Count++] = ID3Value[It]; // TODO:: Do we really want to do this? I am not sure if this is even possible...
+            }
+        }
+        
+        *MDOutString = NewStringCompound(Arena, Count);
+        AppendStringToCompound(MDOutString, Temp);
+        EatLeadingSpaces(MDOutString);
+        EatTrailingSpaces(MDOutString);
+        MD->FoundFlags |= CheckFlag;
+    }
+}
+
 internal void
 MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Metadata)
 {
@@ -567,37 +598,13 @@ MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Meta
             For(30) Album[It] = *Current++;
             For(4)  Year[It] = *Current++;
             Current += 28;
-            if(*Current++ == 0) Track = *Current;
+            if(*Current++ == 0) Track = *Current; // NOTE:: If a track number is stored, this byte contains a binary 0.
             Current++;
             Genre = *Current++;
             
-            if(~Metadata->FoundFlags & metadata_Title &&
-               StringLength(Title) != 0)
-            {
-                Metadata->Title  = NewStringCompound(Arena, StringLength(Title));
-                AppendStringToCompound(&Metadata->Title, Title);
-                EatLeadingSpaces(&Metadata->Title);
-                EatTrailingSpaces(&Metadata->Title);
-                Metadata->FoundFlags |= metadata_Title;
-            }
-            if(~Metadata->FoundFlags & metadata_Artist &&
-               StringLength(Artist) != 0)
-            {
-                Metadata->Artist = NewStringCompound(Arena, StringLength(Artist));
-                AppendStringToCompound(&Metadata->Artist, Artist);
-                EatLeadingSpaces(&Metadata->Artist);
-                EatTrailingSpaces(&Metadata->Artist);
-                Metadata->FoundFlags |= metadata_Artist;
-            }
-            if(~Metadata->FoundFlags & metadata_Album &&
-               StringLength(Album) != 0)
-            {
-                Metadata->Album  = NewStringCompound(Arena, StringLength(Album));
-                AppendStringToCompound(&Metadata->Album, Album);
-                EatLeadingSpaces(&Metadata->Album);
-                EatTrailingSpaces(&Metadata->Album);
-                Metadata->FoundFlags |= metadata_Album;
-            }
+            TryInsertFoundMetadataID3v1(Arena, Metadata, &Metadata->Title, metadata_Title, Title);
+            TryInsertFoundMetadataID3v1(Arena, Metadata, &Metadata->Artist, metadata_Artist, Artist);
+            TryInsertFoundMetadataID3v1(Arena, Metadata, &Metadata->Album, metadata_Album, Album);
             
             if(~Metadata->FoundFlags & metadata_Year)
             {
@@ -611,7 +618,6 @@ MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Meta
                     Metadata->FoundFlags |= metadata_Year;
                 }
             }
-            
             if(~Metadata->FoundFlags & metadata_Genre)
             {
                 if(Genre < ArrayCount(GenreTypes))
@@ -620,7 +626,6 @@ MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Meta
                     Metadata->FoundFlags |= metadata_Genre;
                 }
             }
-            
             if(~Metadata->FoundFlags & metadata_Track)
             {
                 Metadata->TrackString = NewStringCompound(Arena, 4);
@@ -650,43 +655,52 @@ MetadataID3v2_Helper(arena_allocator *Arena, u8 *C, u8 *Frame, string_compound *
         if(Length <= 0) ;
         else if(Length > 2500)
         {
-            char B[255];
-            sprintf_s(B, "Error:: Could not load %s metadata. Tag size was %i, must be erroneous !\n", Frame, Length);
-            OutputDebugStringA(B);
+            DebugLog(255, "Error:: Could not load %s metadata. Tag size was %i, must be erroneous !\n", Frame, Length);
         }
         else
         {
-            *S = NewStringCompound(Arena, Length);
-            C = C+VersionHeaderLength;
+            C += VersionHeaderLength;
             Result += VersionHeaderLength;
             // TODO:: This is a stupid hack. Read unicode wide and convert it to utf-8...
             // for both cases (ID3v2_2, ID3v2_3)
-            if(*C == 0 || *C == 3) // ISO-8859-1 encoding
+            
+            // NOTE:: Encoding = 1 == ISO-8859-1 encoding
+            //        Encoding = 2 == unicode encoding (skipping Byte order mark (BOM)) 
+            u32 Encoding = (*C == 0 || *C == 3) ? 1 : ((*C == 1 || *C == 2) ? 2 : 0);
+            if(Encoding > 0)
             {
                 C++;
                 Length--;
                 Result++;
-            }
-            else if(*C == 1 || *C == 2) // unicode encoding (skipping Byte order mark (BOM)) 
-            {
-                C++;
-                Length--;
-                Result++;
-                if(C[0] == 0xFF && C[1] == 0xFE) // _may_ have a unicode NULL (FF FE) after BOM
+                if(Encoding == 2 &&
+                   C[0] == 0xFF && C[1] == 0xFE) // _may_ have a unicode NULL (FF FE) after BOM
                 {
                     C += 2; 
                     Length -= 2;
                     Result += 2;
                 }
+                *S = NewStringCompound(Arena, Length*2);
             }
+            else *S = NewStringCompound(Arena, Length);
+            
             if(Length > 0)
             {
                 For((u32)Length)
                 {
-                    if(*C != '\0') S->S[S->Pos++] = *C;
+                    if(*C != '\0') 
+                    {
+                        if(Encoding == 0 || *C < 128) S->S[S->Pos++] = *C;
+                        else
+                        {
+                            // NOTE:: This conversion to utf-8 is from: https://stackoverflow.com/a/4059934
+                            S->S[S->Pos++] = 0xc2 + (*C > 0xbf);
+                            S->S[S->Pos++] = (*C & 0x3f) + 0x80;
+                        }
+                    }
                     C++;
                 }
                 EatLeadingSpaces(S);
+                // TODO:: EatTrailingSpaces?
                 
                 Result += Length - 1; // -1 to not skip anything when increasing It in For loop (parent)
             }

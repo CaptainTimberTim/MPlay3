@@ -4,7 +4,7 @@ IF NOT EXIST "../build" mkdir "../build"
 pushd "../build"
 
 set flags= -nologo -GR- -EHa- -Z7 -FeMPlay3.exe -F4000000 -DRESOURCE_PNG=0
-set optimizeFlags= -O2 -MT  -Oi -DDEBUG_TD=0
+set optimizeFlags= -O2 -MT  -Oi -DDEBUG_TD=1
 set debugFlags=    -Od -MTd -FC -DDEBUG_TD=1
 
 set compilerWarnings= -WX -W4 -wd4201 -wd4100 -wd4189 -wd4456 -wd4505 -wd4005 -wd4239 -wd4706 -wd4127 -wd4390
@@ -19,8 +19,8 @@ REM opengl32.lib // Lives now in the GL_TD.h, a bit cleaner?
 set resources= "../data/resources/Resources.res"
 REM rc -x -nologo -fo %resources% "../data/resources/Resource.rc"
 
-REM cl %flags% %debugFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
-cl %flags% %optimizeFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
+cl %flags% %debugFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
+REM cl %flags% %optimizeFlags% %compilerWarnings% "../code/Main.cpp" %linkerFlags% %libIncludes% %resources%
 
 
 

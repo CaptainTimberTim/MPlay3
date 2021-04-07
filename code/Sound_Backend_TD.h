@@ -36,6 +36,9 @@
 //       - Find issue with drawing order bug. This one I have no clue right now...
 // - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
 // - maybe have the icons in the exact size we use them...
+// - two color palettes get created when coying one.
+
+// - MP3 V0 crashes?
 
 #include "Sound_UI_TD.h"
 

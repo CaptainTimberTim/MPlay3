@@ -446,7 +446,6 @@ ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *T
             {
                 if(TextField->TextString.Pos > 0)
                 {
-                    // If Input->KeyChange[KEY_BackSPACE] == KeyDown then fall through
                     if(TextField->dBackspacePress >= 1 ||
                        Input->KeyChange[KEY_BACKSPACE] == KeyDown) // If pressed longer, start after a while to delete more letters
                     {
@@ -455,7 +454,7 @@ ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *T
                         {
                             TextField->dBackspaceSpeed = 0.0f;
                             
-                            TextField->TextString.Pos -= 1;
+                            RemoveLastUTF8Char(&TextField->TextString);
                             TextChanged = true;
                         }
                         else TextField->dBackspaceSpeed += dTime/BACKSPACE_CONTIUOUS_SPEED;

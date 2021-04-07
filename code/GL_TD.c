@@ -297,13 +297,15 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             case renderType_Text:
             {
                 glEnable(GL_TEXTURE_2D);
-                glBindTexture(GL_TEXTURE_2D, RenderEntry->TexID-1);
-                glBegin(GL_QUADS);
                 
                 For(RenderEntry->Text->Count)
                 {
                     render_entry *TextEntry = RenderEntry->Text->RenderEntries+It;
                     if(!TextEntry->Render) continue;
+                    
+                    glBindTexture(GL_TEXTURE_2D, TextEntry->TexID-1); // TODO:: Make this better (at least only switch if needed!
+                    glBegin(GL_QUADS);
+                    
                     v3 V[4];
                     ConvertToGLSpace(Renderer, TextEntry, V);
                     For(4)
@@ -314,9 +316,10 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
                         glColor4f(TextEntry->Color->r, TextEntry->Color->g, TextEntry->Color->b, TextEntry->Transparency);
                         glVertex3fv(V[It].E);
                     }
+                    
+                    glEnd();
                 }
                 
-                glEnd();
                 glDisable(GL_TEXTURE_2D);
             } break;
             

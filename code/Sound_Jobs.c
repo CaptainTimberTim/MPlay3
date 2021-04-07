@@ -158,7 +158,7 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
         // files that it will process. The amount of
         // crawlers is calculated based on that and
         // the total files to crawl.
-#define SUB_CRAWLER_COUNT 40.0f
+#define SUB_CRAWLER_COUNT 400.0f
         r32 SubCrawlerCount = SUB_CRAWLER_COUNT;
         u32 JobCount= Ceiling(Test.Count/SubCrawlerCount);
         if(JobCount > MAX_ACTIVE_JOBS - 2) // Just for the rare case that we have more Jobs than possible

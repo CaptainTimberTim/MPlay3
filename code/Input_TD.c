@@ -163,9 +163,12 @@ UpdateKeyChange(input_info *Input, u32 WinKey, u64 LParam)
 }
 
 internal void
-UpdateTypedCharacters(input_info *Input, u8 Char)
+UpdateTypedCharacters(input_info *Input, u8 *Chars, u32 Count)
 {
-    Input->Chars[Input->CharCount++] = Char;
+    For(Count) {
+        if(Input->CharCount >= MAX_CHAR_PER_FRAME) break;
+        Input->Chars[Input->CharCount++] = Chars[It];
+    }
 }
 
 inline v2

@@ -196,7 +196,7 @@ struct renderer
     
     window_info Window;
     
-    fonts FontInfo;
+    font_atlas FontAtlas;
     button_group ButtonGroup;
     
     union color_palette *ColorPalette;
@@ -207,23 +207,6 @@ struct renderer
     u32 ButtonBaseID;
     button_colors ButtonColors;
     u32 ButtonIconCount;
-};
-
-struct german_symbols_ansi
-{
-    string_compound UTF8;
-    u8 ANSI;
-};
-
-global_variable german_symbols_ansi BasicSymbolsGer[] =
-{
-    {NewStaticStringCompound("ä"), 228},
-    {NewStaticStringCompound("Ä"), 196},
-    {NewStaticStringCompound("ö"), 246},
-    {NewStaticStringCompound("Ö"), 214},
-    {NewStaticStringCompound("ü"), 252},
-    {NewStaticStringCompound("Ü"), 220},
-    {NewStaticStringCompound("ß"), 223},
 };
 
 inline v3 Color(u8 R, u8 G, u8 B);

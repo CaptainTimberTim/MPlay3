@@ -55,7 +55,7 @@ inline void EatTrailingSpaces(string_c *S);
 inline void EatLeadingSpaces(string_c *S);
 internal b32 ContainsAB_CaseInsensitive(string_c *String, string_c *Contains);
 
-internal u32 StringLength(u8 *StringToCount);
+inline u32 StringLength(u8 *StringToCount);
 inline b32 StringCompare(u8 *S1, u8 *S2, u32 CompareStart, u32 CompareEnd);
 inline u8 *AdvanceToChar(u8 *Char, u8 Delimiter);
 inline u8 *AdvanceAfterChar(u8 *Char, u8 Delimiter);
@@ -103,11 +103,12 @@ typedef string_wide string_w;
 inline string_w NewStringW(arena_allocator *Arena, u32 Size);
 inline void WipeStringW(string_w *S);
 inline void DeleteStringW(arena_allocator *Arena, string_w *S);
+inline u32 StringLength(wchar_t *StringToCount);
 inline b32 ConvertString8To16(arena_allocator *Arena, string_c *In, string_w *Out);
 inline b32 ConvertString8To16(arena_allocator *Arena, u8 *In, string_w *Out);
 inline b32 ConvertString16To8(arena_allocator *Arena, string_w *In, string_c *Out);
 inline b32 ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out);
-
+inline b32 ConvertChar16To8(wchar_t In, u8 *Out, i32 *OutSize);
 
 
 inline string_c
@@ -821,6 +822,15 @@ DeleteStringW(arena_allocator *Arena, string_w *S)
     FreeMemory(Arena, S->S);
 }
 
+
+inline u32
+StringLength(wchar_t *S)
+{
+    u32 Count = 0;
+    while(*S++) ++Count;
+    return Count;
+}
+
 inline b32
 ConvertString8To16(arena_allocator *Arena, string_c *In, string_w *Out)
 {
@@ -887,6 +897,47 @@ ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out)
     }
     
     return Result;
+}
+
+inline b32
+ConvertChar16To8(wchar_t In, u8 *Out, i32 *OutSize)
+{
+    b32 Result = false;
+    Assert(Out);
+    Assert(OutSize);
+    
+    wchar_t In2[2] = {In, 0};
+    i32 Size = WideCharToMultiByte(CP_UTF8, 0, In2, -1, 0, 0, 0, 0);
+    if(Size > 0 && Size <= *OutSize)
+    {
+        // TODO:: Write your own code for this? 
+        WideCharToMultiByte(CP_UTF8, 0, In2, -1, (char *)Out, Size, 0, 0);
+        *OutSize = Size-1;
+        Result = true;
+    }
+    
+    return Result;
+}
+
+inline void
+RemoveLastUTF8Char(string_c *S)
+{
+    u32 Count = 0;
+    for(u32 It = S->Pos-1; It >= 0; --It)
+    {
+        // I Mask everything except the first two bits
+        // and if the result has the first bit set and 
+        // not the second, then I know it has to be a 
+        // utf-8 continuation byte.
+        if((S->S[It] & 0b11000000) == 0b10000000) ++Count;
+        else 
+        {
+            ++Count;
+            break;
+        }
+    }
+    S->Pos -= Count;
+    S->S[S->Pos] = 0;
 }
 
 inline b32

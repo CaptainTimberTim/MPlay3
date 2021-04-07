@@ -45,7 +45,7 @@ enum key_change
     KeyUp,
 };
 
-#define MAX_CHAR_PER_FRAME 20
+#define MAX_CHAR_PER_FRAME 100
 #define MAX_HOTKEYS 10
 struct input_info
 {

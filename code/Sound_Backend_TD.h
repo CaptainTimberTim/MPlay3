@@ -8,6 +8,7 @@
 // - lyrics window when file exists?
 // - think about selecting all entries that are visible when pressing enter during search
 // - if song selected, pressing the big play should start it?
+// - Think about if search in song column should work differently, or search through Title/artist/album
 
 // TODO::
 //

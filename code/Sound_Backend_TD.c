@@ -1777,20 +1777,47 @@ SearchInDisplayable(column_sorting_info *ColumnSortInfo, search_bar *Search, mp3
 {
     Reset(&ColumnSortInfo->Displayable);
     
-    For(Search->InitialDisplayables.A.Count)
+    if(FileInfo) // Searching in Song Column
     {
-        file_id FileID = Get(&Search->InitialDisplayables, NewDisplayableID(It));
-        string_c *Name = 0;
-        if(FileInfo) 
+        For(Search->InitialDisplayables.A.Count)
         {
-            Name = &FileInfo->Metadata[FileID.ID].Title;
+            file_id FileID = Get(&Search->InitialDisplayables, NewDisplayableID(It));
+            
+            string_c *Name = &FileInfo->Metadata[FileID.ID].Title;
             if(Name->Pos == 0) Name = FileInfo->FileName+FileID.ID;
+            if(ContainsAB_CaseInsensitive(Name, &Search->TextField.TextString))
+            {
+                Push(&ColumnSortInfo->Displayable, FileID);
+            }
+            else
+            {
+                Name = &FileInfo->Metadata[FileID.ID].Artist;
+                if(Name->Pos > 0 &&
+                   ContainsAB_CaseInsensitive(Name, &Search->TextField.TextString))
+                {
+                    Push(&ColumnSortInfo->Displayable, FileID);
+                }
+                else
+                {
+                    Name = &FileInfo->Metadata[FileID.ID].Album;
+                    if(Name->Pos > 0 &&
+                       ContainsAB_CaseInsensitive(Name, &Search->TextField.TextString))
+                    {
+                        Push(&ColumnSortInfo->Displayable, FileID);
+                    }
+                }
+            }
         }
-        else Name = ColumnSortInfo->Batch.Names+FileID.ID;
-        
-        if(ContainsAB_CaseInsensitive(Name, &Search->TextField.TextString))
+    }
+    else // Searching in non-song column.
+    {
+        For(Search->InitialDisplayables.A.Count)
         {
-            Push(&ColumnSortInfo->Displayable, FileID);
+            file_id FileID = Get(&Search->InitialDisplayables, NewDisplayableID(It));
+            if(ContainsAB_CaseInsensitive(ColumnSortInfo->Batch.Names+FileID.ID, &Search->TextField.TextString))
+            {
+                Push(&ColumnSortInfo->Displayable, FileID);
+            }
         }
     }
 }

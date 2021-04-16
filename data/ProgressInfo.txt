@@ -164,7 +164,7 @@
 
 16.04.2021
 - Fixed crash when rescanning and adding new file, then playing it. Forgot to set the TimeDuration string to anything.
-
+- Added search for artist and album in song column (it just searches all three simultanioausly at this point in time).
 
 
 

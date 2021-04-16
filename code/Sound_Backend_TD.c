@@ -1,11 +1,225 @@
 #include "Sound_Backend_TD.h"
 #include "GameBasics_TD.h"
 
+// This is done in such a way because having the large list
+// as a global variable destroys the CodeGeneration stage
+// of the compiler in optimized build.
+#define GENRE_TYPE_COUNT 191
+struct genre_types_list
+{
+    string_compound G[GENRE_TYPE_COUNT];
+};
+global_variable genre_types_list GenreTypesList;
+
+internal void
+PrepareGenreTypesList()
+{
+    // These are all genres that were available for the ID3v1 metadata.
+    string_compound GenreTypes[] =
+    {
+        NewStaticStringCompound("Blues"),
+        NewStaticStringCompound("Classic rock"),
+        NewStaticStringCompound("Country"),
+        NewStaticStringCompound("Dance"),
+        NewStaticStringCompound("Disco"),
+        NewStaticStringCompound("Funk"),
+        NewStaticStringCompound("Grunge"),
+        NewStaticStringCompound("Hip-Hop"),
+        NewStaticStringCompound("Jazz"),
+        NewStaticStringCompound("Metal"),
+        NewStaticStringCompound("New Age"),
+        NewStaticStringCompound("Oldies"),
+        NewStaticStringCompound("Other"),
+        NewStaticStringCompound("Pop"),
+        NewStaticStringCompound("Rhythm and Blues"),
+        NewStaticStringCompound("Rap"),
+        NewStaticStringCompound("Reggae"),
+        NewStaticStringCompound("Rock"),
+        NewStaticStringCompound("Techno"),
+        NewStaticStringCompound("Industrial"),
+        NewStaticStringCompound("Alternative"),
+        NewStaticStringCompound("Ska"),
+        NewStaticStringCompound("Death metal"),
+        NewStaticStringCompound("Pranks"),
+        NewStaticStringCompound("Soundtrack"),
+        NewStaticStringCompound("Euro-Techno"),
+        NewStaticStringCompound("Ambient"),
+        NewStaticStringCompound("Trip-Hop"),
+        NewStaticStringCompound("Vocal"),
+        NewStaticStringCompound("Jazz & Funk"),
+        NewStaticStringCompound("Fusion"),
+        NewStaticStringCompound("Trance"),
+        NewStaticStringCompound("Classical"),
+        NewStaticStringCompound("Instrumental"),
+        NewStaticStringCompound("Acid"),
+        NewStaticStringCompound("House"),
+        NewStaticStringCompound("Game"),
+        NewStaticStringCompound("Sound clip"),
+        NewStaticStringCompound("Gospel"),
+        NewStaticStringCompound("Noise"),
+        NewStaticStringCompound("Alternative Rock"),
+        NewStaticStringCompound("Bass"),
+        NewStaticStringCompound("Soul"),
+        NewStaticStringCompound("Punk"),
+        NewStaticStringCompound("Space"),
+        NewStaticStringCompound("Meditative"),
+        NewStaticStringCompound("Instrumental Pop"),
+        NewStaticStringCompound("Instrumental Rock"),
+        NewStaticStringCompound("Ethnic"),
+        NewStaticStringCompound("Gothic"),
+        NewStaticStringCompound("Darkwave"),
+        NewStaticStringCompound("Techno-Industrial"),
+        NewStaticStringCompound("Electronic"),
+        NewStaticStringCompound("Pop-Folk"),
+        NewStaticStringCompound("Eurodance"),
+        NewStaticStringCompound("Dream"),
+        NewStaticStringCompound("Southern Rock"),
+        NewStaticStringCompound("Comedy"),
+        NewStaticStringCompound("Cult"),
+        NewStaticStringCompound("Gangsta"),
+        NewStaticStringCompound("Top 40"),
+        NewStaticStringCompound("Christian Rap"),
+        NewStaticStringCompound("Pop/Funk"),
+        NewStaticStringCompound("Jungle"),
+        NewStaticStringCompound("Native US"),
+        NewStaticStringCompound("Cabaret"),
+        NewStaticStringCompound("New Wave"),
+        NewStaticStringCompound("Psychedelic"),
+        NewStaticStringCompound("Rave"),
+        NewStaticStringCompound("Show tunes"),
+        NewStaticStringCompound("Trailer"),
+        NewStaticStringCompound("Lo-Fi"),
+        NewStaticStringCompound("Tribal"),
+        NewStaticStringCompound("Acid Punk"),
+        NewStaticStringCompound("Acid Jazz"),
+        NewStaticStringCompound("Polka"),
+        NewStaticStringCompound("Retro"),
+        NewStaticStringCompound("Musical"),
+        NewStaticStringCompound("Rock ’n’ Roll"),
+        NewStaticStringCompound("Hard Rock"),
+        NewStaticStringCompound("Folk"),
+        NewStaticStringCompound("Folk-Rock"),
+        NewStaticStringCompound("National Folk"),
+        NewStaticStringCompound("Swing"),
+        NewStaticStringCompound("Fast Fusion"),
+        NewStaticStringCompound("Bebop"),
+        NewStaticStringCompound("Latin"),
+        NewStaticStringCompound("Revival"),
+        NewStaticStringCompound("Celtic"),
+        NewStaticStringCompound("Bluegrass"),
+        NewStaticStringCompound("Avantgarde"),
+        NewStaticStringCompound("Gothic Rock"),
+        NewStaticStringCompound("Progressive Rock"),
+        NewStaticStringCompound("Psychedelic Rock"),
+        NewStaticStringCompound("Symphonic Rock"),
+        NewStaticStringCompound("Slow rock"),
+        NewStaticStringCompound("Big Band"),
+        NewStaticStringCompound("Chorus"),
+        NewStaticStringCompound("Easy Listening"),
+        NewStaticStringCompound("Acoustic"),
+        NewStaticStringCompound("Humour"),
+        NewStaticStringCompound("Speech"),
+        NewStaticStringCompound("Chanson"),
+        NewStaticStringCompound("Opera"),
+        NewStaticStringCompound("Chamber music"),
+        NewStaticStringCompound("Sonata"),
+        NewStaticStringCompound("Symphony"),
+        NewStaticStringCompound("Booty bass"),
+        NewStaticStringCompound("Primus"),
+        NewStaticStringCompound("Porn grooveb"),
+        NewStaticStringCompound("Satire"),
+        NewStaticStringCompound("Slow jam"),
+        NewStaticStringCompound("Club"),
+        NewStaticStringCompound("Tango"),
+        NewStaticStringCompound("Samba"),
+        NewStaticStringCompound("Folklore"),
+        NewStaticStringCompound("Ballad"),
+        NewStaticStringCompound("Power ballad"),
+        NewStaticStringCompound("Rhythmic Soul"),
+        NewStaticStringCompound("Freestyle"),
+        NewStaticStringCompound("Duet"),
+        NewStaticStringCompound("Punk Rock"),
+        NewStaticStringCompound("Drum solo"),
+        NewStaticStringCompound("A cappella"),
+        NewStaticStringCompound("Euro-House"),
+        NewStaticStringCompound("Dance Hall"),
+        NewStaticStringCompound("Goa"),
+        NewStaticStringCompound("Drum & Bass"),
+        NewStaticStringCompound("Club-House"),
+        NewStaticStringCompound("Hardcore Techno"),
+        NewStaticStringCompound("Terror"),
+        NewStaticStringCompound("Indie"),
+        NewStaticStringCompound("BritPop"),
+        NewStaticStringCompound("Negerpunk"),
+        NewStaticStringCompound("Polsk Punk"),
+        NewStaticStringCompound("Beat"),
+        NewStaticStringCompound("Christian Gangsta Rap"),
+        NewStaticStringCompound("Heavy Metal"),
+        NewStaticStringCompound("Black Metal"),
+        NewStaticStringCompound("Crossover"),
+        NewStaticStringCompound("Contemporary Christian"),
+        NewStaticStringCompound("Christian rock"),
+        NewStaticStringCompound("Merengue"),
+        NewStaticStringCompound("Salsa"),
+        NewStaticStringCompound("Thrash Metal"),
+        NewStaticStringCompound("Anime"),
+        NewStaticStringCompound("Jpop"),
+        NewStaticStringCompound("Synthpop"),
+        NewStaticStringCompound("Abstract"),
+        NewStaticStringCompound("Art Rock"),
+        NewStaticStringCompound("Baroque"),
+        NewStaticStringCompound("Bhangra"),
+        NewStaticStringCompound("Big beat"),
+        NewStaticStringCompound("Breakbeat"),
+        NewStaticStringCompound("Chillout"),
+        NewStaticStringCompound("Downtempo"),
+        NewStaticStringCompound("Dub"),
+        NewStaticStringCompound("EBM"),
+        NewStaticStringCompound("Eclectic"),
+        NewStaticStringCompound("Electro"),
+        NewStaticStringCompound("Electroclash"),
+        NewStaticStringCompound("Emo"),
+        NewStaticStringCompound("Experimental"),
+        NewStaticStringCompound("Garage"),
+        NewStaticStringCompound("Global"),
+        NewStaticStringCompound("IDM"),
+        NewStaticStringCompound("Illbient"),
+        NewStaticStringCompound("Industro-Goth"),
+        NewStaticStringCompound("Jam Band"),
+        NewStaticStringCompound("Krautrock"),
+        NewStaticStringCompound("Leftfield"),
+        NewStaticStringCompound("Lounge"),
+        NewStaticStringCompound("Math Rock"),
+        NewStaticStringCompound("New Romantic"),
+        NewStaticStringCompound("Nu-Breakz"),
+        NewStaticStringCompound("Post-Punk"),
+        NewStaticStringCompound("Post-Rock"),
+        NewStaticStringCompound("Psytrance"),
+        NewStaticStringCompound("Shoegaze"),
+        NewStaticStringCompound("Space Rock"),
+        NewStaticStringCompound("Trop Rock"),
+        NewStaticStringCompound("World Music"),
+        NewStaticStringCompound("Neoclassical"),
+        NewStaticStringCompound("Audiobook"),
+        NewStaticStringCompound("Audio theatre"),
+        NewStaticStringCompound("Neue Deutsche Welle"),
+        NewStaticStringCompound("Podcast"),
+        NewStaticStringCompound("Indie-Rock"),
+        NewStaticStringCompound("G-Funk"),
+        NewStaticStringCompound("Dubstep"),
+        NewStaticStringCompound("Garage Rock"),
+        NewStaticStringCompound("Psybient")
+    };
+    For(ArrayCount(GenreTypes))
+    {
+        GenreTypesList.G[It] = GenreTypes[It];
+    }
+}
+
 inline void
 AdvanceToNewline(u8 **String)
 {
-    while(*String[0] != '\n' && *String[0] != 0 ) (*String)++;
-    (*String)++;
+    while(*String[0] != 0 && *(String[0])++ != '\n') ;
 }
 
 inline void
@@ -83,11 +297,16 @@ ResizeFileInfo(arena_allocator *Arena, mp3_file_info *FileInfo, u32 NewMaxCount)
     for(u32 It = 0; 
         It < NewMaxCount && 
         It < FileInfo->Count; 
-        It++)
+        ++It)
     {
         FileInfo->FileName[It] = OldFileNames[It];
         FileInfo->SubPath[It]  = OldSubPaths[It];
         FileInfo->Metadata[It] = OldMetadata[It];
+    }
+    
+    for(u32 It = FileInfo->Count; It < NewMaxCount; ++It)
+    {
+        FileInfo->Metadata[It].DurationString  = NewStringCompound(Arena, 13);
     }
     
     FileInfo->Count = Min((i32)NewMaxCount, (i32)FileInfo->Count);
@@ -620,9 +839,9 @@ MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Meta
             }
             if(~Metadata->FoundFlags & metadata_Genre)
             {
-                if(Genre < ArrayCount(GenreTypes))
+                if(Genre < GENRE_TYPE_COUNT)
                 {
-                    Metadata->Genre = GenreTypes[Genre];
+                    Metadata->Genre = GenreTypesList.G[Genre];
                     Metadata->FoundFlags |= metadata_Genre;
                 }
             }
@@ -640,7 +859,7 @@ MetadataID3v1(arena_allocator *Arena, read_file_result *File, mp3_metadata *Meta
 internal i32
 MetadataID3v2_Helper(arena_allocator *Arena, u8 *C, u8 *Frame, string_compound *S, u32 MinorVersion)
 {
-    // Header:
+    // 2.3 Header:
     // 4 Bytes | 4 Bytes | 2 Bytes
     // Tag ID  | Size    | Flags
     i32 Result = 0;
@@ -659,59 +878,90 @@ MetadataID3v2_Helper(arena_allocator *Arena, u8 *C, u8 *Frame, string_compound *
         }
         else
         {
-            C += VersionHeaderLength;
+            C      += VersionHeaderLength;
             Result += VersionHeaderLength;
-            // TODO:: This is a stupid hack. Read unicode wide and convert it to utf-8...
-            // for both cases (ID3v2_2, ID3v2_3)
             
-            // NOTE:: Encoding = 1 == ISO-8859-1 encoding
-            //        Encoding = 2 == unicode encoding (skipping Byte order mark (BOM)) 
-            u32 Encoding = (*C == 0 || *C == 3) ? 1 : ((*C == 1 || *C == 2) ? 2 : 0);
-            if(Encoding > 0)
-            {
-                C++;
-                Length--;
-                Result++;
-                if(Encoding == 2 &&
-                   C[0] == 0xFF && C[1] == 0xFE) // _may_ have a unicode NULL (FF FE) after BOM
-                {
-                    C += 2; 
-                    Length -= 2;
-                    Result += 2;
-                }
-                *S = NewStringCompound(Arena, Length*2);
-            }
-            else *S = NewStringCompound(Arena, Length);
+            // $00: ISO-8859-1 [ISO-8859-1]. Terminated with $00.
+            // $01: UTF-16 [UTF-16] encoded Unicode [UNICODE] with BOM. All strings in the same frame SHALL have the same byteorder. Terminated with $00 00.
+            // $02: UTF-16BE [UTF-16] encoded Unicode [UNICODE] without BOM. Terminated with $00 00.
+            // $03: UTF-8 [UTF-8] encoded Unicode [UNICODE]. Terminated with $00.
+            u8 Encoding = *C;
+            ++C; --Length; ++Result;
             
-            if(Length > 0)
+            switch(Encoding)
             {
-                For((u32)Length)
-                {
-                    if(*C != '\0') 
+                case 0: { // ISO-8859-1
+                    *S = NewStringCompound(Arena, Length*2);
+                    if(Length > 0)
                     {
-                        if(Encoding == 0 || *C < 128) S->S[S->Pos++] = *C;
-                        else
+                        For((u32)Length)
                         {
-                            // NOTE:: This conversion to utf-8 is from: https://stackoverflow.com/a/4059934
-                            S->S[S->Pos++] = 0xc2 + (*C > 0xbf);
-                            S->S[S->Pos++] = (*C & 0x3f) + 0x80;
+                            if(*C == 0) ; // Do nothing
+                            else if(*C < 128) S->S[S->Pos++] = *C;
+                            else
+                            {
+                                // NOTE:: This conversion to utf-8 is from: https://stackoverflow.com/a/4059934
+                                S->S[S->Pos++] = 0xc2 + (*C > 0xbf);
+                                S->S[S->Pos++] = (*C & 0x3f) + 0x80;
+                            }
+                            C++;
                         }
+                        EatLeadingSpaces(S);
+                        Result += Length - 1; // -1 to not skip anything when increasing It in For loop (parent)
                     }
-                    C++;
-                }
-                EatLeadingSpaces(S);
-                // TODO:: EatTrailingSpaces?
+                    else Result = 0;
+                } break;
                 
-                Result += Length - 1; // -1 to not skip anything when increasing It in For loop (parent)
+                case 1: {  // UTF-16 Unicode with BOM
+                    // Byte-order. But I could not find, if the MSDN procedure will 
+                    // consider it, I found no way to give it the byte order...
+                    if(C[0] == 0xFF && C[1] == 0xFE || 
+                       C[0] == 0xFE && C[1] == 0xFF )
+                    {
+                        C += 2; Length -= 2; Result += 2;
+                    }
+                } // #Through
+                case 2: {  // UTF-16 Unicode without BOM
+                    if(Length > 0) 
+                    {
+                        // We put a definite ending to the string, in order to
+                        // make sure the procedure ConvertString16To8 ends correctly.
+                        wchar_t *CC  = (wchar_t *)C;
+                        wchar_t Save = CC[Length/2]; 
+                        CC[Length/2] = 0;
+                        
+                        ConvertString16To8(Arena, CC, S);
+                        CC[Length/2] = Save;
+                        Result += Length - 1;
+                    }
+                    else Result = 0;
+                } break;
+                
+                case 3: { // UTF-8
+                    *S = NewStringCompound(Arena, Length);
+                    if(Length > 0)
+                    {
+                        For((u32)Length)
+                        {
+                            if(*C == 0) ; // Do nothing
+                            else S->S[S->Pos++] = *C;
+                            C++;
+                        }
+                        EatLeadingSpaces(S);
+                        Result += Length - 1; // -1 to not skip anything when increasing It in For loop (parent)
+                    }
+                    else Result = 0;
+                } break;
+                
+                InvalidDefaultCase;
             }
-            else Result = 0;
         }
     }
     return Result;
 }
 
 internal u32
-MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena, 
+MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *ScratchArena, 
                 read_file_result *File, mp3_metadata *Metadata)
 {
     // Spec: http://id3.org/id3v2.3.0
@@ -785,7 +1035,7 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
             if(~Metadata->FoundFlags & metadata_Genre)
             {
                 string_compound GenreNr = {};
-                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, GENRE, &GenreNr, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(ScratchArena, Current+It, GENRE, &GenreNr, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Genre;
@@ -795,15 +1045,15 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                     {
                         u8 L = 0;
                         u32 GNr = ProcessNextU32InString(GenreNr.S+1, ')', L);
-                        Metadata->Genre = NewStringCompound(MainArena, GenreTypes[GNr].Pos);
-                        AppendStringCompoundToCompound(&Metadata->Genre, &GenreTypes[GNr]);
+                        Metadata->Genre = NewStringCompound(MainArena, GenreTypesList.G[GNr].Pos);
+                        AppendStringCompoundToCompound(&Metadata->Genre, &GenreTypesList.G[GNr]);
                     }
                     else if(IsStringCompANumber(&GenreNr))
                     {
                         u8 L = 0;
                         u32 GNr = ProcessNextU32InString(GenreNr.S, '\0', L);
-                        Metadata->Genre = NewStringCompound(MainArena, GenreTypes[GNr].Pos);
-                        AppendStringCompoundToCompound(&Metadata->Genre, &GenreTypes[GNr]);
+                        Metadata->Genre = NewStringCompound(MainArena, GenreTypesList.G[GNr].Pos);
+                        AppendStringCompoundToCompound(&Metadata->Genre, &GenreTypesList.G[GNr]);
                     }
                     else 
                     {
@@ -811,13 +1061,13 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                         AppendStringCompoundToCompound(&Metadata->Genre, &GenreNr);
                     }
                     
-                    DeleteStringCompound(TransientArena, &GenreNr);
+                    DeleteStringCompound(ScratchArena, &GenreNr);
                 }
             }
             if(~Metadata->FoundFlags & metadata_Track)
             {
                 string_compound Track = {};
-                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, TRACK, &Track, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(ScratchArena, Current+It, TRACK, &Track, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Track;
@@ -830,13 +1080,13 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                     Metadata->TrackString = NewStringCompound(MainArena, 4);
                     I32ToString(&Metadata->TrackString, Metadata->Track);
                     
-                    DeleteStringCompound(TransientArena, &Track);
+                    DeleteStringCompound(ScratchArena, &Track);
                 }
             }
             if(~Metadata->FoundFlags & metadata_Year)
             {
                 string_compound Year = {};
-                JmpIter = MetadataID3v2_Helper(TransientArena, Current+It, YEAR, &Year, MinorVersion);
+                JmpIter = MetadataID3v2_Helper(ScratchArena, Current+It, YEAR, &Year, MinorVersion);
                 It += JmpIter;
                 Assert(It < LoopSize);
                 if(JmpIter > 0) Metadata->FoundFlags |= metadata_Year;
@@ -846,7 +1096,7 @@ MetadataID3v2_3(arena_allocator *MainArena, arena_allocator *TransientArena,
                     Assert(Metadata->Year < 10000);
                     Metadata->YearString = NewStringCompound(MainArena, 4);
                     I32ToString(&Metadata->YearString, Metadata->Year);
-                    DeleteStringCompound(TransientArena, &Year);
+                    DeleteStringCompound(ScratchArena, &Year);
                 }
             }
             
@@ -949,7 +1199,7 @@ ExtractMetadataSize(arena_allocator *TransientArena, string_c *CompletePath)
             Result  = Current[0]<<21 | Current[1]<<14 | Current[2]<<7 | Current[3]<<0;
             Result += 10; // Size excludes the header... so add it!
         }
-        FreeFileMemory(TransientArena, FileData.Data);
+        FreeFileMemory(TransientArena, FileData);
     }
     
     return Result;
@@ -963,7 +1213,7 @@ CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c
     if(DataLength > 0 && ReadBeginningOfFile(TransientArena, &FileData, FilePath->S, DataLength)) 
     {
         MetadataID3v2_3(&GlobalGameState.JobThreadsArena, TransientArena, &FileData, MD);
-        FreeFileMemory(TransientArena, FileData.Data);
+        FreeFileMemory(TransientArena, FileData);
     }
     
     if(!FoundAllMetadata(MD->FoundFlags))
@@ -971,7 +1221,7 @@ CrawlFileForMetadata(arena_allocator *TransientArena, mp3_metadata *MD, string_c
         if(ReadEndOfFile(TransientArena, &FileData, FilePath->S, 128))
         {
             MetadataID3v1(&GlobalGameState.JobThreadsArena, &FileData, MD);
-            FreeFileMemory(TransientArena, FileData.Data);
+            FreeFileMemory(TransientArena, FileData);
         }
     }
     
@@ -1676,7 +1926,7 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
     
     string_w WWinText = {};
     ConvertString8To16(&GameState->ScratchArena, (u8 *)WinText, &WWinText);
-    SetWindowTextA(GameState->Renderer.Window.WindowHandle, WinText);
+    SetWindowTextW(GameState->Renderer.Window.WindowHandle, WWinText.S);
 }
 
 internal void

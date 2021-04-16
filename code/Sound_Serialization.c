@@ -32,41 +32,55 @@
 // GenreArtistEdgeXPercent: <Between 0 and 1>
 // ArtistAlbumEdgeXPercent: <Between 0 and 1>
 // AlbumSongEdgeXPercent: <Between 0 and 1>
-// WindowDimX: <Between GlobalMinWindowWidth and MAX_I32>
-// WindowDimY: <Between GlobalMinWindowHeight and MAX_I32>
+// WindowDimensionX: <Between GlobalMinWindowWidth and MAX_I32>
+// WindowDimensionY: <Between GlobalMinWindowHeight and MAX_I32>
 // Looping: <0/1>
 // Shuffle: <0/1>
+// UsedFontCache: <font name>|<font name>
 // Palette: <Name>  // Palette with all following color values can occur multiple times
-// Text: <R255> <G255> <B255>
-// ForegroundText: <R255> <G255> <B255>
-// ErrorText: <R255> <G255> <B255>
-// Foreground: <R255> <G255> <B255>
-// Slot: <R255> <G255> <B255>
-// SliderBackground: <R255> <G255> <B255>
-// SliderGrabThing: <R255> <G255> <B255>
-// ButtonActive: <R255> <G255> <B255>
-// Selected: <R255> <G255> <B255>
-// PlayingSong: <R255> <G255> <B255>
-
-inline void
-ProcessNextPaletteColor(u8 **C, u8 *ColorName, v3 *Color)
-{
-    u8 Length = 0;
-    *C += StringLength(ColorName);
-    Color->r = (r32)ProcessNextI32InString(*C, ' ', Length);
-    *C += Length+1;
-    Color->g = (r32)ProcessNextI32InString(*C, ' ', Length);
-    *C += Length+1;
-    Color->b = (r32)ProcessNextI32InString(*C, '\n', Length);
-    
-    AdvanceToNewline(C);
-}
+//     Text: <R255> <G255> <B255>
+//     ForegroundText: <R255> <G255> <B255>
+//     ErrorText: <R255> <G255> <B255>
+//     Foreground: <R255> <G255> <B255>
+//     Slot: <R255> <G255> <B255>
+//     SliderBackground: <R255> <G255> <B255>
+//     SliderGrabThing: <R255> <G255> <B255>
+//     ButtonActive: <R255> <G255> <B255>
+//     Selected: <R255> <G255> <B255>
+//     PlayingSong: <R255> <G255> <B255>
 
 inline u32
 CountToNewline(u8 *C)
 {
     u32 Count = 0;
-    while(*C != '\r' && *C++ != '\n') Count++;
+    while(*C != 0 && *C != '\r' && *C++ != '\n') Count++;
+    return Count;
+}
+
+inline u32
+CountToNewlineOrDelimeter(u8 *C, u8 Delimeter)
+{
+    u32 Count = 0;
+    while(*C != 0 && *C != '\r' && *C != '\n' && *C++ != Delimeter) Count++;
+    return Count;
+}
+
+inline u32
+CountToDelimeters(u8 *C, u8 *Delimeters, u32 DeliCount)
+{
+    u32 Count = 0;
+    while(*C != 0) 
+    {
+        b32 Break = false;
+        For(DeliCount)
+        {
+            Break = *C == Delimeters[It];
+            if(Break) break;
+        }
+        if(Break) break;
+        C++;
+        Count++;
+    }
     return Count;
 }
 
@@ -89,6 +103,23 @@ TryEatComment(u8 **C)
     if(**C == '#') AdvanceToNewline(C);
 }
 
+inline void
+ProcessNextPaletteColor(u8 **C, u32 NameLength, v3 *Color)
+{
+    u8 Length = 0;
+    *C += NameLength;
+    EatLeadingSpaces(C);
+    Color->r = (r32)ProcessNextI32InString(*C, ' ', Length);
+    *C += Length;
+    EatLeadingSpaces(C);
+    Color->g = (r32)ProcessNextI32InString(*C, ' ', Length);
+    *C += Length;
+    EatLeadingSpaces(C);
+    Color->b = (r32)ProcessNextI32InString(*C, (u8 *)"\n ", 2, Length);
+    
+    AdvanceToNewline(C);
+}
+
 internal settings
 TryLoadSettingsFile(game_state *GameState)
 {
@@ -99,128 +130,204 @@ TryLoadSettingsFile(game_state *GameState)
     {
         u8 *C = Data.Data;
         
-        if(StringCompare(C, (u8 *)"MPlay3Settings", 0, StringLength((u8 *)"MPlay3Settings")))
+        string_c FileIDS = NewStaticStringCompound("MPlay3Settings");
+        if(StringCompare(C, FileIDS.S, 0, FileIDS.Pos))
         {
             AdvanceToNewline(&C);
             
-            u8 *VersionString = (u8 *)"Version ";
-            u32 VersionLength = StringLength(VersionString);
+            string_c VersionS                    = NewStaticStringCompound("Version ");
+            string_c FontPathS                   = NewStaticStringCompound("FontPath:");
+            string_c FontHeightS                 = NewStaticStringCompound("FontHeightOffset:");
+            string_c VolumeS                     = NewStaticStringCompound("Volume:");
+            string_c LastPlayingSongS            = NewStaticStringCompound("LastPlayingSong:");
+            string_c ColorPaletteS               = NewStaticStringCompound("ColorPalette:");
+            string_c GenreArtistEdgeXPercentageS = NewStaticStringCompound("GenreArtistEdgeXPercent:");
+            string_c ArtistAlbumEdgeXPercentageS = NewStaticStringCompound("ArtistAlbumEdgeXPercent:");
+            string_c AlbumSongEdgeXPercentageS   = NewStaticStringCompound("AlbumSongEdgeXPercent:");
+            string_c WindowDimXS                 = NewStaticStringCompound("WindowDimensionX:");
+            string_c WindowDimYS                 = NewStaticStringCompound("WindowDimensionY:");
+            string_c LoopingS                    = NewStaticStringCompound("Looping:");
+            string_c ShuffleS                    = NewStaticStringCompound("Shuffle:");
+            string_c CachedFontS                 = NewStaticStringCompound("UsedFontCache:");
             
-            if(StringCompare(C, VersionString, 0, VersionLength) &&
-               CharToU32(C[VersionLength]) == SETTINGS_CURRENT_VERSION)
+            string_c PaletteS                    = NewStaticStringCompound("Palette:");
+            string_c TextS                       = NewStaticStringCompound("Text:");
+            string_c ForegroundTextS             = NewStaticStringCompound("ForegroundText:");
+            string_c ErrorTextS                  = NewStaticStringCompound("ErrorText:");
+            string_c ForegroundS                 = NewStaticStringCompound("Foreground:");
+            string_c SlotS                       = NewStaticStringCompound("Slot:");
+            string_c SliderBackgroundS           = NewStaticStringCompound("SliderBackground:");
+            string_c SliderGrabThingS            = NewStaticStringCompound("SliderGrabThing:");
+            string_c ButtonActiveS               = NewStaticStringCompound("ButtonActive:");
+            string_c SelectedS                   = NewStaticStringCompound("Selected:");
+            string_c PlayingSongS                = NewStaticStringCompound("PlayingSong:");
+            
+            u8 L; // Not used for anything.
+            Result.PaletteMaxCount = 15;
+            string_c *PaletteNames  = AllocateArray(&GameState->ScratchArena, Result.PaletteMaxCount, string_c);
+            color_palette *Palettes = AllocateArray(&GameState->ScratchArena, Result.PaletteMaxCount, color_palette);
+            
+            Result.CachedFontNames = AllocateStruct(&GameState->FixArena, font_name_list);
+            *Result.CachedFontNames = {};
+            while(*C)
             {
-                AdvanceToNewline(&C); // Version 5
-                For(5) TryEatComment(&C); // # NOTE 1::
-                AdvanceToNewline(&C);
-                For(5) TryEatComment(&C); // # NOTE 2::
-                AdvanceToNewline(&C);
-                For(7) TryEatComment(&C); // # NOTE 3::
-                AdvanceToNewline(&C); 
-                u8 Length;
+                if(*C == ' ') EatLeadingSpaces(&C);
                 
-                TryEatComment(&C);
-                C += StringLength((u8 *)"FontPath: ");
-                u32 PLen = CountToNewline(C);
-                Result.FontPath = NewStringCompound(&GameState->FixArena, PLen);
-                CopyStringToCompound(&Result.FontPath, C, 0, PLen);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"FontHeightOffset: ");
-                Result.FontHeightOffset = ProcessNextI32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"Volume: ");
-                Result.Volume = ProcessNextR32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"LastPlayingSong: ");
-                Result.PlayingSongID.ID = ProcessNextI32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"ColorPalette: ");
-                Result.ColorPaletteID = ProcessNextU32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"GenreArtistEdgeXPercent: ");
-                Result.GenreArtistEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"ArtistAlbumEdgeXPercent: ");
-                Result.ArtistAlbumEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"AlbumSongEdgeXPercent: ");
-                Result.AlbumSongEdgeXPercent = ProcessNextR32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"WindowDimensionX: ");
-                Result.WindowDimX = ProcessNextU32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"WindowDimensionY: ");
-                Result.WindowDimY = ProcessNextU32InString(C, '\n', Length);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"Looping: ");
-                Result.Looping = ProcessNextB32InString(C);
-                AdvanceToNewline(&C);
-                
-                TryEatComment(&C);
-                C += StringLength((u8 *)"Shuffle: ");
-                Result.Shuffle = ProcessNextB32InString(C);
-                AdvanceToNewline(&C);
-                
-                // Prescan for color palette count
-                u8 *PreC = C;
-                Result.PaletteCount = 0;
-                while(StringCompare(PreC, (u8 *)"Palette: ", 0, 9))
+                if(*C == '#') ; // Comment, skip.
+                else if(*C == '\n') ; // Blank line, skip.
+                else if(StringCompare(C, VersionS.S, 0, VersionS.Pos)) ; // Version line, skip for now.
+                else if(StringCompare(C, FontPathS.S, 0, FontPathS.Pos))
                 {
-                    For(11) AdvanceToNewline(&PreC);
-                    Result.PaletteCount++;
+                    C += FontPathS.Pos;
+                    EatLeadingSpaces(&C);
+                    u32 PLen = CountToNewlineOrDelimeter(C, ' ');
+                    Result.FontPath = NewStringCompound(&GameState->FixArena, PLen);
+                    CopyStringToCompound(&Result.FontPath, C, 0, PLen);
                 }
-                Result.PaletteMaxCount = Result.PaletteCount+10;
-                Result.PaletteNames  = AllocateArray(&GameState->FixArena, Result.PaletteMaxCount, string_c);
-                Result.Palettes      = AllocateArray(&GameState->FixArena, Result.PaletteMaxCount, color_palette);
-                
-                string_c PaletteName = NewStringCompound(&GameState->ScratchArena, 100);
-                For(Result.PaletteCount)
+                else if(StringCompare(C, FontHeightS.S, 0, FontHeightS.Pos))
                 {
-                    C += StringLength((u8 *)"Palette: ");
-                    CopyStringToCompound(&PaletteName, C, (u8)'\n');
-                    Result.PaletteNames[It] = NewStringCompound(&GameState->FixArena, PaletteName.Pos);
-                    AppendStringCompoundToCompound(Result.PaletteNames+It, &PaletteName);
-                    ResetStringCompound(PaletteName);
+                    C += FontHeightS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.FontHeightOffset = ProcessNextI32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, VolumeS.S, 0, VolumeS.Pos))
+                {
+                    C += VolumeS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.Volume = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, LastPlayingSongS.S, 0, LastPlayingSongS.Pos))
+                {
+                    C += LastPlayingSongS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.PlayingSongID.ID = ProcessNextI32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, ColorPaletteS.S, 0, ColorPaletteS.Pos))
+                {
+                    C += ColorPaletteS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.ColorPaletteID = ProcessNextU32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, GenreArtistEdgeXPercentageS.S, 0, GenreArtistEdgeXPercentageS.Pos))
+                {
+                    C += GenreArtistEdgeXPercentageS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.GenreArtistEdgeXPercent = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, ArtistAlbumEdgeXPercentageS.S, 0, ArtistAlbumEdgeXPercentageS.Pos))
+                {
+                    C += ArtistAlbumEdgeXPercentageS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.ArtistAlbumEdgeXPercent = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, AlbumSongEdgeXPercentageS.S, 0, AlbumSongEdgeXPercentageS.Pos))
+                {
+                    C += AlbumSongEdgeXPercentageS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.AlbumSongEdgeXPercent = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, WindowDimXS.S, 0, WindowDimXS.Pos))
+                {
+                    C += WindowDimXS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.WindowDimX = ProcessNextU32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, WindowDimYS.S, 0, WindowDimYS.Pos))
+                {
+                    C += WindowDimYS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.WindowDimY = ProcessNextU32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, LoopingS.S, 0, LoopingS.Pos))
+                {
+                    C += LoopingS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.Looping = ProcessNextB32InString(C);
+                }
+                else if(StringCompare(C, ShuffleS.S, 0, ShuffleS.Pos))
+                {
+                    C += ShuffleS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.Shuffle = ProcessNextB32InString(C);
+                }
+                else if(StringCompare(C, CachedFontS.S, 0, CachedFontS.Pos))
+                {
+                    C += CachedFontS.Pos;
+                    EatLeadingSpaces(&C);
                     
-                    color_palette *Palette = Result.Palettes+It;
+                    Result.CachedFontNames->MaxCount = 10;
+                    string_c *FontNames = AllocateArray(&GameState->ScratchArena, Result.CachedFontNames->MaxCount, string_c);
+                    while(*C != '\n')
+                    {
+                        if(Result.CachedFontNames->Count >= Result.CachedFontNames->MaxCount)
+                        {
+                            Result.CachedFontNames->MaxCount += 10;
+                            FontNames = ReallocateArray(&GameState->ScratchArena, FontNames, 
+                                                        Result.CachedFontNames->Count, Result.CachedFontNames->MaxCount, string_c);
+                        }
+                        
+                        u32 PLen = CountToDelimeters(C, (u8 *)"| \r\n", 4);
+                        FontNames[Result.CachedFontNames->Count] = NewStringCompound(&GameState->FixArena, PLen);
+                        CopyStringToCompound(FontNames + Result.CachedFontNames->Count, C, 0, PLen);
+                        ++Result.CachedFontNames->Count;
+                        
+                        C += PLen;
+                        EatLeadingSpaces(&C);
+                        if(*C == '|') ++C;
+                        EatLeadingSpaces(&C);
+                    }
+                    
+                    Result.CachedFontNames->MaxCount = Result.CachedFontNames->Count;
+                    Result.CachedFontNames->Names = AllocateArray(&GameState->FixArena, Result.CachedFontNames->MaxCount, string_c);
+                    For(Result.CachedFontNames->Count) Result.CachedFontNames->Names[It] = FontNames[It];
+                }
+                else if(StringCompare(C, PaletteS.S, 0, PaletteS.Pos))
+                {
+                    if(Result.PaletteCount >= Result.PaletteMaxCount)
+                    {
+                        Result.PaletteMaxCount += 10;
+                        PaletteNames = ReallocateArray(&GameState->ScratchArena, PaletteNames, 
+                                                       Result.PaletteCount, Result.PaletteMaxCount, string_c);
+                        Palettes     = ReallocateArray(&GameState->ScratchArena, Palettes, 
+                                                       Result.PaletteCount, Result.PaletteMaxCount, color_palette);
+                    }
+                    
+                    C += PaletteS.Pos;
+                    EatLeadingSpaces(&C);
+                    u32 PLen = CountToNewline(C);
+                    PaletteNames[Result.PaletteCount] = NewStringCompound(&GameState->FixArena, PLen);
+                    CopyStringToCompound(PaletteNames+Result.PaletteCount, C, (u8)'\n');
+                    
                     AdvanceToNewline(&C);
+                    color_palette *Palette = Palettes+Result.PaletteCount;
                     
-                    ProcessNextPaletteColor(&C, (u8 *)"Text: ", &Palette->Text);
-                    ProcessNextPaletteColor(&C, (u8 *)"ForegroundText: ", &Palette->ForegroundText);
-                    ProcessNextPaletteColor(&C, (u8 *)"ErrorText: ", &Palette->ErrorText);
-                    ProcessNextPaletteColor(&C, (u8 *)"Foreground: ", &Palette->Foreground);
-                    ProcessNextPaletteColor(&C, (u8 *)"Slot: ", &Palette->Slot);
-                    ProcessNextPaletteColor(&C, (u8 *)"SliderBackground: ", &Palette->SliderBackground);
-                    ProcessNextPaletteColor(&C, (u8 *)"SliderGrabThing: ", &Palette->SliderGrabThing);
-                    ProcessNextPaletteColor(&C, (u8 *)"ButtonActive: ", &Palette->ButtonActive);
-                    ProcessNextPaletteColor(&C, (u8 *)"Selected: ", &Palette->Selected);
-                    ProcessNextPaletteColor(&C, (u8 *)"PlayingSong: ", &Palette->PlayingSong);
+                    ProcessNextPaletteColor(&C, TextS.Pos,             &Palette->Text);
+                    ProcessNextPaletteColor(&C, ForegroundTextS.Pos,   &Palette->ForegroundText);
+                    ProcessNextPaletteColor(&C, ErrorTextS.Pos,        &Palette->ErrorText);
+                    ProcessNextPaletteColor(&C, ForegroundS.Pos,       &Palette->Foreground);
+                    ProcessNextPaletteColor(&C, SlotS.Pos,             &Palette->Slot);
+                    ProcessNextPaletteColor(&C, SliderBackgroundS.Pos, &Palette->SliderBackground);
+                    ProcessNextPaletteColor(&C, SliderGrabThingS.Pos,  &Palette->SliderGrabThing);
+                    ProcessNextPaletteColor(&C, ButtonActiveS.Pos,     &Palette->ButtonActive);
+                    ProcessNextPaletteColor(&C, SelectedS.Pos,         &Palette->Selected);
+                    ProcessNextPaletteColor(&C, PlayingSongS.Pos,      &Palette->PlayingSong);
+                    
+                    ++Result.PaletteCount;
+                    continue; // We do this, because in ProcessNextPaletteColor we do a AdvancetoNewline.
                 }
-                DeleteStringCompound(&GameState->ScratchArena, &PaletteName);
+                
+                AdvanceToNewline(&C);
             }
-            else
+            
+            Result.PaletteMaxCount = Result.PaletteCount+10;
+            Result.PaletteNames    = AllocateArray(&GameState->FixArena, Result.PaletteMaxCount, string_c);
+            Result.Palettes        = AllocateArray(&GameState->FixArena, Result.PaletteMaxCount, color_palette);
+            For(Result.PaletteCount)
             {
-                DebugLog(255, "WARNING:: Library file had wrong version. Needs Version %i!\n", SETTINGS_CURRENT_VERSION);
+                Result.PaletteNames[It] = PaletteNames[It];
+                Result.Palettes[It]     = Palettes[It];
             }
+            
         }
     }
     
@@ -249,6 +356,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
     I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
+    // TODO:: Parsing is better now. Spaces and newlines, even reordering is possible, but will be nuked!
     AppendStringToCompound(&SaveData, (u8 *) "\n# NOTE 1:: This file is not generally designed for user\n# editing. This means that random spaces between words\n# or at the end of lines, or extra lines, will break\n# the parsing. But editing values, especially the FontPath\n# is possible.\n\n");
     
     AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
@@ -267,6 +375,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     NewLocalString(WindowDimY,       50, "WindowDimensionY: ");
     NewLocalString(Looping,          50, "Looping: ");
     NewLocalString(Shuffle,          50, "Shuffle: ");
+    NewLocalString(CachedFontNames,  50, "UsedFontCache: ");
     
     v2i Dim = GetWindowSize();
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
@@ -282,9 +391,18 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&Looping, GameState->MusicInfo.Looping == playLoop_Loop);
     I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
-    string_c LB = NewStaticStringCompound("\n");
-    ConcatStringCompounds(25, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB);
+    string_c LB   = NewStaticStringCompound("\n");
+    ConcatStringCompounds(26, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames);
     
+    // Save out used font names
+    For(Settings->CachedFontNames->Count)
+    {
+        AppendStringCompoundToCompound(&SaveData, Settings->CachedFontNames->Names+It);
+        AppendCharToCompound(&SaveData, '|');
+    }
+    AppendCharToCompound(&SaveData, '\n');
+    
+    // Save out user created color palettes
     string_c Palette           = NewStaticStringCompound("Palette: ");
     string_c P_Text            = NewStaticStringCompound("\nText: ");
     string_c P_ForegroundText  = NewStaticStringCompound("\nForegroundText: ");
@@ -440,7 +558,7 @@ ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheck
                 }
             }
         }
-        FreeFileMemory(&GameState->ScratchArena, Data.Data);
+        FreeFileMemory(&GameState->ScratchArena, Data);
     }
     
     return Result;
@@ -630,7 +748,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
             }
             DeleteStringCompound(&GameState->ScratchArena, &CurrentSubPath);
         }
-        FreeFileMemory(&GameState->ScratchArena, Data.Data);
+        FreeFileMemory(&GameState->ScratchArena, Data);
     }
 }
 
@@ -743,23 +861,6 @@ WipeMP3LibraryFile(game_state *GameState)
     {
         DebugLog(255, "ERROR:: Could not write out library file!\n");
     }
-}
-
-internal read_file_result
-GetUsedFontData(game_state *GameState)
-{
-    read_file_result Result = {carmini_DataCount, (u8 *)carmini_Data};
-    
-    if(GameState->Settings.FontPath.Pos > 0)
-    {
-        read_file_result FontFile = {};
-        if(ReadEntireFile(&GameState->ScratchArena, &FontFile, GameState->Settings.FontPath.S))
-        {
-            Result = FontFile;
-        }
-    }
-    
-    return Result;
 }
 
 internal loaded_bitmap

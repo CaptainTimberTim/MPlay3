@@ -130,3 +130,43 @@
 
 14.11.2020
 - Finished shortcut-help popups. 
+
+12.03.2021
+- Added small application that takes a file which can list resource files (like images and fonts) and converts those into an <output>.h with a C-Array for each of them. This enables the embedding of those files into the executable.
+- column with not being saved sometimes.
+- showing null in the window title bar.
+
+18.03.2021
+- Reduced the size of all icon files to the actual size used in the application, which not only makes the executable much smaller, but also the program startup faster, as the decoding has much less to do.
+  Thirdly the icons now do not have these awfull looking edges (sad that it took me this long to realize what the problem was, this will also fix the issues with the font, when I get to doing it with that as well)
+- Added a simple encoding which is much simpler than png and -for these specific icons- also almost as small. This makes the decoding on startup even faster.
+
+21.03.2021
+- Finally fixed font rendering. We now have actually nicer sampled textures and the small font does look way better now.
+
+22.03.2021
+- Fixed folder scan bug, where it did not work properly when the scanning was too quick.
+- Added multithreading to metadata crawling and sped it up by 3.5x!
+
+27.03.2021
+- Started implementing proper utf-8 support.
+- Over these week I made a lot of changes regarding font/unicode stuff (Forgot this file exists)
+- Now loads fonts from Windows/Fonts if the default is missing the required codepoint.
+
+10.04.2021
+- Improved parsing of settings file to make it more robust.
+
+11.04.2021
+- Added found font caching to settings file.
+- Installed cl profiler, because optimized compile-time went up recently from ~20s to 2 1/2minutes...
+    - Found out that having large global arrays with preprocessor stuff is really slow to optimize for some reason.
+    - Optimized compile time is now at ~3s again!
+
+16.04.2021
+- Fixed crash when rescanning and adding new file, then playing it. Forgot to set the TimeDuration string to anything.
+
+
+
+
+
+

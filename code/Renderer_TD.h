@@ -34,6 +34,7 @@ struct transform_2D
 struct entry_id
 {
     struct render_entry *ID;
+    u32 UID;
 };
 
 struct render_entry
@@ -58,7 +59,7 @@ struct render_entry
     // render type specific stuff
     u32 TexID;
     struct render_text *Text; // NOTE:: Having the text not in the list is propably not the best for the cache...
-    
+    u32 TextCodepoint; // TEMP:: Only for debugging. This is render_text specific
     
     // TODO:: Cache the GLSpace data and us it in (isIn.. functions)
 };
@@ -191,6 +192,7 @@ struct renderer
     b32 Rerender;
     b32 Minimized;
     
+    u32 UIDCounter;
     render_entry_list RenderEntryList;
     screen_transform_list TransformList;
     

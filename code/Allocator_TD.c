@@ -21,7 +21,7 @@ CreateNewArena(u64 Size)
 inline HANDLE
 NewMutex()
 {
-    return CreateMutexExA(0, 0, 0, MUTEX_ALL_ACCESS);
+    return CreateMutexEx(0, 0, 0, MUTEX_ALL_ACCESS);
 }
 
 inline void
@@ -39,6 +39,7 @@ Unlock(HANDLE Mutex)
 inline void
 FreeMemory(arena_allocator *Allocator, void *Memory)
 {
+    if(!Memory) return;
     if(Allocator->Flags & arenaFlags_IsThreaded) Lock(Allocator->Mutex);
     arena *Arena = Allocator->Base;
     

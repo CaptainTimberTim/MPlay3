@@ -2,6 +2,8 @@
 #ifndef _SOUND__JOBS_H
 #define _SOUND__JOBS_H
 
+#define DO_METADATA_SUB_CRAWL
+
 struct job_load_decode_mp3
 {
     mp3_info *MP3Info;

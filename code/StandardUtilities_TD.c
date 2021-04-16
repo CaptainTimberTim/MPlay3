@@ -6,9 +6,9 @@ PrintLastWindowsError()
     LPVOID MsgBuf;
     DWORD ERR = GetLastError(); 
     
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                  NULL, ERR,MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &MsgBuf, 0, NULL );
-    DebugLog(2024, "AllocationError:: %s\n", (LPCTSTR)MsgBuf);
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL, ERR,MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR) &MsgBuf, 0, NULL );
+    DebugLog(2024, "AllocationError:: %ls\n", (LPWSTR)MsgBuf);
     Assert(false);
 }
 

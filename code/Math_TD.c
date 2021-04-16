@@ -301,10 +301,27 @@ Square(r32 A)
     return(Result);
 }
 
+inline i32
+Square(i32 A)
+{
+    i32 Result;
+    
+    Result = A * A;
+    
+    return(Result);
+}
+
 inline r32
 Sqrt(r32 A)
 {
     r32 Result = sqrtf(A);
+    return Result;
+}
+
+inline r32
+Sqrt(u32 A)
+{
+    r32 Result = sqrtf((r32)A);
     return Result;
 }
 
@@ -380,6 +397,13 @@ inline i32
 Min(i32 A, i32 B)
 {
     i32 Result = min(A, B);
+    return Result;
+}
+
+inline u32
+Min(u32 A, u32 B)
+{
+    u32 Result = min(A, B);
     return Result;
 }
 

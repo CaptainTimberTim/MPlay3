@@ -149,9 +149,8 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
         // is then only monitoring the sub-threads for 
         // updating the current crawl count, for the loading
         // bar.
-#define DO_SUB_CRAWL
         timer T = StartTimer();
-#ifdef  DO_SUB_CRAWL
+#ifdef  DO_METADATA_SUB_CRAWL
         
         // Preparing crawl jobs.
         // Each crawl job will get SUB_CRAWLER_COUNT
@@ -327,7 +326,7 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
         AppendStringToCompound(&MusicPath->OutputString, (u8 *)" songs from old path.");
         
         RemoveRenderText(&GlobalGameState.Renderer, &MusicPath->Output);
-        RenderText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
+        RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
                    &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
     }
     
@@ -533,7 +532,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
         {
             DecodeMP3StartFrames(ScratchArena, &MP3Decoder, File, DecodeResult, 
                                  MINIMP3_MAX_SAMPLES_PER_FRAME, 1, &StubBreakOn, true, &ConsumedBytes);
-            FreeFileMemory(ScratchArena, File.Data);
+            FreeFileMemory(ScratchArena, File);
         }
         else
         {
@@ -597,7 +596,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
                     CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
             }
             
-            FreeFileMemory(ScratchArena, File.Data);
+            FreeFileMemory(ScratchArena, File);
         }
         else Result.Code = loadErrorCode_FileLoadFailed;
     }
@@ -739,7 +738,7 @@ AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, ar
     play_list *Playlist = &GameState->MusicInfo.Playlist;
     
     u32 IgnoreCount = 0;
-    if(IgnoreDecodeIDs) IgnoreCount = Min(IgnoreDecodeIDs->Count, MAX_MP3_DECODE_COUNT);
+    if(IgnoreDecodeIDs) IgnoreCount = Min((i32)IgnoreDecodeIDs->Count, MAX_MP3_DECODE_COUNT);
     for(u32 It = 0; 
         It < Playlist->Songs.A.Count &&
         It < DisplayColumn->Count && 

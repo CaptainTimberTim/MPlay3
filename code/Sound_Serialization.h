@@ -22,6 +22,8 @@ struct settings
     b32 Shuffle = false;
     i32 FontHeightOffset = 0;
     
+    font_name_list *CachedFontNames;
+    
     string_c *PaletteNames;
     color_palette *Palettes;
     u32 PaletteCount;

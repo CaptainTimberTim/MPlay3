@@ -41,11 +41,11 @@ WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory)
 }
 
 internal void 
-FreeFileMemory(arena_allocator *Arena, u8 *Memory)
+FreeFileMemory(arena_allocator *Arena, read_file_result File)
 {
-    if(Memory && Arena->Flags & arenaFlags_IsTransient)
+    if(File.Data && Arena->Flags & arenaFlags_IsTransient)
     {
-        FreeMemory(Arena, Memory);
+        FreeMemory(Arena, File.Data);
     }
 }
 
@@ -86,7 +86,7 @@ ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, string_w *Fil
                 }
                 else
                 {
-                    FreeFileMemory(Arena, FileData->Data);
+                    FreeFileMemory(Arena, *FileData);
                     FileData->Data = 0;
                     printf("Could not read the file.\n");
                 }
@@ -145,7 +145,7 @@ ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, string_w
                 }
                 else
                 {
-                    FreeFileMemory(Arena, FileData->Data);
+                    FreeFileMemory(Arena, *FileData);
                     FileData->Data = 0;
                     printf("Could not read the file.\n");
                 }
@@ -209,7 +209,7 @@ ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *File
                     }
                     else
                     {
-                        FreeFileMemory(Arena, FileData->Data);
+                        FreeFileMemory(Arena, *FileData);
                         FileData->Data = 0;
                         printf("Could not read the file.\n");
                     }
@@ -244,22 +244,22 @@ AppendToFile(arena_allocator *Arena, u8 *FileName, u32 MemorySize, void *Memory)
     read_file_result FileData = {};
     if(ReadEntireFile(Arena, &FileData, FileName))
     {
-        u8 *AllData = AllocateMemory(Arena, FileData.Size+MemorySize+3);
-        u8 *DataBegin = AllData;
+        u8 *AllData = AllocateMemory(Arena, FileData.Size+MemorySize-1);
+        u8 *DataStart = AllData;
         u8 *FileData2 = FileData.Data;
-        For(FileData.Size) *AllData++ = *FileData2++;
-        *AllData++ = '\n';
+        For(FileData.Size-1) *AllData++ = *FileData2++;
+        //*AllData++ = '\n';
         u8 *UMemory = (u8 *)Memory;
         For(MemorySize) *AllData++ = *UMemory++;
-        *AllData++ = '\n';
-        *AllData++ = 0;
+        //*AllData++ = '\n';
+        //*AllData++ = 0;
         
-        MemorySize += FileData.Size;
-        if(WriteEntireFile(Arena, FileName, MemorySize, DataBegin))
+        MemorySize += FileData.Size-1;
+        if(WriteEntireFile(Arena, FileName, MemorySize, DataStart))
         {
             Result = true;
         }
-        FreeFileMemory(Arena, FileData.Data);
+        FreeFileMemory(Arena, FileData);
     }
     return Result;
 }

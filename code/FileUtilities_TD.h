@@ -12,7 +12,7 @@ struct read_file_result
 // General file methods
 internal b32 WriteEntireFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory);
 internal b32 WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory);
-internal void   FreeFileMemory(arena_allocator *Arena, u8 *Memory);
+internal void   FreeFileMemory(arena_allocator *Arena, read_file_result File);
 internal b32 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename);
 internal b32 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename);
 internal b32 ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);

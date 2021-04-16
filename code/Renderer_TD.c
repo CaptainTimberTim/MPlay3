@@ -26,6 +26,7 @@ InitializeRenderer(game_state *GameState, HWND WindowHandle)
     Result.RenderEntryList.OpenSlots = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, b32);
     Result.RenderEntryList.MaxCount = START_RENDER_ENTRIES;
     
+    Result.UIDCounter = 0;
     return Result;
 }
 
@@ -235,6 +236,7 @@ CreateRenderEntry(renderer *Renderer, v2 Size, r32 Depth, v2 Position = {}, entr
     render_entry *Entry = EntryList->Entries + EntryList->EntryCount;
     Entry->ID = Result;
     Result->ID = Entry;
+    Result->UID = ++Renderer->UIDCounter;
     EntryList->EntryCount++;
     EntryList->_SortingNeeded = true;
     

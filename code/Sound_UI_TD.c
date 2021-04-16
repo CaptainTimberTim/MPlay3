@@ -972,19 +972,19 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
     mp3_metadata *MD = &DisplaySong->FileInfo->Metadata[NextSongID.ID];
     
     v2 SongP = {SONG_X_OFFSET, SONG_FIRST_ROW_Y_OFFSET};
-    RenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &MD->Title, &DisplayColumn->Base->ColorPalette.Text,
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MD->Title, &DisplayColumn->Base->ColorPalette.Text,
                DisplaySong->SongTitle+ID, -0.12f, DisplayColumn->BGRects[ID], SongP);
     
     v2 AlbumP = {SONG_ALBUM_X_OFFSET, SONG_SECOND_ROW_Y_OFFSET}; 
-    RenderText(Renderer, &GlobalGameState.FixArena, font_Small, &MD->Album, &DisplayColumn->Base->ColorPalette.Text,
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, &MD->Album, &DisplayColumn->Base->ColorPalette.Text,
                DisplaySong->SongAlbum+ID, -0.12f, DisplayColumn->BGRects[ID], AlbumP);
     
     v2 ArtistP = {SONG_X_OFFSET, SONG_THIRD_ROW_Y_OFFSET};
-    RenderText(Renderer, &GlobalGameState.FixArena, font_Small, &MD->Artist, &DisplayColumn->Base->ColorPalette.Text,
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, &MD->Artist, &DisplayColumn->Base->ColorPalette.Text,
                DisplaySong->SongArtist+ID, -0.12f, DisplayColumn->BGRects[ID], ArtistP);
     
     v2 TrackP = {SONG_TRACK_X_OFFSET, SONG_FIRST_ROW_Y_OFFSET};
-    RenderText(Renderer, &GlobalGameState.FixArena, font_Medium, 
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, 
                &MD->TrackString, &DisplayColumn->Base->ColorPalette.Text, DisplaySong->SongTrack+ID, -0.12f, 
                DisplayColumn->BGRects[ID], TrackP);
     
@@ -999,7 +999,7 @@ UpdateSongText(renderer *Renderer, column_sorting_info *SortingColumn, music_dis
     else ConcatStringCompounds(3, &YearAddon, &MD->YearString, &Addon);
     
     v2 YearP = {SONG_X_OFFSET, SONG_SECOND_ROW_Y_OFFSET};
-    RenderText(Renderer, &GlobalGameState.FixArena, font_Small, &YearAddon, &DisplayColumn->Base->ColorPalette.Text,
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, &YearAddon, &DisplayColumn->Base->ColorPalette.Text,
                DisplaySong->SongYear+ID, -0.12f, DisplayColumn->BGRects[ID], YearP);
     
     DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
@@ -1042,7 +1042,7 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
         else
         {
             string_c *Name  = SortingColumn->Batch.Names + Get(&SortingColumn->Displayable, NextID).ID;
-            RenderText(Renderer, &GlobalGameState.FixArena, font_Small, Name, &DisplayColumn->Base->ColorPalette.Text,
+            RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, Name, &DisplayColumn->Base->ColorPalette.Text,
                        DisplayColumn->Text+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[It]);
             
             Translate(DisplayColumn->Text+It, V2(0, 3));
@@ -1073,7 +1073,7 @@ ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32
     
     r32 NewY = Mod(DisplayColumn->DisplayCursor, SlotHeight);
     i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
-    NewCursorID     = Min(NewCursorID, SortingColumn->Displayable.A.Count-1);
+    NewCursorID     = Min(NewCursorID, (i32)SortingColumn->Displayable.A.Count-1);
     i32 CursorDiff  = NewCursorID - PrevCursorID;
     
     if(CursorDiff != 0)
@@ -1580,7 +1580,7 @@ OnMusicPathPressed(void *Data)
             AppendStringToCompound(&PathText, (u8 *)" - ");
         else AppendStringCompoundToCompound(&PathText, &MusicBtnInfo->GameState->MP3Info->FolderPath);
         RemoveRenderText(Renderer, &MusicPath->CurrentPath);
-        RenderText(Renderer, &GlobalGameState.FixArena, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, 
+        RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, 
                    V2(0, 62));
         DeleteStringCompound(&MusicBtnInfo->GameState->ScratchArena, &PathText);
     }
@@ -1613,7 +1613,7 @@ TestFolderSearchDone(music_path_ui *MusicPath, u32 FoundCount)
     }
     
     RemoveRenderText(&GlobalGameState.Renderer, &MusicPath->Output);
-    RenderText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
                &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
 }
 
@@ -1650,7 +1650,7 @@ FinishedSettingUpMusicPath(game_state *GameState, music_path_ui *MusicPath)
 {
     AppendStringToCompound(&MusicPath->OutputString, (u8 *)"\n\nFinished!");
     RemoveRenderText(&GameState->Renderer, &MusicPath->Output);
-    RenderText(&GameState->Renderer, &GameState->FixArena, font_Medium, &MusicPath->OutputString,
+    RenderText(GameState, &GameState->FixArena, font_Medium, &MusicPath->OutputString,
                &GameState->MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
 }
 
@@ -1982,6 +1982,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
     // Quit curtain ****************************
+    //string_c QuitText = NewStaticStringCompound("Goodbye!");
     string_c QuitText = NewStaticStringCompound("Goodbye!");
     CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, 0.8f);
     
@@ -2314,30 +2315,31 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, music_info *
     r32 BaseX = 315;
     r32 BaseY = 80;
     
-    arena_allocator *Arena = &GlobalGameState.FixArena;
+    game_state *GS = &GlobalGameState;
+    arena_allocator *Arena = &GS->FixArena;
     string_c CurrentTime = NewStaticStringCompound("00:00 |");
-    RenderText(Renderer, Arena, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, -0.6f, 0);
     SetPosition(&Panel->CurrentTimeText, V2(BaseX+22, BaseY+19));
     
-    RenderText(Renderer, Arena, font_Small, DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
     SetPosition(&Panel->DurationText, V2(BaseX + 75 + 22, BaseY+19));
     
-    RenderText(Renderer, Arena, font_Medium, TitleString, TextColor, &Panel->Title, -0.6f, 0);
+    RenderText(GS, Arena, font_Medium, TitleString, TextColor, &Panel->Title, -0.6f, 0);
     SetPosition(&Panel->Title, V2(BaseX + 480, BaseY+15));
     
-    RenderText(Renderer, Arena, font_Small, TrackString, TextColor, &Panel->Track, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, TrackString, TextColor, &Panel->Track, -0.6f, 0);
     SetPosition(&Panel->Track, V2(BaseX + 440, BaseY + 8));
     
-    RenderText(Renderer, Arena, font_Small, ArtistString, TextColor, &Panel->Artist, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, ArtistString, TextColor, &Panel->Artist, -0.6f, 0);
     SetPosition(&Panel->Artist, V2(BaseX + 440, BaseY - 20));
     
-    RenderText(Renderer, Arena, font_Small, AlbumString, TextColor, &Panel->Album, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, AlbumString, TextColor, &Panel->Album, -0.6f, 0);
     SetPosition(&Panel->Album, V2(BaseX + 500, BaseY - 40));
     
-    RenderText(Renderer, Arena, font_Small, YearString, TextColor, &Panel->Year, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, YearString, TextColor, &Panel->Year, -0.6f, 0);
     SetPosition(&Panel->Year, V2(BaseX + 440, BaseY - 40));
     
-    RenderText(Renderer, Arena, font_Small, GenreString, TextColor, &Panel->Genre, -0.6f, 0);
+    RenderText(GS, Arena, font_Small, GenreString, TextColor, &Panel->Genre, -0.6f, 0);
     SetPosition(&Panel->Genre, V2(BaseX + 440, BaseY - 60));
 }
 
@@ -2351,7 +2353,7 @@ UpdatePanelTime(renderer *Renderer, playing_song_panel *Panel, r32 CurrentTime)
     AppendStringToCompound(&Panel->CurrentTimeString, (u8 *)" |");
     
     RemoveRenderText(Renderer, &Panel->CurrentTimeText);
-    RenderText(Renderer, &GlobalGameState.FixArena, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, -0.6f, 0);
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, -0.6f, 0);
     SetPosition(&Panel->CurrentTimeText, V2(315+22, 80 + 19));
 }
 
@@ -2539,7 +2541,7 @@ PushUserErrorMessage(string_c *String)
     font_size FontSize = font_Medium;
     if(String->Pos > 60) FontSize = font_Small;
     
-    RenderText(Renderer, &GlobalGameState.FixArena, FontSize, String,
+    RenderText(&GlobalGameState, &GlobalGameState.FixArena, FontSize, String,
                &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText,
                &ErrorInfo->Message, -0.8f, 0);
     SetTransparency(&ErrorInfo->Message, 0);

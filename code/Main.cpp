@@ -1,9 +1,10 @@
 #include <Shlobj.h>
-#define UNICODE
 #include <windows.h>
 
 #include "Definitions_TD.h"
-#if RESOURCE_PNG
+#if RESOURCE_FILE==0
+#include "..\\data\\resources\\EmbeddedResourcesSTUB.h"
+#elif RESOURCE_FILE==1
 #include "..\\data\\resources\\EmbeddedResourcesExactSize_png.h"
 #else
 #include "..\\data\\resources\\EmbeddedResourcesExactSize_huf.h"
@@ -219,7 +220,7 @@ WindowCallback(HWND Window,
         case WM_SETCURSOR: 
         {
             if (GlobalGameState.CursorState == cursorState_Arrow) 
-                Result = DefWindowProcA(Window, Message, WParam, LParam);
+                Result = DefWindowProc(Window, Message, WParam, LParam);
             else if(GlobalGameState.CursorState == cursorState_Drag) 
                 SetCursor(DragCursor);
         } break;
@@ -229,7 +230,7 @@ WindowCallback(HWND Window,
         } break;
         default:
         {
-            Result = DefWindowProcA(Window, Message, WParam, LParam);
+            Result = DefWindowProc(Window, Message, WParam, LParam);
         } break;
     }
     
@@ -488,16 +489,16 @@ WinMain(HINSTANCE Instance,
     ArrowCursor = LoadCursor(0, IDC_ARROW);
     DragCursor = LoadCursor(0, IDC_SIZEWE);
     
-    WNDCLASSA WindowClass     = {};
+    WNDCLASSW WindowClass     = {};
     WindowClass.style         = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
     WindowClass.lpfnWndProc   = WindowCallback;
     WindowClass.hInstance     = Instance;
     WindowClass.hCursor       = ArrowCursor;
     WindowClass.hIcon         = LoadIcon(Instance, MAKEINTRESOURCE(102));
     WindowClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-    WindowClass.lpszClassName = "MPlay3ClassName";
+    WindowClass.lpszClassName = L"MPlay3ClassName";
     
-    if(RegisterClassA(&WindowClass))
+    if(RegisterClassW(&WindowClass))
     {
         // Initializing GameState
         game_state *GameState = &GlobalGameState;
@@ -533,7 +534,7 @@ WinMain(HINSTANCE Instance,
         
         u32 InitialWindowWidth  = GameState->Settings.WindowDimX;//1416;
         u32 InitialWindowHeight = GameState->Settings.WindowDimY;//1039;
-        HWND Window = CreateWindowExA(0, WindowClass.lpszClassName, "MPlay3", 
+        HWND Window = CreateWindowExW(0, WindowClass.lpszClassName, L"MPlay3", 
                                       WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, 
                                       CW_USEDEFAULT, InitialWindowWidth, -1, 
                                       0, 0, Instance, 0);
@@ -559,13 +560,13 @@ WinMain(HINSTANCE Instance,
             sound_thread_data SoundThreadData = {};
             sound_thread SoundThreadInfo = {};
             GameState->SoundThreadInterface = &SoundThreadInfo.Interface;
-            SoundThreadInfo.Interface.SoundMutex = CreateMutexExA(0, 0, 0, MUTEX_ALL_ACCESS);
+            SoundThreadInfo.Interface.SoundMutex = CreateMutexEx(0, 0, 0, MUTEX_ALL_ACCESS);
             SoundThreadInfo.Interface.ToneVolume = SoundThreadInfo.SoundInfo.ToneVolume = 0.5f;
             
             NewSoundInstance(&SoundThreadInfo.SoundInfo.SoundInstance, Window, 48000, 2, GameState->Time.GameHz);
             SoundThreadInfo.SoundSamples = AllocateArray(&GameState->FixArena, 
                                                          SoundThreadInfo.SoundInfo.SoundInstance.BufferSize, i16);
-            GameState->ThreadErrorList.Mutex = CreateMutexExA(0, 0, 0, MUTEX_ALL_ACCESS);
+            GameState->ThreadErrorList.Mutex = CreateMutexEx(0, 0, 0, MUTEX_ALL_ACCESS);
             
             InitializeSoundThread(&SoundThreadData, ProcessSound, &SoundThreadInfo);
             
@@ -615,22 +616,31 @@ WinMain(HINSTANCE Instance,
             // ********************************************
             // FONT stuff *********************************
             // ********************************************
-            string_c DefFontPath = {};
-            GetDefaultFontDir(&GameState->FixArena, &DefFontPath);
-            //FindAndPrintFontNameForEveryUnicodeGroup(&GameState->ScratchArena, DefFontPath);
+            GetDefaultFontDir(&GameState->FixArena, &GameState->FontPath);
             r32 FontSizes[] = {
                 FontSizeToPixel(font_Small),
                 FontSizeToPixel(font_Medium),
                 FontSizeToPixel(font_Big),
             };
-            u32 GroupCodepoints[] = {0x80, 0x00};
-            Renderer->FontAtlas = NewFontAtlas(FontSizes, ArrayCount(FontSizes), GameState->Settings.FontHeightOffset);
+            u32 GroupCodepoints[] = {0x00};//, 0x80};
+            Renderer->FontAtlas = NewFontAtlas(&GameState->Settings, FontSizes, ArrayCount(FontSizes));
+            //FindAndPrintFontNameForEveryUnicodeGroup(&GameState->ScratchArena, GameState->FontPath);
             LoadFonts(&GameState->FixArena, &GameState->ScratchArena, &Renderer->FontAtlas,
                       (u8 *)GetUsedFontData(GameState).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
             
             
-            //entry_id *FontMap1 = CreateRenderBitmap(Renderer, {{0,0},{1000,800}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[0].GLID);
-            //entry_id *FontMap2 = CreateRenderBitmap(Renderer, {{1000,0},{2000,800}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[1].GLID);
+            /*
+GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
+            GetFontGroup(GameState, &Renderer->FontAtlas, 0x2F00);
+            GetFontGroup(GameState, &Renderer->FontAtlas, 0x211c);
+            GetFontGroup(GameState, &Renderer->FontAtlas, 0x685c);
+            GetFontGroup(GameState, &Renderer->FontAtlas, 0x5ead);
+            GetFontGroup(GameState, &Renderer->FontAtlas, 0x7d71);
+            
+            entry_id *FontMap1 = CreateRenderBitmap(Renderer, {{0,0},{1500,1500}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[1].GLID);
+            entry_id *FontMap2 = CreateRenderBitmap(Renderer, {{192,0},{192*2,202}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[3].GLID);
+            entry_id *FontMap3 = CreateRenderBitmap(Renderer, {{192*2,0},{192*3,202}}, -0.99f, 0, Renderer->FontAtlas.FontGroups[4].GLID);
+            */
             
             // ********************************************
             // UI rendering stuff   ***********************
@@ -809,7 +819,7 @@ WinMain(HINSTANCE Instance,
                         string_c FPSComp = NewStringCompound(&GameState->ScratchArena, 10);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(Renderer, &FPSText);
-                        RenderText(Renderer, &GameState->FixArena, font_Small, &FPSComp,
+                        RenderText(GameState, &GameState->FixArena, font_Small, &FPSComp,
                                    &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
                         DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }

@@ -297,14 +297,22 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             case renderType_Text:
             {
                 glEnable(GL_TEXTURE_2D);
+                glBegin(GL_QUADS);
                 
+                u32 GLID = 0;
                 For(RenderEntry->Text->Count)
                 {
                     render_entry *TextEntry = RenderEntry->Text->RenderEntries+It;
                     if(!TextEntry->Render) continue;
                     
-                    glBindTexture(GL_TEXTURE_2D, TextEntry->TexID-1); // TODO:: Make this better (at least only switch if needed!
-                    glBegin(GL_QUADS);
+                    Assert(TextEntry->TexID != 0);
+                    if(GLID != TextEntry->TexID) // Only swtich Texture if actually needed.
+                    {
+                        GLID = TextEntry->TexID;
+                        glEnd();
+                        glBindTexture(GL_TEXTURE_2D, TextEntry->TexID-1);
+                        glBegin(GL_QUADS);
+                    }
                     
                     v3 V[4];
                     ConvertToGLSpace(Renderer, TextEntry, V);
@@ -317,9 +325,8 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
                         glVertex3fv(V[It].E);
                     }
                     
-                    glEnd();
                 }
-                
+                glEnd();
                 glDisable(GL_TEXTURE_2D);
             } break;
             

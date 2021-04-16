@@ -8,8 +8,6 @@
 #define CombineDefine(X, Y) CombineDefine1(X, Y)
 #endif
 
-
-
 struct string_compound
 {
     u8 *S;
@@ -53,6 +51,8 @@ inline b32 CompareStringAndCompound(string_compound *Comp, u8 *S);
 
 inline void EatTrailingSpaces(string_c *S);
 inline void EatLeadingSpaces(string_c *S);
+inline void EatTrailingSpaces(u8 *S);
+inline void EatLeadingSpaces(u8 *S);
 internal b32 ContainsAB_CaseInsensitive(string_c *String, string_c *Contains);
 
 inline u32 StringLength(u8 *StringToCount);
@@ -76,9 +76,12 @@ inline void R32ToString(u8 *Buffer, r32 Value);
 inline void V3ToString(string_c *S, u8 Delimiter, v3 Vec);
 inline r32 CharToR32(char C);
 inline u32 CharToU32(u8 C);
-inline u32 ProcessNextU32InString(u8 *Character, char Delimiter, u8 &NumberLength);
-inline i32 ProcessNextI32InString(u8 *Character, char Delimiter, u8 &NumberLength);
-inline r32 ProcessNextR32InString(u8 *Character, char Delimiter, u8 &NumberLength);
+inline u32 ProcessNextU32InString(u8 *Character, u8 Delimiter, u8 &NumberLength);
+inline i32 ProcessNextI32InString(u8 *Character, u8 Delimiter, u8 &NumberLength);
+inline r32 ProcessNextR32InString(u8 *Character, u8 Delimiter, u8 &NumberLength);
+inline u32 ProcessNextU32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, u8 &NumberLength);
+inline i32 ProcessNextI32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, u8 &NumberLength);
+inline r32 ProcessNextR32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, u8 &NumberLength);
 inline b32 ProcessNextB32InString(u8 *Character);
 inline void ConvertV3To15Char(v3 P, u8 *Result);
 inline u32 ConvertU32FromString(u8 *Character, u32 NumberLength);
@@ -108,6 +111,7 @@ inline b32 ConvertString8To16(arena_allocator *Arena, string_c *In, string_w *Ou
 inline b32 ConvertString8To16(arena_allocator *Arena, u8 *In, string_w *Out);
 inline b32 ConvertString16To8(arena_allocator *Arena, string_w *In, string_c *Out);
 inline b32 ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out);
+inline b32 ConvertString16To8(wchar_t *In, string_c *Out); // Only use with Out parameter already having a appropriate size!
 inline b32 ConvertChar16To8(wchar_t In, u8 *Out, i32 *OutSize);
 
 
@@ -399,6 +403,12 @@ EatLeadingSpaces(string_c *S)
     }
 }
 
+inline void 
+EatLeadingSpaces(u8 **S)
+{
+    while(*S[0] == ' ') (S[0])++;
+}
+
 inline u32
 StringLength(u8 *StringToCount)
 {
@@ -545,7 +555,7 @@ ConvertU32FromString(string_c *String)
 }
 
 inline u32
-ProcessNextU32InString(u8 *Character, char Delimiter, u8 &NumberLength)
+ProcessNextU32InString(u8 *Character, u8 Delimiter, u8 &NumberLength)
 {
     i32 Result = 0;
     NumberLength  = 0;
@@ -562,7 +572,7 @@ ProcessNextU32InString(u8 *Character, char Delimiter, u8 &NumberLength)
 }
 
 inline i32
-ProcessNextI32InString(u8 *Character, char Delimiter, u8 &NumberLength)
+ProcessNextI32InString(u8 *Character, u8 Delimiter, u8 &NumberLength)
 {
     i32 Sign = (*Character == '-') ? -1 : 1;
     u8 SignRes  = (Sign == 1) ? 0 : 1;
@@ -582,7 +592,7 @@ ProcessNextB32InString(u8 *Character)
 }
 
 inline r32
-ProcessNextR32InString(u8 *Character, char Delimiter, u8 &NumberLength)
+ProcessNextR32InString(u8 *Character, u8 Delimiter, u8 &NumberLength)
 {
     r32 Result   = 0;
     i32 Sign      = (*Character == '-') ? -1 : 1;
@@ -636,6 +646,118 @@ ProcessNextR32InString(u8 *Character, char Delimiter, u8 &NumberLength)
         {
             u8 NumberLengthB = 0;
             i32 E10Muliplier = ProcessNextI32InString(Character, Delimiter, NumberLengthB);
+            Character += ++NumberLengthB;
+            NumberLength += NumberLengthB;
+            Result = Result*Pow(10, E10Muliplier);
+        }
+    }
+    Result *= Sign;
+    return Result;
+}
+
+
+inline u32 ProcessNextU32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, u8 &NumberLength)
+{
+    i32 Result = 0;
+    NumberLength  = 0;
+    while(*Character != '\n' && 
+          *Character != '\r' && 
+          *Character != '\0')
+    {
+        b32 Break = false;
+        For(DeliCount) 
+        {
+            Break = *Character == Delimiters[It];
+            if(Break) break;
+        }
+        if(Break) break;
+        
+        Result *= 10;
+        Result += CharToU32(*Character++);
+        NumberLength++;
+    }
+    return Result;
+}
+
+inline i32 ProcessNextI32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, u8 &NumberLength)
+{
+    i32 Sign = (*Character == '-') ? -1 : 1;
+    u8 SignRes  = (Sign == 1) ? 0 : 1;
+    Character += SignRes;
+    i32 Result = ProcessNextU32InString(Character, Delimiters, DeliCount, NumberLength);
+    Result *= Sign;
+    NumberLength += SignRes;
+    return Result;
+}
+
+inline r32 ProcessNextR32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, u8 &NumberLength)
+{
+    r32 Result   = 0;
+    i32 Sign      = (*Character == '-') ? -1 : 1;
+    u8 SignRes  = (Sign == 1) ? 0 : 1;
+    Character      += SignRes;
+    NumberLength    = SignRes;
+    r32 DecimalPoint = 0.1f;
+    b32 HasNoDecimal = false;
+    while(*Character != '.')
+    {
+        b32 Break = false;
+        For(DeliCount) 
+        {
+            Break = *Character == Delimiters[It];
+            if(Break) break;
+        }
+        
+        if(Break || *Character == '\n' || *Character == '\r' || *Character == '\0')
+        {
+            HasNoDecimal = true;
+            break;
+        }
+        Result *= 10;
+        Result += CharToR32(*Character);
+        Character++;
+        NumberLength++;
+    }
+    Character++;
+    NumberLength++;
+    if(!HasNoDecimal)
+    {
+        u32 HasE10Multiplier = false;
+        while(*Character != '\n' && 
+              *Character != '\r' && 
+              *Character != '\0')
+        {
+            b32 Break = false;
+            For(DeliCount) 
+            {
+                Break = *Character == Delimiters[It];
+                if(Break) break;
+            }
+            if(Break) break;
+            
+            if(*Character == 'e' || *Character == 'E')
+            {
+                HasE10Multiplier = true;
+                break;
+            }
+            else
+            {
+                Result += CharToR32(*Character)*DecimalPoint;
+                DecimalPoint *= 0.1f;
+            }
+            Character++;
+            NumberLength++;
+        }
+        if(*Character != '\n' && *Character != '\r')
+        {
+            NumberLength++;
+        }
+        Character++;
+        
+        if(HasE10Multiplier)
+        {
+            u8 NumberLengthB = 0;
+            i32 E10Muliplier = ProcessNextI32InString(Character, Delimiters, DeliCount, NumberLengthB);
             Character += ++NumberLengthB;
             NumberLength += NumberLengthB;
             Result = Result*Pow(10, E10Muliplier);
@@ -890,6 +1012,23 @@ ConvertString16To8(arena_allocator *Arena, wchar_t *In, string_c *Out)
     if(Size > 0)
     {
         *Out = NewStringCompound(Arena, Size);
+        // TODO:: Write your own code for this? 
+        WideCharToMultiByte(CP_UTF8, 0, In, -1, (char *)Out->S, Size, 0, 0);
+        Out->Pos = Size-1;
+        Result = true;
+    }
+    
+    return Result;
+}
+
+inline b32 // Only use with Out parameter already having a appropriate size!
+ConvertString16To8(wchar_t *In, string_c *Out)
+{
+    b32 Result = false;
+    
+    i32 Size = WideCharToMultiByte(CP_UTF8, 0, In, -1, 0, 0, 0, 0);
+    if(Size > 0 && Size <= (i32)Out->Length)
+    {
         // TODO:: Write your own code for this? 
         WideCharToMultiByte(CP_UTF8, 0, In, -1, (char *)Out->S, Size, 0, 0);
         Out->Pos = Size-1;

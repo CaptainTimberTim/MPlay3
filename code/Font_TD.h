@@ -2,11 +2,22 @@
 #ifndef _FONT__T_D_H
 #define _FONT__T_D_H
 
-enum font_size // #Helper
+enum font_size_id // #Helper
 {
     font_Small  = 0,
     font_Medium = 1,
     font_Big    = 2,
+    font_size_id_Size // Needs to be last _always_!
+};
+struct font_size
+{
+    font_size_id ID;
+    r32 Size;
+};
+struct font_sizes
+{
+    font_size Sizes[font_size_id_Size]; // font_size_id should be able to access the font_size with its own ID!
+    u32 Count;
 };
 
 struct font_name_list
@@ -52,8 +63,7 @@ struct font_group
 
 struct font_atlas
 {
-    r32 *FontSizes;
-    u32 SizesCount;
+    font_sizes FontSizes;
     
     i32 HeightOffset;
     
@@ -64,14 +74,14 @@ struct font_atlas
     font_name_list *UsedFontNames;
 };
 
-inline font_atlas NewFontAtlas(struct settings *Settings, r32 *FontSizes, u32 SizesCount);
+inline font_atlas NewFontAtlas(struct settings *Settings, font_sizes FontSizes);
 internal void LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, 
                         u8 *RawFontData, u32 *CodepointsFromGroup, u32 CodepointCount);
-internal void RenderText(struct game_state *GS, arena_allocator *Arena, font_size FontSize, string_c *Text, 
+internal void RenderText(struct game_state *GS, arena_allocator *Arena, font_size_id FontSize, string_c *Text, 
                          v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent = 0, v2 StartP = {});
-inline r32 FontSizeToPixel(font_size FontSize);
 internal u8 GetUTF8Decimal(u8 *S, u32 *Utf8Value);
 internal font_group *GetFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint);
+inline font_size GetFontSize(struct renderer *Renderer, font_size_id ID);
 
 struct raw_font
 {

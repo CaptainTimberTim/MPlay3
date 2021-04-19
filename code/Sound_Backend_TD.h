@@ -46,6 +46,14 @@
 global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
 global_variable u32 CURRENT_LIBRARY_VERSION = 3;
 
+struct column_info
+{
+    struct renderer             *Renderer;
+    struct music_display_info   *DisplayInfo;
+    struct music_display_column *DisplayColumn;
+    struct column_sorting_info  *SortingColumn;
+};
+
 enum column_type
 {
     columnType_None,

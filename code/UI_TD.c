@@ -756,9 +756,9 @@ CreatePopup(renderer *Renderer, arena_allocator *Arena, popup *Result, string_c 
     Result->Anchor = CreateRenderRect(Renderer, V2(0,0), Depth, 0);
     SetActive(Result->Anchor, false);
     
-    RenderText(&GlobalGameState, Arena, FontSize, &Text, &Renderer->ColorPalette->Text, &Result->Text, Depth-0.00001f, 0);
+    RenderText(&GlobalGameState, Arena, FontSize.ID, &Text, &Renderer->ColorPalette->Text, &Result->Text, Depth-0.00001f, 0);
     
-    v2 Size = {Result->Text.CurrentP.x - GetPosition(Result->Text.Base).x, FontSizeToPixel(FontSize)};
+    v2 Size = {Result->Text.CurrentP.x - GetPosition(Result->Text.Base).x, FontSize.Size};
     Result->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth, &Renderer->ColorPalette->SliderGrabThing, Result->Anchor);
     SetLocalPosition(Result->BG, V2(Size.x + 40, -Size.y)/2.0f);
     
@@ -779,9 +779,9 @@ ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c Ne
     b32 TextActive = IsActive(Popup->Text.Base);
     r32 Depth = Popup->Text.Base->ID->Vertice[0].z;
     RemoveRenderText(Renderer, &Popup->Text);
-    RenderText(&GlobalGameState, Arena, FontSize, &NewText, &Renderer->ColorPalette->Text, &Popup->Text, Depth, 0);
+    RenderText(&GlobalGameState, Arena, FontSize.ID, &NewText, &Renderer->ColorPalette->Text, &Popup->Text, Depth, 0);
     
-    v2 Size = {Popup->Text.CurrentP.x - GetPosition(Popup->Text.Base).x, FontSizeToPixel(FontSize)};
+    v2 Size = {Popup->Text.CurrentP.x - GetPosition(Popup->Text.Base).x, FontSize.Size};
     RemoveRenderEntry(Renderer, Popup->BG);
     Popup->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth+0.00001f, 
                                  &Renderer->ColorPalette->SliderGrabThing, Popup->Anchor);

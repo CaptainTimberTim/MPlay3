@@ -1,10 +1,10 @@
 #include "Font_TD.h"
 
 inline font_atlas
-NewFontAtlas(settings *Settings, r32 *FontSizes, u32 SizesCount)
+NewFontAtlas(settings *Settings, font_sizes FontSizes)
 {
     PrepareUnicodeGroupList();
-    font_atlas Result = {FontSizes, SizesCount, Settings->FontHeightOffset, 5, 0, NULL, Settings->CachedFontNames};
+    font_atlas Result = {FontSizes, Settings->FontHeightOffset, 5, 0, NULL, Settings->CachedFontNames};
     return Result;
 }
 
@@ -100,7 +100,7 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         else NewFontGroup->CodepointRange = Group->CodepointRange;
         
         u32 TotalArea = 0;
-        For(Atlas->SizesCount, Size)
+        For(Atlas->FontSizes.Count, Size)
         {
             // Summing all areas of each codepoint we want to load. 
             // For this we assume that the codepoint is a square,
@@ -108,7 +108,7 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
             // few codepoints (like 1) or some special glyphs like 
             // emoticons, thats why we multiply by 2.5. 
             // TODO:: Think of something better that *2.5?
-            TotalArea += Square((i32)(Atlas->FontSizes[SizeIt]*2.5f))*(NewFontGroup->CodepointRange.Count);
+            TotalArea += Square((i32)(Atlas->FontSizes.Sizes[SizeIt].Size*2.5f))*(NewFontGroup->CodepointRange.Count);
         }
         u32 Width  = (u32)Sqrt(TotalArea); // First calc the side for square with correct total area,
         Width      = (Width/8)*8;          // then fit the width to a properly byte aligned length.
@@ -123,16 +123,16 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         stbtt_pack_context PackContext;
         stbtt_PackBegin(&PackContext, AlphaMap, Width, Height, 0, 1, NULL);
         
-        NewFontGroup->FontSizes = AllocateArray(FixArena, Atlas->SizesCount, font_data);
-        NewFontGroup->Count     = Atlas->SizesCount;
-        For(Atlas->SizesCount)
+        NewFontGroup->FontSizes = AllocateArray(FixArena, Atlas->FontSizes.Count, font_data);
+        NewFontGroup->Count     = Atlas->FontSizes.Count;
+        For(Atlas->FontSizes.Count)
         {
-            NewFontGroup->FontSizes[It].Size     = Atlas->FontSizes[It];
+            NewFontGroup->FontSizes[It].Size     = Atlas->FontSizes.Sizes[It].Size;
             NewFontGroup->FontSizes[It].CharData = AllocateArray(FixArena, NewFontGroup->CodepointRange.Count, 
                                                                  stbtt_packedchar);
             
             stbtt_PackSetOversampling(&PackContext, 3, 1);
-            i32 R=stbtt_PackFontRange(&PackContext, RawFontData, 0, Atlas->FontSizes[It], NewFontGroup->CodepointRange.First, NewFontGroup->CodepointRange.Count, NewFontGroup->FontSizes[It].CharData);
+            i32 R=stbtt_PackFontRange(&PackContext, RawFontData, 0, Atlas->FontSizes.Sizes[It].Size, NewFontGroup->CodepointRange.First, NewFontGroup->CodepointRange.Count, NewFontGroup->FontSizes[It].CharData);
             Assert(R != 0); // Most likely the given bitmap is too small.
         }
         stbtt_PackEnd(&PackContext);
@@ -309,7 +309,7 @@ CreateFontEntry(v2 Extends, r32 Depth, u32 BitmapID, v3 *Color, entry_id *Parent
 }
 
 internal void
-RenderText(game_state *GS, arena_allocator *Arena, font_size FontSize, string_c *Text,
+RenderText(game_state *GS, arena_allocator *Arena, font_size_id FontSize, string_c *Text,
            v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP)
 {
     // Create memory if this render_text was not used before
@@ -416,19 +416,6 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size FontSize, string_c 
         It += Advance;
     }
     ResultText->Height = TextHeight;
-}
-
-inline r32 
-FontSizeToPixel(font_size FontSize)
-{
-    switch(FontSize)
-    {
-        case font_Small:  return 24.0f;
-        case font_Medium: return 50.0f;
-        case font_Big:    return 75.0f;
-        InvalidDefaultCase;
-    }
-    return 0.0f;
 }
 
 inline b32
@@ -812,4 +799,11 @@ FindAndPrintFontNameForEveryUnicodeGroup(arena_allocator *Arena, string_c Path)
         PrintAsList2(Arena, Group, FontName);
         ResetMemoryArena(Arena);
     }
+}
+
+inline font_size 
+GetFontSize(struct renderer *Renderer, font_size_id ID)
+{
+    font_size Result = Renderer->FontAtlas.FontSizes.Sizes[ID];
+    return Result;
 }

@@ -201,6 +201,30 @@ struct music_path_ui
     button *Rescan;
 };
 
+struct edge_chain
+{
+    // These arrays are a list of consecutive edges 
+    // that can be dragged and should be pushed by
+    // each other. For now we have only max 3, so
+    // that is the limit. These _need_ to have at
+    // least a length of 1 -as the bordering edge- 
+    // where the dragged edge has its limit.
+#define EDGE_CHAIN_MAX_COUNT 3
+    entry_id *Edges[EDGE_CHAIN_MAX_COUNT];
+    r32     Offsets[EDGE_CHAIN_MAX_COUNT];
+    r32   *XPercent[EDGE_CHAIN_MAX_COUNT-1];
+    u32 Count;
+};
+struct column_edge_drag
+{
+    edge_chain LeftEdgeChain;
+    edge_chain RightEdgeChain;
+    r32 *XPercent;
+    
+    struct music_display_info *DisplayInfo;
+    struct music_sorting_info *SortingInfo;
+};
+
 struct user_error_text
 {
     render_text Message;
@@ -293,7 +317,65 @@ struct music_display_info
     user_error_text UserErrorText;
 };
 
-
+struct layout_definition
+{
+    // General
+    r32 TopBorder     = 50;
+    r32 BottomBorder  = 120;
+    r32 LeftBorder    = 24*4;
+    r32 RightBorder   = 24;
+    
+    // Drag and slide
+    r32 DragEdgeWidth          = 6;
+    r32 HorizontalSliderHeight = 26;
+    r32 VerticalSliderWidth    = 26;
+    r32 HorizontalSliderGrabThingBorder = 3;
+    r32 VerticalSliderGrabThingBorder   = 3;
+    
+    // Slot
+    r32 SlotHeight     = 30;
+    r32 SongSlotHeight = 100;
+    
+    r32 SmallTextLeftBorder = 17;
+    r32 BigTextLeftBorder   = 32;
+    
+    // Font
+    r32 FontSizeSmall  = 24;
+    r32 FontSizeMedium = 50;
+    r32 FontSizeBig    = 75;
+    
+    // Search
+    r32 SearchFieldHeight   = 50*2;
+    
+    // Button sizes
+    r32 SearchButtonExtents = 12;
+    r32 SmallButtonExtents  = 16;
+    r32 MediumButtonExtents = 21;
+    r32 LargeButtonExtents  = 24;
+    r32 PlayPauseButtonExtents = 45;
+    
+    // Button positions
+    r32 TopLeftButtonGroupStartX = 40;
+    r32 TopLeftButtonGroupStepX  = 40;
+    r32 TopLeftButtonGroupY      = 25;
+    
+    r32 ButtonGap        = 5;
+    r32 PlayPauseButtonX = 116;
+    r32 PlayPauseButtonY = 60;
+    
+    r32 StopNextPrevBtnYOffsetFromPlayPause = 20.75f;
+    r32 LoopShuffleBtnYOffsetFromPlayPause  = 24;
+    
+    // Volume slider
+    r32 VolumeGrabThingWidth = 10;
+    
+    // Timeline slider
+    r32 TimelineXGap   = 10;
+    r32 TimelineWidth  = 400;
+    r32 TimelineHeight = 10;
+    r32 TimelineGrapThingWidth  = 10;
+    r32 TimelineGrapThingHeight = 60;
+};
 
 inline void UpdateColumnColor(music_display_column *DisplayColumn, struct column_sorting_info *SortingColumn);
 internal void BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, file_id FileID);

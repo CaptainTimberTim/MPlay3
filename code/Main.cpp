@@ -548,6 +548,9 @@ WinMain(HINSTANCE Instance,
             AddHotKey(Window, Input, KEY_STOP);
             AddHotKey(Window, Input, KEY_NEXT);
             AddHotKey(Window, Input, KEY_PREVIOUS);
+            
+            layout_definition Layout = {};
+            
             // ********************************************
             // Threading***********************************
             // ********************************************
@@ -617,13 +620,14 @@ WinMain(HINSTANCE Instance,
             // FONT stuff *********************************
             // ********************************************
             GetDefaultFontDir(&GameState->FixArena, &GameState->FontPath);
-            r32 FontSizes[] = {
-                FontSizeToPixel(font_Small),
-                FontSizeToPixel(font_Medium),
-                FontSizeToPixel(font_Big),
+            font_sizes FontSizes = {{
+                    {font_Small,  Layout.FontSizeSmall}, 
+                    {font_Medium, Layout.FontSizeMedium}, 
+                    {font_Big,    Layout.FontSizeBig}}, 3
             };
+            
             u32 GroupCodepoints[] = {0x00};//, 0x80};
-            Renderer->FontAtlas = NewFontAtlas(&GameState->Settings, FontSizes, ArrayCount(FontSizes));
+            Renderer->FontAtlas = NewFontAtlas(&GameState->Settings, FontSizes);
             //FindAndPrintFontNameForEveryUnicodeGroup(&GameState->ScratchArena, GameState->FontPath);
             LoadFonts(&GameState->FixArena, &GameState->ScratchArena, &Renderer->FontAtlas,
                       (u8 *)GetUsedFontData(GameState).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
@@ -650,36 +654,33 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
             
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
-            InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info);
+            InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info, &Layout);
             music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
             
-            r32 SlotHeight = 30;
-            r32 DisplayColumnStartY = DisplayInfo->EdgeTop->ID->Vertice[0].y;
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Genre, &SortingInfo->Genre,
-                                columnType_Genre, SlotHeight, -0.025f, DisplayInfo->EdgeLeft,
-                                DisplayInfo->GenreArtist.Edge, 28);
+            column_info GenreColumn  = {Renderer, DisplayInfo, &DisplayInfo->Genre, &SortingInfo->Genre};
+            column_info ArtistColumn = {Renderer, DisplayInfo, &DisplayInfo->Artist, &SortingInfo->Artist};
+            column_info AlbumColumn  = {Renderer, DisplayInfo, &DisplayInfo->Album, &SortingInfo->Album};
+            column_info SongColumn   = {Renderer, DisplayInfo, Parent(&DisplayInfo->Song), &SortingInfo->Song};
+            
+            CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, -0.025f, 
+                                DisplayInfo->EdgeLeft, DisplayInfo->GenreArtist.Edge, &Layout);
+            CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, -0.05f, 
+                                DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, &Layout);
+            CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Album, -0.075f, 
+                                DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, &Layout);
+            CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, -0.1f, 
+                                DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight, &Layout);
+            
             MoveDisplayColumn(Renderer, &DisplayInfo->Genre);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Genre, &DisplayInfo->Genre);
-            
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Artist, &SortingInfo->Artist,
-                                columnType_Artist, SlotHeight, -0.05f, DisplayInfo->GenreArtist.Edge,
-                                DisplayInfo->ArtistAlbum.Edge, 20);
             MoveDisplayColumn(Renderer, &DisplayInfo->Artist);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Artist, &DisplayInfo->Artist);
-            
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Album, &SortingInfo->Album,
-                                columnType_Album, SlotHeight, -0.075f, DisplayInfo->ArtistAlbum.Edge,
-                                DisplayInfo->AlbumSong.Edge, 20);
             MoveDisplayColumn(Renderer, &DisplayInfo->Album);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
-            
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, Parent(&DisplayInfo->Song),
-                                &SortingInfo->Song, columnType_Song, 100.0f, -0.1f, DisplayInfo->AlbumSong.Edge,
-                                DisplayInfo->EdgeRight, 35);
             MoveDisplayColumn(Renderer, &DisplayInfo->Song.Base);
+            
+            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Genre, &DisplayInfo->Genre);
+            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Artist, &DisplayInfo->Artist);
+            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Song, &DisplayInfo->Song.Base);
             
-            //UpdateAllDisplayColumns(GameState);
             
             // ********************************************
             // Dragging************************************
@@ -688,6 +689,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             DragableList->DraggingID = -1;
             
             // Column edges
+            r32 BLeft   = Layout.LeftBorder;
+            r32 BRight  = Layout.RightBorder;
+            r32 BMiddle = Layout.DragEdgeWidth;
+            
             column_edge_drag EdgeGenreArtistDrag = {};
             EdgeGenreArtistDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {40}, {}, 1};
             EdgeGenreArtistDrag.RightEdgeChain = {

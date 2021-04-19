@@ -4,25 +4,18 @@
 //
 // MPlay3Settings
 // Version 5
-// # NOTE 1:: This file is not generally designed for user
-// # editing. This means that random spaces between words
-// # or at the end of lines, or extra lines, will break 
-// # the parsing. But editing values, especially the FontPath
-// # is possible.
 //
-// # NOTE 2:: If you don't want this file and the Library 
+// # NOTE 1:: If you don't want this file and the Library 
 // # file to be in the same directory as the executable, you 
 // # can put them into the '%appdata%\Roaming\MPlay3Data'
 // # folder. If they can be found -by the program- in 
 // # that specific location, it will overwrite them in there.
 //
-// # NOTE 3:: If you want to use a different font than the
+// # NOTE 2:: If you want to use a different font than the
 // # default, you can add it here right behind the 'FontPath'
-// # identifier. Only *.ttf files work! Be careful though, it 
-// # _needs_ to have only one space between the colon and the 
-// # path itself. No quotation marks are needed as well.
-// # With FontHeightOffset the vertical position of the text
-// # can be adjusted (only integers allowed).
+// # identifier. Only *.ttf files work! With FontHeightOffset 
+// # the vertical position of the text can be adjusted 
+// # (only integers allowed).
 //
 // FontPath: <Path/to/font>
 // FontHeightOffset: <0>
@@ -356,12 +349,10 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
     I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
-    // TODO:: Parsing is better now. Spaces and newlines, even reordering is possible, but will be nuked!
-    AppendStringToCompound(&SaveData, (u8 *) "\n# NOTE 1:: This file is not generally designed for user\n# editing. This means that random spaces between words\n# or at the end of lines, or extra lines, will break\n# the parsing. But editing values, especially the FontPath\n# is possible.\n\n");
     
-    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
+    AppendStringToCompound(&SaveData, (u8 *) "\n\n# NOTE 1:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
     
-    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 3:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! Be careful though, it\n# _needs_ to have only one space between the colon and the\n# path itself. No quotation marks are needed as well.\n# With FontHeightOffset the vertical position of the text\n# can be adjusted (only integers allowed).\n\n");
+    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! With FontHeightOffset\n# the vertical position of the text can be adjusted\n# (only integers allowed).\n\n");
     
     NewLocalString(FontPath,        280, "FontPath: ");
     NewLocalString(FileFontOffset,   50, "FontHeightOffset: ");
@@ -395,10 +386,13 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     ConcatStringCompounds(26, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames);
     
     // Save out used font names
-    For(Settings->CachedFontNames->Count)
+    if(Settings->CachedFontNames)
     {
-        AppendStringCompoundToCompound(&SaveData, Settings->CachedFontNames->Names+It);
-        AppendCharToCompound(&SaveData, '|');
+        For(Settings->CachedFontNames->Count)
+        {
+            AppendStringCompoundToCompound(&SaveData, Settings->CachedFontNames->Names+It);
+            AppendCharToCompound(&SaveData, '|');
+        }
     }
     AppendCharToCompound(&SaveData, '\n');
     

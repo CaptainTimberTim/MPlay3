@@ -350,4 +350,6 @@ MigrationBackup/
 .ionide/
 
 # compilation profiling files
-.etl
+*.etl
+
+*.mp3

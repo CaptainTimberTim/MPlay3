@@ -166,7 +166,9 @@
 - Fixed crash when rescanning and adding new file, then playing it. Forgot to set the TimeDuration string to anything.
 - Added search for artist and album in song column (it just searches all three simultanioausly at this point in time).
 
-
+19.04.2021
+- Added the ability to cascade drag the columns, meaning that a currently dragged edge is not constraint by its direct 
+  neighbourhs, instead it can push them aside if the window edge is not reached.
 
 
 

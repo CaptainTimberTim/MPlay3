@@ -18,11 +18,11 @@ FontHeightOffset: 0
 Volume: 0.437500
 LastPlayingSong: 6879
 ColorPalette: 4
-GenreArtistEdgeXPercent: 0.200000
-ArtistAlbumEdgeXPercent: 0.400000
-AlbumSongEdgeXPercent: 0.600000
+GenreArtistEdgeXPercent: 0.103851
+ArtistAlbumEdgeXPercent: 0.306884
+AlbumSongEdgeXPercent: 0.606184
 WindowDimensionX: 1730
 WindowDimensionY: 1078
 Looping: 0
 Shuffle: 1
-UsedFontCache: 
+UsedFontCache: kaiu.ttf|

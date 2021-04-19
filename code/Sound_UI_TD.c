@@ -1197,14 +1197,27 @@ ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo,
     SetActive(DisplayColumn->Search.Button, (Renderer->Window.CurrentDim.Height > (GlobalMinWindowHeight + 15)));
 }
 
+struct edge_chain
+{
+    // These arrays are a list of consecutive edges 
+    // that can be dragged and should be pushed by
+    // each other. For now we have only max 3, so
+    // that is the limit. These _need_ to have at
+    // least a length of 1 -as the bordering edge- 
+    // where the dragged edge has its limit.
+#define EDGE_CHAIN_MAX_COUNT 3
+    entry_id *Edges[EDGE_CHAIN_MAX_COUNT];
+    r32     Offsets[EDGE_CHAIN_MAX_COUNT];
+    r32   *XPercent[EDGE_CHAIN_MAX_COUNT-1];
+    u32 Count;
+};
+
 struct column_edge_drag
 {
-    entry_id *LeftEdge;
-    r32 LeftOffset;
-    entry_id *RightEdge;
-    r32 RightOffset;
-    
+    edge_chain LeftEdgeChain;
+    edge_chain RightEdgeChain;
     r32 *XPercent;
+    
     music_display_info *DisplayInfo;
     music_sorting_info *SortingInfo;
 };
@@ -1213,12 +1226,59 @@ internal void
 OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
     column_edge_drag *Info = (column_edge_drag *)Data;
-    AdjustedMouseP.x = Clamp(AdjustedMouseP.x, 
-                             GetLocalPosition(Info->LeftEdge).x + Info->LeftOffset, 
-                             GetLocalPosition(Info->RightEdge).x - Info->RightOffset);
     
-    SetLocalPosition(Dragable, V2(AdjustedMouseP.x, GetLocalPosition(Dragable).y));
+    edge_chain *LeftChain  = &Info->LeftEdgeChain;
+    edge_chain *RightChain = &Info->RightEdgeChain;
+    Assert(LeftChain->Count  > 0); // A 'border' edge is required for 
+    Assert(RightChain->Count > 0); // both sides.
+    
+    // These are the max distances the Dragable edge 
+    // can go in both directions.
+    r32 TotalLeftOffset = 0;
+    r32 TotalRightOffset = 0;
+    For(LeftChain->Count)  TotalLeftOffset  += LeftChain->Offsets[It];
+    For(RightChain->Count) TotalRightOffset += RightChain->Offsets[It];
+    
+    // Constraining the dragged edge to the max and min, 
+    // then setting its position and current percentage, 
+    // which is needed when resizing the window.
+    r32 NewDragX = Clamp(AdjustedMouseP.x, 
+                         GetLocalPosition(LeftChain->Edges[ LeftChain->Count -1]).x + TotalLeftOffset, 
+                         GetLocalPosition(RightChain->Edges[RightChain->Count-1]).x - TotalRightOffset);
+    SetLocalPosition(Dragable, V2(NewDragX, GetLocalPosition(Dragable).y));
     *Info->XPercent = GetPosition(Dragable).x/(r32)Renderer->Window.CurrentDim.Width;
+    
+    // Constrain all following left side edges that
+    // might need to be constrained.
+    r32 RightSideP = NewDragX;
+    For(LeftChain->Count-1)
+    {
+        v2  OldP = GetLocalPosition(LeftChain->Edges[It]);
+        
+        TotalLeftOffset -= LeftChain->Offsets[It];
+        r32 NewX = Clamp(OldP.x, GetLocalPosition(LeftChain->Edges[LeftChain->Count - 1]).x + TotalLeftOffset, 
+                         RightSideP - 30);
+        SetLocalPosition(LeftChain->Edges[It], V2(NewX, OldP.y));
+        *LeftChain->XPercent[It] = GetPosition(LeftChain->Edges[It]).x/(r32)Renderer->Window.CurrentDim.Width;
+        
+        RightSideP = NewX;
+    }
+    
+    // Constrain all following right side edges that
+    // might need to be constrained.
+    r32 LeftSideP = NewDragX;
+    For(RightChain->Count-1)
+    {
+        v2  OldP      = GetLocalPosition(RightChain->Edges[It]);
+        
+        TotalRightOffset -= RightChain->Offsets[It];
+        r32 NewX = Clamp(OldP.x, LeftSideP + 30, 
+                         GetLocalPosition(RightChain->Edges[RightChain->Count - 1]).x - TotalRightOffset);
+        SetLocalPosition(RightChain->Edges[It], V2(NewX, OldP.y));
+        *RightChain->XPercent[It] = GetPosition(RightChain->Edges[It]).x/(r32)Renderer->Window.CurrentDim.Width;
+        
+        LeftSideP = NewX;
+    }
     
     FitDisplayColumnIntoSlot(Renderer, &Info->DisplayInfo->Genre, &Info->SortingInfo->Genre);
     FitDisplayColumnIntoSlot(Renderer, &Info->DisplayInfo->Artist, &Info->SortingInfo->Artist);

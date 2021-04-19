@@ -688,16 +688,36 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             DragableList->DraggingID = -1;
             
             // Column edges
-            column_edge_drag EdgeGenreArtistDrag = {DisplayInfo->EdgeLeft, 40, DisplayInfo->ArtistAlbum.Edge, 30, 
-                &DisplayInfo->GenreArtist.XPercent, DisplayInfo, SortingInfo};
+            column_edge_drag EdgeGenreArtistDrag = {};
+            EdgeGenreArtistDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {40}, {}, 1};
+            EdgeGenreArtistDrag.RightEdgeChain = {
+                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
+                {30, 30, 40}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3};
+            EdgeGenreArtistDrag.XPercent       = &DisplayInfo->GenreArtist.XPercent;
+            EdgeGenreArtistDrag.DisplayInfo    = DisplayInfo;
+            EdgeGenreArtistDrag.SortingInfo    = SortingInfo;
             AddDragable(DragableList, DisplayInfo->GenreArtist.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeGenreArtistDrag}, {});
             
-            column_edge_drag EdgeArtistAlbumDrag = {DisplayInfo->GenreArtist.Edge, 30, DisplayInfo->AlbumSong.Edge, 30, 
-                &DisplayInfo->ArtistAlbum.XPercent, DisplayInfo, SortingInfo};
+            column_edge_drag EdgeArtistAlbumDrag = {};
+            EdgeArtistAlbumDrag.LeftEdgeChain  = {
+                {DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, {30, 40}, 
+                {&DisplayInfo->GenreArtist.XPercent}, 2};
+            EdgeArtistAlbumDrag.RightEdgeChain = {
+                {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, {30, 40},
+                {&DisplayInfo->AlbumSong.XPercent}, 2};
+            EdgeArtistAlbumDrag.XPercent       = &DisplayInfo->ArtistAlbum.XPercent;
+            EdgeArtistAlbumDrag.DisplayInfo    = DisplayInfo;
+            EdgeArtistAlbumDrag.SortingInfo    = SortingInfo;
             AddDragable(DragableList, DisplayInfo->ArtistAlbum.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeArtistAlbumDrag}, {});
             
-            column_edge_drag EdgeAlbumSongDrag = {DisplayInfo->ArtistAlbum.Edge, 30, DisplayInfo->EdgeRight, 40, 
-                &DisplayInfo->AlbumSong.XPercent, DisplayInfo, SortingInfo};
+            column_edge_drag EdgeAlbumSongDrag = {};
+            EdgeAlbumSongDrag.LeftEdgeChain  = {
+                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, 
+                {30, 30, 40}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent}, 3};
+            EdgeAlbumSongDrag.RightEdgeChain = {{DisplayInfo->EdgeRight}, {40}, {}, 1};
+            EdgeAlbumSongDrag.XPercent       = &DisplayInfo->AlbumSong.XPercent;
+            EdgeAlbumSongDrag.DisplayInfo    = DisplayInfo;
+            EdgeAlbumSongDrag.SortingInfo    = SortingInfo;
             AddDragable(DragableList, DisplayInfo->AlbumSong.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeAlbumSongDrag}, {});
             
             // Sliders

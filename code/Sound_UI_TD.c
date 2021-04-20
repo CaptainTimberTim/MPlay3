@@ -1217,7 +1217,7 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
     
     // These are the max distances the Dragable edge 
     // can go in both directions.
-    r32 TotalLeftOffset = 0;
+    r32 TotalLeftOffset  = 0;
     r32 TotalRightOffset = 0;
     For(LeftChain->Count)  TotalLeftOffset  += LeftChain->Offsets[It];
     For(RightChain->Count) TotalRightOffset += RightChain->Offsets[It];
@@ -1240,7 +1240,7 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
         
         TotalLeftOffset -= LeftChain->Offsets[It];
         r32 NewX = Clamp(OldP.x, GetLocalPosition(LeftChain->Edges[LeftChain->Count - 1]).x + TotalLeftOffset, 
-                         RightSideP - 30);
+                         RightSideP - LeftChain->Offsets[It]);
         SetLocalPosition(LeftChain->Edges[It], V2(NewX, OldP.y));
         *LeftChain->XPercent[It] = GetPosition(LeftChain->Edges[It]).x/(r32)Renderer->Window.CurrentDim.Width;
         
@@ -1255,7 +1255,7 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
         v2  OldP      = GetLocalPosition(RightChain->Edges[It]);
         
         TotalRightOffset -= RightChain->Offsets[It];
-        r32 NewX = Clamp(OldP.x, LeftSideP + 30, 
+        r32 NewX = Clamp(OldP.x, LeftSideP + RightChain->Offsets[It], 
                          GetLocalPosition(RightChain->Edges[RightChain->Count - 1]).x - TotalRightOffset);
         SetLocalPosition(RightChain->Edges[It], V2(NewX, OldP.y));
         *RightChain->XPercent[It] = GetPosition(RightChain->Edges[It]).x/(r32)Renderer->Window.CurrentDim.Width;
@@ -1890,7 +1890,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
 #endif
     
     r32 BtnDepth         = -0.6f;
-    v2 PlayPauseP        = V2(Layout->PlayPauseButtonX, Layout->PlayPauseButtonY);
+    v2  PlayPauseP       = V2(Layout->PlayPauseButtonX, Layout->PlayPauseButtonY);
     r32 ButtonUpperLeftX = Layout->TopLeftButtonGroupStartX;
     r32 StepX            = Layout->TopLeftButtonGroupStepX;
     r32 Gap              = Layout->ButtonGap;
@@ -1931,14 +1931,14 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->ShufflePlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
                                              RandomizeID, Renderer->ButtonColors, 0, RandomizePressedID);
     SetLocalPosition(DisplayInfo->ShufflePlaylist, V2(PlayPauseP.x - (PlayPauseS+MediumRectS+Gap), 
-                                                      PlayPauseP.y + LSBtnYOffset));
+                                                      PlayPauseP.y + LSBtnYOffset - (MediumRectS*2 + Gap)));
     DisplayInfo->ShufflePlaylist->OnPressed = {OnShufflePlaylistToggleOn, &DisplayInfo->MusicBtnInfo};
     DisplayInfo->ShufflePlaylist->OnPressedToggleOff = {OnShufflePlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
     DisplayInfo->LoopPlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, 
                                           Renderer->ButtonBaseID, LoopID, Renderer->ButtonColors, 0, LoopPressedID);
     SetLocalPosition(DisplayInfo->LoopPlaylist, V2(PlayPauseP.x - (PlayPauseS+MediumRectS+Gap), 
-                                                   PlayPauseP.y + LSBtnYOffset - (MediumRectS*2 + Gap)));
+                                                   PlayPauseP.y + LSBtnYOffset));
     DisplayInfo->LoopPlaylist->OnPressed = {OnLoopPlaylistToggleOn,  &DisplayInfo->MusicBtnInfo};
     DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
     
@@ -2017,45 +2017,48 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Icon, fixedTo_TopLeft);
     MusicPath->Button->OnPressed = {OnMusicPathPressed, &DisplayInfo->MusicBtnInfo};
     
+    entry_id *PathParent = CreateRenderRect(Renderer, V2(0), 0, 0, 0);
+    PathParent->ID->Render = false;
+    Translate(PathParent, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
+    TranslateWithScreen(&Renderer->TransformList, PathParent, fixedTo_FixYToGiven_XLeft, Layout->MusicPathHeightScaler);
     
-    
-    entry_id *Parent = CreateRenderRect(Renderer, V2(0), 0, 0, 0);
-    Parent->ID->Render = false;
-    Translate(Parent, V2(WWidth/2.0f, WHeight - 200));
-    TranslateWithScreen(&Renderer->TransformList, Parent, fixedTo_FixYToGiven_XLeft, 0.86f);
-    
-    MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, V2(WWidth-WWidth*0.1f, 50), BtnDepth-0.001f,
+    r32 TextFieldHeight = Layout->MusicPathTextFieldHeight;
+    MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, 
+                                           V2(WWidth-WWidth*0.1f, TextFieldHeight), BtnDepth-0.001f,
                                            (u8 *)"New Path...", 0, &DisplayInfo->ColorPalette.Text, 
                                            &DisplayInfo->ColorPalette.ButtonActive);
-    Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - 200));
+    Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
     MusicPath->TextField.DoMouseHover = false;
-    TransformWithScreen(&Renderer->TransformList, MusicPath->TextField.Background, fixedTo_FixYToGiven_XCenter, scaleAxis_X, 0.86f);
-    MusicPath->TextField.LeftAlign->ID->Parent = Parent;
+    TransformWithScreen(&Renderer->TransformList, MusicPath->TextField.Background, fixedTo_FixYToGiven_XCenter, 
+                        scaleAxis_X, Layout->MusicPathHeightScaler);
+    MusicPath->TextField.LeftAlign->ID->Parent = PathParent;
     
     MusicPath->Background = CreateRenderRect(Renderer, V2(WWidth, WHeight), BtnDepth-0.0009f, 
                                              &DisplayInfo->ColorPalette.Foreground, 0);
     Translate(MusicPath->Background, V2(WWidth/2.0f, WHeight/2.0f));
     TransformWithScreen(&Renderer->TransformList, MusicPath->Background, fixedTo_MiddleCenter, scaleAxis_XY);
-    SetTransparency(MusicPath->Background, 0.75f);
+    SetTransparency(MusicPath->Background, Layout->MusicPathBGTransparency);
     MusicPath->Background->ID->Render = false;
     
     MusicPath->Save = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
                                 Renderer->ButtonBaseID, ConfirmID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    Translate(MusicPath->Save, V2(MediumRectS, -MediumRectS -44));
+    Translate(MusicPath->Save, V2(MediumRectS, -MediumRectS - TextFieldHeight/2.0f - Layout->MusicPathButtonYOffset));
     MusicPath->Save->OnPressed = {OnMusicPathSavePressed, &DisplayInfo->MusicBtnInfo};
     SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
     
     MusicPath->Quit = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
                                 Renderer->ButtonBaseID, CancelID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    Translate(MusicPath->Quit, V2(MediumRectS*3+10, -MediumRectS -25 -19));
+    Translate(MusicPath->Quit, V2(MediumRectS*3+Layout->MusicPathButtonGap, 
+                                  -MediumRectS - TextFieldHeight/2.0f - Layout->MusicPathButtonYOffset));
     MusicPath->Quit->OnPressed = {OnMusicPathQuitPressed, &DisplayInfo->MusicBtnInfo};
     SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
+    
     MusicPath->OutputString = NewStringCompound(&GameState->FixArena, 500);
     
-    v2 LoadingBarSize = V2(WWidth-WWidth*0.1f, 40);
-    MusicPath->LoadingBar = CreateLoadingBar(LoadingBarSize, BtnDepth-0.0011f, 
-                                             MusicPath->TextField.Background);
-    SetLocalPosition(&MusicPath->LoadingBar, V2(0, -LoadingBarSize.y*0.5f - MediumRectS*2 -25 -19*2));
+    v2 LoadingBarSize = V2(WWidth-WWidth*0.1f, Layout->MusicPathLoadingBarHeight);
+    MusicPath->LoadingBar = CreateLoadingBar(LoadingBarSize, BtnDepth-0.0011f, MusicPath->TextField.Background);
+    SetLocalPosition(&MusicPath->LoadingBar, V2(0, -LoadingBarSize.y*0.5f - MediumRectS*2 - TextFieldHeight/2.0f - 
+                                                Layout->MusicPathButtonYOffset*2));
     ScaleWithScreen(&Renderer->TransformList, MusicPath->LoadingBar.BG, scaleAxis_X);
     SetActive(&MusicPath->LoadingBar, false);
     
@@ -2063,20 +2066,19 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     MusicPath->Rescan = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, Renderer->ButtonBaseID, 
                                   RescanID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    Translate(MusicPath->Rescan, V2(204, 55));
+    Translate(MusicPath->Rescan, V2(Layout->RescanButtonXOffset, Layout->RescanButtonYOffset));
     SetActive(MusicPath->Rescan, false);
     MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
     
     // Quit curtain ****************************
-    //string_c QuitText = NewStaticStringCompound("Goodbye!");
     string_c QuitText = NewStaticStringCompound("Goodbye!");
-    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, 0.8f);
+    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime);
     
     
     // User error text *************************************
     user_error_text *UserErrorText = &DisplayInfo->UserErrorText;
     
-    UserErrorText->AnimTime = 2.5f;
+    UserErrorText->AnimTime = Layout->ErrorTextAnimationTime;
     UserErrorText->dAnim = 1.0f;
 }
 
@@ -2084,34 +2086,35 @@ internal void
 CreateShortcutPopups(music_display_info *DisplayInfo)
 {
     shortcut_popups *Popups = &DisplayInfo->Popups;
-    Popups->PaletteSwap = NewStaticStringCompound("Swap color palette. [F11]");
-    Popups->ColorPicker = NewStaticStringCompound("Modify and create new color palette.");
-    Popups->MusicPath = NewStaticStringCompound("Change path to music folder or rescan metadata.");
-    Popups->SongPlay = NewStaticStringCompound("Start playing this song.");
+    
+    Popups->SearchGenre     = NewStaticStringCompound("Search genres by name. [F1]");
+    Popups->SearchArtist    = NewStaticStringCompound("Search artists by name. [F2]");
+    Popups->SearchAlbum     = NewStaticStringCompound("Search albums by name. [F3]");
+    Popups->SearchSong      = NewStaticStringCompound("Search songs by name. [F4]");
+    Popups->Help            = NewStaticStringCompound("If active, shows tooltip-popups for various UI-Elements. [F5]");
+    Popups->PaletteSwap     = NewStaticStringCompound("Swap color palette. [F6]");
+    Popups->ColorPicker     = NewStaticStringCompound("Modify and create new color palette. [F7]");
+    Popups->MusicPath       = NewStaticStringCompound("Change path to music folder or rescan metadata. [F8]");
+    Popups->SongPlay        = NewStaticStringCompound("Start playing this song.");
     Popups->SongAddToNextUp = NewStaticStringCompound("Add this song to the \"Play Next\" list.");
-    Popups->SearchGenre = NewStaticStringCompound("Search genres by name. [F1]");
-    Popups->SearchArtist = NewStaticStringCompound("Search artists by name. [F2]");
-    Popups->SearchAlbum = NewStaticStringCompound("Search albums by name. [F3]");
-    Popups->SearchSong = NewStaticStringCompound("Search songs by name. [F4]");
-    Popups->Loop = NewStaticStringCompound("If active, loops current song list.");
-    Popups->Shuffle = NewStaticStringCompound("If active, shuffles current song list.");
-    Popups->PlayPause = NewStaticStringCompound("Start and pause the currently playing song. [Space]");
-    Popups->Stop = NewStaticStringCompound("Stop the currently playing song (jumps to start of song).");
-    Popups->Previous = NewStaticStringCompound("Jumps to start of the song, or to the previous song if already at the beginning.");
-    Popups->Next = NewStaticStringCompound("Jumps to the next song.");
-    Popups->Volume = NewStaticStringCompound("Regulate the volume of the music. [+/-]");
-    Popups->Timeline = NewStaticStringCompound("Shows the progress of the song.");
-    Popups->Help = NewStaticStringCompound("If active, shows tooltip-popups for various UI-Elements.");
-    Popups->Quit = NewStaticStringCompound("Hold or double tap [Escape] to quit application.");
+    Popups->Loop            = NewStaticStringCompound("If active, loops current song list.");
+    Popups->Shuffle         = NewStaticStringCompound("If active, shuffles current song list.");
+    Popups->PlayPause       = NewStaticStringCompound("Start and pause the currently playing song. [Space]");
+    Popups->Stop            = NewStaticStringCompound("Stop the currently playing song (jumps to start of song).");
+    Popups->Previous        = NewStaticStringCompound("Jumps to start of the song, or to the previous song if already at the beginning.");
+    Popups->Next            = NewStaticStringCompound("Jumps to the next song.");
+    Popups->Volume          = NewStaticStringCompound("Regulate the volume of the music. [+/-]");
+    Popups->Timeline        = NewStaticStringCompound("Shows the progress of the song.");
+    Popups->Quit            = NewStaticStringCompound("Hold or double tap [Escape] to quit application.");
     
-    Popups->SaveMusicPath = NewStaticStringCompound("Starts using the given path and searches for .mp3 files.");
+    Popups->SaveMusicPath   = NewStaticStringCompound("Starts using the given path and searches for .mp3 files.");
     Popups->CancelMusicPath = NewStaticStringCompound("Quits the Music Path menu. [Escape].");
-    Popups->RescanMetadata = NewStaticStringCompound("Rescans the music folder and recollects all metadata.");
+    Popups->RescanMetadata  = NewStaticStringCompound("Rescans the music folder and recollects all metadata.");
     
-    Popups->SavePalette = NewStaticStringCompound("Saves the changes of the current palette (only for custom palettes).");
-    Popups->CopyPalette = NewStaticStringCompound("Copies the current palette and immidiately switches to it.");
-    Popups->DeletePalette = NewStaticStringCompound("Deletes the current palette (only for custom palettes).");
-    Popups->CancelPicker = NewStaticStringCompound("Quits the color-picker.");
+    Popups->SavePalette     = NewStaticStringCompound("Saves the changes of the current palette (only for custom palettes).");
+    Popups->CopyPalette     = NewStaticStringCompound("Copies the current palette and immidiately switches to it.");
+    Popups->DeletePalette   = NewStaticStringCompound("Deletes the current palette (only for custom palettes).");
+    Popups->CancelPicker    = NewStaticStringCompound("Quits the color-picker.");
     
     CreatePopup(&GlobalGameState.Renderer, &GlobalGameState.FixArena, &Popups->Popup, Popups->Help, 
                 GetFontSize(&GlobalGameState.Renderer, font_Medium), -0.99f, 0.05f);

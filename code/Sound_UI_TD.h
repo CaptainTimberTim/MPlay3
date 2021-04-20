@@ -326,7 +326,7 @@ struct layout_definition
     r32 RightBorder   = 24;
     
     // Drag and slide
-    r32 DragEdgeWidth          = 6;
+    r32 DragEdgeWidth          = 8;
     r32 HorizontalSliderHeight = 26;
     r32 VerticalSliderWidth    = 26;
     r32 HorizontalSliderGrabThingBorder = 3;
@@ -335,6 +335,7 @@ struct layout_definition
     // Slot
     r32 SlotHeight     = 30;
     r32 SongSlotHeight = 100;
+    // r32 SlotGap = ?;
     
     r32 SmallTextLeftBorder = 17;
     r32 BigTextLeftBorder   = 32;
@@ -345,13 +346,13 @@ struct layout_definition
     r32 FontSizeBig    = 75;
     
     // Search
-    r32 SearchFieldHeight   = 50*2;
+    r32 SearchFieldHeight   = 50;
     
     // Button sizes
-    r32 SearchButtonExtents = 12;
-    r32 SmallButtonExtents  = 16;
-    r32 MediumButtonExtents = 21;
-    r32 LargeButtonExtents  = 24;
+    r32 SearchButtonExtents    = 12;
+    r32 SmallButtonExtents     = 16;
+    r32 MediumButtonExtents    = 21;
+    r32 LargeButtonExtents     = 24;
     r32 PlayPauseButtonExtents = 45;
     
     // Button positions
@@ -375,6 +376,23 @@ struct layout_definition
     r32 TimelineHeight = 10;
     r32 TimelineGrapThingWidth  = 10;
     r32 TimelineGrapThingHeight = 60;
+    
+    // Music path
+    r32 MusicPathHeightOffset     = 200;
+    r32 MusicPathHeightScaler     = 0.86f; // 0..1
+    r32 MusicPathTextFieldHeight  = 50;
+    r32 MusicPathBGTransparency   = 0.75f;
+    r32 MusicPathButtonYOffset    = 19;
+    r32 MusicPathButtonGap        = 10;
+    r32 MusicPathLoadingBarHeight = 40;
+    r32 RescanButtonXOffset       = 204;
+    r32 RescanButtonYOffset       = 55;
+    
+    // QuitCurtain
+    r32 QuitCurtainAnimationTime  = 1.2f;
+    
+    // User error text
+    r32 ErrorTextAnimationTime    = 2.5f;
 };
 
 inline void UpdateColumnColor(music_display_column *DisplayColumn, struct column_sorting_info *SortingColumn);

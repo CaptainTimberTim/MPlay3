@@ -15,14 +15,14 @@ Version 6
 
 FontPath: 
 FontHeightOffset: 0
-Volume: 0.666667
+Volume: 0.250000
 LastPlayingSong: -1
 ColorPalette: 4
-GenreArtistEdgeXPercent: 0.206534
-ArtistAlbumEdgeXPercent: 0.500583
-AlbumSongEdgeXPercent: 0.733956
-WindowDimensionX: 1730
-WindowDimensionY: 1078
+GenreArtistEdgeXPercent: 0.233518
+ArtistAlbumEdgeXPercent: 0.444239
+AlbumSongEdgeXPercent: 0.692545
+WindowDimensionX: 1639
+WindowDimensionY: 895
 Looping: 0
-Shuffle: 0
+Shuffle: 1
 UsedFontCache: kaiu.ttf|

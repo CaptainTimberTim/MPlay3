@@ -640,7 +640,7 @@ CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 
     Translate(Result->Curtain, Size/2.0f);
     SetActive(Result->Curtain, false);
     Result->dAnim = 0;
-    Result->Time = AnimationTime;
+    Result->Time = AnimationTime/2; // TODO:: Find out why it takes double the time!
     
     RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Big, ClosingText, &DisplayInfo->ColorPalette.Text, 
                &Result->Text, -0.995f, 0);

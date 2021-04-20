@@ -689,15 +689,15 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             DragableList->DraggingID = -1;
             
             // Column edges
-            r32 BLeft   = Layout.LeftBorder;
-            r32 BRight  = Layout.RightBorder;
-            r32 BMiddle = Layout.DragEdgeWidth;
+            r32 BLeft   = GetExtends(DisplayInfo->EdgeLeft).x  + Layout.DragEdgeWidth/2 + Layout.VerticalSliderWidth;
+            r32 BRight  = GetExtends(DisplayInfo->EdgeRight).x + Layout.DragEdgeWidth/2 + Layout.VerticalSliderWidth;
+            r32 BMiddle = Layout.DragEdgeWidth + Layout.VerticalSliderWidth;
             
             column_edge_drag EdgeGenreArtistDrag = {};
-            EdgeGenreArtistDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {40}, {}, 1};
+            EdgeGenreArtistDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {BLeft}, {}, 1};
             EdgeGenreArtistDrag.RightEdgeChain = {
                 {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-                {30, 30, 40}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3};
+                {BMiddle, BMiddle, BRight}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3};
             EdgeGenreArtistDrag.XPercent       = &DisplayInfo->GenreArtist.XPercent;
             EdgeGenreArtistDrag.DisplayInfo    = DisplayInfo;
             EdgeGenreArtistDrag.SortingInfo    = SortingInfo;
@@ -705,10 +705,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             
             column_edge_drag EdgeArtistAlbumDrag = {};
             EdgeArtistAlbumDrag.LeftEdgeChain  = {
-                {DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, {30, 40}, 
+                {DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, {BMiddle, BLeft}, 
                 {&DisplayInfo->GenreArtist.XPercent}, 2};
             EdgeArtistAlbumDrag.RightEdgeChain = {
-                {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, {30, 40},
+                {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, {BMiddle, BRight},
                 {&DisplayInfo->AlbumSong.XPercent}, 2};
             EdgeArtistAlbumDrag.XPercent       = &DisplayInfo->ArtistAlbum.XPercent;
             EdgeArtistAlbumDrag.DisplayInfo    = DisplayInfo;
@@ -718,8 +718,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             column_edge_drag EdgeAlbumSongDrag = {};
             EdgeAlbumSongDrag.LeftEdgeChain  = {
                 {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, 
-                {30, 30, 40}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent}, 3};
-            EdgeAlbumSongDrag.RightEdgeChain = {{DisplayInfo->EdgeRight}, {40}, {}, 1};
+                {BMiddle, BMiddle, BLeft}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent}, 3};
+            EdgeAlbumSongDrag.RightEdgeChain = {{DisplayInfo->EdgeRight}, {BRight}, {}, 1};
             EdgeAlbumSongDrag.XPercent       = &DisplayInfo->AlbumSong.XPercent;
             EdgeAlbumSongDrag.DisplayInfo    = DisplayInfo;
             EdgeAlbumSongDrag.SortingInfo    = SortingInfo;
@@ -924,6 +924,27 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     }
                 }
                 
+                if(Input->KeyChange[KEY_F5] == KeyDown) 
+                {
+                    if(DisplayInfo->Popups.IsActive) OnShortcutHelpOff(&DisplayInfo->Popups);
+                    else OnShortcutHelpOn(&DisplayInfo->Popups);
+                    ToggleButtonVisuals(DisplayInfo->Help, DisplayInfo->Popups.IsActive);
+                }
+                if(Input->KeyChange[KEY_F6] == KeyDown) UpdateColorPalette(DisplayInfo, true);
+                if(Input->KeyChange[KEY_F7] == KeyDown) 
+                {
+                    if(ColorPicker->IsActive) OnCancelColorPicker(ColorPicker);
+                    else OnColorPicker(ColorPicker);
+                }
+                if(Input->KeyChange[KEY_F8] == KeyDown) 
+                {
+                    if(DisplayInfo->MusicPath.TextField.IsActive) 
+                    {
+                        if(!CrawlInfoOut.ThreadIsRunning) OnMusicPathQuitPressed(&DisplayInfo->MusicBtnInfo);
+                    }
+                    else OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
+                }
+                
                 if(DisplayInfo->MusicPath.TextField.IsActive)
                 {
                     HandleActiveMusicPath(DisplayInfo, Input, &CrawlInfoOut);
@@ -972,9 +993,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                     }
                     
-                    if(Input->KeyChange[KEY_F9] == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
+                    if(Input->KeyChange[KEY_F9]  == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
+                    if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
-                    if(Input->KeyChange[KEY_F11] == KeyDown) UpdateColorPalette(DisplayInfo, true);
                     
                     if(ColorPicker->IsActive)
                     {
@@ -990,7 +1011,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
                             if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
                         }
-                        if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
+                        
                         // ******************
                         
                         TestHoveringEdgeDrags(GameState, Input->MouseP, DisplayInfo);

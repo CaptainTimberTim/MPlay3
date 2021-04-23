@@ -328,6 +328,7 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
                                         TextColor, Result.Background);
     SetLocalPosition(Result.LeftAlign, V2(-(Size.x-4)/2.0f, 0));
     
+    // @Layout
     Result.Cursor = CreateRenderRect(Renderer, V2(2, 35), 
                                      Result.ZValue-0.001f, Result.TextColor,
                                      Result.LeftAlign);
@@ -366,7 +367,7 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
     RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &TextField->TextString, 
                TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
     Translate(&TextField->Text, V2(12, 10));
-    SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0));
+    SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0)); // @Layout
     
     if(TextField->TextString.Pos == 0)
     {
@@ -783,6 +784,7 @@ ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c Ne
     
     v2 Size = {Popup->Text.CurrentP.x - GetPosition(Popup->Text.Base).x, FontSize.Size};
     RemoveRenderEntry(Renderer, Popup->BG);
+    // @Layout
     Popup->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth+0.00001f, 
                                  &Renderer->ColorPalette->SliderGrabThing, Popup->Anchor);
     SetLocalPosition(Popup->BG, V2(Size.x + 40, -Size.y)/2.0f);

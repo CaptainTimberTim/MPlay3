@@ -469,7 +469,7 @@ ApplySettings(game_state *GameState, settings Settings)
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Artist, &MusicInfo->SortingInfo.Artist);
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Album, &MusicInfo->SortingInfo.Album);
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base, &MusicInfo->SortingInfo.Song);
-    UpdateHorizontalSliders(&GameState->Renderer, &MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
+    UpdateHorizontalSliders(&MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
     
     if(Settings.PlayingSongID >= 0)
     {

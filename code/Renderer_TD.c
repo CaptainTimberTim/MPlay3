@@ -1058,10 +1058,24 @@ SetColor(render_text *Text, v3 *Color)
 inline void
 CenterText(render_text *Text)
 {
-    r32 NewY = Abs(Text->Height.E[0]) + Abs(Text->Height.E[1]);
+    r32 NewY = Text->Extends.y;
     NewY /= 2;
     
     Translate(Text, V2(0, CeilingR32(NewY)-7));
+}
+
+inline v2
+GetSize(render_text *Text)
+{
+    v2 Result = Text->Extends*2;
+    return Result;
+}
+
+inline v2
+GetExtends(render_text *Text)
+{
+    v2 Result = Text->Extends;
+    return Result;
 }
 
 // *******************  Sorting algorithms ***********************

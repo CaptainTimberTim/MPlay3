@@ -1769,7 +1769,7 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     MoveDisplayColumn(Renderer, &DisplayInfo->Song.Base);
     
     UpdateSelectionColors(MusicInfo);
-    UpdateVerticalSliders(Renderer, DisplayInfo, SortingInfo);
+    UpdateVerticalSliders(DisplayInfo, SortingInfo);
 }
 
 internal void
@@ -1983,7 +1983,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
         PushSoundBufferClear(GameState->SoundThreadInterface);
     }
     
-    SetTheNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, MusicInfo);
+    SetTheNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);
 }
 
 inline void
@@ -2024,8 +2024,8 @@ ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
     MusicInfo->DisplayInfo.Album.DisplayCursor = 0;
     MusicInfo->DisplayInfo.Song.Base.DisplayCursor = 0;
     
-    UpdateVerticalSliders(&GameState->Renderer, &MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
-    UpdateHorizontalSliders(&GameState->Renderer, &MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
+    UpdateVerticalSliders(&MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
+    UpdateHorizontalSliders(&MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
     
     AddJobs_LoadOnScreenMP3s(GameState, &GameState->JobQueue);
 }

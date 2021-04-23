@@ -72,7 +72,7 @@ struct render_text
     render_entry *RenderEntries;
     u32 Count;
     u32 MaxCount;
-    v2 Height;
+    v2 Extends; // TODO:: Width might not be correct!
 };
 
 enum axis
@@ -306,3 +306,5 @@ inline v2   GetPosition(render_text *Info, u32 LetterID);
 inline void RemoveRenderText(renderer *Renderer, render_text *Text);
 inline void SetTransparency(render_text *Text, r32 T);
 inline void CenterText(render_text *Text);
+inline v2 GetSize(render_text *Text);
+inline v2 GetExtends(render_text *Text);

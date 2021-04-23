@@ -73,6 +73,7 @@ struct game_state
     arena_allocator FixArena;     // Never gets reset (except if a bucket is emptied again)
     arena_allocator ScratchArena; // Gets reset every frame.
     
+    layout_definition Layout;
     
     input_info Input;
     

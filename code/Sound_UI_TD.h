@@ -5,7 +5,6 @@
 
 #define MAX_DISPLAY_SONG_COUNT   24
 #define MAX_DISPLAY_COUNT  80
-#define SLOT_DISTANCE_PIXEL 3
 
 #define DOUBLE_CLICK_TIME 0.5f
 
@@ -137,15 +136,6 @@ struct display_column_song_extension
 };
 #define Parent(name) &(name)->Base
 #define ColumnExt(name)  ((display_column_song_extension *)(name))
-
-#define SONG_X_OFFSET              92
-#define SONG_ALBUM_X_OFFSET       (SONG_X_OFFSET+70)
-#define SONG_TRACK_X_OFFSET       -18
-#define SONG_PLAY_BUTTON_X_OFFSET  40
-#define SONG_PLAY_BUTTON_Y_OFFSET -22
-#define SONG_FIRST_ROW_Y_OFFSET    32
-#define SONG_SECOND_ROW_Y_OFFSET   -8
-#define SONG_THIRD_ROW_Y_OFFSET   -33
 
 struct playing_song_panel
 {
@@ -335,7 +325,7 @@ struct layout_definition
     // Slot
     r32 SlotHeight     = 30;
     r32 SongSlotHeight = 100;
-    // r32 SlotGap = ?;
+    r32 SlotGap        = 3;
     
     r32 SmallTextLeftBorder = 17;
     r32 BigTextLeftBorder   = 32;
@@ -344,6 +334,17 @@ struct layout_definition
     r32 FontSizeSmall  = 24;
     r32 FontSizeMedium = 50;
     r32 FontSizeBig    = 75;
+    
+    // Column Text
+    r32 SongXOffset           =  92;
+    r32 SongAlbumXOffset      = (SongXOffset+70);
+    r32 SongTrackXOffset      = -18;
+    r32 SongPlayButtonXOffset =  40;
+    r32 SongPlayButtonYOffset = -22;
+    r32 SongFirstRowYOffset   =  32;
+    r32 SongSecondRowYOffset  = -8;
+    r32 SongThirdRowYOffset   = -33;
+    
     
     // Search
     r32 SearchFieldHeight   = 50;
@@ -354,10 +355,11 @@ struct layout_definition
     r32 MediumButtonExtents    = 21;
     r32 LargeButtonExtents     = 24;
     r32 PlayPauseButtonExtents = 45;
+    r32 AddButtonExtents       = 22;
     
     // Button positions
     r32 TopLeftButtonGroupStartX = 40;
-    r32 TopLeftButtonGroupStepX  = 40;
+    r32 TopLeftButtonGroupGap    = 5;
     r32 TopLeftButtonGroupY      = 25;
     
     r32 ButtonGap        = 5;
@@ -388,6 +390,22 @@ struct layout_definition
     r32 RescanButtonXOffset       = 204;
     r32 RescanButtonYOffset       = 55;
     
+    // PlayingSongPanel
+    r32 PlayingSongPanelXOffset = -10;
+    r32 PlayingSongPanelBaseY   = 20;
+    r32 CurrentTimeTextXOffset  = 10;
+    r32 CurrentTimeTextYOffset  = 19;
+    r32 DurationTimeTextYOffset = 72;
+    
+    r32 PlayingSongTextXOffset       = 440;
+    r32 PlayingSongTextTitleYOffset  = 15;
+    r32 PlayingSongTextTitleXOffset  = 40;
+    r32 PlayingSongTextTrackYOffset  = 8;
+    r32 PlayingSongTextArtistYOffset = -20;
+    r32 PlayingSongTextAlbumYOffset  = -40;
+    r32 PlayingSongTextAlbumXOffset  = 60;
+    r32 PlayingSongTextGenreYOffset  = -60;
+    
     // QuitCurtain
     r32 QuitCurtainAnimationTime  = 1.2f;
     
@@ -404,11 +422,11 @@ internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *Mus
 internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn,
                                   column_sorting_info *SortingColumn, i32 ScrollAmount);
 internal void ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32 ScrollAmount);
-internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, music_info *MusicInfo);
+internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
 
 
 internal void SearchInDisplayable(column_sorting_info *ColumnSortInfo, struct search_bar *Search, mp3_file_info *FileInfo = 0);
-internal void UpdateColumnVerticalSlider(renderer *Renderer, music_display_column *DisplayColumn, column_sorting_info *ColumnSorting);
+internal void UpdateColumnVerticalSlider(music_display_column *DisplayColumn, column_sorting_info *ColumnSorting);
 inline void PushUserErrorMessage(string_c *String);
 
 

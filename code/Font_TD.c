@@ -415,7 +415,13 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size_id FontSize, string
         
         It += Advance;
     }
-    ResultText->Height = TextHeight;
+    if(ResultText->Count > 0)
+    {
+        entry_id FirstLetterID = {ResultText->RenderEntries+0, 0};
+        entry_id LastLetterID  = {ResultText->RenderEntries+(ResultText->Count-1), 0};
+        ResultText->Extends.x  = ResultText->CurrentP.x + GetSize(&FirstLetterID).x + GetSize(&LastLetterID).x;
+        ResultText->Extends.y  = Abs(TextHeight.E[0]) + Abs(TextHeight.E[1]);
+    }
 }
 
 inline b32

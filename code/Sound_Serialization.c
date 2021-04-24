@@ -465,18 +465,19 @@ ApplySettings(game_state *GameState, settings Settings)
     MusicInfo->DisplayInfo.AlbumSong.XPercent = Settings.AlbumSongEdgeXPercent;
     
     ProcessEdgeDragOnResize(&GameState->Renderer, &MusicInfo->DisplayInfo);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Genre, &MusicInfo->SortingInfo.Genre);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Artist, &MusicInfo->SortingInfo.Artist);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Album, &MusicInfo->SortingInfo.Album);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base, &MusicInfo->SortingInfo.Song);
-    UpdateHorizontalSliders(&MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
+    playlist_info *Playlist  = MusicInfo->Playlist_;
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Genre, Playlist->Genre.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Artist, Playlist->Artist.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Album, Playlist->Album.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base, Playlist->Song.Displayable.A.Count);
+    UpdateHorizontalSliders(MusicInfo);
     
     if(Settings.PlayingSongID >= 0)
     {
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Genre, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Artist, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Album, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Song.Base, Settings.PlayingSongID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Genre, Settings.PlayingSongID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Artist, Settings.PlayingSongID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Album, Settings.PlayingSongID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Song.Base, Settings.PlayingSongID);
     }
     
     ApplyWindowResize(GameState->Renderer.Window.WindowHandle, Settings.WindowDimX, Settings.WindowDimY, true);

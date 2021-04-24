@@ -5,18 +5,18 @@ inline playlist_id GetPreviousSong(play_list *Playlist, playlist_id PlaylistID);
 inline void SetPreviousSong(play_list *Playlist, playing_song *PlayingSong, play_loop Looping);
 inline file_id PlaylistIDToFileID(play_list *Playlist, playlist_id PlaylistID);
 internal void MillisecondsToMinutes(u32 Millis, string_c *Out);
-internal void MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, 
+internal void MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, 
                                 displayable_id DisplayableStartID = {0}, r32 StartY = 0);
-internal void SortDisplayables(music_sorting_info *SortingInfo, mp3_file_info *MP3FileInfo);
+internal void SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo);
 internal b32 FindAllMP3FilesInFolder(arena_allocator *TransientArena, string_compound *FolderPath, string_compound *SubPath, mp3_file_info *ResultingFileInfo);
 inline mp3_info *CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount);
 inline void CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount);
 inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
-inline void SetSelectionArray(music_display_column *DisplayColumn, column_sorting_info *SortingColumn, u32 ColumnDisplayID);
+inline void SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
-inline displayable_id FileIDToSongDisplayableID(music_display_column *DisplayColumn, file_id FileID);
-inline displayable_id SortingIDToColumnDisplayID(music_display_column *DisplayColumn, batch_id BatchID);
+inline displayable_id FileIDToSongDisplayableID(music_display_column *DisplayColumn, array_file_id *Displayable, file_id FileID);
+inline displayable_id SortingIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id BatchID);
 inline playlist_id OnScreenIDToPlaylistID(music_info *MusicInfo, u32 OnScreenID, file_id *FileID = 0);
 inline void HandleChangeToNextSong(game_state *GameState);
 internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
@@ -24,9 +24,9 @@ internal void AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQue
 internal i32 AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID);
 internal b32 AddJob_LoadMetadata(game_state *GameState);
 internal void UseDisplayableAsPlaylist(music_info *MusicInfo);
-internal column_type UpdateSelectionArray(column_sorting_info *SortingColumn, music_display_column *DisplayColumn);
-internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, column_sorting_info *SortingColumn);
-internal void PropagateSelectionChange(music_sorting_info *SortingInfo);
+internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn);
+internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, playlist_column *PlaylistColumn);
+internal void PropagateSelectionChange(music_info *SortingInfo);
 
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayColumn)
@@ -172,8 +172,9 @@ GetOpenSearch(music_display_info *DisplayInfo)
 inline void
 CopyBackDisplayable(music_display_column *DisplayColumn)
 {
-    Copy(DisplayColumn->SearchInfo.Displayable, &DisplayColumn->Search.InitialDisplayables);
-    MoveDisplayColumn(DisplayColumn->SearchInfo.Renderer, DisplayColumn);
+    Copy(&DisplayColumn->SearchInfo.MusicInfo->Playlist_->Columns[DisplayColumn->SearchInfo.ColumnType].Displayable,
+         &DisplayColumn->Search.InitialDisplayables);
+    MoveDisplayColumn(DisplayColumn->SearchInfo.Renderer, DisplayColumn->SearchInfo.MusicInfo, DisplayColumn);
 }
 
 internal void
@@ -181,51 +182,54 @@ OnSearchPressed(void *Data)
 {
     search_bar_btn_info *SearchInfo = (search_bar_btn_info *)Data;
     search_bar *Search = SearchInfo->Search;
+    music_display_info *DisplayInfo = &SearchInfo->MusicInfo->DisplayInfo;
+    array_file_id *Displayable = &SearchInfo->MusicInfo->Playlist_->Columns[SearchInfo->ColumnType].Displayable;
     
-    if(SearchInfo->DisplayInfo->SearchIsActive < 0) 
+    
+    if(DisplayInfo->SearchIsActive < 0) 
     {
-        SearchInfo->DisplayInfo->SearchIsActive = SearchInfo->DisplayColumn->Type;
+        DisplayInfo->SearchIsActive = SearchInfo->ColumnType;
         UpdateTextField(SearchInfo->Renderer, &Search->TextField);
-        Copy(&Search->InitialDisplayables, SearchInfo->Displayable);
+        Copy(&Search->InitialDisplayables, Displayable);
     }
     else
     {
-        if(SearchInfo->DisplayInfo->SearchIsActive == SearchInfo->DisplayColumn->Type) 
+        if(DisplayInfo->SearchIsActive == SearchInfo->ColumnType) 
         {
             CopyBackDisplayable(SearchInfo->DisplayColumn);
-            SearchInfo->DisplayInfo->SearchIsActive = -1;
+            DisplayInfo->SearchIsActive = -1;
             RemoveRenderText(SearchInfo->Renderer, &Search->TextField.Text);
         }
         else 
         {
             // Deactivating previous search.
-            if(SearchInfo->DisplayInfo->SearchIsActive == columnType_Genre)
+            if(DisplayInfo->SearchIsActive == columnType_Genre)
             {
-                CopyBackDisplayable(&SearchInfo->DisplayInfo->Genre);
-                OnSearchPressed(&SearchInfo->DisplayInfo->Genre.SearchInfo);
+                CopyBackDisplayable(&DisplayInfo->Genre);
+                OnSearchPressed(&DisplayInfo->Genre.SearchInfo);
             }
-            else if(SearchInfo->DisplayInfo->SearchIsActive == columnType_Artist)
+            else if(DisplayInfo->SearchIsActive == columnType_Artist)
             {
-                CopyBackDisplayable(&SearchInfo->DisplayInfo->Artist);
-                OnSearchPressed(&SearchInfo->DisplayInfo->Artist.SearchInfo);
+                CopyBackDisplayable(&DisplayInfo->Artist);
+                OnSearchPressed(&DisplayInfo->Artist.SearchInfo);
             }
-            else if(SearchInfo->DisplayInfo->SearchIsActive == columnType_Album)
+            else if(DisplayInfo->SearchIsActive == columnType_Album)
             {
-                CopyBackDisplayable(&SearchInfo->DisplayInfo->Album);
-                OnSearchPressed(&SearchInfo->DisplayInfo->Album.SearchInfo);
+                CopyBackDisplayable(&DisplayInfo->Album);
+                OnSearchPressed(&DisplayInfo->Album.SearchInfo);
             }
-            else if(SearchInfo->DisplayInfo->SearchIsActive == columnType_Song)
+            else if(DisplayInfo->SearchIsActive == columnType_Song)
             {
-                CopyBackDisplayable(&SearchInfo->DisplayInfo->Song.Base);
-                OnSearchPressed(&SearchInfo->DisplayInfo->Song.Base.SearchInfo);
+                CopyBackDisplayable(&DisplayInfo->Song.Base);
+                OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
             }
             
-            SearchInfo->DisplayInfo->SearchIsActive = SearchInfo->DisplayColumn->Type;
+            DisplayInfo->SearchIsActive = SearchInfo->DisplayColumn->Type;
             UpdateTextField(SearchInfo->Renderer, &Search->TextField);
-            Copy(&Search->InitialDisplayables, SearchInfo->Displayable);
+            Copy(&Search->InitialDisplayables, Displayable);
         }
         UseDisplayableAsPlaylist(&GlobalGameState.MusicInfo);
-        UpdateColumnVerticalSlider(SearchInfo->DisplayColumn, SearchInfo->SortingInfo);
+        UpdateColumnVerticalSlider(SearchInfo->DisplayColumn, Displayable->A.Count);
     }
     
     SetActive(&Search->TextField, !Search->TextField.IsActive);
@@ -235,74 +239,69 @@ OnSearchPressed(void *Data)
 }
 
 inline void
-ResetSearchList(renderer *Renderer, music_display_column *DisplayColumn, column_sorting_info *ColumnSortInfo)
+ResetSearchList(renderer *Renderer, music_display_column *DisplayColumn)
 {
-    Copy(DisplayColumn->SearchInfo.Displayable, &DisplayColumn->Search.InitialDisplayables);
-    MoveDisplayColumn(Renderer, DisplayColumn);
+    array_file_id *Displayable = &DisplayColumn->SearchInfo.MusicInfo->Playlist_->Columns[DisplayColumn->SearchInfo.ColumnType].Displayable;
+    Copy(Displayable, &DisplayColumn->Search.InitialDisplayables);
+    MoveDisplayColumn(Renderer, DisplayColumn->SearchInfo.MusicInfo, DisplayColumn);
     OnSearchPressed(&DisplayColumn->SearchInfo);
 }
 
 internal void
-InterruptSearch(renderer *Renderer, music_display_info *DisplayInfo, music_sorting_info *SortInfo)
+InterruptSearch(renderer *Renderer, music_info *MusicInfo)
 {
     music_display_column *DisplayColumn = 0;
-    column_sorting_info  *SortColumn    = 0;
-    switch(GetOpenSearch(DisplayInfo))
+    switch(GetOpenSearch(&MusicInfo->DisplayInfo))
     {
         case columnType_Genre: 
         {
-            DisplayColumn = &DisplayInfo->Genre;
-            SortColumn    = &SortInfo->Genre;
+            DisplayColumn = &MusicInfo->DisplayInfo.Genre;
         } break;
         case columnType_Artist: 
         {
-            DisplayColumn = &DisplayInfo->Artist; 
-            SortColumn    = &SortInfo->Artist;
+            DisplayColumn = &MusicInfo->DisplayInfo.Artist;
         } break;
         case columnType_Album: 
         {
-            DisplayColumn = &DisplayInfo->Album;  
-            SortColumn    = &SortInfo->Album;
+            DisplayColumn = &MusicInfo->DisplayInfo.Album;
         } break;
         case columnType_Song: 
         {
-            DisplayColumn = &DisplayInfo->Song.Base; 
-            SortColumn    = &SortInfo->Song;
+            DisplayColumn = &MusicInfo->DisplayInfo.Song.Base;
         } break;
     }
-    if(DisplayColumn)
-    {
-        ResetSearchList(Renderer, DisplayColumn, SortColumn);
-    }
+    Assert(DisplayColumn);
+    ResetSearchList(Renderer, DisplayColumn);
 }
 
 inline void
 ProcessActiveSearch(column_info ColumnInfo, r32 dTime, input_info *Input, mp3_file_info *FileInfo = 0)
 {
-    renderer *Renderer = ColumnInfo.Renderer;
-    music_display_column *DisplayColumn = ColumnInfo.DisplayColumn;
-    column_sorting_info  *SortingColumn = ColumnInfo.SortingColumn;
-    text_field_flag_result FieldResult = ProcessTextField(Renderer, dTime, Input, &DisplayColumn->Search.TextField);
+    renderer *Renderer                   = ColumnInfo.Renderer;
+    music_display_column *DisplayColumn  = ColumnInfo.DisplayColumn;
+    playlist_column      *PlaylistColumn = ColumnInfo.PlaylistColumn;
+    text_field_flag_result FieldResult   = ProcessTextField(Renderer, dTime, Input, &DisplayColumn->Search.TextField);
     
     if(FieldResult.Flag & processTextField_TextChanged)
     {
-        SearchInDisplayable(SortingColumn, &DisplayColumn->Search, FileInfo);
-        MoveDisplayColumn(Renderer, DisplayColumn);
-        UpdateColumnVerticalSlider(DisplayColumn, SortingColumn);
+        SearchInDisplayable(ColumnInfo.MusicInfo, PlaylistColumn, &DisplayColumn->Search, FileInfo);
+        MoveDisplayColumn(Renderer, ColumnInfo.MusicInfo, DisplayColumn);
+        UpdateColumnVerticalSlider(DisplayColumn, PlaylistColumn->Displayable.A.Count);
     }
     if(FieldResult.Flag & processTextField_Confirmed)
     {
-        if(DisplayColumn->SearchInfo.Displayable->A.Count == 1) 
+        array_file_id *Displayable = &DisplayColumn->SearchInfo.MusicInfo->Playlist_->Columns[DisplayColumn->SearchInfo.ColumnType].Displayable;
+        if(ColumnInfo.MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable.A.Count == 1) 
         {
-            SetSelectionArray(DisplayColumn, SortingColumn, 0);
-            UpdateColumnColor(DisplayColumn, SortingColumn);
+            SetSelectionArray(DisplayColumn, PlaylistColumn, 0);
+            UpdateColumnColor(DisplayColumn, PlaylistColumn);
         }
-        ResetSearchList(Renderer, DisplayColumn, SortingColumn);
+        ResetSearchList(Renderer, DisplayColumn);
         UpdateSelectionChanged(Renderer, &GlobalGameState.MusicInfo, GlobalGameState.MP3Info, DisplayColumn->Type);
         
-        file_id SelectedID = Get(&SortingColumn->Selected, NewSelectID(0));
-        if(DisplayColumn->Type == columnType_Song) BringDisplayableEntryOnScreen(DisplayColumn, SelectedID);
-        else BringDisplayableEntryOnScreenWithSortID(DisplayColumn, SelectedID);
+        file_id SelectedID = Get(&PlaylistColumn->Selected, NewSelectID(0));
+        if(DisplayColumn->Type == columnType_Song) BringDisplayableEntryOnScreen(ColumnInfo.MusicInfo, DisplayColumn, SelectedID);
+        else BringDisplayableEntryOnScreenWithSortID(DisplayColumn->SearchInfo.MusicInfo, DisplayColumn, SelectedID);
     }
 }
 
@@ -326,12 +325,11 @@ CreateSearchBar(column_info ColumnInfo, arena_allocator *Arena, entry_id *Parent
     Translate(Result.Button, V2(1, -1));
     ColumnInfo.DisplayColumn->SearchInfo = 
     {
-        Renderer, ColumnInfo.DisplayInfo, &ColumnInfo.DisplayColumn->Search, ColumnInfo.DisplayColumn, 
-        &ColumnInfo.SortingColumn->Displayable, ColumnInfo.SortingColumn
+        Renderer, &ColumnInfo.DisplayColumn->Search, ColumnInfo.MusicInfo, ColumnInfo.DisplayColumn, ColumnInfo.DisplayColumn->Type
     };
     Result.Button->OnPressed = {OnSearchPressed, &ColumnInfo.DisplayColumn->SearchInfo};
     
-    Result.InitialDisplayables.A = CreateArray(Arena, ColumnInfo.SortingColumn->Displayable.A.Length);
+    Result.InitialDisplayables.A = CreateArray(Arena, ColumnInfo.PlaylistColumn->Displayable.A.Length);
     
     v2 TextFieldSize = V2(ColumnInfo.DisplayColumn->SlotWidth/2.0f, Layout->SearchFieldHeight);
     Result.TextField = CreateTextField(Renderer, Arena, TextFieldSize, 
@@ -359,7 +357,6 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     DisplayColumn->LeftBorder  = LeftBorder;
     DisplayColumn->TopBorder   = DisplayInfo->EdgeTop;
     // NOTE:: Right and bottom border is a slider, therefore set later in procedure
-    DisplayColumn->SortingInfo = ColumnInfo.SortingColumn;
     
     if(Type == columnType_Song) 
     {
@@ -458,14 +455,14 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
 }
 
 internal r32
-CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Text)
+CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Text, u32 DisplayableCount)
 {
     r32 Result = 0;
     
     r32 MaxOverhang = 0.0f;
     for(u32 It = 0;
         It < DisplayColumn->Count && 
-        It < DisplayColumn->SortingInfo->Displayable.A.Count;
+        It < DisplayableCount;
         It++)
     {
         if(Text[It].Count > 0) 
@@ -486,14 +483,14 @@ CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Tex
 }
 
 internal r32
-CalcSongTextOverhangPercentage(music_display_column *DisplayColumn)
+CalcSongTextOverhangPercentage(music_display_column *DisplayColumn, u32 DisplayableCount)
 {
     r32 Result = 0;
     display_column_song_extension *Song = ColumnExt(DisplayColumn);
     
-    r32 TitleOverhang = CalcTextOverhangPercentage(DisplayColumn, Song->SongTitle);
-    r32 ArtistOverhang = CalcTextOverhangPercentage(DisplayColumn, Song->SongArtist);
-    r32 AlbumOverhang = CalcTextOverhangPercentage(DisplayColumn, Song->SongAlbum);
+    r32 TitleOverhang = CalcTextOverhangPercentage(DisplayColumn, Song->SongTitle, DisplayableCount);
+    r32 ArtistOverhang = CalcTextOverhangPercentage(DisplayColumn, Song->SongArtist, DisplayableCount);
+    r32 AlbumOverhang = CalcTextOverhangPercentage(DisplayColumn, Song->SongAlbum, DisplayableCount);
     
     Result = Max(TitleOverhang, Max(ArtistOverhang, AlbumOverhang));
     
@@ -502,12 +499,12 @@ CalcSongTextOverhangPercentage(music_display_column *DisplayColumn)
 
 
 internal void
-ResetColumnText(music_display_column *DisplayColumn, column_sorting_info *SortingColumn)
+ResetColumnText(music_display_column *DisplayColumn, u32 DisplayableCount)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
     for(u32 It = 0;
         It < DisplayColumn->Count &&
-        It < SortingColumn->Displayable.A.Count; 
+        It < DisplayableCount; 
         It++)
     {
         
@@ -540,17 +537,17 @@ ResetColumnText(music_display_column *DisplayColumn, column_sorting_info *Sortin
 }
 
 internal void
-UpdateColumnHorizontalSlider(music_display_column *DisplayColumn, column_sorting_info *SortingColumn)
+UpdateColumnHorizontalSlider(music_display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider = &DisplayColumn->SliderHorizontal;
     
-    ResetColumnText(DisplayColumn, SortingColumn);
+    ResetColumnText(DisplayColumn, DisplayableCount);
     
     if(DisplayColumn->Type == columnType_Song) 
     {
-        Slider->OverhangP = 1 + CalcSongTextOverhangPercentage(DisplayColumn);
+        Slider->OverhangP = 1 + CalcSongTextOverhangPercentage(DisplayColumn, DisplayableCount);
     }
-    else Slider->OverhangP = 1 + CalcTextOverhangPercentage(DisplayColumn, DisplayColumn->Text);
+    else Slider->OverhangP = 1 + CalcTextOverhangPercentage(DisplayColumn, DisplayColumn->Text, DisplayableCount);
     
     r32 Scale      = GetSize(Slider->Background).x;
     r32 NewScale   = Max(Scale/Slider->OverhangP, 5.0f);
@@ -562,12 +559,12 @@ UpdateColumnHorizontalSlider(music_display_column *DisplayColumn, column_sorting
 }
 
 inline void
-UpdateHorizontalSliders(music_display_info *DisplayInfo, music_sorting_info *SortingInfo)
+UpdateHorizontalSliders(music_info *MusicInfo)
 {
-    UpdateColumnHorizontalSlider(&DisplayInfo->Genre, &SortingInfo->Genre);
-    UpdateColumnHorizontalSlider(&DisplayInfo->Artist, &SortingInfo->Artist);
-    UpdateColumnHorizontalSlider(&DisplayInfo->Album, &SortingInfo->Album);
-    UpdateColumnHorizontalSlider(&DisplayInfo->Song.Base, &SortingInfo->Song);
+    UpdateColumnHorizontalSlider(&MusicInfo->DisplayInfo.Genre,     MusicInfo->Playlist_->Genre.Displayable.A.Count);
+    UpdateColumnHorizontalSlider(&MusicInfo->DisplayInfo.Artist,    MusicInfo->Playlist_->Artist.Displayable.A.Count);
+    UpdateColumnHorizontalSlider(&MusicInfo->DisplayInfo.Album,     MusicInfo->Playlist_->Album.Displayable.A.Count);
+    UpdateColumnHorizontalSlider(&MusicInfo->DisplayInfo.Song.Base, MusicInfo->Playlist_->Song.Displayable.A.Count);
 }
 
 inline void
@@ -621,6 +618,8 @@ OnHorizontalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable
     drag_slider_data *Info = (drag_slider_data *)Data;
     music_display_column *DisplayColumn = Info->DisplayColumn;
     slider *Slider = &DisplayColumn->SliderHorizontal;
+    u32 DisplayableCount = Info->MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable.A.Count;
+    
     r32 GrabThingHalfWidth  = GetSize(Slider->GrabThing).x/2.0f;
     if(Slider->MouseOffset.x < GrabThingHalfWidth && Slider->MouseOffset.x > -GrabThingHalfWidth) 
         AdjustedMouseP.x -= Slider->MouseOffset.x;
@@ -635,7 +634,7 @@ OnHorizontalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable
     // TODO:: The first visible letter needs to be squashed according to its overhang!
     for(u32 It = 0;
         It < DisplayColumn->Count && 
-        It < DisplayColumn->SortingInfo->Displayable.A.Count;
+        It < DisplayableCount;
         It++)
     {
         if(DisplayColumn->Type == columnType_Song) SongHorizontalSliderDrag(Renderer, DisplayColumn, TranslationPix, It);
@@ -645,17 +644,17 @@ OnHorizontalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable
 
 
 inline r32
-GetDisplayableHeight(column_sorting_info *ColumnSortingInfo, r32 SlotHeight)
+GetDisplayableHeight(u32 DisplayableCount, r32 SlotHeight)
 {
-    return ColumnSortingInfo->Displayable.A.Count * SlotHeight;
+    return DisplayableCount*SlotHeight;
 }
 
 inline void
-UpdateColumnVerticalSliderPosition(music_display_column *DisplayColumn, column_sorting_info *ColumnSorting)
+UpdateColumnVerticalSliderPosition(music_display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider       = &DisplayColumn->SliderVertical;
     r32 TotalSliderScale = GetScale(Slider->Background).y;
-    r32 TotalHeight      = GetDisplayableHeight(ColumnSorting, DisplayColumn->SlotHeight);
+    r32 TotalHeight      = GetDisplayableHeight(DisplayableCount, DisplayColumn->SlotHeight);
     TotalHeight          = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
     r32 CursorHeightPercentage = SafeDiv(DisplayColumn->DisplayCursor,(r32)TotalHeight);
@@ -663,31 +662,31 @@ UpdateColumnVerticalSliderPosition(music_display_column *DisplayColumn, column_s
     P.y -= CursorHeightPercentage*(GetSize(Slider->Background).y-GetSize(Slider->GrabThing).y);
     SetLocalPosition(Slider->GrabThing, P);
     
-    UpdateColumnHorizontalSlider(DisplayColumn, ColumnSorting);
+    UpdateColumnHorizontalSlider(DisplayColumn, DisplayableCount);
 }
 
 internal void
-UpdateColumnVerticalSlider(music_display_column *DisplayColumn, column_sorting_info *ColumnSorting)
+UpdateColumnVerticalSlider(music_display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider = &DisplayColumn->SliderVertical;
     
-    r32 TotalDisplayableSize = GetDisplayableHeight(ColumnSorting, DisplayColumn->SlotHeight);
+    r32 TotalDisplayableSize = GetDisplayableHeight(DisplayableCount, DisplayColumn->SlotHeight);
     v2 TotalScale            = GetSize(Slider->Background);
     Slider->OverhangP = Clamp(TotalScale.y/TotalDisplayableSize, 0.01f, 1.0f);
     
     v2 NewScale = {GetSize(Slider->GrabThing).x, Max(TotalScale.y*Slider->OverhangP, 5.0f)};
     SetSize(Slider->GrabThing, NewScale);
     Slider->MaxSlidePix = Max(TotalScale.y - NewScale.y, 0.0f)/2.0f;
-    UpdateColumnVerticalSliderPosition(DisplayColumn, ColumnSorting);
+    UpdateColumnVerticalSliderPosition(DisplayColumn, DisplayableCount);
 }
 
 inline void
-UpdateVerticalSliders(music_display_info *DisplayInfo, music_sorting_info *SortInfo)
+UpdateVerticalSliders(music_info *MusicInfo)
 {
-    UpdateColumnVerticalSlider(&DisplayInfo->Genre, &SortInfo->Genre);
-    UpdateColumnVerticalSlider(&DisplayInfo->Artist, &SortInfo->Artist);
-    UpdateColumnVerticalSlider(&DisplayInfo->Album, &SortInfo->Album);
-    UpdateColumnVerticalSlider(&DisplayInfo->Song.Base, &SortInfo->Song);
+    UpdateColumnVerticalSlider(&MusicInfo->DisplayInfo.Genre,     MusicInfo->Playlist_->Genre.Displayable.A.Count);
+    UpdateColumnVerticalSlider(&MusicInfo->DisplayInfo.Artist,    MusicInfo->Playlist_->Artist.Displayable.A.Count);
+    UpdateColumnVerticalSlider(&MusicInfo->DisplayInfo.Album,     MusicInfo->Playlist_->Album.Displayable.A.Count);
+    UpdateColumnVerticalSlider(&MusicInfo->DisplayInfo.Song.Base, MusicInfo->Playlist_->Song.Displayable.A.Count);
 }
 
 internal void
@@ -695,8 +694,8 @@ OnVerticalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, 
 {
     drag_slider_data *DragData = (drag_slider_data *)Data;
     music_display_column *DisplayColumn = DragData->DisplayColumn;
-    column_sorting_info  *SortingColumn = DragData->SortingColumn;
     slider *Slider = &DisplayColumn->SliderVertical;
+    u32 DisplayableCount = DragData->MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable.A.Count;
     
     r32 GrabThingHalfHeight  = GetSize(Slider->GrabThing).y/2.0f;
     if(Slider->MouseOffset.y < GrabThingHalfHeight && Slider->MouseOffset.y > -GrabThingHalfHeight) 
@@ -715,13 +714,13 @@ OnVerticalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, 
     
     r32 TranslationPercentage = SafeDiv(TopPositionY-NewY,Slider->MaxSlidePix*2);
     if(TranslationPercentage > 0.999f) TranslationPercentage = 1;
-    r32 TotalHeight = GetDisplayableHeight(SortingColumn, DisplayColumn->SlotHeight);
+    r32 TotalHeight = GetDisplayableHeight(DisplayableCount, DisplayColumn->SlotHeight);
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
     i32 ScrollAmount = (i32)(DisplayColumn->DisplayCursor - TotalHeight*TranslationPercentage);
-    ScrollDisplayColumn(Renderer, DisplayColumn, (r32)-ScrollAmount);
+    ScrollDisplayColumn(Renderer, DragData->MusicInfo, DisplayColumn, (r32)-ScrollAmount);
     
-    UpdateColumnHorizontalSlider(DisplayColumn, SortingColumn);
+    UpdateColumnHorizontalSlider(DisplayColumn, DisplayableCount);
 }
 
 internal void
@@ -795,8 +794,7 @@ OnVolumeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Da
 }
 
 inline b32 
-IsInOnScreenList(music_display_column *DisplayColumn, column_sorting_info *SortingInfo, 
-                 playlist_id PlaylistID, u32 *OnScreenID = 0)
+IsInOnScreenList(music_display_column *DisplayColumn, playlist_id PlaylistID, u32 *OnScreenID = 0)
 {
     b32 Result = false;
     
@@ -814,65 +812,65 @@ IsInOnScreenList(music_display_column *DisplayColumn, column_sorting_info *Sorti
 }
 
 inline void
-SetSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, displayable_id ID, b32 Select)
+SetSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, displayable_id ID, b32 Select)
 {
-    Assert(ID.ID < (i32)SortColumn->Displayable.A.Count);
+    Assert(ID.ID < (i32)PlaylistColumn->Displayable.A.Count);
     
-    file_id FileID = Get(&SortColumn->Displayable, ID);
-    if(Select) Push(&SortColumn->Selected, FileID);
-    else StackFindAndTake(&SortColumn->Selected, FileID);
+    file_id FileID = Get(&PlaylistColumn->Displayable, ID);
+    if(Select) Push(&PlaylistColumn->Selected, FileID);
+    else StackFindAndTake(&PlaylistColumn->Selected, FileID);
 }
 
 inline void
-Select(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 OnScreenIDsID)
+Select(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
-    Assert(DisplayColumn->Count > OnScreenIDsID && SortColumn->Displayable.A.Count > OnScreenIDsID);
+    Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
     
-    file_id FileID = Get(&SortColumn->Displayable, DisplayColumn->OnScreenIDs[OnScreenIDsID]);
-    Push(&SortColumn->Selected, FileID);
+    file_id FileID = Get(&PlaylistColumn->Displayable, DisplayColumn->OnScreenIDs[OnScreenIDsID]);
+    Push(&PlaylistColumn->Selected, FileID);
 }
 
 inline void
-Deselect(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 OnScreenIDsID)
+Deselect(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
-    Assert(DisplayColumn->Count > OnScreenIDsID && SortColumn->Displayable.A.Count > OnScreenIDsID);
+    Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
     
-    file_id FileID  = Get(&SortColumn->Displayable, DisplayColumn->OnScreenIDs[OnScreenIDsID]);
-    StackFindAndTake(&SortColumn->Selected, FileID);
+    file_id FileID  = Get(&PlaylistColumn->Displayable, DisplayColumn->OnScreenIDs[OnScreenIDsID]);
+    StackFindAndTake(&PlaylistColumn->Selected, FileID);
 }
 
 inline b32
-IsSelected(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 OnScreenIDsID)
+IsSelected(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
-    Assert(DisplayColumn->Count > OnScreenIDsID && SortColumn->Displayable.A.Count > OnScreenIDsID);
+    Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
     
-    file_id FileID  = Get(&SortColumn->Displayable, DisplayColumn->OnScreenIDs[OnScreenIDsID]);
-    return StackContains(&SortColumn->Selected, FileID);
+    file_id FileID  = Get(&PlaylistColumn->Displayable, DisplayColumn->OnScreenIDs[OnScreenIDsID]);
+    return StackContains(&PlaylistColumn->Selected, FileID);
 }
 
 inline void
-ToggleSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 OnScreenIDsID)
+ToggleSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
-    if(IsSelected(DisplayColumn, SortColumn, OnScreenIDsID)) Deselect(DisplayColumn, SortColumn, OnScreenIDsID);
-    else Select(DisplayColumn, SortColumn, OnScreenIDsID);
+    if(IsSelected(DisplayColumn, PlaylistColumn, OnScreenIDsID)) Deselect(DisplayColumn, PlaylistColumn, OnScreenIDsID);
+    else Select(DisplayColumn, PlaylistColumn, OnScreenIDsID);
 }
 
 inline void
-ClearSelection(column_sorting_info *SortColumn)
+ClearSelection(playlist_column *PlaylistColumn)
 {
-    Reset(&SortColumn->Selected);
+    Reset(&PlaylistColumn->Selected);
 }
 
 internal void
-UpdateDisplayColumnColor(music_display_column *DisplayColumn, column_sorting_info *SortColumnInfo)
+UpdateDisplayColumnColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn)
 {
     Assert(DisplayColumn->Type != columnType_Song);
     for(u32 It = 0; 
         It < DisplayColumn->Count &&
-        It < SortColumnInfo->Displayable.A.Count; 
+        It < PlaylistColumn->Displayable.A.Count; 
         It++)
     {
-        if(IsSelected(DisplayColumn, SortColumnInfo, It))
+        if(IsSelected(DisplayColumn, PlaylistColumn, It))
         {
             DisplayColumn->BGRects[It]->ID->Color = &DisplayColumn->Base->ColorPalette.Selected;
         }
@@ -881,19 +879,19 @@ UpdateDisplayColumnColor(music_display_column *DisplayColumn, column_sorting_inf
 }
 
 internal void
-UpdatePlayingSongColor(music_display_column *DisplayColumn, column_sorting_info *SortColumnInfo, file_id FileID, v3 *Color)
+UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, file_id FileID, v3 *Color)
 {
     for(u32 It = 0; 
         It < DisplayColumn->Count &&
-        It < SortColumnInfo->Displayable.A.Count; 
+        It < PlaylistColumn->Displayable.A.Count; 
         It++)
     {
-        file_id ActualID  = Get(&SortColumnInfo->Displayable, NewPlaylistID(DisplayColumn->OnScreenIDs[It]));
+        file_id ActualID  = Get(&PlaylistColumn->Displayable, NewPlaylistID(DisplayColumn->OnScreenIDs[It]));
         if(FileID == ActualID)
         {
             DisplayColumn->BGRects[It]->ID->Color = Color;
         }
-        else if(StackContains(&SortColumnInfo->Selected, ActualID))
+        else if(StackContains(&PlaylistColumn->Selected, ActualID))
         {
             DisplayColumn->BGRects[It]->ID->Color = &DisplayColumn->Base->ColorPalette.Selected;
         }
@@ -902,32 +900,32 @@ UpdatePlayingSongColor(music_display_column *DisplayColumn, column_sorting_info 
 }
 
 inline void
-UpdateColumnColor(music_display_column *DisplayColumn, column_sorting_info *SortingColumn)
+UpdateColumnColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn)
 {
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
     if(DisplayColumn->Type == columnType_Song)
     {
         file_id FileID = {-1};
         if(MusicInfo->PlayingSong.PlaylistID >= 0) FileID = Get(&MusicInfo->Playlist.Songs, MusicInfo->PlayingSong.PlaylistID);
-        UpdatePlayingSongColor(DisplayColumn, SortingColumn, FileID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
+        UpdatePlayingSongColor(DisplayColumn, PlaylistColumn, FileID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
     }
     else
     {
-        UpdateDisplayColumnColor(DisplayColumn, SortingColumn);
+        UpdateDisplayColumnColor(DisplayColumn, PlaylistColumn);
     }
 }
 
 internal void
 UpdateSelectionColors(music_info *MusicInfo)
 {
-    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Genre, &MusicInfo->SortingInfo.Genre);
-    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Artist, &MusicInfo->SortingInfo.Artist);
-    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Album, &MusicInfo->SortingInfo.Album);
+    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Genre, &MusicInfo->Playlist_->Genre);
+    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Artist, &MusicInfo->Playlist_->Artist);
+    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Album, &MusicInfo->Playlist_->Album);
     
     if(MusicInfo->PlayingSong.PlaylistID >= 0)
     {
         file_id FileID = Get(&MusicInfo->Playlist.Songs, MusicInfo->PlayingSong.PlaylistID);
-        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song.Base, &MusicInfo->SortingInfo.Song, FileID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
+        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song.Base, &MusicInfo->Playlist_->Song, FileID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
     }
 }
 
@@ -975,11 +973,11 @@ RemoveSongText(music_display_column *DisplayColumn, u32 ID)
 }
 
 inline void
-UpdateSongText(column_sorting_info *SortingColumn, music_display_column *DisplayColumn, u32 ID, displayable_id NextID)
+UpdateSongText(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, u32 ID, displayable_id NextID)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
     display_column_song_extension *DisplaySong = ColumnExt(DisplayColumn);
-    file_id NextSongID = Get(&SortingColumn->Displayable, NextID);
+    file_id NextSongID = Get(&PlaylistColumn->Displayable, NextID);
     mp3_metadata *MD = &DisplaySong->FileInfo->Metadata[NextSongID.ID];
     
     v2 SongP = {Layout->SongXOffset, Layout->SongFirstRowYOffset};
@@ -1017,11 +1015,13 @@ UpdateSongText(column_sorting_info *SortingColumn, music_display_column *Display
 }
 
 internal void
-MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displayable_id DisplayableStartID, r32 StartY)
-{
+MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn,
+                  displayable_id DisplayableStartID, r32 StartY)
+{ 
+    playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
+    sort_batch      *SortBatch      = MusicInfo->Batches + DisplayColumn->Type;
     // FileOrDisplayableStartID is either a fileID when the colum is the song column, 
     // or a displayID when it is another.
-    column_sorting_info *SortingColumn = DisplayColumn->SortingInfo;
     DisplayColumn->DisplayCursor = DisplayableStartID.ID*DisplayColumn->SlotHeight + StartY;
     
     For(DisplayColumn->Count)
@@ -1039,7 +1039,7 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
     SetLocalPosition(DisplayColumn->BGRects[0], V2(0, StartY));
     
     for(u32 It = 0; 
-        It < SortingColumn->Displayable.A.Count && 
+        It < PlaylistColumn->Displayable.A.Count && 
         It < DisplayColumn->Count;
         It++)
     {
@@ -1048,11 +1048,11 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
         if(DisplayColumn->Type == columnType_Song) 
         {
             SetSongButtonsActive(ColumnExt(DisplayColumn), It, true);
-            UpdateSongText(SortingColumn, DisplayColumn, It, NextID);
+            UpdateSongText(PlaylistColumn, DisplayColumn, It, NextID);
         }
         else
         {
-            string_c *Name  = SortingColumn->Batch.Names + Get(&SortingColumn->Displayable, NextID).ID;
+            string_c *Name  = SortBatch->Names + Get(&PlaylistColumn->Displayable, NextID).ID;
             RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, Name, &DisplayColumn->Base->ColorPalette.Text,
                        DisplayColumn->Text+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[It]);
             
@@ -1062,20 +1062,20 @@ MoveDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, displ
         DisplayColumn->OnScreenIDs[It] = NextID;
         // #LastSlotOverflow, The last ID is not visible when the column is at the bottom, 
         // but the NextID would be out of displayable range.
-        if(NextID.ID+1 < (i32)DisplayColumn->SortingInfo->Displayable.A.Count) NextID.ID++; 
+        if(NextID.ID+1 < (i32)PlaylistColumn->Displayable.A.Count) NextID.ID++; 
     }
-    ResetColumnText(DisplayColumn, DisplayColumn->SortingInfo);
-    UpdateColumnColor(DisplayColumn, DisplayColumn->SortingInfo);
+    ResetColumnText(DisplayColumn, PlaylistColumn->Displayable.A.Count);
+    UpdateColumnColor(DisplayColumn, PlaylistColumn);
     
-    UpdateColumnVerticalSliderPosition(DisplayColumn, DisplayColumn->SortingInfo);
+    UpdateColumnVerticalSliderPosition(DisplayColumn, PlaylistColumn->Displayable.A.Count);
 }
 
 internal void
-ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32 ScrollAmount)
+ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, r32 ScrollAmount)
 {
-    column_sorting_info *SortingColumn = DisplayColumn->SortingInfo;
+    playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
     r32 SlotHeight = DisplayColumn->SlotHeight;
-    r32 TotalHeight   = GetDisplayableHeight(SortingColumn, SlotHeight);
+    r32 TotalHeight   = GetDisplayableHeight(PlaylistColumn->Displayable.A.Count, SlotHeight);
     // DisplayCursor is the very top position. Therefore MaxHeight needs to be reduced by VisibleHeight
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
@@ -1084,13 +1084,13 @@ ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32
     
     r32 NewY = Mod(DisplayColumn->DisplayCursor, SlotHeight);
     i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
-    NewCursorID     = Min(NewCursorID, (i32)SortingColumn->Displayable.A.Count-1);
+    NewCursorID     = Min(NewCursorID, (i32)PlaylistColumn->Displayable.A.Count-1);
     i32 CursorDiff  = NewCursorID - PrevCursorID;
     
     if(CursorDiff != 0)
     {
-        i32 MaximumID = Max(0u, SortingColumn->Displayable.A.Count - DisplayColumn->Count + 1);
-        MoveDisplayColumn(Renderer, DisplayColumn, NewDisplayableID(Min(NewCursorID, MaximumID)), NewY);
+        i32 MaximumID = Max(0u, PlaylistColumn->Displayable.A.Count - DisplayColumn->Count + 1);
+        MoveDisplayColumn(Renderer, MusicInfo, DisplayColumn, NewDisplayableID(Min(NewCursorID, MaximumID)), NewY);
     }
     else
     {
@@ -1104,30 +1104,32 @@ UpdateAllDisplayColumns(game_state *GameState)
     renderer *Renderer = &GameState->Renderer;
     music_display_info *DisplayInfo = &GameState->MusicInfo.DisplayInfo;
     
-    MoveDisplayColumn(Renderer, &DisplayInfo->Song.Base);
-    MoveDisplayColumn(Renderer, &DisplayInfo->Genre);
-    MoveDisplayColumn(Renderer, &DisplayInfo->Artist);
-    MoveDisplayColumn(Renderer, &DisplayInfo->Album);
+    MoveDisplayColumn(Renderer, &GameState->MusicInfo, &DisplayInfo->Song.Base);
+    MoveDisplayColumn(Renderer, &GameState->MusicInfo, &DisplayInfo->Genre);
+    MoveDisplayColumn(Renderer, &GameState->MusicInfo, &DisplayInfo->Artist);
+    MoveDisplayColumn(Renderer, &GameState->MusicInfo, &DisplayInfo->Album);
 }
 
 internal void
-BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, file_id FileID)
+BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *DisplayColumn, file_id FileID)
 {
-    displayable_id DisplayID = FileIDToColumnDisplayID(DisplayColumn, FileID);
-    i32 MaximumID = Max(0, (i32)DisplayColumn->SortingInfo->Displayable.A.Count-(i32)DisplayColumn->Count+1);
+    playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
+    displayable_id DisplayID = FileIDToColumnDisplayID(MusicInfo, DisplayColumn, FileID);
+    i32 MaximumID = Max(0, (i32)PlaylistColumn->Displayable.A.Count-(i32)DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     
-    MoveDisplayColumn(&GlobalGameState.Renderer, DisplayColumn, DisplayID, 0);
+    MoveDisplayColumn(&GlobalGameState.Renderer, MusicInfo, DisplayColumn, DisplayID, 0);
 }
 
 internal void
-BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, batch_id BatchID)
+BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id BatchID)
 {
-    displayable_id DisplayID = SortingIDToColumnDisplayID(DisplayColumn, BatchID);
-    i32 MaximumID = Max(0, (i32)DisplayColumn->SortingInfo->Displayable.A.Count-(i32)DisplayColumn->Count+1);
+    playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
+    displayable_id DisplayID = SortingIDToColumnDisplayID(MusicInfo, DisplayColumn, BatchID);
+    i32 MaximumID = Max(0, (i32)PlaylistColumn->Displayable.A.Count-(i32)DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     
-    MoveDisplayColumn(&GlobalGameState.Renderer, DisplayColumn, DisplayID, 0);
+    MoveDisplayColumn(&GlobalGameState.Renderer, MusicInfo, DisplayColumn, DisplayID, 0);
 }
 
 internal void
@@ -1135,23 +1137,22 @@ KeepPlayingSongOnScreen(renderer *Renderer, music_info *MusicInfo)
 {
     if(MusicInfo->PlayingSong.PlaylistID < 0) return;
     music_display_column *DisplayColumn = &MusicInfo->DisplayInfo.Song.Base;
-    column_sorting_info *SortingColumn = &MusicInfo->SortingInfo.Song;
     u32 OnScreenID = 0;
-    if(IsInOnScreenList(DisplayColumn, SortingColumn, MusicInfo->PlayingSong.PlaylistID, &OnScreenID))
+    if(IsInOnScreenList(DisplayColumn, MusicInfo->PlayingSong.PlaylistID, &OnScreenID))
     {
         if(IsIntersectingRectButTopShowing(DisplayColumn->BGRects[OnScreenID], DisplayColumn->BottomBorder))
         {
-            ScrollDisplayColumn(Renderer, DisplayColumn, DisplayColumn->SlotHeight);
+            ScrollDisplayColumn(Renderer, MusicInfo, DisplayColumn, DisplayColumn->SlotHeight);
         }
         else if(IsIntersectingRectButBottomShowing(DisplayColumn->BGRects[OnScreenID], DisplayColumn->TopBorder))
         {
-            ScrollDisplayColumn(Renderer, DisplayColumn, -DisplayColumn->SlotHeight);
+            ScrollDisplayColumn(Renderer, MusicInfo, DisplayColumn, -DisplayColumn->SlotHeight);
         }
     }
 }
 
 internal void
-FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn, column_sorting_info *ColumnSorting)
+FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn, u32 DisplayableCount)
 {
     // Calc new column scale
     DisplayColumn->ColumnHeight = HeightBetweenRects(DisplayColumn->TopBorder, DisplayColumn->BottomBorder);
@@ -1170,7 +1171,7 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
     {
         SetSize(DisplayColumn->BGRects[It], V2(DisplayColumn->SlotWidth, GetSize(DisplayColumn->BGRects[It]).y));
     }
-    ResetColumnText(DisplayColumn, ColumnSorting);
+    ResetColumnText(DisplayColumn, DisplayableCount);
     
     // Calc slider fit
     r32 BGSizeY = GetSize(DisplayColumn->SliderHorizontal.Background).y;
@@ -1181,7 +1182,7 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
     slider *VSlider = &DisplayColumn->SliderVertical;
     r32 BGSizeX = GetSize(VSlider->Background).x;
     SetSize(VSlider->Background, V2(BGSizeX, DisplayColumn->ColumnHeight));
-    UpdateColumnVerticalSlider(DisplayColumn, ColumnSorting);
+    UpdateColumnVerticalSlider(DisplayColumn, DisplayableCount);
     
     // Search bar
     SetSize(DisplayColumn->Search.TextField.Background,
@@ -1190,19 +1191,20 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
 }
 
 internal void
-ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, 
-                                    column_sorting_info *SortingColumn, music_display_column *DisplayColumn)
+ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn)
 {
+    array_file_id *Displayable = &MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable;
+    
     u32 NewDisplayCount = CountPossibleDisplayedSlots(Renderer, DisplayColumn);
     ChangeDisplayColumnCount(Renderer, DisplayColumn, NewDisplayCount);
     
-    FitDisplayColumnIntoSlot(Renderer, DisplayColumn, SortingColumn);
-    MoveDisplayColumn(Renderer, DisplayColumn, DisplayColumn->OnScreenIDs[0],GetLocalPosition(DisplayColumn->BGRects[0]).y);
+    FitDisplayColumnIntoSlot(Renderer, DisplayColumn, Displayable->A.Count);
+    MoveDisplayColumn(Renderer, MusicInfo, DisplayColumn, DisplayColumn->OnScreenIDs[0],GetLocalPosition(DisplayColumn->BGRects[0]).y);
     
     // I do this to fix that if the column is at the bottom and the window gets bigger, the
     // slots will be stopped at the edge. Without this, the new visible slots will be the same
     // ID. See: #LastSlotOverflow in MoveDisplayColumn
-    drag_slider_data Data = { MusicInfo, DisplayColumn, SortingColumn};
+    drag_slider_data Data = { MusicInfo, DisplayColumn};
     OnVerticalSliderDrag(Renderer, GetPosition(DisplayColumn->SliderVertical.GrabThing), 0, &Data);
     
     SetActive(DisplayColumn->Search.Button, (Renderer->Window.CurrentDim.Height > (GlobalMinWindowHeight + 15)));
@@ -1266,11 +1268,12 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
         LeftSideP = NewX;
     }
     
-    FitDisplayColumnIntoSlot(Renderer, &Info->DisplayInfo->Genre, &Info->SortingInfo->Genre);
-    FitDisplayColumnIntoSlot(Renderer, &Info->DisplayInfo->Artist, &Info->SortingInfo->Artist);
-    FitDisplayColumnIntoSlot(Renderer, &Info->DisplayInfo->Album, &Info->SortingInfo->Album);
-    FitDisplayColumnIntoSlot(Renderer, &Info->DisplayInfo->Song.Base, &Info->SortingInfo->Song);
-    UpdateHorizontalSliders(Info->DisplayInfo, Info->SortingInfo);
+    playlist_info *Playlist = Info->MusicInfo->Playlist_;
+    FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Genre,     Playlist->Genre.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Artist,    Playlist->Artist.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Album,     Playlist->Album.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Song.Base, Playlist->Song.Displayable.A.Count);
+    UpdateHorizontalSliders(Info->MusicInfo);
 }
 
 inline void
@@ -1405,9 +1408,9 @@ OnShufflePlaylistToggleOn(void *Data)
     
     MusicInfo->IsShuffled = true;
     
-    ShuffleStack(&MusicInfo->SortingInfo.Song.Displayable);
+    ShuffleStack(&MusicInfo->Playlist_->Song.Displayable);
     UseDisplayableAsPlaylist(MusicInfo);
-    MoveDisplayColumn(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base);
+    MoveDisplayColumn(&GameState->Renderer, MusicInfo, &MusicInfo->DisplayInfo.Song.Base);
 }
 
 inline void
@@ -1419,9 +1422,9 @@ OnShufflePlaylistToggleOff(void *Data)
     
     MusicInfo->IsShuffled = false;
     
-    SortDisplayables(&MusicInfo->SortingInfo, &GameState->MP3Info->FileInfo);
+    SortDisplayables(MusicInfo, &GameState->MP3Info->FileInfo);
     UseDisplayableAsPlaylist(MusicInfo);
-    MoveDisplayColumn(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base);
+    MoveDisplayColumn(&GameState->Renderer, MusicInfo, &MusicInfo->DisplayInfo.Song.Base);
 }
 
 inline void
@@ -1616,7 +1619,7 @@ OnMusicPathPressed(void *Data)
     {
         if(IsSearchOpen(DisplayInfo))
         {
-            InterruptSearch(&MusicBtnInfo->GameState->Renderer, DisplayInfo, &MusicBtnInfo->GameState->MusicInfo.SortingInfo);
+            InterruptSearch(&MusicBtnInfo->GameState->Renderer, &MusicBtnInfo->GameState->MusicInfo);
         }
         UpdateTextField(&MusicBtnInfo->GameState->Renderer, &MusicPath->TextField);
         
@@ -2547,18 +2550,18 @@ CheckColumnsForSelectionChange()
     renderer *Renderer = &GlobalGameState.Renderer;
     input_info *Input = &GlobalGameState.Input;
     music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-    music_sorting_info *SortingInfo = &GlobalGameState.MusicInfo.SortingInfo;
+    playlist_info      *Playlist    = GlobalGameState.MusicInfo.Playlist_;
     
     if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
     {
         
         if(GlobalGameState.Time.GameTime - DisplayInfo->Song.Base.LastClickTime < DOUBLE_CLICK_TIME)
         {
-            if(SortingInfo->Song.Selected.A.Count > 0)
+            if(Playlist->Song.Selected.A.Count > 0)
             {
-                file_id FileID = Get(&SortingInfo->Song.Selected, NewSelectID(0));
+                file_id FileID = Get(&Playlist->Song.Selected, NewSelectID(0));
                 i32 OnScreenID = -1;
-                if(StackFind(&SortingInfo->Song.Displayable, FileID, &OnScreenID))
+                if(StackFind(&Playlist->Song.Displayable, FileID, &OnScreenID))
                 {
                     For(DisplayInfo->Song.Base.Count) 
                     {
@@ -2584,9 +2587,9 @@ CheckColumnsForSelectionChange()
         }
         else 
         {
-            if(UpdateSelectionArray(&SortingInfo->Song, &DisplayInfo->Song.Base))
+            if(UpdateSelectionArray(&Playlist->Song, &DisplayInfo->Song.Base))
             {
-                UpdateColumnColor(&DisplayInfo->Song.Base, &SortingInfo->Song);
+                UpdateColumnColor(&DisplayInfo->Song.Base, &Playlist->Song);
             }
         }
         
@@ -2596,12 +2599,12 @@ CheckColumnsForSelectionChange()
     {
         
         if(GlobalGameState.Time.GameTime - DisplayInfo->Genre.LastClickTime < DOUBLE_CLICK_TIME)
-            Result = SelectAllOrNothing(&DisplayInfo->Genre, &SortingInfo->Genre);
-        else Result = UpdateSelectionArray(&SortingInfo->Genre, &DisplayInfo->Genre);
+            Result = SelectAllOrNothing(&DisplayInfo->Genre, &Playlist->Genre);
+        else Result = UpdateSelectionArray(&Playlist->Genre, &DisplayInfo->Genre);
         
         if(Result)
         {
-            PropagateSelectionChange(SortingInfo);
+            PropagateSelectionChange(&GlobalGameState.MusicInfo);
             DisplayInfo->Artist.DisplayCursor = 0;
             DisplayInfo->Album.DisplayCursor  = 0;
         }
@@ -2611,12 +2614,12 @@ CheckColumnsForSelectionChange()
     else if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
     {
         if(GlobalGameState.Time.GameTime - DisplayInfo->Artist.LastClickTime < DOUBLE_CLICK_TIME)
-            Result = SelectAllOrNothing(&DisplayInfo->Artist, &SortingInfo->Artist);
-        else Result = UpdateSelectionArray(&SortingInfo->Artist, &DisplayInfo->Artist);
+            Result = SelectAllOrNothing(&DisplayInfo->Artist, &Playlist->Artist);
+        else Result = UpdateSelectionArray(&Playlist->Artist, &DisplayInfo->Artist);
         
         if(Result)
         {
-            PropagateSelectionChange(SortingInfo);
+            PropagateSelectionChange(&GlobalGameState.MusicInfo);
             DisplayInfo->Album.DisplayCursor  = 0;
         }
         
@@ -2625,8 +2628,8 @@ CheckColumnsForSelectionChange()
     else if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
     {
         if(GlobalGameState.Time.GameTime - DisplayInfo->Album.LastClickTime < DOUBLE_CLICK_TIME)
-            Result = SelectAllOrNothing(&DisplayInfo->Album, &SortingInfo->Album);
-        else Result = UpdateSelectionArray(&SortingInfo->Album, &DisplayInfo->Album);
+            Result = SelectAllOrNothing(&DisplayInfo->Album, &Playlist->Album);
+        else Result = UpdateSelectionArray(&Playlist->Album, &DisplayInfo->Album);
         
         DisplayInfo->Album.LastClickTime = GlobalGameState.Time.GameTime;
     }

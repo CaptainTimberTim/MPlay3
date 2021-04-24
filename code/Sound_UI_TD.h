@@ -54,17 +54,15 @@ struct drag_slider_data
 {
     struct music_info *MusicInfo;
     struct music_display_column *DisplayColumn;
-    struct column_sorting_info *SortingColumn;
 };
 
 struct search_bar_btn_info
 {
-    struct renderer *Renderer;
-    struct music_display_info *DisplayInfo;
+    struct renderer   *Renderer;
     struct search_bar *Search;
+    struct music_info *MusicInfo;
     struct music_display_column *DisplayColumn;
-    struct array_file_id *Displayable;
-    struct column_sorting_info *SortingInfo;
+    enum column_type   ColumnType;
 };
 
 struct search_bar
@@ -96,7 +94,6 @@ struct music_display_column
     entry_id *RightBorder;
     entry_id *TopBorder;
     entry_id *BottomBorder;
-    struct column_sorting_info *SortingInfo;
     
     slider SliderHorizontal;
     slider SliderVertical;
@@ -211,8 +208,7 @@ struct column_edge_drag
     edge_chain RightEdgeChain;
     r32 *XPercent;
     
-    struct music_display_info *DisplayInfo;
-    struct music_sorting_info *SortingInfo;
+    struct music_info *MusicInfo;
 };
 
 struct user_error_text
@@ -413,20 +409,20 @@ struct layout_definition
     r32 ErrorTextAnimationTime    = 2.5f;
 };
 
-inline void UpdateColumnColor(music_display_column *DisplayColumn, struct column_sorting_info *SortingColumn);
-internal void BringDisplayableEntryOnScreen(music_display_column *DisplayColumn, file_id FileID);
-internal void BringDisplayableEntryOnScreenWithSortID(music_display_column *DisplayColumn, batch_id SortID);
-inline void ToggleSelection(music_display_column *DisplayColumn, column_sorting_info *SortColumn, u32 ColumnDisplayID);
-internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, column_sorting_info *SortColumnInfo, u32 FileID, v4 *Color);
+inline void UpdateColumnColor(music_display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
+internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *DisplayColumn, file_id FileID);
+internal void BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id SortID);
+inline void ToggleSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
+internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 FileID, v4 *Color);
 internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *MusicInfo);
 internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn,
-                                  column_sorting_info *SortingColumn, i32 ScrollAmount);
-internal void ScrollDisplayColumn(renderer *Renderer, music_display_column *DisplayColumn, r32 ScrollAmount);
+                                  playlist_column *PlaylistColumn, i32 ScrollAmount);
+internal void ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, r32 ScrollAmount);
 internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
 
 
-internal void SearchInDisplayable(column_sorting_info *ColumnSortInfo, struct search_bar *Search, mp3_file_info *FileInfo = 0);
-internal void UpdateColumnVerticalSlider(music_display_column *DisplayColumn, column_sorting_info *ColumnSorting);
+internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, struct search_bar *Search, mp3_file_info *FileInfo = 0);
+internal void UpdateColumnVerticalSlider(music_display_column *DisplayColumn, u32 DisplayableCount);
 inline void PushUserErrorMessage(string_c *String);
 
 

@@ -15,10 +15,10 @@ Version 6
 
 FontPath: 
 FontHeightOffset: 0
-Volume: 0.187500
-LastPlayingSong: 3669
+Volume: 0.409722
+LastPlayingSong: 591
 ColorPalette: 4
-GenreArtistEdgeXPercent: 0.159581
+GenreArtistEdgeXPercent: 0.228589
 ArtistAlbumEdgeXPercent: 0.387554
 AlbumSongEdgeXPercent: 0.528035
 WindowDimensionX: 1639
@@ -26,3 +26,14 @@ WindowDimensionY: 895
 Looping: 0
 Shuffle: 0
 UsedFontCache: kaiu.ttf|
+Palette: Monochrome Gay
+Text: 247 208 246
+ForegroundText: 102 7 81
+ErrorText: 170 11 22
+Foreground: 254 168 204
+Slot: 100 23 44
+SliderBackground: 251 174 242
+SliderGrabThing: 70 73 73
+ButtonActive: 78 80 80
+Selected: 238 53 53
+PlayingSong: 85 0 21

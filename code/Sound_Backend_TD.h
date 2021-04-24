@@ -40,6 +40,7 @@
 // - two color palettes get created when coying one.
 
 // - MP3 V0 crashes?
+// - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
 
 #include "Sound_UI_TD.h"
 
@@ -50,22 +51,23 @@ struct column_info
 {
     struct renderer             *Renderer;
     struct music_display_info   *DisplayInfo;
+    struct music_info           *MusicInfo;
     struct music_display_column *DisplayColumn;
-    struct column_sorting_info  *SortingColumn;
+    struct playlist_column      *PlaylistColumn;
 };
 
-enum column_type
+enum column_type // Is used to index arrays!
 {
-    columnType_None,
-    columnType_Song,
-    columnType_Genre,
+    columnType_Genre = 0,
     columnType_Artist,
     columnType_Album,
+    columnType_Song,
+    columnType_None,
 };
 
 struct sort_batch
 {
-    // These arrays contain the id for the other columns respectively
+    // These arrays of arrays contain the id for the other columns respectively
     array_batch_id *Genre; 
     array_batch_id *Artist;
     array_batch_id *Album;
@@ -75,22 +77,6 @@ struct sort_batch
     u32 BatchCount;
     u32 MaxBatches;
 }; 
-
-struct column_sorting_info
-{
-    struct music_sorting_info *Base;
-    sort_batch Batch;
-    array_file_id Selected; // stores _FileIDs_ for song column and sortBatchIDs for the rest!
-    array_file_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
-};
-
-struct music_sorting_info
-{
-    column_sorting_info Genre;
-    column_sorting_info Artist;
-    column_sorting_info Album;
-    column_sorting_info Song;
-};
 
 struct song_sort_info
 {
@@ -115,9 +101,29 @@ struct playing_song
     b32 PlayUpNext; // should only be set in SetNextSong/and OnSongPlayPressed
 };
 
-struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
+struct playlist_column
 {
-    array_file_id Songs;
+    column_type Type;
+    array_file_id Selected;    // stores _FileIDs_ for song column and sortBatchIDs for the rest!
+    array_file_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
+};
+
+struct playlist_info
+{
+    union {
+        struct {
+            playlist_column Genre;
+            playlist_column Artist;
+            playlist_column Album;
+            playlist_column Song;
+        };
+        playlist_column Columns[4];
+    };
+};
+
+struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
+{ // TODO:: Rename this to something like prev_and_upcoming_songs...
+    array_file_id Songs; // TODO:: This can be "Displayable" again
     array_file_id UpNext;
     array_file_id Previous;
 };
@@ -129,8 +135,19 @@ struct music_info
     b32 IsPlaying;
     
     play_list Playlist;  // ::PLAYLIST_ID
+    playlist_info *Playlist_; // Actual playlist. This can be switched out.
+    playlist_info *PlaylistList;
     
-    music_sorting_info SortingInfo;
+    union {
+        struct {
+            sort_batch GenreBatch;
+            sort_batch ArtistBatch;
+            sort_batch AlbumBatch;
+            sort_batch SongBatch;
+        };
+        sort_batch Batches[4]; // TODO:: Song batch does not exist?!
+    };
+    
     music_display_info DisplayInfo;
     
     playing_song PlayingSong;
@@ -215,7 +232,7 @@ struct mp3_info
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
 
-inline displayable_id FileIDToColumnDisplayID(music_display_column *DisplayColumn, file_id FileID);
+inline displayable_id FileIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, file_id FileID);
 internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 

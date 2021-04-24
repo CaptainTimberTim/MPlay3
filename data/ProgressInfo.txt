@@ -173,3 +173,9 @@
 
 20.04.2021
 - Added F-Keys to the four buttons in the top left corner (F5-F8).
+
+23.04.2021
+- Finished first pass to replace all magic numbers for layout in the code with one single layout_definition struct, which holds them all.
+
+24.04.2021
+- Changed fundamental struct layout for sort infos and sort batches. This s done as a first step to now implement proper playlists.

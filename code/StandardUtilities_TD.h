@@ -87,7 +87,7 @@ struct array_u32
     u32 *Slot;
 };
 
-inline array_u32 CreateArray(arena_allocator *Arena, u32 Length);
+inline array_u32 CreateArray(arena_allocator *Arena, i32 Length);
 inline void DestroyArray(arena_allocator *Arena, array_u32 Array);
 inline void Put(array_u32 *Array, u32 Pos, u32 Item);
 inline u32  Get(array_u32 *Array, u32 Pos);

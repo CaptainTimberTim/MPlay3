@@ -74,6 +74,8 @@ struct arena_allocator
 
 inline void FreeMemory(arena_allocator *Allocator, void *Memory);
 
+// TODO:: Switch to i64 to catch uninitialized stuff?!
+
 // This can be called:
 // 1. Without VA_ARGS argument, then it is normal memory allocation
 // 2. With the keyword Private, then it becomes private allocation

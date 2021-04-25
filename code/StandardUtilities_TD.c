@@ -340,9 +340,10 @@ DeleteTransientHeap(arena_allocator *Arena, heap *Heap)
 
 // Array operations
 inline array_u32
-CreateArray(arena_allocator *Arena, u32 Length)
+CreateArray(arena_allocator *Arena, i32 Length)
 {
     array_u32 Result = {};
+    Assert(Length >= 0);
     
     Result.Count  = 0;
     Result.Length = Length;

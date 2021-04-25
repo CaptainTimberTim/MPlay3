@@ -16,7 +16,7 @@ inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
 inline void SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
 inline displayable_id FileIDToSongDisplayableID(music_display_column *DisplayColumn, array_file_id *Displayable, file_id FileID);
-inline displayable_id SortingIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id BatchID);
+inline displayable_id SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID);
 inline playlist_id OnScreenIDToPlaylistID(music_info *MusicInfo, u32 OnScreenID, file_id *FileID = 0);
 inline void HandleChangeToNextSong(game_state *GameState);
 internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
@@ -975,10 +975,12 @@ RemoveSongText(music_display_column *DisplayColumn, u32 ID)
 inline void
 UpdateSongText(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, u32 ID, displayable_id NextID)
 {
+    Assert(DisplayColumn->Type == columnType_Song);
+    
     layout_definition *Layout = &GlobalGameState.Layout;
     display_column_song_extension *DisplaySong = ColumnExt(DisplayColumn);
     file_id NextSongID = Get(&PlaylistColumn->Displayable, NextID);
-    mp3_metadata *MD = &DisplaySong->FileInfo->Metadata[NextSongID.ID];
+    mp3_metadata *MD   = &DisplaySong->FileInfo->Metadata[NextSongID.ID];
     
     v2 SongP = {Layout->SongXOffset, Layout->SongFirstRowYOffset};
     RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MD->Title, &DisplayColumn->Base->ColorPalette.Text,
@@ -1019,7 +1021,7 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_colum
                   displayable_id DisplayableStartID, r32 StartY)
 { 
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
-    sort_batch      *SortBatch      = MusicInfo->Batches + DisplayColumn->Type;
+    sort_batch      *SortBatch      = &PlaylistColumn->Batch;
     // FileOrDisplayableStartID is either a fileID when the colum is the song column, 
     // or a displayID when it is another.
     DisplayColumn->DisplayCursor = DisplayableStartID.ID*DisplayColumn->SlotHeight + StartY;
@@ -1125,7 +1127,7 @@ internal void
 BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id BatchID)
 {
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
-    displayable_id DisplayID = SortingIDToColumnDisplayID(MusicInfo, DisplayColumn, BatchID);
+    displayable_id DisplayID = SortingIDToColumnDisplayID(MusicInfo->Playlist_, DisplayColumn, BatchID);
     i32 MaximumID = Max(0, (i32)PlaylistColumn->Displayable.A.Count-(i32)DisplayColumn->Count+1);
     DisplayID.ID = Min(DisplayID.ID, MaximumID);
     

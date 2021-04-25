@@ -15,12 +15,12 @@ Version 6
 
 FontPath: 
 FontHeightOffset: 0
-Volume: 0.409722
-LastPlayingSong: 591
+Volume: 0.194444
+LastPlayingSong: -1
 ColorPalette: 4
-GenreArtistEdgeXPercent: 0.228589
-ArtistAlbumEdgeXPercent: 0.387554
-AlbumSongEdgeXPercent: 0.528035
+GenreArtistEdgeXPercent: 0.210721
+ArtistAlbumEdgeXPercent: 0.439310
+AlbumSongEdgeXPercent: 0.631546
 WindowDimensionX: 1639
 WindowDimensionY: 895
 Looping: 0

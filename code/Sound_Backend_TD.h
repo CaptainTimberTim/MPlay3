@@ -9,6 +9,7 @@
 // - think about selecting all entries that are visible when pressing enter during search
 // - if song selected, pressing the big play should start it?
 // - Think about if search in song column should work differently, or search through Title/artist/album
+// - Make a long list of 'goodbyes' for the quit curtain.
 
 // TODO::
 //
@@ -103,10 +104,17 @@ struct playing_song
 
 struct playlist_column
 {
-    column_type Type;
+    column_type   Type;
     array_file_id Selected;    // stores _FileIDs_ for song column and sortBatchIDs for the rest!
     array_file_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
+    
+    union {
+        sort_batch Batch;      // Used for Genre, Artist, Album column_types.
+        array_file_id FileIDs; // Used for Song column_type.
+    };
 };
+
+inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, displayable_id ID);
 
 struct playlist_info
 {
@@ -119,6 +127,15 @@ struct playlist_info
         };
         playlist_column Columns[4];
     };
+};
+internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, u32 FileInfoCount, 
+                                            i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
+
+struct playlist_array
+{
+    playlist_info *List;
+    u32 Count;
+    u32 MaxCount;
 };
 
 struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
@@ -136,17 +153,7 @@ struct music_info
     
     play_list Playlist;  // ::PLAYLIST_ID
     playlist_info *Playlist_; // Actual playlist. This can be switched out.
-    playlist_info *PlaylistList;
-    
-    union {
-        struct {
-            sort_batch GenreBatch;
-            sort_batch ArtistBatch;
-            sort_batch AlbumBatch;
-            sort_batch SongBatch;
-        };
-        sort_batch Batches[4]; // TODO:: Song batch does not exist?!
-    };
+    playlist_array Playlists;
     
     music_display_info DisplayInfo;
     
@@ -195,7 +202,7 @@ struct mp3_file_info //::FILE_ID
 {
     string_c     *FileName;
     string_c     *SubPath;
-    mp3_metadata *Metadata;
+    mp3_metadata *Metadata; // TODO:: Change name and fix all places where now FileIDs in playlist_info should be used...
     u32 Count;
     u32 MaxCount;
 };

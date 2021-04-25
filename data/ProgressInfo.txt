@@ -178,4 +178,11 @@
 - Finished first pass to replace all magic numbers for layout in the code with one single layout_definition struct, which holds them all.
 
 24.04.2021
-- Changed fundamental struct layout for sort infos and sort batches. This s done as a first step to now implement proper playlists.
+- Changed fundamental struct layout for sort infos and sort batches. This is done as a first step to now implement proper playlists.
+
+25.04.2021
+- Rearanged sort_batch for proper use with playlists. 
+- Added first proper playlist stuff. Which revealed that for Song FileID needs to happen through a "batch" as well.
+
+
+

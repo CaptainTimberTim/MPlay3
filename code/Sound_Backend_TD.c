@@ -216,10 +216,22 @@ PrepareGenreTypesList()
     }
 }
 
-inline playlist_info *
+inline playlist_array
 CreatePlaylistList(arena_allocator *Arena, u32 Count)
 {
-    playlist_info *Result = AllocateArray(Arena, Count, playlist_info);
+    playlist_array Result = {NULL, 0, Count};
+    Result.List = AllocateArray(Arena, Count, playlist_info);
+    return Result;
+}
+
+inline mp3_metadata *
+GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, displayable_id ID)
+{
+    mp3_metadata *Result = 0;
+    
+    file_id FileID = Get(&SongColumn->Displayable, ID);
+    Result = FileInfo->Metadata + Get(&SongColumn->FileIDs.A, FileID.ID);
+    
     return Result;
 }
 
@@ -504,11 +516,11 @@ FileIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColu
         InvalidDefaultCase;
     }
     
-    array_file_id *Displayable = &MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable;
-    For(Displayable->A.Count)
+    playlist_column *Playlist = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
+    For(Playlist->Displayable.A.Count)
     {
         displayable_id DID = NewDisplayableID(It);
-        string_c *Name  = MusicInfo->Batches[DisplayColumn->Type].Names+Get(Displayable, DID).ID;
+        string_c *Name  = Playlist->Batch.Names+Get(&Playlist->Displayable, DID).ID;
         if(CompareStringCompounds(CompareS, Name)) Result = DID;
         
     }
@@ -517,25 +529,25 @@ FileIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColu
 }
 
 inline displayable_id
-SortingIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id BatchID)
+SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID)
 {
     displayable_id Result = NewDisplayableID(-1);
     
-    array_file_id *Displayable = &MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable;
+    array_file_id *Displayable = &Playlist->Columns[DisplayColumn->Type].Displayable;
     string_c *CompareS = 0;
     switch(DisplayColumn->Type)
     {
         case columnType_Genre:
         {
-            CompareS = &MusicInfo->GenreBatch.Names[BatchID.ID];
+            CompareS = &Playlist->Genre.Batch.Names[BatchID.ID];
         } break;
         case columnType_Artist:
         {
-            CompareS = &MusicInfo->ArtistBatch.Names[BatchID.ID];
+            CompareS = &Playlist->Artist.Batch.Names[BatchID.ID];
         } break;
         case columnType_Album:
         {
-            CompareS = &MusicInfo->AlbumBatch.Names[BatchID.ID];
+            CompareS = &Playlist->Album.Batch.Names[BatchID.ID];
         } break;
         
         InvalidDefaultCase;
@@ -544,7 +556,7 @@ SortingIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayC
     For(Displayable->A.Count)
     {
         displayable_id DID = NewDisplayableID(It);
-        string_c *Name  = MusicInfo->Batches[DisplayColumn->Type].Names+Get(Displayable, DID).ID;
+        string_c *Name  = Playlist->Columns[DisplayColumn->Type].Batch.Names+Get(Displayable, DID).ID;
         if(CompareStringCompounds(CompareS, Name)) Result = DID;
     }
     
@@ -1319,23 +1331,39 @@ InitializeSortBatch(arena_allocator *Arena, sort_batch *Batch, u32 BatchCount)
     Batch->BatchCount = 0;
 }
 
+inline void
+ReallocateSortBatch(arena_allocator *Arena, sort_batch *Batch, u32 NewCount)
+{
+    DebugLog(50, "Reallocating %p from %i to %i\n", Batch, Batch->MaxBatches, NewCount);
+    Batch->Genre  = ReallocateArray(Arena, Batch->Genre,  Batch->MaxBatches, NewCount, array_batch_id);
+    Batch->Artist = ReallocateArray(Arena, Batch->Artist, Batch->MaxBatches, NewCount, array_batch_id);
+    Batch->Album  = ReallocateArray(Arena, Batch->Album,  Batch->MaxBatches, NewCount, array_batch_id);
+    Batch->Song   = ReallocateArray(Arena, Batch->Song,   Batch->MaxBatches, NewCount, array_file_id);
+    Batch->Names  = ReallocateArray(Arena, Batch->Names,  Batch->MaxBatches, NewCount, string_c);
+    Batch->MaxBatches = NewCount;
+}
+
 internal void
 CreateMusicSortingInfo()
 {
-    mp3_info *MP3Info = GlobalGameState.MP3Info;
-    mp3_file_info *FileInfo = &MP3Info->FileInfo;
-    arena_allocator *FixArena = &GlobalGameState.FixArena;
+    mp3_info        *MP3Info      = GlobalGameState.MP3Info;
+    mp3_file_info   *FileInfo     = &MP3Info->FileInfo;
+    music_info      *MusicInfo    = MP3Info->MusicInfo;
+    arena_allocator *FixArena     = &GlobalGameState.FixArena;
     arena_allocator *ScratchArena = &GlobalGameState.ScratchArena;
     
-    // TODO:: Push this from transient to fixed with correct size?
-    sort_batch Genre  = {};
-    InitializeSortBatch(FixArena, &Genre, 256);
-    sort_batch Artist = {};
-    InitializeSortBatch(FixArena, &Artist, 512);
-    sort_batch Album  = {};
-    InitializeSortBatch(FixArena, &Album, 1024);
+    array_file_id SongFileIDs = {};
+    SongFileIDs.A = CreateArray(FixArena, FileInfo->Count);
+    For(FileInfo->Count) Push(&SongFileIDs, NewFileID(It));
     
-    song_sort_info *SortBatchInfo = AllocateArray(FixArena, FileInfo->Count, song_sort_info);
+    sort_batch Genre  = {};
+    InitializeSortBatch(FixArena, &Genre, 100);
+    sort_batch Artist = {};
+    InitializeSortBatch(FixArena, &Artist, 500);
+    sort_batch Album  = {};
+    InitializeSortBatch(FixArena, &Album, 1000);
+    
+    song_sort_info *SortBatchInfo = AllocateArray(ScratchArena, FileInfo->Count, song_sort_info);
     
     u32 *Genre_CountForBatches  = AllocateArray(ScratchArena, Genre.MaxBatches, u32);
     u32 *Artist_CountForBatches = AllocateArray(ScratchArena, Artist.MaxBatches, u32);
@@ -1347,9 +1375,15 @@ CreateMusicSortingInfo()
     AddSongToSortBatch(FixArena, &Artist, &Empty);
     AddSongToSortBatch(FixArena, &Album, &Empty);
     
-    for(u32 FileID = 0; FileID < FileInfo->Count; FileID++)
+    For(SongFileIDs.A.Count, File)
     {
+        i32 FileID = Get(&SongFileIDs.A, FileIt);
         mp3_metadata *MD = FileInfo->Metadata + FileID;
+        
+        // NOTE:: Check if sort_batches are full and realloc if necessary
+        if(Genre.BatchCount  >= Genre.MaxBatches-1)  ReallocateSortBatch(FixArena, &Genre,  Genre.MaxBatches*2);
+        if(Artist.BatchCount >= Artist.MaxBatches-1) ReallocateSortBatch(FixArena, &Artist, Artist.MaxBatches*2);
+        if(Album.BatchCount  >= Album.MaxBatches-1)  ReallocateSortBatch(FixArena, &Album,  Album.MaxBatches*2);
         
         // NOTE:: Fills the Batches with all different genres, artists, albums and gives the batch id back
         i32 GenreID  = AddSongToSortBatch(FixArena, &Genre, &MD->Genre);
@@ -1358,9 +1392,9 @@ CreateMusicSortingInfo()
         Assert(GenreID >= 0 && ArtistID >= 0 && AlbumID >= 0);
         
         // NOTE:: For each song note the corresponding IDs for the genre, artist, album
-        SortBatchInfo[FileID].GenreBatchID  = GenreID;
-        SortBatchInfo[FileID].ArtistBatchID = ArtistID;
-        SortBatchInfo[FileID].AlbumBatchID  = AlbumID;
+        SortBatchInfo[FileIt].GenreBatchID  = GenreID;
+        SortBatchInfo[FileIt].ArtistBatchID = ArtistID;
+        SortBatchInfo[FileIt].AlbumBatchID  = AlbumID;
         
         // NOTE:: Counts how many entries there are in each different genre, artist, album
         Genre_CountForBatches[GenreID]++;
@@ -1390,47 +1424,35 @@ CreateMusicSortingInfo()
     FreeMemory(ScratchArena, Artist_CountForBatches);
     FreeMemory(ScratchArena, Album_CountForBatches);
     
-    
-    for(u32 FileID = 0; FileID < FileInfo->Count; FileID++)
+    For(SongFileIDs.A.Count, File)
     {
-        u32 GenreBatchID  = SortBatchInfo[FileID].GenreBatchID;
-        u32 ArtistBatchID = SortBatchInfo[FileID].ArtistBatchID;
-        u32 AlbumBatchID  = SortBatchInfo[FileID].AlbumBatchID;
+        u32 GenreBatchID  = SortBatchInfo[FileIt].GenreBatchID;
+        u32 ArtistBatchID = SortBatchInfo[FileIt].ArtistBatchID;
+        u32 AlbumBatchID  = SortBatchInfo[FileIt].AlbumBatchID;
         
         PushIfNotExist(&Genre.Artist[GenreBatchID].A, ArtistBatchID);
         PushIfNotExist(&Genre.Album[GenreBatchID].A, AlbumBatchID);
-        PushIfNotExist(&Genre.Song[GenreBatchID].A, FileID);
+        PushIfNotExist(&Genre.Song[GenreBatchID].A, FileIt);
         
         PushIfNotExist(&Artist.Album[ArtistBatchID].A, AlbumBatchID);
-        PushIfNotExist(&Artist.Song[ArtistBatchID].A, FileID);
+        PushIfNotExist(&Artist.Song[ArtistBatchID].A, FileIt);
         
         PushIfNotExist(&Album.Genre[AlbumBatchID].A, GenreBatchID);
-        PushIfNotExist(&Album.Song[AlbumBatchID].A, FileID);
+        PushIfNotExist(&Album.Song[AlbumBatchID].A, FileIt);
     }
     
-    music_info *MusicInfo   = MP3Info->MusicInfo;
-    playlist_info *Playlist = MusicInfo->Playlist_;
-    Playlist->Genre.Selected.A  = CreateArray(FixArena, Genre.BatchCount);
-    Playlist->Artist.Selected.A = CreateArray(FixArena, Artist.BatchCount);
-    Playlist->Album.Selected.A  = CreateArray(FixArena, Album.BatchCount);
-    Playlist->Song.Selected.A   = CreateArray(FixArena, FileInfo->Count);
-    
-    Playlist->Genre.Displayable.A  = CreateArray(FixArena, Genre.BatchCount);
+    MusicInfo->Playlist_ = CreateEmptyPlaylist(FixArena, MusicInfo, FileInfo->Count, 
+                                               Genre.BatchCount, Artist.BatchCount, Album.BatchCount);
     For(Genre.BatchCount)
     {
-        Push(&Playlist->Genre.Displayable, NewFileID(It));
+        Push(&MusicInfo->Playlist_->Genre.Displayable, NewFileID(It));
     }
-    Playlist->Artist.Displayable.A = CreateArray(FixArena, Artist.BatchCount);
-    Playlist->Album.Displayable.A  = CreateArray(FixArena, Album.BatchCount);
-    Playlist->Song.Displayable.A   = CreateArray(FixArena, MP3Info->FileInfo.Count);
     
-    /*MusicInfo->SortingInfo.Genre.Base = &MusicInfo->SortingInfo;
-    MusicInfo->SortingInfo.Artist.Base = &MusicInfo->SortingInfo;
-    MusicInfo->SortingInfo.Album.Base = &MusicInfo->SortingInfo;
-    MusicInfo->SortingInfo.Song.Base = &MusicInfo->SortingInfo;*/
-    MusicInfo->GenreBatch  = Genre;
-    MusicInfo->ArtistBatch = Artist;
-    MusicInfo->AlbumBatch  = Album;
+    MusicInfo->Playlist_->Genre.Batch  = Genre;
+    MusicInfo->Playlist_->Artist.Batch = Artist;
+    MusicInfo->Playlist_->Album.Batch  = Album;
+    MusicInfo->Playlist_->Song.FileIDs = SongFileIDs;
+    
     DebugLog(255, "GenreCount: %i, ArtistCount: %i, AlbumCount: %i\n", Genre.BatchCount, Artist.BatchCount, Album.BatchCount);
 }
 
@@ -1519,7 +1541,7 @@ PropagateSelectionChange(music_info *MusicInfo)
             b32 Found = false;
             for(u32 GenreID = 0; GenreID < Genre->A.Count; GenreID++)
             {
-                array_file_id *GenreArtists = MusicInfo->GenreBatch.Artist+Get(Genre, NewSelectID(GenreID)).ID;
+                array_file_id *GenreArtists = MusicInfo->Playlist_->Genre.Batch.Artist+Get(Genre, NewSelectID(GenreID)).ID;
                 if(StackContains(GenreArtists, Get(Artist, NewSelectID(It))))
                 {
                     Found = true;
@@ -1546,7 +1568,7 @@ PropagateSelectionChange(music_info *MusicInfo)
             {
                 for(u32 ArtistID = 0; ArtistID < Artist->A.Count; ArtistID++)
                 {
-                    array_file_id *ArtistAlbums = MusicInfo->ArtistBatch.Album + Get(Artist, NewSelectID(ArtistID)).ID;
+                    array_file_id *ArtistAlbums = MusicInfo->Playlist_->Artist.Batch.Album + Get(Artist, NewSelectID(ArtistID)).ID;
                     if(StackContains(ArtistAlbums, Get(Album, NewSelectID(It))))
                     {
                         FoundInArtist = true;
@@ -1559,7 +1581,7 @@ PropagateSelectionChange(music_info *MusicInfo)
             {
                 for(u32 GenreID = 0; GenreID < Genre->A.Count; GenreID++)
                 {
-                    array_file_id *GenreAlbums = MusicInfo->GenreBatch.Album+ Get(Genre, NewSelectID(GenreID)).ID;
+                    array_file_id *GenreAlbums = MusicInfo->Playlist_->Genre.Batch.Album+ Get(Genre, NewSelectID(GenreID)).ID;
                     if(StackContains(GenreAlbums, Get(Album, NewSelectID(It))))
                     {
                         FoundInGenre = true;
@@ -1640,7 +1662,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     For(Playlist->Genre.Selected.A.Count) // Going through Genres
     {
         batch_id BatchID = Get(&Playlist->Genre.Selected, NewSelectID(It));
-        sort_batch *GenreBatch = &MusicInfo->GenreBatch;
+        sort_batch *GenreBatch = &MusicInfo->Playlist_->Genre.Batch;
         
         if(DoArtist) MergeDisplayArrays(&Playlist->Artist.Displayable, GenreBatch->Artist+BatchID.ID, CheckValue);
         if(Playlist->Artist.Selected.A.Count == 0)
@@ -1656,12 +1678,12 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     For(Playlist->Artist.Selected.A.Count) // Going through Artists
     {
         batch_id BatchID = Get(&Playlist->Artist.Selected, NewSelectID(It));
-        sort_batch *ArtistBatch = &MusicInfo->ArtistBatch;
+        sort_batch *ArtistBatch = &MusicInfo->Playlist_->Artist.Batch;
         
         // For every album in batch, look if it is one of the selected genres. if not, skip.
         For(ArtistBatch->Album[BatchID.ID].A.Count, Album)
         {
-            sort_batch *AlbumBatch = &MusicInfo->AlbumBatch;
+            sort_batch *AlbumBatch = &MusicInfo->Playlist_->Album.Batch;
             select_id AlbumSelectID = NewSelectID(AlbumIt);
             batch_id AlbumBatchID = Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID);
             For(AlbumBatch->Genre[AlbumBatchID.ID].A.Count, Genre)
@@ -1696,7 +1718,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         {
             batch_id BatchID = Get(&Playlist->Album.Selected, NewSelectID(It));
             
-            MergeDisplayArrays(&Playlist->Song.Displayable, MusicInfo->AlbumBatch.Song+BatchID.ID, CheckValue);
+            MergeDisplayArrays(&Playlist->Song.Displayable, MusicInfo->Playlist_->Album.Batch.Song+BatchID.ID, CheckValue);
         }
     }
     
@@ -1716,7 +1738,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     {
         if(DoArtist) 
         {
-            For(MusicInfo->ArtistBatch.BatchCount)
+            For(MusicInfo->Playlist_->Artist.Batch.BatchCount)
             {
                 Push(&Playlist->Artist.Displayable, NewDisplayableID(It));
             }
@@ -1725,7 +1747,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         {
             if(DoAlbum) 
             {
-                For(MusicInfo->AlbumBatch.BatchCount)
+                For(MusicInfo->Playlist_->Album.Batch.BatchCount)
                 {
                     Push(&Playlist->Album.Displayable, NewDisplayableID(It));
                 }
@@ -1826,7 +1848,7 @@ SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, sear
         For(Search->InitialDisplayables.A.Count)
         {
             file_id FileID = Get(&Search->InitialDisplayables, NewDisplayableID(It));
-            if(ContainsAB_CaseInsensitive(MusicInfo->Batches[PlaylistColumn->Type].Names+FileID.ID,
+            if(ContainsAB_CaseInsensitive(MusicInfo->Playlist_->Columns[PlaylistColumn->Type].Batch.Names+FileID.ID,
                                           &Search->TextField.TextString))
             {
                 Push(Displayable, FileID);
@@ -1925,9 +1947,9 @@ SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
     array_file_id *Album  = &MusicInfo->Playlist_->Album.Displayable;;
     array_file_id *Song   = &MusicInfo->Playlist_->Song.Displayable;;
     
-    sort_blob GenreBlob  = {&MusicInfo->GenreBatch, Genre};
-    sort_blob ArtistBlob = {&MusicInfo->ArtistBatch, Artist};
-    sort_blob AlbumBlob  = {&MusicInfo->AlbumBatch, Album};
+    sort_blob GenreBlob  = {&MusicInfo->Playlist_->Genre.Batch, Genre};
+    sort_blob ArtistBlob = {&MusicInfo->Playlist_->Artist.Batch, Artist};
+    sort_blob AlbumBlob  = {&MusicInfo->Playlist_->Album.Batch, Album};
     sort_song_column_info SortSongInfo = {MP3FileInfo, &Song->A};
     QuickSort(0, Genre->A.Count-1,  Genre,  {IsHigherInAlphabet, &GenreBlob});
     QuickSort(0, Artist->A.Count-1, Artist, {IsHigherInAlphabet, &ArtistBlob});
@@ -2065,7 +2087,162 @@ CreateNewMetadata(game_state *GameState)
 }
 
 
+// *****************************************************************************
+// New Playlist stuff **********************************************************
+// *****************************************************************************
 
+internal playlist_info *
+CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, u32 FileInfoCount, 
+                    i32 GenreBatchCount/*default -1*/, i32 ArtistBatchCount/*default -1*/, i32 AlbumBatchCount/*default -1*/)
+{
+    playlist_info *Playlist = MusicInfo->Playlists.List+MusicInfo->Playlists.Count++;
+    Playlist->Genre.Type    = columnType_Genre;
+    Playlist->Artist.Type   = columnType_Artist;
+    Playlist->Album.Type    = columnType_Album;
+    Playlist->Song.Type     = columnType_Song;
+    
+    // Always the "everything" list.
+    if(GenreBatchCount < 0)  GenreBatchCount  = MusicInfo->Playlists.List[0].Genre.Batch.BatchCount; 
+    if(ArtistBatchCount < 0) ArtistBatchCount = MusicInfo->Playlists.List[0].Artist.Batch.BatchCount;
+    if(AlbumBatchCount < 0)  AlbumBatchCount  = MusicInfo->Playlists.List[0].Album.Batch.BatchCount;
+    
+    Playlist->Genre.Selected.A  = CreateArray(Arena, GenreBatchCount);
+    Playlist->Artist.Selected.A = CreateArray(Arena, ArtistBatchCount);
+    Playlist->Album.Selected.A  = CreateArray(Arena, AlbumBatchCount);
+    Playlist->Song.Selected.A   = CreateArray(Arena, FileInfoCount);
+    
+    Playlist->Genre.Displayable.A  = CreateArray(Arena, GenreBatchCount);
+    Playlist->Artist.Displayable.A = CreateArray(Arena, ArtistBatchCount);
+    Playlist->Album.Displayable.A  = CreateArray(Arena, AlbumBatchCount);
+    Playlist->Song.Displayable.A   = CreateArray(Arena, FileInfoCount);
+    
+    return Playlist;
+}
+
+internal void
+CopyPlaylist(playlist_info *CopyInto, playlist_info *Original)
+{
+    For(ArrayCount(Original->Columns), Column)
+    {
+        playlist_column *FromColumn = Original->Columns + ColumnIt;
+        playlist_column *ToColumn   = CopyInto->Columns + ColumnIt;
+        
+        Copy(&ToColumn->Displayable.A, &FromColumn->Displayable.A);
+    }
+}
+
+inline void
+FillPlaylistWithCurrentDisplayable(music_info *MusicInfo, playlist_info *PlaylistToFill)
+{
+    CopyPlaylist(PlaylistToFill, MusicInfo->Playlist_);
+}
+
+internal void
+FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo, playlist_info *NewPlaylist)
+{
+    // NOTE:: We want to use what is in current playlist. If something is selected 
+    // in a column, we use only the selected entries. If nothing is selected, we need
+    // to check what is selected in the previous columns and copy only those entries
+    // which apply to 'us'.
+    // Option 2: We look only at the Song column and put everything in the other colums
+    // based on what we find there.
+    
+    playlist_info   *Playlist     = MusicInfo->Playlist_;
+    arena_allocator *FixArena     = &GlobalGameState.FixArena;
+    arena_allocator *ScratchArena = &GlobalGameState.ScratchArena;
+    
+    sort_batch Genre  = {};
+    InitializeSortBatch(FixArena, &Genre,  Playlist->Genre.Batch.BatchCount);
+    sort_batch Artist = {};
+    InitializeSortBatch(FixArena, &Artist, Playlist->Artist.Batch.BatchCount);
+    sort_batch Album  = {};
+    InitializeSortBatch(FixArena, &Album,  Playlist->Album.Batch.BatchCount);
+    
+    song_sort_info *SortBatchInfo = AllocateArray(ScratchArena, Playlist->Song.Displayable.A.Count, song_sort_info);
+    u32 *Genre_CountForBatches    = AllocateArray(ScratchArena, Genre.MaxBatches, u32);
+    u32 *Artist_CountForBatches   = AllocateArray(ScratchArena, Artist.MaxBatches, u32);
+    u32 *Album_CountForBatches    = AllocateArray(ScratchArena, Album.MaxBatches, u32);
+    
+    For(Playlist->Song.Displayable.A.Count)
+    {
+        file_id FileID   = Get(&Playlist->Song.Displayable, NewDisplayableID(It));
+        mp3_metadata *MD = FileInfo->Metadata + FileID.ID;
+        
+        // NOTE:: Fills the Batches with all different genres, artists, albums and gives the batch id back
+        i32 GenreID  = AddSongToSortBatch(FixArena, &Genre, &MD->Genre);
+        i32 ArtistID = AddSongToSortBatch(FixArena, &Artist, &MD->Artist);
+        i32 AlbumID  = AddSongToSortBatch(FixArena, &Album, &MD->Album);
+        Assert(GenreID >= 0 && ArtistID >= 0 && AlbumID >= 0);
+        
+        // NOTE:: For each song note the corresponding IDs for the genre, artist, album
+        SortBatchInfo[It].GenreBatchID  = GenreID;
+        SortBatchInfo[It].ArtistBatchID = ArtistID;
+        SortBatchInfo[It].AlbumBatchID  = AlbumID;
+        
+        // NOTE:: Counts how many entries there are in each different genre, artist, album
+        Genre_CountForBatches[GenreID]++;
+        Artist_CountForBatches[ArtistID]++;
+        Album_CountForBatches[AlbumID]++;
+    }
+    
+    For(Genre.BatchCount)
+    {
+        Genre.Artist[It].A = CreateArray(FixArena, Genre_CountForBatches[It]);
+        Genre.Album[It].A  = CreateArray(FixArena, Genre_CountForBatches[It]);
+        Genre.Song[It].A   = CreateArray(FixArena, Genre_CountForBatches[It]);
+    }
+    For(Artist.BatchCount)
+    {
+        Artist.Album[It].A = CreateArray(FixArena, Artist_CountForBatches[It]);
+        Artist.Song[It].A  = CreateArray(FixArena, Artist_CountForBatches[It]);
+    }
+    For(Album.BatchCount)
+    {
+        Album.Song[It].A = CreateArray(FixArena, Album_CountForBatches[It]);
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100);
+        else        Album.Genre[It].A = CreateArray(FixArena, 10);
+    }
+    
+    FreeMemory(ScratchArena, Genre_CountForBatches);
+    FreeMemory(ScratchArena, Artist_CountForBatches);
+    FreeMemory(ScratchArena, Album_CountForBatches);
+    
+    For(Playlist->Song.Displayable.A.Count)
+    {
+        u32 GenreBatchID  = SortBatchInfo[It].GenreBatchID;
+        u32 ArtistBatchID = SortBatchInfo[It].ArtistBatchID;
+        u32 AlbumBatchID  = SortBatchInfo[It].AlbumBatchID;
+        
+        PushIfNotExist(&Genre.Artist[GenreBatchID].A, ArtistBatchID);
+        PushIfNotExist(&Genre.Album[GenreBatchID].A, AlbumBatchID);
+        PushIfNotExist(&Genre.Song[GenreBatchID].A, It);
+        
+        PushIfNotExist(&Artist.Album[ArtistBatchID].A, AlbumBatchID);
+        PushIfNotExist(&Artist.Song[ArtistBatchID].A, It);
+        
+        PushIfNotExist(&Album.Genre[AlbumBatchID].A, GenreBatchID);
+        PushIfNotExist(&Album.Song[AlbumBatchID].A, It);
+    }
+    
+    
+    For(Genre.BatchCount)
+    {
+        Push(&NewPlaylist->Genre.Displayable, NewFileID(It));
+    }
+    For(Artist.BatchCount)
+    {
+        Push(&NewPlaylist->Artist.Displayable, NewFileID(It));
+    }
+    For(Album.BatchCount)
+    {
+        Push(&NewPlaylist->Album.Displayable, NewFileID(It));
+    }
+    
+    NewPlaylist->Genre.Batch  = Genre;
+    NewPlaylist->Artist.Batch = Artist;
+    NewPlaylist->Album.Batch  = Album;
+    
+}
 
 
 

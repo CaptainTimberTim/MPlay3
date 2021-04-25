@@ -572,20 +572,16 @@ WinMain(HINSTANCE Instance,
             
             InitializeSoundThread(&SoundThreadData, ProcessSound, &SoundThreadInfo);
             
-            // Initializing sound
-            //sound_info SoundInfo = {};
             
-            
+            // Preparing base structs
             renderer *Renderer = &GameState->Renderer;
             *Renderer = InitializeRenderer(GameState, Window);
             
             ReshapeGLWindow(&GameState->Renderer);
             b32 *ReRender = &Renderer->Rerender;
             
-            // Preparing base structs
             music_info *MusicInfo     = &GameState->MusicInfo;
-            MusicInfo->PlaylistList   = CreatePlaylistList(&GameState->FixArena, 10); // TODO:: Fixed length
-            MusicInfo->Playlist_      = MusicInfo->PlaylistList;
+            MusicInfo->Playlists      = CreatePlaylistList(&GameState->FixArena, 10); // TODO:: Fixed length
             playing_song *PlayingSong = &MusicInfo->PlayingSong;
             *PlayingSong = {-1, -1, -1};
             mp3_info *MP3Info = 0;
@@ -987,8 +983,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                     }
                     
-                    if(Input->KeyChange[KEY_F9]  == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
-                    if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
+                    //if(Input->KeyChange[KEY_F9]  == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
+                    //if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
                     
                     if(ColorPicker->IsActive)
@@ -1004,6 +1000,32 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             if(Input->KeyChange[KEY_F2] == KeyDown) OnSearchPressed(&DisplayInfo->Artist.SearchInfo);
                             if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
                             if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
+                        }
+                        
+                        local_persist i32 CurrentPlaylist = 0;
+                        if(Input->KeyChange[KEY_F9]  == KeyDown) 
+                        {
+                            playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo, 
+                                                                       MP3Info->FileInfo.Count);
+                            FillPlaylistWithCurrentSelection(MusicInfo, &MP3Info->FileInfo, NewPL);
+                            //FillPlaylistWithCurrentDisplayable(MusicInfo, NewPL);
+                            MusicInfo->Playlist_ = NewPL;
+                            CurrentPlaylist      = MusicInfo->Playlists.Count-1;
+                            
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Artist);
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Album);
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Song);
+                        }
+                        if(Input->KeyChange[KEY_F10]  == KeyDown) 
+                        {
+                            CurrentPlaylist = (CurrentPlaylist+1)%MusicInfo->Playlists.Count;
+                            MusicInfo->Playlist_ = MusicInfo->Playlists.List + CurrentPlaylist;
+                            
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Artist);
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Album);
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Song);
                         }
                         
                         // ******************
@@ -1244,7 +1266,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     }
                 }
                 
-                if(!Input->Pressed[KEY_F8]) SwapBuffers(DeviceContext);
+                SwapBuffers(DeviceContext);
             }
             
             SaveSettingsFile(GameState, &GameState->Settings);

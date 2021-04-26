@@ -574,6 +574,7 @@ WinMain(HINSTANCE Instance,
             
             
             // Preparing base structs
+            PrepareGenreTypesList();
             renderer *Renderer = &GameState->Renderer;
             *Renderer = InitializeRenderer(GameState, Window);
             

@@ -184,5 +184,6 @@
 - Rearanged sort_batch for proper use with playlists. 
 - Added first proper playlist stuff. Which revealed that for Song FileID needs to happen through a "batch" as well.
 
-
+26.04.2021
+- Finished general conversion of direct usage of mp3_file_info, which is now mapped through the FileIDs array in the playlist.
 

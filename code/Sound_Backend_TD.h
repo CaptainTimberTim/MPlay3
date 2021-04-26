@@ -43,6 +43,7 @@
 // - MP3 V0 crashes?
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
 
+
 #include "Sound_UI_TD.h"
 
 global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
@@ -115,6 +116,7 @@ struct playlist_column
 };
 
 inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, displayable_id ID);
+inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id ID);
 
 struct playlist_info
 {
@@ -200,9 +202,9 @@ struct mp3_metadata
 
 struct mp3_file_info //::FILE_ID
 {
-    string_c     *FileName;
+    string_c     *FileNames;
     string_c     *SubPath;
-    mp3_metadata *Metadata; // TODO:: Change name and fix all places where now FileIDs in playlist_info should be used...
+    mp3_metadata *Metadata;
     u32 Count;
     u32 MaxCount;
 };

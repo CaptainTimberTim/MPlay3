@@ -670,8 +670,8 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 
                 MP3FileInfo->SubPath[It] = NewStringCompound(&GameState->JobThreadsArena, CurrentSubPath.Pos);
                 AppendStringCompoundToCompound(MP3FileInfo->SubPath+It, &CurrentSubPath);
-                MP3FileInfo->FileName[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
-                C += CopyUntilNewline(C, MP3FileInfo->FileName+It);
+                MP3FileInfo->FileNames[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
+                C += CopyUntilNewline(C, MP3FileInfo->FileNames+It);
                 
                 u32 Count = CountToNewline(++C);
                 if(Count > 0)
@@ -788,7 +788,7 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
             {
                 mp3_metadata *MD = MP3FileInfo->Metadata+It;
                 
-                ConcatStringCompounds(4, &SaveData, Inset, MP3FileInfo->FileName[It], NL);
+                ConcatStringCompounds(4, &SaveData, Inset, MP3FileInfo->FileNames[It], NL);
                 if(MD->FoundFlags & metadata_Title)
                 {
                     ConcatStringCompounds(4, &SaveData, Inset, MD->Title, NL);

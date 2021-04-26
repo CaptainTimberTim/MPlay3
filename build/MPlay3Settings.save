@@ -15,16 +15,16 @@ Version 6
 
 FontPath: 
 FontHeightOffset: 0
-Volume: 0.194444
-LastPlayingSong: -1
-ColorPalette: 4
-GenreArtistEdgeXPercent: 0.210721
-ArtistAlbumEdgeXPercent: 0.439310
-AlbumSongEdgeXPercent: 0.631546
-WindowDimensionX: 1639
-WindowDimensionY: 895
+Volume: 0.125000
+LastPlayingSong: 6688
+ColorPalette: 0
+GenreArtistEdgeXPercent: 0.171542
+ArtistAlbumEdgeXPercent: 0.360891
+AlbumSongEdgeXPercent: 0.544554
+WindowDimensionX: 2033
+WindowDimensionY: 1015
 Looping: 0
-Shuffle: 0
+Shuffle: 1
 UsedFontCache: kaiu.ttf|
 Palette: Monochrome Gay
 Text: 247 208 246
@@ -33,7 +33,7 @@ ErrorText: 170 11 22
 Foreground: 254 168 204
 Slot: 100 23 44
 SliderBackground: 251 174 242
-SliderGrabThing: 70 73 73
-ButtonActive: 78 80 80
+SliderGrabThing: 169 43 81
+ButtonActive: 239 177 249
 Selected: 238 53 53
 PlayingSong: 85 0 21

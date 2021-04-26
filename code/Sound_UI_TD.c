@@ -15,7 +15,7 @@ inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
 inline void SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
-inline displayable_id FileIDToSongDisplayableID(music_display_column *DisplayColumn, array_file_id *Displayable, file_id FileID);
+inline displayable_id FileIDToSongDisplayableID(array_file_id *Displayable, file_id FileID);
 inline displayable_id SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID);
 inline playlist_id OnScreenIDToPlaylistID(music_info *MusicInfo, u32 OnScreenID, file_id *FileID = 0);
 inline void HandleChangeToNextSong(game_state *GameState);
@@ -979,8 +979,7 @@ UpdateSongText(playlist_column *PlaylistColumn, music_display_column *DisplayCol
     
     layout_definition *Layout = &GlobalGameState.Layout;
     display_column_song_extension *DisplaySong = ColumnExt(DisplayColumn);
-    file_id NextSongID = Get(&PlaylistColumn->Displayable, NextID);
-    mp3_metadata *MD   = &DisplaySong->FileInfo->Metadata[NextSongID.ID];
+    mp3_metadata *MD   = GetMetadata(PlaylistColumn, DisplaySong->FileInfo, NextID);
     
     v2 SongP = {Layout->SongXOffset, Layout->SongFirstRowYOffset};
     RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MD->Title, &DisplayColumn->Base->ColorPalette.Text,
@@ -2383,13 +2382,14 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     if(MusicInfo->PlayingSong.DecodeID >= 0 && 
        (MusicInfo->PlayingSong.PlaylistID >= 0 || MusicInfo->PlayingSong.PlayUpNext))
     {
-        file_id FileID = GetNextSong(&MusicInfo->Playlist, &MusicInfo->PlayingSong);
-        mp3_metadata *Metadata = &Panel->MP3Info->FileInfo.Metadata[FileID.ID];
-        Panel->SongDuration = (r32)Metadata->Duration;
+        file_id FileID         = GetNextSong(&MusicInfo->Playlist, &MusicInfo->PlayingSong);
+        i32 MappedFileID       = Get(&MusicInfo->Playlist_->Song.FileIDs.A, FileID.ID);
+        mp3_metadata *Metadata = GetMetadata(&MusicInfo->Playlist_->Song, &Panel->MP3Info->FileInfo, FileID);
+        Panel->SongDuration    = (r32)Metadata->Duration;
         
         DurationString = &Metadata->DurationString;
         TrackString = &Metadata->TrackString;
-        if(Metadata->Title.Pos == 0)  TitleString  = Panel->MP3Info->FileInfo.FileName+FileID.ID;
+        if(Metadata->Title.Pos == 0)  TitleString  = Panel->MP3Info->FileInfo.FileNames + MappedFileID;
         else                          TitleString  = &Metadata->Title;
         if(Metadata->Artist.Pos == 0) ArtistString = &MissingData;
         else                          ArtistString = &Metadata->Artist;

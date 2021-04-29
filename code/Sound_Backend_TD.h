@@ -10,16 +10,13 @@
 // - if song selected, pressing the big play should start it?
 // - Think about if search in song column should work differently, or search through Title/artist/album
 // - Make a long list of 'goodbyes' for the quit curtain.
+// - loading metadata could be "interactive" and all songs already loaded be available already?
 
 // TODO::
 //
 // - generate huge amount of fake mp3 files and test with those!
-// - sub-pixel accuracy? 
 // - Solidify playlists
 //      - show current playlist button
-// - if glyphs not existing for font, use a backup font?
-//      - fix all the non-ascii problems...
-// - think about doing more than just a quad for text?
 // - still hardcapped at 10k mp3 files
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
@@ -37,8 +34,6 @@
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...
 // - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
-// - maybe have the icons in the exact size we use them...
-// - two color palettes get created when coying one.
 
 // - MP3 V0 crashes?
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
@@ -170,18 +165,19 @@ struct scroll_load_info
     b32 LoadFinished;
 };
 
-#define MAX_MP3_INFO_COUNT 10000
+#define MAX_MP3_INFO_COUNT 1000
+#define MAX_MP3_INFO_STEP 1000
 #define MAX_MP3_DECODE_COUNT 50
 #define DECODE_PRELOAD_SECONDS 5
 
 enum metadata_flags
 {
-    metadata_Title  = 1<<0,
-    metadata_Artist = 1<<1,
-    metadata_Album  = 1<<2,
-    metadata_Genre  = 1<<3,
-    metadata_Track  = 1<<4,
-    metadata_Year   = 1<<5,
+    metadata_Title    = 1<<0,
+    metadata_Artist   = 1<<1,
+    metadata_Album    = 1<<2,
+    metadata_Genre    = 1<<3,
+    metadata_Track    = 1<<4,
+    metadata_Year     = 1<<5,
     metadata_Duration = 1<<6,
 };
 
@@ -196,7 +192,6 @@ struct mp3_metadata
     u32 Year;
     string_compound YearString;
     u32 Duration;
-    string_compound DurationString;
     i32 FoundFlags;
 };
 

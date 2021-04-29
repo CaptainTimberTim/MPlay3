@@ -299,7 +299,7 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
     
     if(CheckMusicPath->AddTestInfoIDs.Count > 0)
     {
-        ResizeFileInfo(&GlobalGameState.FixArena, FileInfo, FileInfo->MaxCount+CheckMusicPath->AddTestInfoIDs.Count);
+        ResizeFileInfo(FileInfo, FileInfo->MaxCount+CheckMusicPath->AddTestInfoIDs.Count);
     }
     For(CheckMusicPath->AddTestInfoIDs.Count)
     {

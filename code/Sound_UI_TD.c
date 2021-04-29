@@ -8,7 +8,6 @@ internal void MillisecondsToMinutes(u32 Millis, string_c *Out);
 internal void MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, 
                                 displayable_id DisplayableStartID = {0}, r32 StartY = 0);
 internal void SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo);
-internal b32 FindAllMP3FilesInFolder(arena_allocator *TransientArena, string_compound *FolderPath, string_compound *SubPath, mp3_file_info *ResultingFileInfo);
 inline mp3_info *CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount);
 inline void CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount);
 inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
@@ -983,7 +982,7 @@ UpdateSongText(playlist_column *PlaylistColumn, music_display_column *DisplayCol
     
     v2 SongP = {Layout->SongXOffset, Layout->SongFirstRowYOffset};
     RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MD->Title, &DisplayColumn->Base->ColorPalette.Text,
-               DisplaySong->SongTitle+ID, -0.12f, DisplayColumn->BGRects[ID], SongP);
+               DisplaySong->SongTitle+ID, -0.12001f, DisplayColumn->BGRects[ID], SongP);
     
     v2 AlbumP = {Layout->SongAlbumXOffset, Layout->SongSecondRowYOffset}; 
     RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, &MD->Album, &DisplayColumn->Base->ColorPalette.Text,
@@ -2359,6 +2358,8 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
 internal void
 SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo)
 {
+    game_state *GS = &GlobalGameState;
+    
     RemoveRenderText(Renderer, &Panel->DurationText);
     RemoveRenderText(Renderer, &Panel->CurrentTimeText);
     RemoveRenderText(Renderer, &Panel->Title);
@@ -2371,7 +2372,7 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     string_c MissingData = NewStaticStringCompound(" -- ");
     string_c NoTime      = NewStaticStringCompound("00:00");
     
-    string_c *DurationString = 0;
+    string_c DurationString = NewStringCompound(&GS->ScratchArena, 14);
     string_c *TitleString  = 0;
     string_c *TrackString  = 0;
     string_c *ArtistString = 0;
@@ -2387,7 +2388,7 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
         mp3_metadata *Metadata = GetMetadata(&MusicInfo->Playlist_->Song, &Panel->MP3Info->FileInfo, FileID);
         Panel->SongDuration    = (r32)Metadata->Duration;
         
-        DurationString = &Metadata->DurationString;
+        MillisecondsToMinutes(Metadata->Duration, &DurationString);
         TrackString = &Metadata->TrackString;
         if(Metadata->Title.Pos == 0)  TitleString  = Panel->MP3Info->FileInfo.FileNames + MappedFileID;
         else                          TitleString  = &Metadata->Title;
@@ -2403,7 +2404,7 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     else
     {
         TitleString = TrackString = ArtistString = AlbumString = YearString = GenreString = &MissingData;
-        DurationString = &NoTime;
+        CopyIntoCompound(&DurationString, &NoTime);
         Panel->SongDuration = 0;
     }
     
@@ -2415,17 +2416,16 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     r32 BaseX = BaseTimeX + Layout->PlayingSongPanelXOffset;
     r32 BaseY = Layout->PlayPauseButtonY + Layout->PlayingSongPanelBaseY;
     
-    game_state *GS = &GlobalGameState;
     string_c CurrentTime = NewStaticStringCompound("00:00 |");
     RenderText(GS, &GS->FixArena, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, -0.6f, 0);
     SetPosition(&Panel->CurrentTimeText, V2(BaseTimeX+Layout->CurrentTimeTextXOffset, 
                                             BaseY+Layout->CurrentTimeTextYOffset));
     
-    RenderText(GS, &GS->FixArena, font_Small, DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
+    RenderText(GS, &GS->FixArena, font_Small, &DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
     SetPosition(&Panel->DurationText, V2(BaseTimeX + Layout->CurrentTimeTextXOffset + Layout->DurationTimeTextYOffset, 
                                          BaseY + Layout->CurrentTimeTextYOffset));
     
-    RenderText(GS, &GS->FixArena, font_Medium, TitleString, TextColor, &Panel->Title, -0.6f, 0);
+    RenderText(GS, &GS->FixArena, font_Medium, TitleString, TextColor, &Panel->Title, -0.61f, 0);
     SetPosition(&Panel->Title, V2(BaseX + Layout->PlayingSongTextXOffset + Layout->PlayingSongTextTitleXOffset, 
                                   BaseY + Layout->PlayingSongTextTitleYOffset));
     

@@ -187,3 +187,7 @@
 26.04.2021
 - Finished general conversion of direct usage of mp3_file_info, which is now mapped through the FileIDs array in the playlist.
 
+29.04.2021
+- Finally removed the 10k file limit for .mp3s, which was still a remnant of the initial memory management, or the lack thereof.
+- Fixed double button activation in the Colorpicker
+- Fixed possible Text-Overlap-flickering in the playing song Panel.

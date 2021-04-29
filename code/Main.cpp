@@ -200,7 +200,7 @@ WindowCallback(HWND Window,
             quit_animation *Quit = &GlobalGameState.MusicInfo.DisplayInfo.Quit;
             SetActive(Quit, true);
             Quit->WindowExit = true;
-            Quit->Time /= 2;
+            Quit->Time *= 1.0f/GlobalGameState.Layout.QuitCurtainAnimationMultiplies;
         } break;
         case WM_ACTIVATEAPP: {} break;
         case WM_SYSKEYDOWN:
@@ -760,9 +760,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             if(!LoadedLibraryFile) OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
             
             check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
-            CreateFileInfoStruct(&CheckMusicPath->TestInfo, MAX_MP3_INFO_COUNT);
-            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->FixArena, MAX_MP3_INFO_COUNT);
-            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->FixArena, MAX_MP3_INFO_COUNT);
+            CreateFileInfoStruct(&CheckMusicPath->TestInfo, FileInfoCount);
+            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->FixArena, FileInfoCount);
+            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->FixArena, FileInfoCount);
             
             AddJob_CheckMusicPathChanged(CheckMusicPath);
             ApplySettings(GameState, GameState->Settings);
@@ -883,7 +883,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) <= DOUBLE_CLICK_TIME)
                         {
                             DisplayInfo->Quit.WindowExit = true;
-                            DisplayInfo->Quit.Time /= 2;
+                            DisplayInfo->Quit.Time *= 1.0f/Layout->QuitCurtainAnimationMultiplies;
                         }
                         DisplayInfo->Quit.LastEscapePressTime = GameState->Time.GameTime;
                     }
@@ -892,7 +892,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     SetActive(&DisplayInfo->Quit, true);
                     DisplayInfo->Quit.WindowExit = true;
-                    DisplayInfo->Quit.Time /= 2;
+                    DisplayInfo->Quit.Time *= 1.0f/Layout->QuitCurtainAnimationMultiplies;;
                 }
                 
                 if(DisplayInfo->Quit.AnimationStart)

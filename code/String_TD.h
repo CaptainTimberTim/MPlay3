@@ -34,7 +34,8 @@ inline void AppendStringToCompound(string_compound *Comp, u8 *String);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 StartPos);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter);
-inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2); 
+inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2);
+inline void CopyIntoCompound(string_c *Into, string_c *Copy);
 
 inline void WipeStringCompound(string_compound *Comp);
 inline void CreateOrWipeStringComp(arena_allocator *Arena, string_c *C);
@@ -196,6 +197,17 @@ AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2)
         Comp1->S[Comp1->Pos++] = Comp2->S[It];
     }
     Comp1->S[Comp1->Pos] = '\0';
+}
+
+inline void 
+CopyIntoCompound(string_c *Into, string_c *Copy)
+{
+    Assert(Copy->Pos <= Into->Length);
+    For(Copy->Pos)
+    {
+        Into->S[It] = Copy->S[It];
+    }
+    Into->S[Into->Pos] = '\0';
 }
 
 inline void

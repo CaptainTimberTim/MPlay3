@@ -732,7 +732,6 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                     C += CopyUntilNewline(C, &Duration);
                     u8 Length = 0;
                     MD->Duration = ProcessNextU32InString(Duration.S, '\0', Length);
-                    MillisecondsToMinutes(MD->Duration, &MD->DurationString);
                     DeleteStringCompound(&GameState->ScratchArena, &Duration);
                     MD->FoundFlags |= metadata_Duration;
                 }

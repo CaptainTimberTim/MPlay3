@@ -55,13 +55,20 @@ struct color_picker
     u32 CurrentColorPaletteID;
     text_field PaletteName;
     
+    button *Cancel;
     button *New;
     button *Save;
-    button *Cancel;
     button *Remove;
     quit_animation NewAnim;
     quit_animation SaveAnim;
     quit_animation RemoveAnim;
+};
+
+enum color_picker_anim_btn
+{
+    colorPickerAnimBtn_New,
+    colorPickerAnimBtn_Save,
+    colorPickerAnimBtn_Remove
 };
 
 struct game_state

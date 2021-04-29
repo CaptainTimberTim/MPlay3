@@ -403,7 +403,8 @@ struct layout_definition
     r32 PlayingSongTextGenreYOffset  = -60;
     
     // QuitCurtain
-    r32 QuitCurtainAnimationTime  = 1.2f; // TODO:: adjust some times multipliers!
+    r32 QuitCurtainAnimationTime       = 1;
+    r32 QuitCurtainAnimationMultiplies = 1.75f;
     
     // User error text
     r32 ErrorTextAnimationTime    = 2.5f;

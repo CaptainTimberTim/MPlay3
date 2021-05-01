@@ -132,10 +132,10 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
     mp3_file_info Test = {};
     CreateFileInfoStruct(&Test, MAX_MP3_INFO_COUNT);
     FindAllMP3FilesInFolder(ScratchArena, &CrawlInfo->TestPath, &SubPath, &Test);
-    CrawlInfo->Out->TestCount = Test.Count;
+    CrawlInfo->Out->TestCount = Test.Count_;
     CrawlInfo->Out->DoneFolderSearch = true;
     
-    if(Test.Count > 0) 
+    if(Test.Count_ > 0) 
     {
         ReplaceFolderPath(MP3Info, &CrawlInfo->TestPath);
         
@@ -159,11 +159,11 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
         // the total files to crawl.
 #define SUB_CRAWLER_COUNT 400.0f
         r32 SubCrawlerCount = SUB_CRAWLER_COUNT;
-        u32 JobCount= Ceiling(Test.Count/SubCrawlerCount);
+        u32 JobCount= Ceiling(Test.Count_/SubCrawlerCount);
         if(JobCount > MAX_ACTIVE_JOBS - 2) // Just for the rare case that we have more Jobs than possible
         {
             JobCount = MAX_ACTIVE_JOBS - 2;
-            SubCrawlerCount = CeilingR32(Test.Count/(r32)JobCount);
+            SubCrawlerCount = CeilingR32(Test.Count_/(r32)JobCount);
         }
         
         DebugLog(250, "Starting %i sub crawler.\n", JobCount);
@@ -179,7 +179,7 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
             CrawlThreadInfos[It].CrawlThread.Out      = NULL;
             CrawlThreadInfos[It].CurrentCount = JobCrawlCount+It;
             CrawlThreadInfos[It].StartIt      = (u32)(It*SubCrawlerCount);
-            CrawlThreadInfos[It].EndIt        = Min((i32)(SubCrawlerCount + It*SubCrawlerCount), (i32)Test.Count);
+            CrawlThreadInfos[It].EndIt        = Min((i32)(SubCrawlerCount + It*SubCrawlerCount), (i32)Test.Count_);
             
             // I can only call AddJobToQueue here, inside a thread, because I can guarantee that
             // the main thread is not going to add any jobs, while this one is active.
@@ -187,7 +187,7 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
         }
         
         // Looping until all crawler threads have finished.
-        while(CrawlInfo->Out->CurrentCount != Test.Count)
+        while(CrawlInfo->Out->CurrentCount != Test.Count_)
         {
             // Count all the crawler thread progresses to know
             // when they are all done _and_ to update the progress
@@ -198,12 +198,12 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
                 {
                     CrawlInfo->Out->CurrentCount += JobCrawlCount[It] - JobCountCount[It];
                     JobCountCount[It] = JobCrawlCount[It];
-                    Assert(CrawlInfo->Out->CurrentCount <= Test.Count);
+                    Assert(CrawlInfo->Out->CurrentCount <= Test.Count_);
                 }
             }
             Sleep(16);
         }
-        Assert(CrawlInfo->Out->CurrentCount == Test.Count);
+        Assert(CrawlInfo->Out->CurrentCount == Test.Count_);
 #else
         CrawlFilesForMetadata(ScratchArena, &MP3Info->FileInfo, 0, MP3Info->FileInfo.Count, &MP3Info->FolderPath, &CrawlInfo->Out->CurrentCount);
 #endif
@@ -255,33 +255,33 @@ AddJob_LoadMetadata(game_state *GameState)
 internal void
 RemoveFileFromInfo(mp3_file_info *FileInfo, u32 RemoveID)
 {
-    Assert(FileInfo->Count > 0 && RemoveID >= 0);
-    Assert(RemoveID < FileInfo->Count);
-    RemoveItem(FileInfo->FileNames, FileInfo->Count, RemoveID, string_c);
-    RemoveItem(FileInfo->SubPath, FileInfo->Count, RemoveID, string_c);
-    RemoveItem(FileInfo->Metadata, FileInfo->Count, RemoveID, mp3_metadata);
-    FileInfo->Count--;
+    Assert(FileInfo->Count_ > 0 && RemoveID >= 0);
+    Assert(RemoveID < FileInfo->Count_);
+    RemoveItem(FileInfo->FileNames_, FileInfo->Count_, RemoveID, string_c);
+    RemoveItem(FileInfo->SubPath, FileInfo->Count_, RemoveID, string_c);
+    RemoveItem(FileInfo->Metadata, FileInfo->Count_, RemoveID, mp3_metadata);
+    FileInfo->Count_--;
 }
 
 internal b32 
 AddFileToInfo(mp3_file_info *FileInfo, string_c *SubPath, string_c *FileName)
 {
     b32 Result = false;
-    if(FileInfo->Count < FileInfo->MaxCount)
+    if(FileInfo->Count_ < FileInfo->MaxCount_)
     {
         Result = true;
-        FileInfo->SubPath[FileInfo->Count] = NewStringCompound(&GlobalGameState.FixArena, SubPath->Pos);
-        AppendStringCompoundToCompound(FileInfo->SubPath+FileInfo->Count, SubPath);
-        FileInfo->FileNames[FileInfo->Count] = NewStringCompound(&GlobalGameState.FixArena, FileName->Pos);
-        AppendStringCompoundToCompound(FileInfo->FileNames+FileInfo->Count, FileName);
+        FileInfo->SubPath[FileInfo->Count_] = NewStringCompound(&GlobalGameState.FixArena, SubPath->Pos);
+        AppendStringCompoundToCompound(FileInfo->SubPath+FileInfo->Count_, SubPath);
+        FileInfo->FileNames_[FileInfo->Count_] = NewStringCompound(&GlobalGameState.FixArena, FileName->Pos);
+        AppendStringCompoundToCompound(FileInfo->FileNames_+FileInfo->Count_, FileName);
         
         string_c FilePath = NewStringCompound(&GlobalGameState.ScratchArena, 255);
-        ConcatStringCompounds(4, &FilePath, &GlobalGameState.MP3Info->FolderPath, FileInfo->SubPath+FileInfo->Count, 
-                              FileInfo->FileNames+FileInfo->Count);
-        CrawlFileForMetadata(&GlobalGameState.ScratchArena, FileInfo->Metadata+FileInfo->Count, &FilePath,
-                             FileInfo->FileNames[FileInfo->Count]);
+        ConcatStringCompounds(4, &FilePath, &GlobalGameState.MP3Info->FolderPath, FileInfo->SubPath+FileInfo->Count_, 
+                              FileInfo->FileNames_+FileInfo->Count_);
+        CrawlFileForMetadata(&GlobalGameState.ScratchArena, FileInfo->Metadata+FileInfo->Count_, &FilePath,
+                             FileInfo->FileNames_[FileInfo->Count_]);
         DeleteStringCompound(&GlobalGameState.ScratchArena, &FilePath);
-        FileInfo->Count++;
+        FileInfo->Count_++;
     }
     return Result;
 }
@@ -299,12 +299,12 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
     
     if(CheckMusicPath->AddTestInfoIDs.Count > 0)
     {
-        ResizeFileInfo(FileInfo, FileInfo->MaxCount+CheckMusicPath->AddTestInfoIDs.Count);
+        ResizeFileInfo(FileInfo, FileInfo->MaxCount_+CheckMusicPath->AddTestInfoIDs.Count);
     }
     For(CheckMusicPath->AddTestInfoIDs.Count)
     {
         u32 NewIt = Get(&CheckMusicPath->AddTestInfoIDs, It);
-        b32 R = AddFileToInfo(FileInfo, TestInfo->SubPath+NewIt, TestInfo->FileNames+NewIt);
+        b32 R = AddFileToInfo(FileInfo, TestInfo->SubPath+NewIt, TestInfo->FileNames_+NewIt);
         Assert(R);
     }
     
@@ -356,14 +356,14 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
     mp3_file_info *FileInfo = &CheckMusicPath->MP3Info->FileInfo;
     
     // Find which files are missing and remove them from library
-    For(FileInfo->Count, MD)
+    For(FileInfo->Count_, MD)
     {
         b32 FileFound = false;
-        For(TestInfo->Count)
+        For(TestInfo->Count_)
         {
             if(CompareStringCompounds(FileInfo->SubPath+MDIt, TestInfo->SubPath+It))
             {
-                if(CompareStringCompounds(FileInfo->FileNames+MDIt, TestInfo->FileNames+It))
+                if(CompareStringCompounds(FileInfo->FileNames_+MDIt, TestInfo->FileNames_+It))
                 {
                     FileFound = true;
                     break;
@@ -375,17 +375,17 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
     }
     QuickSort(0, CheckMusicPath->RemoveIDs.Count-1, &CheckMusicPath->RemoveIDs, {IsHigher, &CheckMusicPath->RemoveIDs});
     
-    if(TestInfo->Count != FileInfo->Count)
+    if(TestInfo->Count_ != FileInfo->Count_)
     {
         // Find which files are new and add them to library
-        For(TestInfo->Count, New)
+        For(TestInfo->Count_, New)
         {
             b32 FileFound = false;
-            For(FileInfo->Count)
+            For(FileInfo->Count_)
             {
                 if(CompareStringCompounds(FileInfo->SubPath+It, TestInfo->SubPath+NewIt))
                 {
-                    if(CompareStringCompounds(FileInfo->FileNames+It, TestInfo->FileNames+NewIt))
+                    if(CompareStringCompounds(FileInfo->FileNames_+It, TestInfo->FileNames_+NewIt))
                     {
                         FileFound = true;
                         break;
@@ -491,7 +491,7 @@ DecodeMP3StartFrames(arena_allocator *Arena, mp3dec_t *MP3Decoder, read_file_res
 }
 
 internal error_item // #ThreadedUse
-LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, file_id FileID, 
+LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, file_id MappedFileID, 
                             i32 DecodeID, mp3dec_file_info_t *DecodeResult)
 {
     // 1. Build the complete filepath
@@ -500,7 +500,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
     // 4. Calculate maximum size to load for wanted amount
     // 5. Calculate initial buffer size and create it if needed.
     // 6. Load and decode the stuff
-    error_item Result = {(load_error_codes)DecodeID, FileID};
+    error_item Result = {(load_error_codes)DecodeID, MappedFileID};
     
     mp3_info *MP3Info = GlobalGameState.MP3Info;
     i16 *ExistingBuffer = DecodeResult->buffer;
@@ -509,7 +509,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
     
     // 1.
     NewEmptyLocalString(FilePath, 255);
-    ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, MP3Info->FileInfo.SubPath + FileID.ID, MP3Info->FileInfo.FileNames + FileID.ID);
+    ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, MP3Info->FileInfo.SubPath + MappedFileID.ID, MP3Info->FileInfo.FileNames_ + MappedFileID.ID);
     
     mp3dec_t MP3Decoder = {};
     mp3dec_init(&MP3Decoder);
@@ -588,12 +588,12 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
             else if(DecodeResult->samples == 0)    Result.Code = loadErrorCode_DecodingFailed;
             else
             {
-                Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
+                Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), MappedFileID);
                 TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
-                DebugLog(255, "NOTE:: Loaded %s.\n", GetMetadata(&MP3Info->MusicInfo->Playlist_->Song, &MP3Info->FileInfo, FileID)->Title.S);
+                DebugLog(255, "NOTE:: Loaded %s.\n", MP3Info->FileInfo.Metadata[MappedFileID.ID].Title.S);
                 
                 if(SecondsToDecode != DECODE_PRELOAD_SECONDS)
-                    CreateSongDurationForMetadata(MP3Info, FileID, DecodeID);
+                    CreateSongDurationForMetadata(MP3Info, MappedFileID.ID, DecodeID);
             }
             
             FreeFileMemory(ScratchArena, File);
@@ -696,7 +696,7 @@ AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID)
     
     // FileID needs to be mapped before the multithreaded code to avoid
     // accessing the playlist at that stage. @PlaylistChange
-    i32 MappedFileID = Get(&GlobalGameState.MusicInfo.Playlist_->Song.FileIDs.A, FileID.ID);
+    i32 MappedFileID = GetMappedFileID(&GlobalGameState.MusicInfo.Playlist_->Song, FileID);
     job_load_decode_mp3 Data = {GlobalGameState.MP3Info, MappedFileID, DecodeID, 1000000};
     AddJobToQueue(JobQueue, JobLoadAndDecodeEntireMP3File, Data);
     
@@ -877,7 +877,7 @@ ProcessThreadErrors()
                 {
                     string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
                     AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not decode song. Is file corrupted? (");
-                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames + NextError.ID.ID);
+                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames_ + NextError.ID.ID);
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     PushUserErrorMessage(&ErrorMsg);
                     DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
@@ -887,7 +887,7 @@ ProcessThreadErrors()
                 {
                     string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
                     AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song from disk. If files were moved, do a retrace. (");
-                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames + NextError.ID.ID);
+                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames_ + NextError.ID.ID);
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     PushUserErrorMessage(&ErrorMsg);
                     DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
@@ -897,7 +897,7 @@ ProcessThreadErrors()
                 {
                     string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
                     AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song. File was empty. (");
-                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames + NextError.ID.ID);
+                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames_ + NextError.ID.ID);
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     PushUserErrorMessage(&ErrorMsg);
                     DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);

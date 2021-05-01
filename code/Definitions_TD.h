@@ -47,12 +47,28 @@ u8 *Start = Goal + sizeof(ArrayType); \
 memmove_s(Goal, MoveSize, Start, MoveSize); \
 } 
 
+// NOTE:: Cuts off the path from the file
+inline i32 LastOccurrenceOfCharacterInString(u8 CharToFind, u8 *String, u8 Delimiter);
+#define __FILENAME__ ((LastOccurrenceOfCharacterInString('\\', (u8 *)__FILE__, '\0') > 0) ? (__FILE__ + LastOccurrenceOfCharacterInString('\\', (u8 *)__FILE__, '\0')+1) : (__FILE__))
+
 // NOTE:: Simple DebugLog that simplifies just printing stuff to the debug output.
+//        If DEBUG_LOG_INFO is defined, it prints out file and line number.
+#define DEBUG_LOG_INFO
+#ifdef DEBUG_LOG_INFO
+#define DebugLog(Count, Text, ...) { \
+char B[Count]; \
+sprintf_s(B, Text, __VA_ARGS__);\
+char C##__LINE__[Count+260]; \
+sprintf_s(C##__LINE__, "%s(%i): %s", __FILENAME__, __LINE__, B);\
+OutputDebugStringA(C##__LINE__); \
+}
+#else
 #define DebugLog(Count, Text, ...) { \
 char B[Count]; \
 sprintf_s(B, Text, __VA_ARGS__);\
 OutputDebugStringA(B); \
 }
+#endif
 
 // NOTE:: Simple DebugLog that simplifies just printing stuff to the debug output.
 #define DebugPrint(Count, Text, ...) { \

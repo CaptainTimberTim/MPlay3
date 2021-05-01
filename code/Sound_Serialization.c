@@ -451,7 +451,7 @@ ApplySettings(game_state *GameState, settings Settings)
     music_info *MusicInfo = &GameState->MusicInfo;
     
     MusicInfo->PlayingSong.PlaylistID = FileIDToPlaylistID(&MusicInfo->Playlist, Settings.PlayingSongID);
-    if(Settings.PlayingSongID >= (i32)GameState->MP3Info->FileInfo.Count) Settings.PlayingSongID.ID = -1;
+    if(Settings.PlayingSongID >= MusicInfo->Playlist_->Song.FileIDs.A.Count) Settings.PlayingSongID.ID = -1;
     MusicInfo->PlayingSong.FileID = Settings.PlayingSongID;
     
     ChangeSong(GameState, &MusicInfo->PlayingSong); 
@@ -670,8 +670,8 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 
                 MP3FileInfo->SubPath[It] = NewStringCompound(&GameState->JobThreadsArena, CurrentSubPath.Pos);
                 AppendStringCompoundToCompound(MP3FileInfo->SubPath+It, &CurrentSubPath);
-                MP3FileInfo->FileNames[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
-                C += CopyUntilNewline(C, MP3FileInfo->FileNames+It);
+                MP3FileInfo->FileNames_[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
+                C += CopyUntilNewline(C, MP3FileInfo->FileNames_+It);
                 
                 u32 Count = CountToNewline(++C);
                 if(Count > 0)
@@ -737,7 +737,7 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 }
                 else AdvanceToNewline(&C);
                 
-                MP3FileInfo->Count++;
+                MP3FileInfo->Count_++;
                 AdvanceToNewline(&C);
             }
             DeleteStringCompound(&GameState->ScratchArena, &CurrentSubPath);
@@ -754,24 +754,24 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     string_c Inset = NewStaticStringCompound(">");
     
     mp3_file_info *MP3FileInfo = &Info->FileInfo;
-    if(MP3FileInfo->Count == 0) return;
-    u32 StringSize = (30+255+5) + 7*255*MP3FileInfo->Count;
+    if(MP3FileInfo->Count_ == 0) return;
+    u32 StringSize = (30+255+5) + 7*255*MP3FileInfo->Count_;
     string_c SaveData = NewStringCompound(&GameState->ScratchArena, StringSize);
     
     AppendStringToCompound(&SaveData, (u8 *)"MP3Lib\n");
     AppendStringToCompound(&SaveData, (u8 *)"Version 3\n");
     ConcatStringCompounds(4, &SaveData, &Colon, &Info->FolderPath, &NL);
     char CountS[25];
-    sprintf_s(CountS, "C: %i\n\n", MP3FileInfo->Count);
+    sprintf_s(CountS, "C: %i\n\n", MP3FileInfo->Count_);
     AppendStringToCompound(&SaveData, (u8 *)CountS);
     
     u32 WrittenDataCount = 0;
-    b32 *Written = AllocateArray(&GameState->ScratchArena, Info->FileInfo.MaxCount, b32);
+    b32 *Written = AllocateArray(&GameState->ScratchArena, Info->FileInfo.MaxCount_, b32);
     string_c CurrentSubPath = NewStringCompound(&GameState->ScratchArena, 255);
-    while(WrittenDataCount < MP3FileInfo->Count)
+    while(WrittenDataCount < MP3FileInfo->Count_)
     {
         AppendStringCompoundToCompound(&SaveData, &Colon);
-        For(MP3FileInfo->Count)
+        For(MP3FileInfo->Count_)
         {
             if(!Written[It])
             {
@@ -780,14 +780,14 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 break;
             }
         }
-        For(MP3FileInfo->Count)
+        For(MP3FileInfo->Count_)
         {
             if(!Written[It] && 
                CompareStringCompounds(&CurrentSubPath, MP3FileInfo->SubPath+It))
             {
                 mp3_metadata *MD = MP3FileInfo->Metadata+It;
                 
-                ConcatStringCompounds(4, &SaveData, Inset, MP3FileInfo->FileNames[It], NL);
+                ConcatStringCompounds(4, &SaveData, Inset, MP3FileInfo->FileNames_[It], NL);
                 if(MD->FoundFlags & metadata_Title)
                 {
                     ConcatStringCompounds(4, &SaveData, Inset, MD->Title, NL);

@@ -4,7 +4,7 @@
 // This is done in such a way because having the large list
 // as a global variable destroys the CodeGeneration stage
 // of the compiler in optimized build.
-#define GENRE_TYPE_COUNT 191
+#define GENRE_TYPE_COUNT 192
 struct genre_types_list
 {
     string_compound G[GENRE_TYPE_COUNT];
@@ -250,6 +250,18 @@ GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id FileID
     return Result;
 }
 
+inline string_c *
+GetSongFileName(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id FileID)
+{
+    string_c *Result = 0;
+    Assert(FileID >= 0);
+    Assert(SongColumn->Type == columnType_Song);
+    
+    Result = FileInfo->FileNames_ + Get(&SongColumn->FileIDs.A, FileID.ID);
+    
+    return Result;
+}
+
 inline i32
 GetMappedFileID(playlist_column *SongColumn, file_id FileID)
 {
@@ -266,6 +278,9 @@ MappedFileIDToFileID(playlist_column *SongColumn, i32 MappedFileID)
     return Result;
 }
 
+
+
+
 inline void
 AdvanceToNewline(u8 **String)
 {
@@ -275,15 +290,15 @@ AdvanceToNewline(u8 **String)
 inline void
 ClearFileInfoStruct(mp3_file_info *FileInfo)
 {
-    For(FileInfo->Count) 
+    For(FileInfo->Count_) 
     {
         if(!FileInfo->Metadata) break;
         else if(!(FileInfo->Metadata+It)) break;
     }
-    ClearArray(FileInfo->FileNames, FileInfo->MaxCount, string_c);
-    ClearArray(FileInfo->SubPath, FileInfo->MaxCount, string_c);
-    ClearArray(FileInfo->Metadata, FileInfo->MaxCount, mp3_metadata);
-    FileInfo->Count = 0;
+    ClearArray(FileInfo->FileNames_, FileInfo->MaxCount_, string_c);
+    ClearArray(FileInfo->SubPath,    FileInfo->MaxCount_, string_c);
+    ClearArray(FileInfo->Metadata,   FileInfo->MaxCount_, mp3_metadata);
+    FileInfo->Count_ = 0;
 }
 
 inline void // #ThreadedUse
@@ -292,30 +307,30 @@ CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount)
     u32 MemorySize = FileInfoCount*sizeof(string_c)*2 + FileInfoCount*sizeof(mp3_metadata);
     u8 *Memory = AllocateMemory(&GlobalGameState.JobThreadsArena, MemorySize, Private);
     
-    FileInfo->FileNames = (string_c *)Memory;
+    FileInfo->FileNames_ = (string_c *)Memory;
     Memory += FileInfoCount*sizeof(string_c);
     FileInfo->SubPath  = (string_c *)Memory;
     Memory += FileInfoCount*sizeof(string_c);
     FileInfo->Metadata = (mp3_metadata *)Memory;
     Memory += FileInfoCount*sizeof(mp3_metadata);
     
-    FileInfo->MaxCount = FileInfoCount;
-    FileInfo->Count    = 0;
+    FileInfo->MaxCount_ = FileInfoCount;
+    FileInfo->Count_    = 0;
 }
 
 inline void // #ThreadedUse
 DeleteFileInfoStruct(mp3_file_info *FileInfo)
 {
-    For(FileInfo->Count)
+    For(FileInfo->Count_)
     {
         DeleteStringCompound(&GlobalGameState.JobThreadsArena, FileInfo->SubPath+It);
-        DeleteStringCompound(&GlobalGameState.JobThreadsArena, FileInfo->FileNames+It);
+        DeleteStringCompound(&GlobalGameState.JobThreadsArena, FileInfo->FileNames_+It);
     }
     // As I allocate all fileInfo memory as one big block, I just need to dealloc once!
-    if(FileInfo->MaxCount) FreeMemory(&GlobalGameState.JobThreadsArena, FileInfo->FileNames);
-    FileInfo->Count = 0;
-    FileInfo->MaxCount = 0;
-    FileInfo->FileNames = 0;
+    if(FileInfo->MaxCount_) FreeMemory(&GlobalGameState.JobThreadsArena, FileInfo->FileNames_);
+    FileInfo->Count_ = 0;
+    FileInfo->MaxCount_ = 0;
+    FileInfo->FileNames_ = 0;
     FileInfo->SubPath  = 0;
     FileInfo->Metadata = 0;
 }
@@ -324,10 +339,10 @@ inline void // #ThreadedUse
 ResizeFileInfo(mp3_file_info *FileInfo, u32 NewMaxCount)
 {
     Assert(NewMaxCount >= 0);
-    string_c    *OldFileNames = FileInfo->FileNames;
+    string_c    *OldFileNames = FileInfo->FileNames_;
     string_c     *OldSubPaths = FileInfo->SubPath;
     mp3_metadata *OldMetadata = FileInfo->Metadata;
-    i32 OldCount = FileInfo->Count;
+    i32 OldCount = FileInfo->Count_;
     
     CreateFileInfoStruct(FileInfo, NewMaxCount);
     
@@ -336,13 +351,13 @@ ResizeFileInfo(mp3_file_info *FileInfo, u32 NewMaxCount)
         It < (u32)OldCount; 
         ++It)
     {
-        FileInfo->FileNames[It] = OldFileNames[It];
+        FileInfo->FileNames_[It] = OldFileNames[It];
         FileInfo->SubPath[It]  = OldSubPaths[It];
         FileInfo->Metadata[It] = OldMetadata[It];
     }
     
-    FileInfo->Count = Min((i32)NewMaxCount, OldCount);
-    FileInfo->MaxCount = NewMaxCount;
+    FileInfo->Count_ = Min((i32)NewMaxCount, OldCount);
+    FileInfo->MaxCount_ = NewMaxCount;
     if(OldCount) FreeMemory(&GlobalGameState.JobThreadsArena, OldFileNames);
 }
 
@@ -379,9 +394,9 @@ IsSongDecoded(mp3_info *MP3Info, string_compound *FileName, i32 *DecodeID_out = 
 {
     b32 Result = false;
     if(DecodeID_out) *DecodeID_out = -1;
-    For(MP3Info->FileInfo.Count)
+    For(MP3Info->FileInfo.Count_)
     {
-        if(CompareStringCompounds(FileName, &MP3Info->FileInfo.FileNames[It]))
+        if(CompareStringCompounds(FileName, &MP3Info->FileInfo.FileNames_[It]))
         {
             file_id FileID = MappedFileIDToFileID(&MP3Info->MusicInfo->Playlist_->Song, It);
             Result = IsSongDecoded(MP3Info, FileID, DecodeID_out);
@@ -395,9 +410,9 @@ inline i32
 GetSongDecodeID(mp3_info *MP3Info, string_compound *Name)
 {
     i32 Result = -1;
-    For(MP3Info->FileInfo.Count)
+    For(MP3Info->FileInfo.Count_)
     {
-        if(CompareStringAndCompound(Name, (u8 *)MP3Info->FileInfo.FileNames[It].S))
+        if(CompareStringAndCompound(Name, (u8 *)MP3Info->FileInfo.FileNames_[It].S))
         {
             for(i32 DecodeID = 0; DecodeID < (i32)MP3Info->DecodeInfo.Count; ++DecodeID)
             {
@@ -422,8 +437,7 @@ SongNameToPlaylistID(mp3_info *MP3Info, string_compound *Name)
     For(Playlist->A.Count)
     {
         file_id FileID = Get(Playlist, NewPlaylistID(It));
-        i32 MappedFileID = GetMappedFileID(&MP3Info->MusicInfo->Playlist_->Song, FileID);
-        if(CompareStringCompounds(Name, MP3Info->FileInfo.FileNames + MappedFileID))
+        if(CompareStringCompounds(Name, GetSongFileName(&MP3Info->MusicInfo->Playlist_->Song, &MP3Info->FileInfo, FileID)))
         {
             Result.ID = It;
             break;
@@ -716,10 +730,10 @@ FindAllMP3FilesInFolder(arena_allocator *TransientArena, string_compound *Folder
         
         while(HasNextFile)
         {
-            if(ResultingFileInfo->Count >= ResultingFileInfo->MaxCount)
+            if(ResultingFileInfo->Count_ >= ResultingFileInfo->MaxCount_)
             {
-                DebugLog(80, "NOTE:: Increasing FileInfo size from %i to %i.\n", ResultingFileInfo->MaxCount, ResultingFileInfo->MaxCount + MAX_MP3_INFO_STEP);
-                ResizeFileInfo(ResultingFileInfo, ResultingFileInfo->MaxCount + MAX_MP3_INFO_STEP);
+                DebugLog(80, "NOTE:: Increasing FileInfo size from %i to %i.\n", ResultingFileInfo->MaxCount_, ResultingFileInfo->MaxCount_ + MAX_MP3_INFO_STEP);
+                ResizeFileInfo(ResultingFileInfo, ResultingFileInfo->MaxCount_ + MAX_MP3_INFO_STEP);
             }
             
             string_c FileName = {};
@@ -749,16 +763,16 @@ FindAllMP3FilesInFolder(arena_allocator *TransientArena, string_compound *Folder
                         u8 *MP3Extension = (u8 *)"mp3";
                         if(CompareStringAndCompound(&FileType, MP3Extension))
                         {
-                            ResultingFileInfo->SubPath[ResultingFileInfo->Count] = 
+                            ResultingFileInfo->SubPath[ResultingFileInfo->Count_] = 
                                 NewStringCompound(&GlobalGameState.JobThreadsArena, SubPath->Pos);
-                            AppendStringCompoundToCompound(ResultingFileInfo->SubPath+ResultingFileInfo->Count, SubPath);
+                            AppendStringCompoundToCompound(ResultingFileInfo->SubPath+ResultingFileInfo->Count_, SubPath);
                             
-                            ResultingFileInfo->FileNames[ResultingFileInfo->Count] =
+                            ResultingFileInfo->FileNames_[ResultingFileInfo->Count_] =
                                 NewStringCompound(&GlobalGameState.JobThreadsArena, FileName.Pos);
-                            AppendStringCompoundToCompound(ResultingFileInfo->FileNames+ResultingFileInfo->Count, &FileName);
+                            AppendStringCompoundToCompound(ResultingFileInfo->FileNames_+ResultingFileInfo->Count_, &FileName);
                             
-                            ResultingFileInfo->Count++;
-                            Assert(ResultingFileInfo->Count <= ResultingFileInfo->MaxCount);
+                            ResultingFileInfo->Count_++;
+                            Assert(ResultingFileInfo->Count_ <= ResultingFileInfo->MaxCount_);
                             Result = true;
                         }
                         ResetStringCompound(FileType);
@@ -1188,9 +1202,9 @@ GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs =
 }
 
 inline void
-CreateSongDurationForMetadata(mp3_info *MP3Info, file_id FileID, i32 DecodeID)
+CreateSongDurationForMetadata(mp3_info *MP3Info, i32 MappedFileID, i32 DecodeID)
 {
-    mp3_metadata *MD = GetMetadata(&MP3Info->MusicInfo->Playlist_->Song, &MP3Info->FileInfo, FileID);
+    mp3_metadata *MD = MP3Info->FileInfo.Metadata+MappedFileID;
     if(~MD->FoundFlags & metadata_Duration)
     {
         //mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
@@ -1273,9 +1287,9 @@ CrawlFilesForMetadata(arena_allocator *TransientArena, mp3_file_info *FileInfo, 
     for(u32 It = StartIt; It < EndIt; ++It)
     {
         if(FoundAllMetadata(FileInfo->Metadata[It].FoundFlags)) continue;
-        ConcatStringCompounds(4, &FilePath, FolderPath, FileInfo->SubPath+It, FileInfo->FileNames+It);
+        ConcatStringCompounds(4, &FilePath, FolderPath, FileInfo->SubPath+It, FileInfo->FileNames_+It);
         
-        CrawlFileForMetadata(TransientArena, FileInfo->Metadata+It, &FilePath, FileInfo->FileNames[It]);
+        CrawlFileForMetadata(TransientArena, FileInfo->Metadata+It, &FilePath, FileInfo->FileNames_[It]);
         
         WipeStringCompound(&FilePath);
         if(CurrentCrawlCount)
@@ -1350,6 +1364,23 @@ ReallocateSortBatch(arena_allocator *Arena, sort_batch *Batch, u32 NewCount)
     Batch->MaxBatches = NewCount;
 }
 
+inline void
+FreeSortBatch(arena_allocator *Arena, sort_batch *Batch)
+{
+    For(Batch->BatchCount)
+    {
+        if(Batch->Song[It].A.Length   > 0) DestroyArray(Arena, Batch->Song[It].A);
+        if(Batch->Album[It].A.Length  > 0) DestroyArray(Arena, Batch->Album[It].A);
+        if(Batch->Artist[It].A.Length > 0) DestroyArray(Arena, Batch->Artist[It].A);
+        if(Batch->Genre[It].A.Length  > 0) DestroyArray(Arena, Batch->Genre[It].A);
+    }
+    FreeMemory(Arena, Batch->Genre);
+    FreeMemory(Arena, Batch->Artist);
+    FreeMemory(Arena, Batch->Album);
+    FreeMemory(Arena, Batch->Song);
+    FreeMemory(Arena, Batch->Names);
+}
+
 internal void
 CreateMusicSortingInfo()
 {
@@ -1360,8 +1391,8 @@ CreateMusicSortingInfo()
     arena_allocator *ScratchArena = &GlobalGameState.ScratchArena;
     
     array_file_id SongFileIDs = {};
-    SongFileIDs.A = CreateArray(FixArena, FileInfo->Count);
-    For(FileInfo->Count) Push(&SongFileIDs, NewFileID(It));
+    SongFileIDs.A = CreateArray(FixArena, FileInfo->Count_);
+    For(FileInfo->Count_) Push(&SongFileIDs, NewFileID(It));
     
     sort_batch Genre  = {};
     InitializeSortBatch(FixArena, &Genre, 100);
@@ -1370,7 +1401,7 @@ CreateMusicSortingInfo()
     sort_batch Album  = {};
     InitializeSortBatch(FixArena, &Album, 1000);
     
-    song_sort_info *SortBatchInfo = AllocateArray(ScratchArena, FileInfo->Count, song_sort_info);
+    song_sort_info *SortBatchInfo = AllocateArray(ScratchArena, FileInfo->Count_, song_sort_info);
     
     u32 *Genre_CountForBatches  = AllocateArray(ScratchArena, Genre.MaxBatches, u32);
     u32 *Artist_CountForBatches = AllocateArray(ScratchArena, Artist.MaxBatches, u32);
@@ -1448,7 +1479,7 @@ CreateMusicSortingInfo()
         PushIfNotExist(&Album.Song[AlbumBatchID].A, FileIt);
     }
     
-    MusicInfo->Playlist_ = CreateEmptyPlaylist(FixArena, MusicInfo, FileInfo->Count, 
+    MusicInfo->Playlist_ = CreateEmptyPlaylist(FixArena, MusicInfo, FileInfo->Count_, 
                                                Genre.BatchCount, Artist.BatchCount, Album.BatchCount);
     For(Genre.BatchCount)
     {
@@ -1661,7 +1692,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     // I fill them with a value they can never be, put the values to insert at the 
     // array position it itself points to (so duplicates are just written twice at 
     // the same location) and in the end remove the 'gaps' to re-stack-afy them.
-    u32 CheckValue = MP3FileInfo->Count+1;
+    u32 CheckValue = MP3FileInfo->Count_+1;
     if(DoArtist) Clear(&Playlist->Artist.Displayable, CheckValue);
     if(DoAlbum)  Clear(&Playlist->Album.Displayable, CheckValue);
     if(DoSong)   Clear(&Playlist->Song.Displayable, CheckValue);
@@ -1763,7 +1794,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
             {
                 if(DoSong) 
                 {
-                    For(MP3FileInfo->Count)
+                    For(Playlist->Song.FileIDs.A.Count)
                     {
                         Push(&Playlist->Song.Displayable, NewDisplayableID(It));
                     }
@@ -1824,10 +1855,9 @@ SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, sear
         {
             file_id FileID   = Get(&Search->InitialDisplayables, NewDisplayableID(It));
             mp3_metadata *MD = GetMetadata(&MusicInfo->Playlist_->Song, FileInfo, FileID);
-            i32 MappedFileID = GetMappedFileID(&MusicInfo->Playlist_->Song, FileID);
             
             string_c *Name = &MD->Title;
-            if(Name->Pos == 0) Name = FileInfo->FileNames+MappedFileID;
+            if(Name->Pos == 0) Name = GetSongFileName(&MusicInfo->Playlist_->Song, FileInfo, FileID);
             if(ContainsAB_CaseInsensitive(Name, &Search->TextField.TextString))
             {
                 Push(Displayable, FileID);
@@ -1919,22 +1949,10 @@ IsHigherInAlphabet(i32 T1, i32 T2, void *Data)
     return Result;
 }
 
-struct sort_song_column_info
-{
-    mp3_file_info *FileInfo;
-    array_u32 *SongDisplayable;
-};
-internal b32
-CompareSongDisplayable(i32 T1, i32 T2, void *Data)
+inline b32
+MetadataCompare(mp3_metadata *A, mp3_metadata *B)
 {
     b32 Result = false;
-    
-    sort_song_column_info *SortInfo = (sort_song_column_info *)Data;
-    
-    Assert(false); // y no sort proply?!
-    playlist_column *SongPlaylist = &GlobalGameState.MusicInfo.Playlist_->Song;
-    mp3_metadata *A = GetMetadata(SongPlaylist, SortInfo->FileInfo, NewDisplayableID(Get(SortInfo->SongDisplayable, T1)));
-    mp3_metadata *B = GetMetadata(SongPlaylist, SortInfo->FileInfo, NewDisplayableID(Get(SortInfo->SongDisplayable, T2)));
     
     i32 CompResult = CompareAB(&A->Artist, &B->Artist);
     if(CompResult == 0)
@@ -1952,21 +1970,45 @@ CompareSongDisplayable(i32 T1, i32 T2, void *Data)
 }
 
 internal void
+QuickSortSongColumn(i32 Low, i32 High, mp3_file_info *FileInfo, playlist_column *SongPlaylist)
+{
+    if(Low < High)
+    {
+        i32 Pivot   = High;
+        i32 SmallID = (Low - 1);
+        
+        for(i32 HighID = Low; HighID <= High - 1; HighID++) 
+        { 
+            mp3_metadata *A = GetMetadata(SongPlaylist, FileInfo, NewFileID(Get(&SongPlaylist->Displayable.A, HighID)));
+            mp3_metadata *B = GetMetadata(SongPlaylist, FileInfo, NewFileID(Get(&SongPlaylist->Displayable.A, Pivot)));
+            if (MetadataCompare(A, B)) 
+            { 
+                SmallID++;
+                Switch(&SongPlaylist->Displayable.A, SmallID, HighID); 
+            } 
+        } 
+        Switch(&SongPlaylist->Displayable.A, SmallID+1, High); 
+        i32 PartitionID = (SmallID + 1); 
+        
+        QuickSortSongColumn(Low, PartitionID - 1, FileInfo, SongPlaylist); 
+        QuickSortSongColumn(PartitionID + 1, High, FileInfo, SongPlaylist); 
+    }
+}
+
+internal void
 SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
 {
     array_file_id *Genre  = &MusicInfo->Playlist_->Genre.Displayable;
     array_file_id *Artist = &MusicInfo->Playlist_->Artist.Displayable;
     array_file_id *Album  = &MusicInfo->Playlist_->Album.Displayable;
-    array_file_id *Song   = &MusicInfo->Playlist_->Song.Displayable;
-    
     sort_blob GenreBlob  = {&MusicInfo->Playlist_->Genre.Batch, Genre};
     sort_blob ArtistBlob = {&MusicInfo->Playlist_->Artist.Batch, Artist};
     sort_blob AlbumBlob  = {&MusicInfo->Playlist_->Album.Batch, Album};
-    sort_song_column_info SortSongInfo = {MP3FileInfo, &Song->A};
     QuickSort(0, Genre->A.Count-1,  Genre,  {IsHigherInAlphabet, &GenreBlob});
     QuickSort(0, Artist->A.Count-1, Artist, {IsHigherInAlphabet, &ArtistBlob});
     QuickSort(0, Album->A.Count-1,  Album,  {IsHigherInAlphabet, &AlbumBlob});
-    QuickSort(0, Song->A.Count-1,   Song,   {CompareSongDisplayable, &SortSongInfo});
+    
+    QuickSortSongColumn(0, MusicInfo->Playlist_->Song.Displayable.A.Count-1, MP3FileInfo, &MusicInfo->Playlist_->Song);
 }
 
 internal void
@@ -2050,7 +2092,7 @@ HandleChangeToNextSong(game_state *GameState)
 internal void
 ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
 {
-    MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, GameState->MP3Info->FileInfo.Count+200);
+    MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, GameState->MP3Info->FileInfo.Count_+200);
     MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->FixArena, 200);
     
     MusicInfo->PlayingSong = {-1, -1, -1, 0};
@@ -2104,60 +2146,39 @@ CreateNewMetadata(game_state *GameState)
 // *****************************************************************************
 
 internal playlist_info *
-CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, u32 FileInfoCount, 
-                    i32 GenreBatchCount/*default -1*/, i32 ArtistBatchCount/*default -1*/, i32 AlbumBatchCount/*default -1*/)
+CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount/*default -1*/, i32 GenreBatchCount/*default -1*/, i32 ArtistBatchCount/*default -1*/, i32 AlbumBatchCount/*default -1*/)
 {
     playlist_info *Playlist = MusicInfo->Playlists.List+MusicInfo->Playlists.Count++;
+    
+    // First entry in Playlists.List is the 'everything' list.
+    if(GenreBatchCount < 0)  GenreBatchCount  = MusicInfo->Playlists.List[0].Genre.Batch.BatchCount; 
+    if(ArtistBatchCount < 0) ArtistBatchCount = MusicInfo->Playlists.List[0].Artist.Batch.BatchCount;
+    if(AlbumBatchCount < 0)  AlbumBatchCount  = MusicInfo->Playlists.List[0].Album.Batch.BatchCount;
+    if(SongIDCount < 0)      SongIDCount      = MusicInfo->Playlists.List[0].Song.FileIDs.A.Count;
+    
     Playlist->Genre.Type    = columnType_Genre;
     Playlist->Artist.Type   = columnType_Artist;
     Playlist->Album.Type    = columnType_Album;
     Playlist->Song.Type     = columnType_Song;
     
-    // Always the "everything" list.
-    if(GenreBatchCount < 0)  GenreBatchCount  = MusicInfo->Playlists.List[0].Genre.Batch.BatchCount; 
-    if(ArtistBatchCount < 0) ArtistBatchCount = MusicInfo->Playlists.List[0].Artist.Batch.BatchCount;
-    if(AlbumBatchCount < 0)  AlbumBatchCount  = MusicInfo->Playlists.List[0].Album.Batch.BatchCount;
-    
     Playlist->Genre.Selected.A  = CreateArray(Arena, GenreBatchCount);
     Playlist->Artist.Selected.A = CreateArray(Arena, ArtistBatchCount);
     Playlist->Album.Selected.A  = CreateArray(Arena, AlbumBatchCount);
-    Playlist->Song.Selected.A   = CreateArray(Arena, FileInfoCount);
+    Playlist->Song.Selected.A   = CreateArray(Arena, SongIDCount);
     
     Playlist->Genre.Displayable.A  = CreateArray(Arena, GenreBatchCount);
     Playlist->Artist.Displayable.A = CreateArray(Arena, ArtistBatchCount);
     Playlist->Album.Displayable.A  = CreateArray(Arena, AlbumBatchCount);
-    Playlist->Song.Displayable.A   = CreateArray(Arena, FileInfoCount);
+    Playlist->Song.Displayable.A   = CreateArray(Arena, SongIDCount);
     
     return Playlist;
 }
 
 internal void
-CopyPlaylist(playlist_info *CopyInto, playlist_info *Original)
-{
-    For(ArrayCount(Original->Columns), Column)
-    {
-        playlist_column *FromColumn = Original->Columns + ColumnIt;
-        playlist_column *ToColumn   = CopyInto->Columns + ColumnIt;
-        
-        Copy(&ToColumn->Displayable.A, &FromColumn->Displayable.A);
-    }
-}
-
-inline void
-FillPlaylistWithCurrentDisplayable(music_info *MusicInfo, playlist_info *PlaylistToFill)
-{
-    CopyPlaylist(PlaylistToFill, MusicInfo->Playlist_);
-}
-
-internal void
 FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo, playlist_info *NewPlaylist)
 {
-    // NOTE:: We want to use what is in current playlist. If something is selected 
-    // in a column, we use only the selected entries. If nothing is selected, we need
-    // to check what is selected in the previous columns and copy only those entries
-    // which apply to 'us'.
-    // Option 2: We look only at the Song column and put everything in the other colums
-    // based on what we find there.
+    // NOTE:: We look only at the Song column and put everything 
+    // in the other colums based on what we find there.
     
     playlist_info   *Playlist     = MusicInfo->Playlist_;
     arena_allocator *FixArena     = &GlobalGameState.FixArena;
@@ -2177,8 +2198,7 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     
     For(Playlist->Song.Displayable.A.Count)
     {
-        file_id FileID   = Get(&Playlist->Song.Displayable, NewDisplayableID(It));
-        mp3_metadata *MD = GetMetadata(&Playlist->Song, FileInfo, FileID);
+        mp3_metadata *MD = GetMetadata(&Playlist->Song, FileInfo, NewDisplayableID(It));
         
         // NOTE:: Fills the Batches with all different genres, artists, albums and gives the batch id back
         i32 GenreID  = AddSongToSortBatch(FixArena, &Genre, &MD->Genre);
@@ -2237,17 +2257,21 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     }
     
     
-    For(Genre.BatchCount)
+    For(Genre.BatchCount)  Push(&NewPlaylist->Genre.Displayable, NewFileID(It));
+    For(Artist.BatchCount) Push(&NewPlaylist->Artist.Displayable, NewFileID(It));
+    For(Album.BatchCount)  Push(&NewPlaylist->Album.Displayable, NewFileID(It));
+    
+    if(NewPlaylist->Genre.Batch.BatchCount  > 0) FreeSortBatch(FixArena, &NewPlaylist->Genre.Batch);
+    if(NewPlaylist->Artist.Batch.BatchCount > 0) FreeSortBatch(FixArena, &NewPlaylist->Artist.Batch);
+    if(NewPlaylist->Album.Batch.BatchCount  > 0) FreeSortBatch(FixArena, &NewPlaylist->Album.Batch);
+    if(NewPlaylist->Song.FileIDs.A.Count    > 0) DestroyArray(FixArena, NewPlaylist->Song.FileIDs.A);
+    
+    // Now fill playlist_colum song
+    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, Playlist->Song.Displayable.A.Count); // TODO:: Think about making it the max size during creation.
+    For(Playlist->Song.Displayable.A.Count)
     {
-        Push(&NewPlaylist->Genre.Displayable, NewFileID(It));
-    }
-    For(Artist.BatchCount)
-    {
-        Push(&NewPlaylist->Artist.Displayable, NewFileID(It));
-    }
-    For(Album.BatchCount)
-    {
-        Push(&NewPlaylist->Album.Displayable, NewFileID(It));
+        Push(&NewPlaylist->Song.Displayable.A,                            Get(&Playlist->Song.Displayable.A, It));
+        Push(&NewPlaylist->Song.FileIDs.A, Get(&Playlist->Song.FileIDs.A, Get(&Playlist->Song.Displayable.A, It)));
     }
     
     NewPlaylist->Genre.Batch  = Genre;

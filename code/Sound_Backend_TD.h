@@ -20,9 +20,7 @@
 // - still hardcapped at 10k mp3 files
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
-// - Add key shortcut button
 // - properly round for song panel time and slider
-// - fix track number alignment for 100th
 
 // - remove all GlobalGameState references from UI.c
 // - redraw only when necessary!
@@ -35,8 +33,17 @@
 //       - Find issue with drawing order bug. This one I have no clue right now...
 // - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
 
+// - On large files when preload is not enough, it _seldom_crashes when using the already decoded data...
 // - MP3 V0 crashes?
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
+
+// PLAYLIST:
+// - what happens when search is open
+// - remove old playlist try
+// - add playlist save file (?), or add to existing save file
+// - Add playlist column visuals
+// - 
+
 
 
 #include "Sound_UI_TD.h"
@@ -62,6 +69,20 @@ enum column_type // Is used to index arrays!
     columnType_None,
 };
 
+enum play_loop
+{
+    playLoop_NoLoop,
+    playLoop_Loop,
+    playLoop_Repeat
+};
+
+struct song_sort_info
+{
+    u32 GenreBatchID;
+    u32 ArtistBatchID;
+    u32 AlbumBatchID;
+};
+
 struct sort_batch
 {
     // These arrays of arrays contain the id for the other columns respectively
@@ -75,29 +96,6 @@ struct sort_batch
     u32 MaxBatches;
 }; 
 
-struct song_sort_info
-{
-    u32 GenreBatchID;
-    u32 ArtistBatchID;
-    u32 AlbumBatchID;
-};
-
-enum play_loop
-{
-    playLoop_NoLoop,
-    playLoop_Loop,
-    playLoop_Repeat
-};
-
-struct playing_song
-{
-    playlist_id PlaylistID;
-    file_id FileID;
-    i32 DecodeID;
-    
-    b32 PlayUpNext; // should only be set in SetNextSong/and OnSongPlayPressed
-};
-
 struct playlist_column
 {
     column_type   Type;
@@ -106,12 +104,13 @@ struct playlist_column
     
     union {
         sort_batch Batch;      // Used for Genre, Artist, Album column_types.
-        array_file_id FileIDs; // Used for Song column_type.
+        array_file_id FileIDs; // Used for Song column_type/ Acces this with any file_id to get to mp3_file_info.
     };
 };
 
 inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, displayable_id ID);
 inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id ID);
+inline string_c *           GetSongFileName(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id FileID);
 
 struct playlist_info
 {
@@ -125,14 +124,22 @@ struct playlist_info
         playlist_column Columns[4];
     };
 };
-internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, u32 FileInfoCount, 
-                                            i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
+internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
 
 struct playlist_array
 {
     playlist_info *List;
     u32 Count;
     u32 MaxCount;
+};
+
+struct playing_song
+{
+    playlist_id PlaylistID;
+    file_id FileID;
+    i32 DecodeID;
+    
+    b32 PlayUpNext; // should only be set in SetNextSong/and OnSongPlayPressed
 };
 
 struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
@@ -195,13 +202,13 @@ struct mp3_metadata
     i32 FoundFlags;
 };
 
-struct mp3_file_info //::FILE_ID
+struct mp3_file_info //::MAPPED FILE_ID
 {
-    string_c     *FileNames;
+    string_c     *FileNames_;
     string_c     *SubPath;
     mp3_metadata *Metadata;
-    u32 Count;
-    u32 MaxCount;
+    u32 Count_;
+    u32 MaxCount_;
 };
 
 struct playing_decoded

@@ -605,7 +605,7 @@ WinMain(HINSTANCE Instance,
             GameState->MP3Info = MP3Info;
             MP3Info->MusicInfo = &GameState->MusicInfo;
             
-            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, MP3Info->FileInfo.Count+200);
+            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, MP3Info->FileInfo.Count_+200);
             MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->FixArena, 200);
             
             CreateMusicSortingInfo();
@@ -786,7 +786,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             // Test Area **********************************
             // ********************************************
             
-            
+            DebugLog(250, "FILENAME::: %s\n", __FILENAME__);
             
             
             
@@ -1006,8 +1006,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         local_persist i32 CurrentPlaylist = 0;
                         if(Input->KeyChange[KEY_F9]  == KeyDown) 
                         {
-                            playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo, 
-                                                                       MP3Info->FileInfo.Count);
+                            playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo);
                             FillPlaylistWithCurrentSelection(MusicInfo, &MP3Info->FileInfo, NewPL);
                             //FillPlaylistWithCurrentDisplayable(MusicInfo, NewPL);
                             MusicInfo->Playlist_ = NewPL;
@@ -1163,7 +1162,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                         if(PrevIsPlaying != MusicInfo->IsPlaying)
                         {
-                            PrevIsPlaying = MusicInfo->IsPlaying;
                             ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
                         }
                     }
@@ -1220,18 +1218,23 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // *******************************************
                 // Sound *************************************
                 // *******************************************
+                b32 SongFinished = false;
                 if(GetIsFinishedPlaying(GameState->SoundThreadInterface))
                 {
+                    SongFinished = true;
                     MusicInfo->IsPlaying = false;
                     if(PlayingSong->PlaylistID >= 0 || MusicInfo->Playlist.UpNext.A.Count > 0)
                     {
-                        PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                         HandleChangeToNextSong(GameState);
                         if(MusicInfo->PlayingSong.PlaylistID >= 0) MusicInfo->IsPlaying = true;
                     }
                 }
-                if(!MusicInfo->IsPlaying || !MusicInfo->CurrentlyChangingSong)
+                if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished/* || !MusicInfo->CurrentlyChangingSong*/)
+                {
+                    DebugLog(255, "Changing IsPlaying to: %i\n", MusicInfo->IsPlaying);
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
+                    PrevIsPlaying = MusicInfo->IsPlaying;
+                }
                 
                 // *******************************************
                 // Rendering *********************************

@@ -735,7 +735,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
     {
         file_id PrevFileID = PlaylistIDToFileID(&MusicInfo->Playlist, 
                                                 GetPreviousSong(&MusicInfo->Playlist, MusicInfo->PlayingSong.PlaylistID));
-        Assert(PrevFileID < (i32)GlobalGameState.MP3Info->FileInfo.Count);
+        Assert(PrevFileID < MusicInfo->Playlist_->Song.FileIDs.A.Count); //(i32)GlobalGameState.MP3Info->FileInfo.Count);
         Assert(PrevFileID > -1);
         u32 PrevDecodeID = 0;
         if(!Find(&DecodeInfo->FileID, PrevFileID, &PrevDecodeID)) 
@@ -747,7 +747,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
         
         file_id NextFileID = PlaylistIDToFileID(&MusicInfo->Playlist, 
                                                 GetSongAfterCurrent(&MusicInfo->Playlist, MusicInfo->PlayingSong.PlaylistID));
-        Assert(NextFileID < (i32)GlobalGameState.MP3Info->FileInfo.Count);
+        Assert(NextFileID < MusicInfo->Playlist_->Song.FileIDs.A.Count); //(i32)GlobalGameState.MP3Info->FileInfo.Count);
         Assert(NextFileID > -1);
         u32 NextDecodeID = 0;
         if(!Find(&DecodeInfo->FileID, NextFileID, &NextDecodeID)) 
@@ -2384,13 +2384,13 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
        (MusicInfo->PlayingSong.PlaylistID >= 0 || MusicInfo->PlayingSong.PlayUpNext))
     {
         file_id FileID         = GetNextSong(&MusicInfo->Playlist, &MusicInfo->PlayingSong);
-        i32 MappedFileID       = Get(&MusicInfo->Playlist_->Song.FileIDs.A, FileID.ID);
         mp3_metadata *Metadata = GetMetadata(&MusicInfo->Playlist_->Song, &Panel->MP3Info->FileInfo, FileID);
         Panel->SongDuration    = (r32)Metadata->Duration;
         
         MillisecondsToMinutes(Metadata->Duration, &DurationString);
         TrackString = &Metadata->TrackString;
-        if(Metadata->Title.Pos == 0)  TitleString  = Panel->MP3Info->FileInfo.FileNames + MappedFileID;
+        if(Metadata->Title.Pos == 0)  
+            TitleString = GetSongFileName(&MusicInfo->Playlist_->Song, &Panel->MP3Info->FileInfo, FileID);
         else                          TitleString  = &Metadata->Title;
         if(Metadata->Artist.Pos == 0) ArtistString = &MissingData;
         else                          ArtistString = &Metadata->Artist;

@@ -191,3 +191,11 @@
 - Finally removed the 10k file limit for .mp3s, which was still a remnant of the initial memory management, or the lack thereof.
 - Fixed double button activation in the Colorpicker
 - Fixed possible Text-Overlap-flickering in the playing song Panel.
+
+30.04.2021
+- Fixed sorting bug of song column introduced while refactoring for playlists.
+
+01.05.2021
+- Fixed usage of mp3_file_info count where the new FileIDs count should now be used.
+- Added simple creation of playlists by pressing F9, which makes the current selection to a playlist.
+- Improved DebugLog to print Filename+Line at the start. This has overhead and can be disabled with undeffing DEBUG_LOG_INFO.

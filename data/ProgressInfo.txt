@@ -207,3 +207,4 @@
 - Added another column named Playlists, which holds all existing playlist.
 	- For now has inverted colors for differentiation.
     - First entry will always be "All" (or similarly named) which holds all songs
+- Fixed bug in UpdateSeletionChanged, where I put the switch #Through in the wrong order.

@@ -1824,20 +1824,20 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     r32 SelectAlbumStart  = 0;
     switch(Type)
     {
-        case columnType_Genre:
-        {
-            GenreDisplayID    = DisplayInfo->Genre.OnScreenIDs[0];
-            SelectGenreStart  = GetLocalPosition(DisplayInfo->Genre.BGRects[0]).y;
-        } // Through
         case columnType_Album:
         {
             AlbumDisplayID    = DisplayInfo->Album.OnScreenIDs[0];
             SelectAlbumStart  = GetLocalPosition(DisplayInfo->Album.BGRects[0]).y;
-        } // Through
+        } // #Through
         case columnType_Artist:
         {
             ArtistDisplayID   = DisplayInfo->Artist.OnScreenIDs[0];
             SelectArtistStart = GetLocalPosition(DisplayInfo->Artist.BGRects[0]).y; 
+        } // #Through
+        case columnType_Genre:
+        {
+            GenreDisplayID    = DisplayInfo->Genre.OnScreenIDs[0];
+            SelectGenreStart  = GetLocalPosition(DisplayInfo->Genre.BGRects[0]).y;
         } break;
     }
     

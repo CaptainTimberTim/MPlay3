@@ -83,6 +83,7 @@ WindowGotResized(game_state *GameState)
         PerformScreenTransform(Renderer);
         ProcessEdgeDragOnResize(Renderer, DisplayInfo);
         
+        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Playlists);
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Genre);
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Artist);
         ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Album);
@@ -608,6 +609,7 @@ WinMain(HINSTANCE Instance,
             MusicInfo->UpNextList.A = CreateArray(&GameState->FixArena, 200);
             
             CreateMusicSortingInfo();
+            CreatePlaylistsSortingInfo(MusicInfo);
             FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
             UpdatePlayingSongForSelectionChange(MusicInfo);
@@ -652,33 +654,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
             InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info, Layout);
             music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
-            playlist_info *Playlist = MusicInfo->Playlist_;
-            
-            column_info GenreColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Genre, &Playlist->Genre};
-            column_info ArtistColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Artist, &Playlist->Artist};
-            column_info AlbumColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Album, &Playlist->Album};
-            column_info SongColumn   = {Renderer, DisplayInfo, MusicInfo, Parent(&DisplayInfo->Song), &Playlist->Song};
-            //column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, NULL};
-            
-            //CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Playlists, -0.015f, DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, Layout);
-            CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, -0.025f, 
-                                DisplayInfo->EdgeLeft, DisplayInfo->GenreArtist.Edge, Layout);
-            CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, -0.05f, 
-                                DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, Layout);
-            CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Album, -0.075f, 
-                                DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, Layout);
-            CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, -0.1f, 
-                                DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight, Layout);
-            
-            MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);
-            MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
-            MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
-            MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
-            
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
             
             
             // ********************************************
@@ -692,19 +667,37 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             r32 BRight  = GetExtends(DisplayInfo->EdgeRight).x + Layout->DragEdgeWidth/2 + Layout->VerticalSliderWidth;
             r32 BMiddle = Layout->DragEdgeWidth + Layout->VerticalSliderWidth;
             
+            column_edge_drag EdgePlaylistsGenreDrag = {};
+            EdgePlaylistsGenreDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {BLeft}, {}, 1};
+            EdgePlaylistsGenreDrag.RightEdgeChain = {
+                {DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
+                {BMiddle, BMiddle, BMiddle, BRight}, 
+                {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 4 
+            };
+            EdgePlaylistsGenreDrag.XPercent     = &DisplayInfo->PlaylistsGenre.XPercent;
+            EdgePlaylistsGenreDrag.MusicInfo    = MusicInfo;
+            AddDragable(DragableList, DisplayInfo->PlaylistsGenre.Edge, {}, 
+                        {OnDisplayColumnEdgeDrag, &EdgePlaylistsGenreDrag}, {});
+            
             column_edge_drag EdgeGenreArtistDrag = {};
-            EdgeGenreArtistDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {BLeft}, {}, 1};
+            EdgeGenreArtistDrag.LeftEdgeChain  = {
+                {DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
+                {BLeft, BMiddle}, {&DisplayInfo->PlaylistsGenre.XPercent}, 2
+            };
             EdgeGenreArtistDrag.RightEdgeChain = {
                 {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-                {BMiddle, BMiddle, BRight}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3};
+                {BMiddle, BMiddle, BRight}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3
+            };
             EdgeGenreArtistDrag.XPercent     = &DisplayInfo->GenreArtist.XPercent;
             EdgeGenreArtistDrag.MusicInfo    = MusicInfo;
             AddDragable(DragableList, DisplayInfo->GenreArtist.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeGenreArtistDrag}, {});
             
             column_edge_drag EdgeArtistAlbumDrag = {};
             EdgeArtistAlbumDrag.LeftEdgeChain  = {
-                {DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, {BMiddle, BLeft}, 
-                {&DisplayInfo->GenreArtist.XPercent}, 2};
+                {DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
+                {BMiddle, BMiddle, BLeft}, 
+                {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 3
+            };
             EdgeArtistAlbumDrag.RightEdgeChain = {
                 {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, {BMiddle, BRight},
                 {&DisplayInfo->AlbumSong.XPercent}, 2};
@@ -714,8 +707,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             
             column_edge_drag EdgeAlbumSongDrag = {};
             EdgeAlbumSongDrag.LeftEdgeChain  = {
-                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->EdgeLeft}, 
-                {BMiddle, BMiddle, BLeft}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent}, 3};
+                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, {BMiddle, BMiddle, BMiddle, BLeft}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 4
+            };
             EdgeAlbumSongDrag.RightEdgeChain = {{DisplayInfo->EdgeRight}, {BRight}, {}, 1};
             EdgeAlbumSongDrag.XPercent       = &DisplayInfo->AlbumSong.XPercent;
             EdgeAlbumSongDrag.MusicInfo      = MusicInfo;
@@ -726,6 +719,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             drag_slider_data ArtistDrag = {MusicInfo, &DisplayInfo->Artist};
             drag_slider_data AlbumDrag  = {MusicInfo, &DisplayInfo->Album};
             drag_slider_data SongDrag   = {MusicInfo, &DisplayInfo->Song.Base};
+            drag_slider_data PlaylistsDrag = {MusicInfo, &DisplayInfo->Playlists};
             
             AddDragable(DragableList, DisplayInfo->Genre.SliderHorizontal.Background,  
                         {OnSliderDragStart, &DisplayInfo->Genre.SliderHorizontal}, {OnHorizontalSliderDrag, &GenreDrag}, {});
@@ -735,6 +729,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {OnSliderDragStart, &DisplayInfo->Album.SliderHorizontal}, {OnHorizontalSliderDrag, &AlbumDrag}, {});
             AddDragable(DragableList, DisplayInfo->Song.Base.SliderHorizontal.Background,
                         {OnSliderDragStart, &DisplayInfo->Song.Base.SliderHorizontal}, {OnHorizontalSliderDrag, &SongDrag},{});
+            AddDragable(DragableList, DisplayInfo->Playlists.SliderHorizontal.Background,
+                        {OnSliderDragStart, &DisplayInfo->Playlists.SliderHorizontal}, {OnHorizontalSliderDrag, &PlaylistsDrag},{});
             
             AddDragable(DragableList, DisplayInfo->Genre.SliderVertical.Background,
                         {OnSliderDragStart, &DisplayInfo->Genre.SliderVertical}, {OnVerticalSliderDrag, &GenreDrag}, {});
@@ -745,6 +741,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             AddDragable(DragableList, DisplayInfo->Song.Base.SliderVertical.Background,
                         {OnSliderDragStart, &DisplayInfo->Song.Base.SliderVertical}, {OnVerticalSliderDrag, &SongDrag},
                         {OnSongDragEnd, &SongDrag});
+            AddDragable(DragableList, DisplayInfo->Playlists.SliderVertical.Background,
+                        {OnSliderDragStart, &DisplayInfo->Playlists.SliderVertical}, {OnVerticalSliderDrag, &PlaylistsDrag}, {});
             
             // Timeline stuff
             AddDragable(DragableList, DisplayInfo->Volume.Background,{},{OnVolumeDrag, GameState},{});

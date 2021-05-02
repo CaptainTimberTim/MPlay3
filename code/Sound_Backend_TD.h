@@ -43,8 +43,8 @@
 // - remove old playlist try
 // - add playlist save file (?), or add to existing save file
 // - Add playlist column visuals
-// - 
-
+// - InitialDisplayable count for playlist is capped to 250, should be expandable.
+// 
 
 
 #include "Sound_UI_TD.h"
@@ -58,6 +58,7 @@ struct column_info
     struct music_display_info   *DisplayInfo;
     struct music_info           *MusicInfo;
     struct music_display_column *DisplayColumn;
+    
     struct playlist_column      *PlaylistColumn;
 };
 
@@ -122,8 +123,9 @@ struct playlist_info
             playlist_column Artist;
             playlist_column Album;
             playlist_column Song;
+            playlist_column Playlists;
         };
-        playlist_column Columns[4];
+        playlist_column Columns[5];
     };
 };
 internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);

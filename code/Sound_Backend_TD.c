@@ -2286,7 +2286,24 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     
 }
 
-
+internal void
+CreatePlaylistsSortingInfo(music_info *MusicInfo)
+{
+    playlist_column *Playlists  = &MusicInfo->Playlist_->Playlists;
+    
+    Playlists->Type             = columnType_Playlists;
+    Playlists->Selected.A       = CreateArray(&GlobalGameState.FixArena, 250);
+    Playlists->Displayable.A    = CreateArray(&GlobalGameState.FixArena, 250);
+    
+    Playlists->Batch.Names      = AllocateArray(&GlobalGameState.FixArena, 250, string_c);
+    Playlists->Batch.MaxBatches = 250;
+    
+    
+    Push(&Playlists->Displayable, {0});
+    Playlists->Batch.Names[Playlists->Batch.BatchCount] = NewStringCompound(&GlobalGameState.FixArena, 4);
+    AppendStringToCompound(Playlists->Batch.Names+Playlists->Batch.BatchCount++, (u8 *)"All");
+    
+}
 
 
 

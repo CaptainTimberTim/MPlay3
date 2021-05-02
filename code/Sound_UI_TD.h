@@ -72,6 +72,16 @@ struct search_bar
     array_playlist_id InitialDisplayables;
 };
 
+struct column_colors
+{
+    v3 *Slot;
+    v3 *Text;
+    v3 *Background;
+    v3 *SliderGrabThing;
+    v3 *SliderBG;
+    v3 *Selected;
+};
+
 struct music_display_column
 {
     struct music_display_info *Base;
@@ -89,6 +99,8 @@ struct music_display_column
     r32 DisplayCursor; // Y position in the total displayables
     entry_id *BGRectAnchor; // Is only moved on resize, to be at the exact pos for the first BGRect.
     r32 ZValue;
+    
+    column_colors Colors;
     
     entry_id *LeftBorder;
     entry_id *RightBorder;
@@ -196,7 +208,7 @@ struct edge_chain
     // that is the limit. These _need_ to have at
     // least a length of 1 -as the bordering edge- 
     // where the dragged edge has its limit.
-#define EDGE_CHAIN_MAX_COUNT 3
+#define EDGE_CHAIN_MAX_COUNT 4
     entry_id *Edges[EDGE_CHAIN_MAX_COUNT];
     r32     Offsets[EDGE_CHAIN_MAX_COUNT];
     r32   *XPercent[EDGE_CHAIN_MAX_COUNT-1];
@@ -278,6 +290,7 @@ struct music_display_info
     // Button general
     music_btn MusicBtnInfo;
     
+    drag_edge PlaylistsGenre;
     drag_edge GenreArtist;
     drag_edge ArtistAlbum;
     drag_edge AlbumSong;
@@ -310,7 +323,7 @@ struct layout_definition
     // General
     r32 TopBorder     = 50;
     r32 BottomBorder  = 120;
-    r32 LeftBorder    = 24*4;
+    r32 LeftBorder    = 24;
     r32 RightBorder   = 24;
     
     // Drag and slide

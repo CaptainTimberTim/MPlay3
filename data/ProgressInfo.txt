@@ -204,3 +204,6 @@
 - Removed now wrongly used file_id for accessing FileIDs array in playlist_column, now using playlist_id.
 - More general backend refactoring.
 - Fixed bug where genre column was not properly updates when creating playlist.
+- Added another column named Playlists, which holds all existing playlist.
+	- For now has inverted colors for differentiation.
+    - First entry will always be "All" (or similarly named) which holds all songs

@@ -369,11 +369,13 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     NewLocalString(CachedFontNames,  50, "UsedFontCache: ");
     
     v2i Dim = GetWindowSize();
+    file_id FileID = NewFileID(-1);
+    if(GameState->MusicInfo.PlayingSong.PlaylistID >= 0) 
+        FileID = FileIDFromPlaylistID(&GameState->MusicInfo.Playlist_->Song, GameState->MusicInfo.PlayingSong.PlaylistID);
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
     I32ToString(&FileFontOffset, Settings->FontHeightOffset);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
-    I32ToString(&FileLastSong, FileIDFromPlaylistID(&GameState->MusicInfo.Playlist_->Song, 
-                                                    GameState->MusicInfo.PlayingSong.PlaylistID).ID);
+    I32ToString(&FileLastSong, FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
     R32ToString(&FileGenreArtist, GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
     R32ToString(&FileArtistAlbum, GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);

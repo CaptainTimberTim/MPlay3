@@ -262,6 +262,8 @@ struct music_display_info
     music_display_column Album;
     display_column_song_extension Song;
     
+    music_display_column Playlists;
+    
     color_palette ColorPalette;
     u32 ColorPaletteID;
     

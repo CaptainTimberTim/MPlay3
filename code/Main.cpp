@@ -658,7 +658,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             column_info ArtistColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Artist, &Playlist->Artist};
             column_info AlbumColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Album, &Playlist->Album};
             column_info SongColumn   = {Renderer, DisplayInfo, MusicInfo, Parent(&DisplayInfo->Song), &Playlist->Song};
+            //column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, NULL};
             
+            //CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Playlists, -0.015f, DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, Layout);
             CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, -0.025f, 
                                 DisplayInfo->EdgeLeft, DisplayInfo->GenreArtist.Edge, Layout);
             CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, -0.05f, 
@@ -677,6 +679,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
             ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
+            
             
             // ********************************************
             // Dragging************************************
@@ -1012,26 +1015,20 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             MusicInfo->Playlist_ = NewPL;
                             CurrentPlaylist      = MusicInfo->Playlists.Count-1;
                             MusicInfo->PlayingSong.DisplayableID.ID = -1; // If we swtich playlist, playing song will reset.
-                            //MusicInfo->PlayingSong.PlaylistID.ID    = -1;
+                            MusicInfo->PlayingSong.PlaylistID.ID    = -1;
                             MusicInfo->PlayingSong.DecodeID         = -1;
                             
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Artist);
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Album);
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Song);
                         }
                         if(Input->KeyChange[KEY_F10]  == KeyDown) 
                         {
                             CurrentPlaylist = (CurrentPlaylist+1)%MusicInfo->Playlists.Count;
                             MusicInfo->Playlist_ = MusicInfo->Playlists.List + CurrentPlaylist;
                             MusicInfo->PlayingSong.DisplayableID.ID = -1;
-                            //MusicInfo->PlayingSong.PlaylistID.ID    = -1;
+                            MusicInfo->PlayingSong.PlaylistID.ID    = -1;
                             MusicInfo->PlayingSong.DecodeID         = -1;
                             
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Artist);
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Album);
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Song);
                         }
                         
                         // ******************

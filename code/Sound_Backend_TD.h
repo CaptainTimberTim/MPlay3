@@ -67,6 +67,7 @@ enum column_type // Is used to index arrays!
     columnType_Artist,
     columnType_Album,
     columnType_Song,
+    columnType_Playlists,
     columnType_None,
 };
 

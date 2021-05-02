@@ -1816,12 +1816,19 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     if(MusicInfo->IsShuffled) ShuffleStack(&Playlist->Song.Displayable);
     DisplayInfo->Song.Base.DisplayCursor = 0;
     
+    displayable_id GenreDisplayID = NewDisplayableID(0);
+    r32 SelectGenreStart = 0;
     displayable_id ArtistDisplayID = NewDisplayableID(0);
     r32 SelectArtistStart = 0;
     displayable_id AlbumDisplayID = NewDisplayableID(0);
     r32 SelectAlbumStart  = 0;
-    switch(Type) // nothing to do for columnType_Genre
+    switch(Type)
     {
+        case columnType_Genre:
+        {
+            GenreDisplayID    = DisplayInfo->Genre.OnScreenIDs[0];
+            SelectGenreStart  = GetLocalPosition(DisplayInfo->Genre.BGRects[0]).y;
+        } // Through
         case columnType_Album:
         {
             AlbumDisplayID    = DisplayInfo->Album.OnScreenIDs[0];
@@ -1834,6 +1841,7 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
         } break;
     }
     
+    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre, GenreDisplayID, SelectGenreStart);
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist, ArtistDisplayID, SelectArtistStart);
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album, AlbumDisplayID, SelectAlbumStart);
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);

@@ -65,7 +65,7 @@ struct thread_error_list
 
 internal b32  AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
-internal i32  AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID, array_u32 *IgnoreDecodeIDs = 0, 
+internal i32  AddJob_LoadMP3(circular_job_queue *JobQueue, playlist_id PlaylistID, array_u32 *IgnoreDecodeIDs = 0, 
                              i32 PreloadSeconds = DECODE_PRELOAD_SECONDS);
 internal void PushErrorMessageFromThread(error_item Error);
 

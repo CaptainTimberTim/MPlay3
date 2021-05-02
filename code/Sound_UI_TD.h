@@ -69,7 +69,7 @@ struct search_bar
 {
     text_field TextField;
     button *Button;
-    array_file_id InitialDisplayables;
+    array_playlist_id InitialDisplayables;
 };
 
 struct music_display_column
@@ -411,7 +411,7 @@ struct layout_definition
 };
 
 inline void UpdateColumnColor(music_display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
-internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *DisplayColumn, file_id FileID);
+internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *DisplayColumn, playlist_id PlaylistID);
 internal void BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id SortID);
 inline void ToggleSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 FileID, v4 *Color);

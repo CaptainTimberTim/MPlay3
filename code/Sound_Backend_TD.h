@@ -27,7 +27,7 @@
 //      - stop rendering when no user input and no song is playing
 // - stop always jumping the column to the start on i.e. search end
 // - color picker pops into original center. should at least be current center.
-
+// - UpNextList is limited to 200
 
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...
@@ -36,6 +36,7 @@
 // - On large files when preload is not enough, it _seldom_crashes when using the already decoded data...
 // - MP3 V0 crashes?
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
+// - selecting and deselecting stuff (in combination with search) is buggy.
 
 // PLAYLIST:
 // - what happens when search is open
@@ -89,7 +90,7 @@ struct sort_batch
     array_batch_id *Genre; 
     array_batch_id *Artist;
     array_batch_id *Album;
-    array_file_id  *Song;
+    array_playlist_id  *Song;
     
     string_c       *Names; // ::BATCH_ID
     u32 BatchCount;
@@ -99,18 +100,18 @@ struct sort_batch
 struct playlist_column
 {
     column_type   Type;
-    array_file_id Selected;    // stores _FileIDs_ for song column and sortBatchIDs for the rest!
-    array_file_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
+    array_playlist_id Selected;    // stores playlist for song column and sortBatchIDs for the rest!
+    array_playlist_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
     
     union {
         sort_batch Batch;      // Used for Genre, Artist, Album column_types.
-        array_file_id FileIDs; // Used for Song column_type/ Acces this with any file_id to get to mp3_file_info.
+        array_file_id FileIDs; // ::PLAYLIST_ID Used for Song column_type/Acces this with any file_id to get to mp3_file_info.
     };
 };
 
 inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, displayable_id ID);
-inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id ID);
-inline string_c *           GetSongFileName(playlist_column *SongColumn, mp3_file_info *FileInfo, file_id FileID);
+inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, playlist_id ID);
+inline string_c *           GetSongFileName(playlist_column *SongColumn, mp3_file_info *FileInfo, playlist_id FileID);
 
 struct playlist_info
 {
@@ -135,18 +136,11 @@ struct playlist_array
 
 struct playing_song
 {
+    displayable_id DisplayableID;
     playlist_id PlaylistID;
-    file_id FileID;
     i32 DecodeID;
     
     b32 PlayUpNext; // should only be set in SetNextSong/and OnSongPlayPressed
-};
-
-struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
-{ // TODO:: Rename this to something like prev_and_upcoming_songs...
-    array_file_id Songs; // TODO:: This can be "Displayable" again
-    array_file_id UpNext;
-    array_file_id Previous;
 };
 
 struct music_info
@@ -155,7 +149,8 @@ struct music_info
     play_loop Looping;
     b32 IsPlaying;
     
-    play_list Playlist;  // ::PLAYLIST_ID
+    array_playlist_id UpNextList;
+    
     playlist_info *Playlist_; // Actual playlist. This can be switched out.
     playlist_array Playlists;
     
@@ -224,7 +219,7 @@ struct mp3_decode_info
     b32 volatile CancelDecoding; // Exclusively written in main thread.
     
     mp3dec_file_info_t DecodedData[MAX_MP3_DECODE_COUNT];
-    array_file_id FileID; // size: MAX_MP3_DECODE_COUNT
+    array_file_id FileIDs; // size: MAX_MP3_DECODE_COUNT
     u32 Count;
     
     b32 volatile CurrentlyDecoding[MAX_MP3_DECODE_COUNT];
@@ -243,7 +238,7 @@ struct mp3_info
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
 
-inline displayable_id FileIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, file_id FileID);
+inline displayable_id PlaylistIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, playlist_id PlaylistID);
 internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 

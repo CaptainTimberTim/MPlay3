@@ -199,3 +199,7 @@
 - Fixed usage of mp3_file_info count where the new FileIDs count should now be used.
 - Added simple creation of playlists by pressing F9, which makes the current selection to a playlist.
 - Improved DebugLog to print Filename+Line at the start. This has overhead and can be disabled with undeffing DEBUG_LOG_INFO.
+
+02.05.2021
+- Removed now wrongly used file_id for accessing FileIDs array in playlist_column, now using playlist_id.
+- More general backend refactoring.

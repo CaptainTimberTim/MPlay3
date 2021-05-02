@@ -605,13 +605,12 @@ WinMain(HINSTANCE Instance,
             GameState->MP3Info = MP3Info;
             MP3Info->MusicInfo = &GameState->MusicInfo;
             
-            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, MP3Info->FileInfo.Count_+200);
-            MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->FixArena, 200);
+            MusicInfo->UpNextList.A = CreateArray(&GameState->FixArena, 200);
             
             CreateMusicSortingInfo();
             FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
-            UseDisplayableAsPlaylist(MusicInfo);
+            UpdatePlayingSongForSelectionChange(MusicInfo);
             
             // ********************************************
             // FONT stuff *********************************
@@ -1003,6 +1002,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
                         }
                         
+                        // TODO:: This is temporary. Solidify this!
                         local_persist i32 CurrentPlaylist = 0;
                         if(Input->KeyChange[KEY_F9]  == KeyDown) 
                         {
@@ -1011,6 +1011,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             //FillPlaylistWithCurrentDisplayable(MusicInfo, NewPL);
                             MusicInfo->Playlist_ = NewPL;
                             CurrentPlaylist      = MusicInfo->Playlists.Count-1;
+                            MusicInfo->PlayingSong.DisplayableID.ID = -1; // If we swtich playlist, playing song will reset.
+                            //MusicInfo->PlayingSong.PlaylistID.ID    = -1;
+                            MusicInfo->PlayingSong.DecodeID         = -1;
                             
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Artist);
@@ -1021,6 +1024,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             CurrentPlaylist = (CurrentPlaylist+1)%MusicInfo->Playlists.Count;
                             MusicInfo->Playlist_ = MusicInfo->Playlists.List + CurrentPlaylist;
+                            MusicInfo->PlayingSong.DisplayableID.ID = -1;
+                            //MusicInfo->PlayingSong.PlaylistID.ID    = -1;
+                            MusicInfo->PlayingSong.DecodeID         = -1;
                             
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
                             UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Artist);
@@ -1036,7 +1042,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if(Input->KeyChange[KEY_RIGHT] == KeyDown ||
                            Input->KeyChange[KEY_NEXT]  == KeyDown)
                         {
-                            if(PlayingSong->PlaylistID >= 0)
+                            if(PlayingSong->DisplayableID >= 0)
                             {
                                 HandleChangeToNextSong(GameState);
                             }
@@ -1044,11 +1050,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         else if(Input->KeyChange[KEY_LEFT]     == KeyDown ||
                                 Input->KeyChange[KEY_PREVIOUS] == KeyDown )
                         {
-                            if(PlayingSong->PlaylistID >= 0)
+                            if(PlayingSong->DisplayableID >= 0)
                             {
                                 if(GetPlayedTime(GameState->SoundThreadInterface) < 5.0f)
                                 {
-                                    SetPreviousSong(&MusicInfo->Playlist, PlayingSong, MusicInfo->Looping);
+                                    SetPreviousSong(MusicInfo);
                                     ChangeSong(GameState, PlayingSong);
                                     KeepPlayingSongOnScreen(Renderer, MusicInfo);
                                 }
@@ -1082,7 +1088,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                         if(Input->KeyChange[KEY_STOP] == KeyDown)
                         {
-                            if(PlayingSong->PlaylistID >= 0)
+                            if(PlayingSong->DisplayableID >= 0)
                             {
                                 ChangeSong(GameState, PlayingSong);
                                 MusicInfo->IsPlaying = false;
@@ -1223,10 +1229,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     SongFinished = true;
                     MusicInfo->IsPlaying = false;
-                    if(PlayingSong->PlaylistID >= 0 || MusicInfo->Playlist.UpNext.A.Count > 0)
+                    if(PlayingSong->DisplayableID >= 0 || MusicInfo->UpNextList.A.Count > 0)
                     {
                         HandleChangeToNextSong(GameState);
-                        if(MusicInfo->PlayingSong.PlaylistID >= 0) MusicInfo->IsPlaying = true;
+                        if(MusicInfo->PlayingSong.DisplayableID >= 0) MusicInfo->IsPlaying = true;
                     }
                 }
                 if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished/* || !MusicInfo->CurrentlyChangingSong*/)

@@ -491,7 +491,7 @@ DecodeMP3StartFrames(arena_allocator *Arena, mp3dec_t *MP3Decoder, read_file_res
 }
 
 internal error_item // #ThreadedUse
-LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, file_id MappedFileID, 
+LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, file_id FileID, 
                             i32 DecodeID, mp3dec_file_info_t *DecodeResult)
 {
     // 1. Build the complete filepath
@@ -500,7 +500,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
     // 4. Calculate maximum size to load for wanted amount
     // 5. Calculate initial buffer size and create it if needed.
     // 6. Load and decode the stuff
-    error_item Result = {(load_error_codes)DecodeID, MappedFileID};
+    error_item Result = {(load_error_codes)DecodeID, FileID};
     
     mp3_info *MP3Info = GlobalGameState.MP3Info;
     i16 *ExistingBuffer = DecodeResult->buffer;
@@ -509,7 +509,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
     
     // 1.
     NewEmptyLocalString(FilePath, 255);
-    ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, MP3Info->FileInfo.SubPath + MappedFileID.ID, MP3Info->FileInfo.FileNames_ + MappedFileID.ID);
+    ConcatStringCompounds(4, &FilePath, &MP3Info->FolderPath, MP3Info->FileInfo.SubPath + FileID.ID, MP3Info->FileInfo.FileNames_ + FileID.ID);
     
     mp3dec_t MP3Decoder = {};
     mp3dec_init(&MP3Decoder);
@@ -588,12 +588,12 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
             else if(DecodeResult->samples == 0)    Result.Code = loadErrorCode_DecodingFailed;
             else
             {
-                Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), MappedFileID);
+                Put(&MP3Info->DecodeInfo.FileIDs, NewDecodeID(DecodeID), FileID);
                 TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
-                DebugLog(255, "NOTE:: Loaded %s.\n", MP3Info->FileInfo.Metadata[MappedFileID.ID].Title.S);
+                DebugLog(255, "NOTE:: Loaded %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
                 if(SecondsToDecode != DECODE_PRELOAD_SECONDS)
-                    CreateSongDurationForMetadata(MP3Info, MappedFileID.ID, DecodeID);
+                    CreateSongDurationForMetadata(MP3Info, FileID.ID, DecodeID);
             }
             
             FreeFileMemory(ScratchArena, File);
@@ -635,13 +635,16 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeEntireMP3File)
 }
 
 internal i32
-AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID, 
+AddJob_LoadMP3(circular_job_queue *JobQueue, playlist_id PlaylistID, 
                array_u32 *IgnoreDecodeIDs, i32 PreloadSeconds)
 {
     mp3_info *MP3Info = GlobalGameState.MP3Info;
-    if(FileID < 0) return -1;
+    if(PlaylistID < 0) return -1;
     
     i32 DecodeID = -1;
+    // PlaylistID needs to be mapped before the multithreaded code to avoid
+    // accessing the playlist at that stage. @PlaylistChange
+    file_id FileID = FileIDFromPlaylistID(&MP3Info->MusicInfo->Playlist_->Song, PlaylistID);
     if(!IsSongDecoded(MP3Info, FileID, &DecodeID))
     {
         DecodeID = GetNextDecodeIDToEvict(&MP3Info->DecodeInfo, IgnoreDecodeIDs);
@@ -650,16 +653,13 @@ AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID,
         {
             // If this gets called twice, the second time IsSongDecoded will 
             // definately be true, even if job is not done. 
-            Put(&MP3Info->DecodeInfo.FileID, NewDecodeID(DecodeID), FileID);
+            Put(&MP3Info->DecodeInfo.FileIDs, NewDecodeID(DecodeID), FileID);
             MP3Info->DecodeInfo.CurrentlyDecoding[DecodeID] = true;
             
-            // FileID needs to be mapped before the multithreaded code to avoid
-            // accessing the playlist at that stage. @PlaylistChange
-            i32 MappedFileID = Get(&MP3Info->MusicInfo->Playlist_->Song.FileIDs.A, FileID.ID);
-            job_load_decode_mp3 Data = {MP3Info, MappedFileID, DecodeID, PreloadSeconds};
+            job_load_decode_mp3 Data = {MP3Info, FileID, DecodeID, PreloadSeconds};
             AddJobToQueue(JobQueue, JobLoadAndDecodeMP3File, Data);
         }
-        else if((i32)Get(&MP3Info->DecodeInfo.FileID.A, DecodeID) != FileID.ID)
+        else if((i32)Get(&MP3Info->DecodeInfo.FileIDs.A, DecodeID) != FileID.ID)
         {
             DecodeID = -1;
             DebugLog(255, "Tried to add new song, while all slots were still decoding.\n");
@@ -672,9 +672,9 @@ AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID,
 }
 
 internal i32
-AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID)
+AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, playlist_id PlaylistID)
 {
-    i32 DecodeID = AddJob_LoadMP3(JobQueue, FileID, 0);
+    i32 DecodeID = AddJob_LoadMP3(JobQueue, PlaylistID, 0);
     Assert(DecodeID >= 0);
     
     // The strategy for starting to load another song while the old one is still
@@ -694,10 +694,10 @@ AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, file_id FileID)
     DecodeInfo->PlayingDecoded.DecodeID = DecodeID;
     DecodeInfo->PlayingDecoded.CurrentlyDecoding = true;
     
-    // FileID needs to be mapped before the multithreaded code to avoid
+    // PlaylistID needs to be mapped before the multithreaded code to avoid
     // accessing the playlist at that stage. @PlaylistChange
-    i32 MappedFileID = GetMappedFileID(&GlobalGameState.MusicInfo.Playlist_->Song, FileID);
-    job_load_decode_mp3 Data = {GlobalGameState.MP3Info, MappedFileID, DecodeID, 1000000};
+    file_id FileID = FileIDFromPlaylistID(&GlobalGameState.MusicInfo.Playlist_->Song, PlaylistID);
+    job_load_decode_mp3 Data = {GlobalGameState.MP3Info, FileID, DecodeID, 1000000};
     AddJobToQueue(JobQueue, JobLoadAndDecodeEntireMP3File, Data);
     
     return DecodeID;
@@ -707,31 +707,31 @@ internal void
 AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs)
 {
     mp3_info *MP3Info = GameState->MP3Info;
-    play_list *Playlist = &GameState->MusicInfo.Playlist;
     playing_song Song = GameState->MusicInfo.PlayingSong;
-    if(Song.PlaylistID < 0) return;
+    if(Song.DisplayableID < 0) return;
     
-    if(Song.PlaylistID >= 0)
+    if(Song.DisplayableID >= 0)
     {
-        u32 PlaylistSize = Playlist->Songs.A.Count + Playlist->UpNext.A.Count;
+        u32 DisplayableCount  = GameState->MusicInfo.Playlist_->Song.Displayable.A.Count;
+        u32 PlaylistSize      = DisplayableCount + GameState->MusicInfo.UpNextList.A.Count;
         b32 DoNext = true;
-        playlist_id CurrentNext = GetPreviousSong(Playlist, Song.PlaylistID);
-        playlist_id CurrentPrev = Song.PlaylistID;
+        displayable_id CurrentNext = GetPreviousSong(DisplayableCount, Song.DisplayableID);
+        displayable_id CurrentPrev = Song.DisplayableID;
         for(u32 It = 0; 
             It < PlaylistSize && It < MAX_MP3_DECODE_COUNT;
-            It++)
+            ++It)
         {
             if(DoNext)
             {
-                CurrentNext.ID = (CurrentNext.ID+1)%Playlist->Songs.A.Count;
-                file_id FileID = PlaylistIDToFileID(Playlist, CurrentNext);
-                AddJob_LoadMP3(JobQueue, FileID, IgnoreDecodeIDs);
+                CurrentNext.ID = (CurrentNext.ID+1)%DisplayableCount;
+                playlist_id PlaylistID = PlaylistIDFromDisplayableID(MP3Info->MusicInfo, CurrentNext);
+                AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
             }
             else
             {
-                CurrentPrev = GetPreviousSong(Playlist, CurrentPrev);
-                file_id FileID = PlaylistIDToFileID(Playlist, CurrentPrev);
-                AddJob_LoadMP3(JobQueue, FileID, IgnoreDecodeIDs);
+                CurrentPrev    = GetPreviousSong(DisplayableCount, CurrentPrev);
+                playlist_id PlaylistID = PlaylistIDFromDisplayableID(MP3Info->MusicInfo, CurrentPrev);
+                AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
             }
             DoNext = !DoNext;
         }
@@ -742,18 +742,17 @@ internal void
 AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs)
 {
     music_display_column *DisplayColumn = &GameState->MusicInfo.DisplayInfo.Song.Base;
-    play_list *Playlist = &GameState->MusicInfo.Playlist;
     
     u32 IgnoreCount = 0;
     if(IgnoreDecodeIDs) IgnoreCount = Min((i32)IgnoreDecodeIDs->Count, MAX_MP3_DECODE_COUNT);
     for(u32 It = 0; 
-        It < Playlist->Songs.A.Count &&
+        It < GameState->MusicInfo.Playlist_->Song.Displayable.A.Count &&
         It < DisplayColumn->Count && 
         It < MAX_MP3_DECODE_COUNT - IgnoreCount;
         It++)
     {
-        file_id FileID = PlaylistIDToFileID(Playlist, NewPlaylistID(DisplayColumn->OnScreenIDs[It]));
-        AddJob_LoadMP3(JobQueue, FileID, IgnoreDecodeIDs);
+        playlist_id PlaylistID = PlaylistIDFromDisplayableID(&GameState->MusicInfo, DisplayColumn->OnScreenIDs[It]);
+        AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
     }
 }
 
@@ -763,21 +762,23 @@ AddJob_NextUndecodedInPlaylist()
     b32 Result = false;
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
     mp3_decode_info *DecodeInfo = &GlobalGameState.MP3Info->DecodeInfo;
-    if(MusicInfo->PlayingSong.PlaylistID < 0) return Result;
+    if(MusicInfo->PlayingSong.DisplayableID < 0) return Result;
     
-    playlist_id StartPlaylistID = NewPlaylistID(0);
-    if(MusicInfo->PlayingSong.PlaylistID >= 0) StartPlaylistID = MusicInfo->PlayingSong.PlaylistID;
+    displayable_id StartDisplayableID = NewDisplayableID(0);
+    if(MusicInfo->PlayingSong.DisplayableID >= 0) StartDisplayableID = MusicInfo->PlayingSong.DisplayableID;
     
-    for(u32 It = StartPlaylistID.ID + 1; 
-        It < MusicInfo->Playlist.Songs.A.Count; 
+    array_playlist_id *Displayable = &MusicInfo->Playlist_->Song.Displayable;
+    for(u32 It = StartDisplayableID.ID + 1; 
+        It < Displayable->A.Count; 
         It++)
     {
         u32 DecodeID = 0;
-        playlist_id PID = NewPlaylistID(It);
-        if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, PID), &DecodeID))
+        displayable_id DisplayableID = NewDisplayableID(It);
+        file_id FileID = FileIDFromDisplayableID(MusicInfo, DisplayableID);
+        if(!Find(&DecodeInfo->FileIDs, FileID, &DecodeID))
         {
             Result = true;
-            AddJob_LoadMP3(&GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
+            AddJob_LoadMP3(&GlobalGameState.JobQueue, Get(Displayable, DisplayableID));
             break;
         }
         else TouchDecoded(DecodeInfo, DecodeID);
@@ -787,15 +788,16 @@ AddJob_NextUndecodedInPlaylist()
     // we want to loop and try to find something to decode at the beginning of the playlist.
     if(!Result && MusicInfo->Looping == playLoop_Loop)
     {
-        Assert(StartPlaylistID.ID >= 0);
-        For((u32)StartPlaylistID.ID)
+        Assert(StartDisplayableID.ID >= 0);
+        For((u32)StartDisplayableID.ID)
         {
             u32 DecodeID = 0;
-            playlist_id PID = NewPlaylistID(It);
-            if(!Find(&DecodeInfo->FileID, Get(&MusicInfo->Playlist.Songs, PID), &DecodeID))
+            displayable_id PID = NewDisplayableID(It);
+            file_id FileID    = FileIDFromDisplayableID(MusicInfo, PID);
+            if(!Find(&DecodeInfo->FileIDs, FileID, &DecodeID))
             {
                 Result = true;
-                AddJob_LoadMP3(&GlobalGameState.JobQueue, Get(&MusicInfo->Playlist.Songs, PID));
+                AddJob_LoadMP3(&GlobalGameState.JobQueue, Get(Displayable, PID));
                 break;
             }
             else TouchDecoded(DecodeInfo, DecodeID);
@@ -844,14 +846,14 @@ RemoveDecodeFails()
     u32 DecodeID = 0;
     For(GlobalGameState.ThreadErrorList.Count)
     {
-        if(Find(&GlobalGameState.MP3Info->DecodeInfo.FileID, GlobalGameState.ThreadErrorList.Errors[It].ID, &DecodeID))
+        if(Find(&GlobalGameState.MP3Info->DecodeInfo.FileIDs, GlobalGameState.ThreadErrorList.Errors[It].ID, &DecodeID))
         {
-            Put(&GlobalGameState.MP3Info->DecodeInfo.FileID.A, DecodeID, MAX_UINT32);
+            Put(&GlobalGameState.MP3Info->DecodeInfo.FileIDs.A, DecodeID, MAX_UINT32);
             Put(&GlobalGameState.MP3Info->DecodeInfo.LastTouched, DecodeID, 0);
             if(GlobalGameState.MusicInfo.PlayingSong.DecodeID == (i32)DecodeID) 
             {
+                GlobalGameState.MusicInfo.PlayingSong.DisplayableID.ID = -1;
                 GlobalGameState.MusicInfo.PlayingSong.PlaylistID.ID = -1;
-                GlobalGameState.MusicInfo.PlayingSong.FileID.ID = -1;
                 GlobalGameState.MusicInfo.PlayingSong.DecodeID = -1;
             }
         }

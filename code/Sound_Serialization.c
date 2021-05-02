@@ -372,7 +372,8 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
     I32ToString(&FileFontOffset, Settings->FontHeightOffset);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
-    I32ToString(&FileLastSong, GameState->MusicInfo.PlayingSong.FileID.ID);
+    I32ToString(&FileLastSong, FileIDFromPlaylistID(&GameState->MusicInfo.Playlist_->Song, 
+                                                    GameState->MusicInfo.PlayingSong.PlaylistID).ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
     R32ToString(&FileGenreArtist, GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
     R32ToString(&FileArtistAlbum, GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);
@@ -450,9 +451,8 @@ ApplySettings(game_state *GameState, settings Settings)
     ChangeVolume(GameState, Settings.Volume);
     music_info *MusicInfo = &GameState->MusicInfo;
     
-    MusicInfo->PlayingSong.PlaylistID = FileIDToPlaylistID(&MusicInfo->Playlist, Settings.PlayingSongID);
-    if(Settings.PlayingSongID >= MusicInfo->Playlist_->Song.FileIDs.A.Count) Settings.PlayingSongID.ID = -1;
-    MusicInfo->PlayingSong.FileID = Settings.PlayingSongID;
+    MusicInfo->PlayingSong.PlaylistID    = PlaylistIDFromFileID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
+    MusicInfo->PlayingSong.DisplayableID = DisplayableIDFromPlaylistID(MusicInfo, MusicInfo->PlayingSong.PlaylistID);
     
     ChangeSong(GameState, &MusicInfo->PlayingSong); 
     
@@ -474,10 +474,11 @@ ApplySettings(game_state *GameState, settings Settings)
     
     if(Settings.PlayingSongID >= 0)
     {
-        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Genre, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Artist, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Album, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Song.Base, Settings.PlayingSongID);
+        playlist_id PlaylistID = PlaylistIDFromFileID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Genre,     PlaylistID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Artist,    PlaylistID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Album,     PlaylistID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Song.Base, PlaylistID);
     }
     
     ApplyWindowResize(GameState->Renderer.Window.WindowHandle, Settings.WindowDimX, Settings.WindowDimY, true);

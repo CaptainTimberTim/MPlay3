@@ -208,3 +208,8 @@
 	- For now has inverted colors for differentiation.
     - First entry will always be "All" (or similarly named) which holds all songs
 - Fixed bug in UpdateSeletionChanged, where I put the switch #Through in the wrong order.
+
+03.05.2021
+- Added new playlists being inserted into the playlists column.
+- Playlists can now be switched with mouse-selection, similar to the other columns.
+- Added saving and loading of PlaylistsGenre edge position from/to settings file.

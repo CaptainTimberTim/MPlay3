@@ -1478,6 +1478,13 @@ CreateMusicSortingInfo()
         PushIfNotExist(&Album.Song[AlbumBatchID].A, FileIt);
     }
     
+    // We Set MusicInfo->Playlists_ twice, because CreateEmpty will also set the
+    // Playlists sorting info for the new playlist, which it will copy from the 
+    // base playlist. That causes a problem when creating the base playlist 
+    // (what we are doing right now) and therefore we create the sorting and then
+    // set the partially done base playlist beforehand.
+    MusicInfo->Playlist_ = MusicInfo->Playlists.List+0; 
+    CreatePlaylistsSortingInfo(&MusicInfo->Playlist_->Playlists);
     MusicInfo->Playlist_ = CreateEmptyPlaylist(FixArena, MusicInfo, FileInfo->Count_, 
                                                Genre.BatchCount, Artist.BatchCount, Album.BatchCount);
     For(Genre.BatchCount)
@@ -1496,14 +1503,23 @@ CreateMusicSortingInfo()
 inline void
 SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
 {
+    // If no control key is pressed...
     if(!GlobalGameState.Input.Pressed[KEY_CONTROL_LEFT] && !GlobalGameState.Input.Pressed[KEY_CONTROL_RIGHT])
     {
+        // ...and it is not selected or something else was selected clear it
         if(!IsSelected(DisplayColumn, PlaylistColumn, ColumnDisplayID) || PlaylistColumn->Selected.A.Count > 1)
         {
             ClearSelection(PlaylistColumn);
         }
     }
     ToggleSelection(DisplayColumn, PlaylistColumn, ColumnDisplayID);
+}
+
+inline void
+SwitchSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
+{
+    ClearSelection(PlaylistColumn);
+    Select(DisplayColumn, PlaylistColumn, ColumnDisplayID);
 }
 
 internal column_type // returns none if not in any rect, and corresponding column if it is
@@ -1514,13 +1530,19 @@ UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *Disp
     for(u32 It = 0; 
         It < PlaylistColumn->Displayable.A.Count && 
         It < DisplayColumn->Count;
-        It++)
+        ++It)
     {
         if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP))
         {
-            SetSelectionArray(DisplayColumn, PlaylistColumn, It);
             Result = DisplayColumn->Type;
             DisplayColumn->LastClickSlotID = It;
+            
+            if(Result == columnType_Playlists) 
+            {
+                SwitchSelection(DisplayColumn, PlaylistColumn, It);
+                SwitchPlaylistFromDisplayID(DisplayColumn, It);
+            }
+            else SetSelectionArray(DisplayColumn, PlaylistColumn, It);
             break;
         }
     }
@@ -1535,7 +1557,7 @@ SelectAllOrNothing(music_display_column *DisplayColumn, playlist_column *Playlis
     for(u32 It = 0; 
         It < PlaylistColumn->Displayable.A.Count && 
         It < DisplayColumn->Count;
-        It++)
+        ++It)
     {
         if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP))
         {
@@ -1845,6 +1867,7 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist, ArtistDisplayID, SelectArtistStart);
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album, AlbumDisplayID, SelectAlbumStart);
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
+    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
     
     UpdateSelectionColors(MusicInfo);
     UpdateVerticalSliders(MusicInfo);
@@ -2151,9 +2174,29 @@ CreateNewMetadata(game_state *GameState)
 // New Playlist stuff **********************************************************
 // *****************************************************************************
 
+internal void
+CreatePlaylistsSortingInfo(playlist_column *Playlists)
+{
+    Playlists->Type             = columnType_Playlists;
+    Playlists->Selected.A       = CreateArray(&GlobalGameState.FixArena, 250);
+    Playlists->Displayable.A    = CreateArray(&GlobalGameState.FixArena, 250);
+    
+    Playlists->Batch.Names      = AllocateArray(&GlobalGameState.FixArena, 250, string_c);
+    Playlists->Batch.MaxBatches = 250;
+    
+    
+    Push(&Playlists->Displayable, {0});
+    string_c *Name = Playlists->Batch.Names+Playlists->Batch.BatchCount++;
+    *Name = NewStringCompound(&GlobalGameState.FixArena, 4+8);
+    AppendStringToCompound(Name, (u8 *)"All (");
+    I32ToString(Name, GlobalGameState.MP3Info->FileInfo.Count_);
+    AppendCharToCompound(Name, ')');
+}
+
 internal playlist_info *
 CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount/*default -1*/, i32 GenreBatchCount/*default -1*/, i32 ArtistBatchCount/*default -1*/, i32 AlbumBatchCount/*default -1*/)
 {
+    Assert(MusicInfo->Playlists.Count < MusicInfo->Playlists.MaxCount);
     playlist_info *Playlist = MusicInfo->Playlists.List+MusicInfo->Playlists.Count++;
     
     // First entry in Playlists.List is the 'everything' list.
@@ -2176,6 +2219,8 @@ CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCou
     Playlist->Artist.Displayable.A = CreateArray(Arena, ArtistBatchCount);
     Playlist->Album.Displayable.A  = CreateArray(Arena, AlbumBatchCount);
     Playlist->Song.Displayable.A   = CreateArray(Arena, SongIDCount);
+    
+    Playlist->Playlists = MusicInfo->Playlist_->Playlists;
     
     return Playlist;
 }
@@ -2237,8 +2282,6 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     For(Album.BatchCount)
     {
         Album.Song[It].A = CreateArray(FixArena, Album_CountForBatches[It]);
-        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100);
-        else        Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
     FreeMemory(ScratchArena, Genre_CountForBatches);
@@ -2258,7 +2301,6 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
         PushIfNotExist(&Artist.Album[ArtistBatchID].A, AlbumBatchID);
         PushIfNotExist(&Artist.Song[ArtistBatchID].A, It);
         
-        PushIfNotExist(&Album.Genre[AlbumBatchID].A, GenreBatchID);
         PushIfNotExist(&Album.Song[AlbumBatchID].A, It);
     }
     
@@ -2286,26 +2328,56 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     
 }
 
-internal void
-CreatePlaylistsSortingInfo(music_info *MusicInfo)
+inline void
+AddPlaylistToColumn(music_info *MusicInfo, playlist_id PlaylistID, string_c PlaylistName)
 {
+    Assert(PlaylistID >= 0);
+    
     playlist_column *Playlists  = &MusicInfo->Playlist_->Playlists;
     
-    Playlists->Type             = columnType_Playlists;
-    Playlists->Selected.A       = CreateArray(&GlobalGameState.FixArena, 250);
-    Playlists->Displayable.A    = CreateArray(&GlobalGameState.FixArena, 250);
-    
-    Playlists->Batch.Names      = AllocateArray(&GlobalGameState.FixArena, 250, string_c);
-    Playlists->Batch.MaxBatches = 250;
-    
-    
-    Push(&Playlists->Displayable, {0});
-    Playlists->Batch.Names[Playlists->Batch.BatchCount] = NewStringCompound(&GlobalGameState.FixArena, 4);
-    AppendStringToCompound(Playlists->Batch.Names+Playlists->Batch.BatchCount++, (u8 *)"All");
-    
+    Push(&Playlists->Displayable, PlaylistID);
+    Playlists->Batch.Names[Playlists->Batch.BatchCount] = NewStringCompound(&GlobalGameState.FixArena, PlaylistName.Pos);
+    AppendStringCompoundToCompound(Playlists->Batch.Names+Playlists->Batch.BatchCount++, &PlaylistName);
 }
 
+inline void
+AddPlaylistToColumn(music_info *MusicInfo, playlist_info *Playlist, string_c PlaylistName)
+{
+    playlist_id PlaylistID = NewPlaylistID(-1);
+    For(MusicInfo->Playlists.Count)
+    {
+        if(Playlist == MusicInfo->Playlists.List + It) // Pointer compare
+        {
+            PlaylistID.ID = It;
+            break;
+        }
+    }
+    AddPlaylistToColumn(MusicInfo, PlaylistID, PlaylistName);
+}
 
+internal void 
+SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDisplayID)
+{
+    music_info *MusicInfo = &GlobalGameState.MusicInfo;
+    
+    playlist_id PlaylistID = Get(&MusicInfo->Playlist_->Playlists.Displayable, DisplayColumn->OnScreenIDs[ColumnDisplayID]);
+    
+    MusicInfo->Playlist_ = MusicInfo->Playlists.List + PlaylistID.ID;
+    MusicInfo->PlayingSong.DisplayableID.ID = -1;
+    MusicInfo->PlayingSong.PlaylistID.ID    = -1;
+    MusicInfo->PlayingSong.DecodeID         = -1;
+    
+    SyncPlaylists_playlist_column(MusicInfo, &MusicInfo->Playlist_->Playlists);
+}
+
+inline void
+SyncPlaylists_playlist_column(music_info *MusicInfo, playlist_column *SyncToThis)
+{
+    For(MusicInfo->Playlists.Count)
+    {
+        MusicInfo->Playlists.List[It].Playlists = *SyncToThis;
+    }
+}
 
 
 

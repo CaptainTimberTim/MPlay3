@@ -330,15 +330,15 @@ struct layout_definition
     r32 DragEdgeWidth          = 8;
     r32 HorizontalSliderHeight = 26;
     r32 VerticalSliderWidth    = 26;
-    r32 HorizontalSliderGrabThingBorder = 3;
-    r32 VerticalSliderGrabThingBorder   = 3;
+    r32 HorizontalSliderGrabThingBorder = 4;
+    r32 VerticalSliderGrabThingBorder   = 4;
     
     // Slot
     r32 SlotHeight     = 30;
     r32 SongSlotHeight = 100;
     r32 SlotGap        = 3;
     
-    r32 SmallTextLeftBorder = 17;
+    r32 SmallTextLeftBorder = 12;
     r32 BigTextLeftBorder   = 32;
     
     // Font

@@ -609,7 +609,6 @@ WinMain(HINSTANCE Instance,
             MusicInfo->UpNextList.A = CreateArray(&GameState->FixArena, 200);
             
             CreateMusicSortingInfo();
-            CreatePlaylistsSortingInfo(MusicInfo);
             FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
             UpdatePlayingSongForSelectionChange(MusicInfo);
@@ -1004,29 +1003,29 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                         
                         // TODO:: This is temporary. Solidify this!
-                        local_persist i32 CurrentPlaylist = 0;
                         if(Input->KeyChange[KEY_F9]  == KeyDown) 
                         {
                             playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo);
                             FillPlaylistWithCurrentSelection(MusicInfo, &MP3Info->FileInfo, NewPL);
-                            //FillPlaylistWithCurrentDisplayable(MusicInfo, NewPL);
+                            
                             MusicInfo->Playlist_ = NewPL;
-                            CurrentPlaylist      = MusicInfo->Playlists.Count-1;
                             MusicInfo->PlayingSong.DisplayableID.ID = -1; // If we swtich playlist, playing song will reset.
                             MusicInfo->PlayingSong.PlaylistID.ID    = -1;
                             MusicInfo->PlayingSong.DecodeID         = -1;
                             
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
-                        }
-                        if(Input->KeyChange[KEY_F10]  == KeyDown) 
-                        {
-                            CurrentPlaylist = (CurrentPlaylist+1)%MusicInfo->Playlists.Count;
-                            MusicInfo->Playlist_ = MusicInfo->Playlists.List + CurrentPlaylist;
-                            MusicInfo->PlayingSong.DisplayableID.ID = -1;
-                            MusicInfo->PlayingSong.PlaylistID.ID    = -1;
-                            MusicInfo->PlayingSong.DecodeID         = -1;
+                            NewLocalString(PlaylistName, 30, "NewPlaylist");
+                            I32ToString(&PlaylistName, MusicInfo->Playlists.Count-1);
+                            AppendStringToCompound(&PlaylistName, (u8 *)" (");
+                            I32ToString(&PlaylistName, MusicInfo->Playlist_->Song.Displayable.A.Count);
+                            AppendCharToCompound(&PlaylistName, ')');
                             
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Genre);
+                            AddPlaylistToColumn(MusicInfo, NewPL, PlaylistName);
+                            
+                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Playlists);
+                            
+                            SwitchSelection(&DisplayInfo->Playlists, &NewPL->Playlists, MusicInfo->Playlists.Count-1);
+                            SwitchPlaylistFromDisplayID(&DisplayInfo->Playlists, MusicInfo->Playlists.Count-1);
+                            UpdateSelectionColors(MusicInfo);
                         }
                         
                         // ******************

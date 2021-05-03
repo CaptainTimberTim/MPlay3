@@ -5,7 +5,7 @@
 global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
 
 #define LIBRARY_CURRENT_VERSION 3
-#define SETTINGS_CURRENT_VERSION 6
+#define SETTINGS_CURRENT_VERSION 7
 struct settings
 {
     string_c FontPath = {0, 0, 0}; // Only for users at this point.
@@ -13,6 +13,7 @@ struct settings
     r32 Volume = 0.5f;
     file_id PlayingSongID = {-1};
     u32 ColorPaletteID = 4;
+    r32 PlaylistsGenreEdgeXPercent = -1.0f;
     r32 GenreArtistEdgeXPercent = -1.0f;
     r32 ArtistAlbumEdgeXPercent = -1.0f;
     r32 AlbumSongEdgeXPercent = -1.0f;

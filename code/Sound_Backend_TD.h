@@ -123,12 +123,20 @@ struct playlist_info
             playlist_column Artist;
             playlist_column Album;
             playlist_column Song;
+            // That the playlist information is part of playlist_info is hacky, 
+            // but it allows using all the display column stuff, which we want.
+            // The biggest drawback for now is, that each new playlist has a
+            // _copy_ of this Playlists, which needs to be the same for all.
+            // That means we need to keep all playlists in sync. with each other, 
+            // which is only keeping the .Counts updated, as all memory pointers
+            // point to the same location (so it is not as bad).
             playlist_column Playlists;
         };
         playlist_column Columns[5];
     };
 };
 internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
+void SyncPlaylists_playlist_column(music_info *MusicInfo, playlist_column *SyncToThis);
 
 struct playlist_array
 {
@@ -245,5 +253,6 @@ inline displayable_id PlaylistIDToColumnDisplayID(music_info *MusicInfo, music_d
 internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 
-
+internal void CreatePlaylistsSortingInfo(playlist_column *Playlists);
+internal void SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDisplayID);
 

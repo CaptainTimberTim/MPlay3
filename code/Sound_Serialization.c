@@ -128,32 +128,33 @@ TryLoadSettingsFile(game_state *GameState)
         {
             AdvanceToNewline(&C);
             
-            string_c VersionS                    = NewStaticStringCompound("Version ");
-            string_c FontPathS                   = NewStaticStringCompound("FontPath:");
-            string_c FontHeightS                 = NewStaticStringCompound("FontHeightOffset:");
-            string_c VolumeS                     = NewStaticStringCompound("Volume:");
-            string_c LastPlayingSongS            = NewStaticStringCompound("LastPlayingSong:");
-            string_c ColorPaletteS               = NewStaticStringCompound("ColorPalette:");
-            string_c GenreArtistEdgeXPercentageS = NewStaticStringCompound("GenreArtistEdgeXPercent:");
-            string_c ArtistAlbumEdgeXPercentageS = NewStaticStringCompound("ArtistAlbumEdgeXPercent:");
-            string_c AlbumSongEdgeXPercentageS   = NewStaticStringCompound("AlbumSongEdgeXPercent:");
-            string_c WindowDimXS                 = NewStaticStringCompound("WindowDimensionX:");
-            string_c WindowDimYS                 = NewStaticStringCompound("WindowDimensionY:");
-            string_c LoopingS                    = NewStaticStringCompound("Looping:");
-            string_c ShuffleS                    = NewStaticStringCompound("Shuffle:");
-            string_c CachedFontS                 = NewStaticStringCompound("UsedFontCache:");
+            string_c VersionS                       = NewStaticStringCompound("Version ");
+            string_c FontPathS                      = NewStaticStringCompound("FontPath:");
+            string_c FontHeightS                    = NewStaticStringCompound("FontHeightOffset:");
+            string_c VolumeS                        = NewStaticStringCompound("Volume:");
+            string_c LastPlayingSongS               = NewStaticStringCompound("LastPlayingSong:");
+            string_c ColorPaletteS                  = NewStaticStringCompound("ColorPalette:");
+            string_c PlaylistsGenreEdgeXPercentageS = NewStaticStringCompound("PlaylistsGenreEdgeXPercent:");
+            string_c GenreArtistEdgeXPercentageS    = NewStaticStringCompound("GenreArtistEdgeXPercent:");
+            string_c ArtistAlbumEdgeXPercentageS    = NewStaticStringCompound("ArtistAlbumEdgeXPercent:");
+            string_c AlbumSongEdgeXPercentageS      = NewStaticStringCompound("AlbumSongEdgeXPercent:");
+            string_c WindowDimXS                    = NewStaticStringCompound("WindowDimensionX:");
+            string_c WindowDimYS                    = NewStaticStringCompound("WindowDimensionY:");
+            string_c LoopingS                       = NewStaticStringCompound("Looping:");
+            string_c ShuffleS                       = NewStaticStringCompound("Shuffle:");
+            string_c CachedFontS                    = NewStaticStringCompound("UsedFontCache:");
             
-            string_c PaletteS                    = NewStaticStringCompound("Palette:");
-            string_c TextS                       = NewStaticStringCompound("Text:");
-            string_c ForegroundTextS             = NewStaticStringCompound("ForegroundText:");
-            string_c ErrorTextS                  = NewStaticStringCompound("ErrorText:");
-            string_c ForegroundS                 = NewStaticStringCompound("Foreground:");
-            string_c SlotS                       = NewStaticStringCompound("Slot:");
-            string_c SliderBackgroundS           = NewStaticStringCompound("SliderBackground:");
-            string_c SliderGrabThingS            = NewStaticStringCompound("SliderGrabThing:");
-            string_c ButtonActiveS               = NewStaticStringCompound("ButtonActive:");
-            string_c SelectedS                   = NewStaticStringCompound("Selected:");
-            string_c PlayingSongS                = NewStaticStringCompound("PlayingSong:");
+            string_c PaletteS                       = NewStaticStringCompound("Palette:");
+            string_c TextS                          = NewStaticStringCompound("Text:");
+            string_c ForegroundTextS                = NewStaticStringCompound("ForegroundText:");
+            string_c ErrorTextS                     = NewStaticStringCompound("ErrorText:");
+            string_c ForegroundS                    = NewStaticStringCompound("Foreground:");
+            string_c SlotS                          = NewStaticStringCompound("Slot:");
+            string_c SliderBackgroundS              = NewStaticStringCompound("SliderBackground:");
+            string_c SliderGrabThingS               = NewStaticStringCompound("SliderGrabThing:");
+            string_c ButtonActiveS                  = NewStaticStringCompound("ButtonActive:");
+            string_c SelectedS                      = NewStaticStringCompound("Selected:");
+            string_c PlayingSongS                   = NewStaticStringCompound("PlayingSong:");
             
             u8 L; // Not used for anything.
             Result.PaletteMaxCount = 15;
@@ -200,6 +201,12 @@ TryLoadSettingsFile(game_state *GameState)
                     C += ColorPaletteS.Pos;
                     EatLeadingSpaces(&C);
                     Result.ColorPaletteID = ProcessNextU32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, PlaylistsGenreEdgeXPercentageS.S, 0, PlaylistsGenreEdgeXPercentageS.Pos))
+                {
+                    C += PlaylistsGenreEdgeXPercentageS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.PlaylistsGenreEdgeXPercent = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
                 }
                 else if(StringCompare(C, GenreArtistEdgeXPercentageS.S, 0, GenreArtistEdgeXPercentageS.Pos))
                 {
@@ -325,15 +332,17 @@ TryLoadSettingsFile(game_state *GameState)
     }
     
     // If anything is wrong with the saved values, just use the default percentages
-    if(Result.GenreArtistEdgeXPercent < 0.0f || Result.GenreArtistEdgeXPercent > 1.0f || 
-       Result.ArtistAlbumEdgeXPercent < 0.0f || Result.ArtistAlbumEdgeXPercent > 1.0f ||
-       Result.AlbumSongEdgeXPercent   < 0.0f || Result.AlbumSongEdgeXPercent   > 1.0f || 
+    if(Result.PlaylistsGenreEdgeXPercent < 0.0f || Result.PlaylistsGenreEdgeXPercent > 1.0f || 
+       Result.GenreArtistEdgeXPercent    < 0.0f || Result.GenreArtistEdgeXPercent    > 1.0f || 
+       Result.ArtistAlbumEdgeXPercent    < 0.0f || Result.ArtistAlbumEdgeXPercent    > 1.0f ||
+       Result.AlbumSongEdgeXPercent      < 0.0f || Result.AlbumSongEdgeXPercent      > 1.0f || 
        Result.GenreArtistEdgeXPercent >= Result.ArtistAlbumEdgeXPercent ||
        Result.ArtistAlbumEdgeXPercent >= Result.AlbumSongEdgeXPercent) 
     {
-        Result.GenreArtistEdgeXPercent = 0.2f;
-        Result.ArtistAlbumEdgeXPercent = 0.4f;
-        Result.AlbumSongEdgeXPercent   = 0.6f;
+        Result.PlaylistsGenreEdgeXPercent = 0.11f;
+        Result.GenreArtistEdgeXPercent    = 0.25f;
+        Result.ArtistAlbumEdgeXPercent    = 0.44f;
+        Result.AlbumSongEdgeXPercent      = 0.6f;
     }
     
     if(Result.WindowDimX < GlobalMinWindowWidth)  Result.WindowDimX = GlobalMinWindowWidth;
@@ -354,19 +363,20 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! With FontHeightOffset\n# the vertical position of the text can be adjusted\n# (only integers allowed).\n\n");
     
-    NewLocalString(FontPath,        280, "FontPath: ");
-    NewLocalString(FileFontOffset,   50, "FontHeightOffset: ");
-    NewLocalString(FileVolume,       50, "Volume: ");
-    NewLocalString(FileLastSong,     50, "LastPlayingSong: ");
-    NewLocalString(FileColorPalette, 50, "ColorPalette: ");
-    NewLocalString(FileGenreArtist,  50, "GenreArtistEdgeXPercent: ");
-    NewLocalString(FileArtistAlbum,  50, "ArtistAlbumEdgeXPercent: ");
-    NewLocalString(FileAlbumSong,    50, "AlbumSongEdgeXPercent: ");
-    NewLocalString(WindowDimX,       50, "WindowDimensionX: ");
-    NewLocalString(WindowDimY,       50, "WindowDimensionY: ");
-    NewLocalString(Looping,          50, "Looping: ");
-    NewLocalString(Shuffle,          50, "Shuffle: ");
-    NewLocalString(CachedFontNames,  50, "UsedFontCache: ");
+    NewLocalString(FontPath,          280, "FontPath: ");
+    NewLocalString(FileFontOffset,     50, "FontHeightOffset: ");
+    NewLocalString(FileVolume,         50, "Volume: ");
+    NewLocalString(FileLastSong,       50, "LastPlayingSong: ");
+    NewLocalString(FileColorPalette,   50, "ColorPalette: ");
+    NewLocalString(FilePlaylistsGenre, 50, "PlaylistsGenreEdgeXPercent: ");
+    NewLocalString(FileGenreArtist,    50, "GenreArtistEdgeXPercent: ");
+    NewLocalString(FileArtistAlbum,    50, "ArtistAlbumEdgeXPercent: ");
+    NewLocalString(FileAlbumSong,      50, "AlbumSongEdgeXPercent: ");
+    NewLocalString(WindowDimX,         50, "WindowDimensionX: ");
+    NewLocalString(WindowDimY,         50, "WindowDimensionY: ");
+    NewLocalString(Looping,            50, "Looping: ");
+    NewLocalString(Shuffle,            50, "Shuffle: ");
+    NewLocalString(CachedFontNames,    50, "UsedFontCache: ");
     
     v2i Dim = GetWindowSize();
     file_id FileID = NewFileID(-1);
@@ -377,6 +387,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
     I32ToString(&FileLastSong, FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
+    R32ToString(&FilePlaylistsGenre, GameState->MusicInfo.DisplayInfo.PlaylistsGenre.XPercent);
     R32ToString(&FileGenreArtist, GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
     R32ToString(&FileArtistAlbum, GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);
     R32ToString(&FileAlbumSong, GameState->MusicInfo.DisplayInfo.AlbumSong.XPercent);
@@ -386,7 +397,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
     string_c LB   = NewStaticStringCompound("\n");
-    ConcatStringCompounds(26, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames);
+    ConcatStringCompounds(28, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames);
     
     // Save out used font names
     if(Settings->CachedFontNames)
@@ -462,6 +473,7 @@ ApplySettings(game_state *GameState, settings Settings)
     MusicInfo->DisplayInfo.ColorPaletteID = Settings.ColorPaletteID; 
     UpdateColorPalette(&MusicInfo->DisplayInfo, false);
     
+    MusicInfo->DisplayInfo.PlaylistsGenre.XPercent = Settings.PlaylistsGenreEdgeXPercent;
     MusicInfo->DisplayInfo.GenreArtist.XPercent = Settings.GenreArtistEdgeXPercent;
     MusicInfo->DisplayInfo.ArtistAlbum.XPercent = Settings.ArtistAlbumEdgeXPercent;
     MusicInfo->DisplayInfo.AlbumSong.XPercent = Settings.AlbumSongEdgeXPercent;

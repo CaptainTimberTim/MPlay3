@@ -19,6 +19,7 @@ inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
 inline void SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
+inline void SwitchSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 inline displayable_id SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID);
 inline void HandleChangeToNextSong(game_state *GameState);
 internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
@@ -925,6 +926,7 @@ UpdateSelectionColors(music_info *MusicInfo)
     UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Genre, &MusicInfo->Playlist_->Genre);
     UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Artist, &MusicInfo->Playlist_->Artist);
     UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Album, &MusicInfo->Playlist_->Album);
+    UpdateDisplayColumnColor(&MusicInfo->DisplayInfo.Playlists, &MusicInfo->Playlist_->Playlists);
     
     if(MusicInfo->PlayingSong.DisplayableID >= 0)
     {
@@ -1989,7 +1991,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     column_info SongColumn   = {Renderer, DisplayInfo, MusicInfo, Parent(&DisplayInfo->Song), &Playlist->Song};
     column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, &Playlist->Playlists};
     
-    
     column_colors ColumnColors = {
         &Palette->Slot,
         &Palette->Text,
@@ -2007,9 +2008,10 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, ColumnColors, -0.1f, 
                         DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight, Layout);
     ColumnColors.Background = &Palette->Slot;
-    ColumnColors.Slot       = &Palette->Foreground;
+    ColumnColors.Slot       = &Palette->SliderBackground;
     ColumnColors.Text       = &Palette->ForegroundText;
-    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, ColumnColors, -0.005f, 
+    ColumnColors.Selected   = &Palette->Foreground;
+    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, ColumnColors, -0.0f, 
                         DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenre.Edge, Layout);
     
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
@@ -2024,7 +2026,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
     ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
     
-    
+    SwitchSelection(&DisplayInfo->Playlists, &Playlist->Playlists, 0);
+    UpdateDisplayColumnColor(&DisplayInfo->Playlists, &Playlist->Playlists);
     
     // Song panel stuff **************************************
     r32 PlayPauseAndGap = PlayPauseP.x + PlayPauseS + Gap;
@@ -2712,6 +2715,10 @@ CheckColumnsForSelectionChange()
         else Result = UpdateSelectionArray(&Playlist->Album, &DisplayInfo->Album);
         
         DisplayInfo->Album.LastClickTime = GlobalGameState.Time.GameTime;
+    }
+    else if(IsInRect(DisplayInfo->Playlists.Background, Input->MouseP))
+    {
+        Result = UpdateSelectionArray(&Playlist->Playlists, &DisplayInfo->Playlists);
     }
     
     return Result;

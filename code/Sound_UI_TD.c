@@ -1089,10 +1089,9 @@ ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_col
     i32 PrevCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
     DisplayColumn->DisplayCursor = Clamp(DisplayColumn->DisplayCursor+ScrollAmount, 0.0f, TotalHeight);
     
-    Assert(PlaylistColumn->Displayable.A.Count > 0); 
     r32 NewY = Mod(DisplayColumn->DisplayCursor, SlotHeight);
     i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
-    NewCursorID     = Min(NewCursorID, (i32)PlaylistColumn->Displayable.A.Count-1);
+    NewCursorID     = Min(NewCursorID, Max(0, (i32)PlaylistColumn->Displayable.A.Count-1));
     i32 CursorDiff  = NewCursorID - PrevCursorID;
     
     if(CursorDiff != 0)

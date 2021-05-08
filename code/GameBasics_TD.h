@@ -75,6 +75,7 @@ struct game_state
 {
     string_c SettingsPath;
     string_c LibraryPath;
+    string_c PlaylistPath;
     string_c FontPath;
     
     arena_allocator FixArena;     // Never gets reset (except if a bucket is emptied again)

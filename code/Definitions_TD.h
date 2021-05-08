@@ -77,20 +77,21 @@ sprintf_s(B, Text, __VA_ARGS__);\
 printf(B); \
 }
 
+#define ToStatement(E) do{E}while(0)
+
 #if DEBUG_TD
-#define Assert(Expression)  {            \
-if(!(Expression))                        \
-{                                        \
+#define Assert(Expression)                                                                        \
+ToStatement(if(!(Expression)) {                                                               \
 DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
-*(int *)0 = 0;                       \
-} }                                       
+*(int *)0 = 0;                                                                \
+})                                       
 #else
 #define Assert(Expression)
 #endif
 
-#define InvalidCodePath    Assert(!"InvalidCodePath")
-#define NotImplemented     Assert(!"NotImplementedYet")
-#define InvalidDefaultCase default: {Assert(!"InvalidDefaultCase")}
+#define InvalidCodePath    Assert(!"InvalidCodePath");
+#define NotImplemented     Assert(!"NotImplementedYet");
+#define InvalidDefaultCase default: {Assert(!"InvalidDefaultCase");}
 
 
 

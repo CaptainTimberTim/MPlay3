@@ -23,10 +23,10 @@ inline void DeleteStringCompound(arena_allocator *Arena, string_compound *S);
 
 #define NewEmptyLocalString(Name, Count)  \
 u8 CombineDefine(StringStorage, __LINE__)[Count]; \
-string_c Name = {CombineDefine(StringStorage, __LINE__), 0, Count}; 
+string_c Name = {CombineDefine(StringStorage, __LINE__), 0, Count}
 
-#define NewLocalString(Name, Count, String)  NewEmptyLocalString(Name, Count)\
-AppendStringToCompound(&Name, (u8 *)String); 
+#define NewLocalString(Name, Count, String)  NewEmptyLocalString(Name, Count);\
+AppendStringToCompound(&Name, (u8 *)String)
 
 
 inline void AppendCharToCompound(string_compound *Comp, u8 C);
@@ -34,6 +34,7 @@ inline void AppendStringToCompound(string_compound *Comp, u8 *String);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 StartPos);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter);
+inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 DeliCount);
 inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2);
 inline void CopyIntoCompound(string_c *Into, string_c *Copy);
 
@@ -49,6 +50,7 @@ inline i32 FindLastOccurrenceOfCharInStringCompound(string_compound *S, u8 Char)
 inline void CutStringCompoundAt(string_compound *Comp, u32 P);
 inline b32 CompareStringCompounds(string_compound *S1, string_compound *S2);
 inline b32 CompareStringAndCompound(string_compound *Comp, u8 *S);
+inline b32 CompareStringAndCompound(string_compound *Comp, u8 *S, u32 StringCompareLength);
 
 inline void EatTrailingSpaces(string_c *S);
 inline void EatLeadingSpaces(string_c *S);
@@ -72,6 +74,7 @@ inline void CombineStrings(u8 *Dest, u8 *S1, u8 *S2);
 
 // Conversion procedures
 inline void I32ToString(string_c *Comp, i32 I);
+inline void U32ToString(string_c *Comp, u32 I);
 inline void R32ToString(string_c *S, r32 Value);
 inline void R32ToString(u8 *Buffer, r32 Value);
 inline void V3ToString(string_c *S, u8 Delimiter, v3 Vec);
@@ -179,8 +182,29 @@ CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To)
 inline void 
 CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter)
 {
-    while(*String != Delimiter)
+    while(*String != Delimiter && 
+          *String != 0)
     {
+        Assert(Comp->Pos < Comp->Length);
+        Assert(*String);
+        Comp->S[Comp->Pos++] = *String;
+        String++;
+    }
+}
+
+inline void 
+CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 DeliCount)
+{
+    while(*String != 0)
+    {
+        b32 Break = false;
+        For(DeliCount)
+        {
+            if(*String == Delimiters[It]) Break = true;
+            if(Break) break;
+        }
+        if(Break) break;
+        
         Assert(Comp->Pos < Comp->Length);
         Assert(*String);
         Comp->S[Comp->Pos++] = *String;
@@ -925,6 +949,26 @@ I32ToString(string_compound *Comp, i32 I)
         i32 Tmp = I/Size;
         Comp->S[Comp->Pos++] = (u8)Tmp+48;
         I = I - (Tmp*Size);
+        Size /= 10;
+        Assert(Comp->Pos <= Comp->Length);
+    }
+    Comp->S[Comp->Pos] = 0;
+}
+
+inline void
+U32ToString(string_compound *Comp, u32 I)
+{
+    // TODO:: Fix this, this is bad... but works.
+    u64 I64 = I;
+    u64 Size = 10;
+    while(I64 >= Size) Size *= 10;
+    Size /= 10;
+    
+    while(Size)
+    {
+        u64 Tmp = (I64/Size);
+        Comp->S[Comp->Pos++] = (u8)Tmp+48;
+        I64 = I64 - (Tmp*Size);
         Size /= 10;
         Assert(Comp->Pos <= Comp->Length);
     }

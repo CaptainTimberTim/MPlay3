@@ -436,6 +436,7 @@ RetrieveAndSetDataPaths(game_state *GameState)
             string_c DataPath = NewStringCompound(&GameState->ScratchArena, AppdataPath.Pos+MPlay3Folder.Pos);
             ConcatStringCompounds(3, &DataPath, &AppdataPath, &MPlay3Folder);
             
+            // Settings path
             NewLocalString(SettingsPath, MAX_PATH, DataPath.S);
             AppendStringCompoundToCompound(&SettingsPath, &SETTINGS_FILE_NAME);
             read_file_result R = {};
@@ -445,12 +446,24 @@ RetrieveAndSetDataPaths(game_state *GameState)
                 AppendStringCompoundToCompound(&GameState->SettingsPath, &SettingsPath);
             }
             
+            // Library path
             NewLocalString(LibraryPath, MAX_PATH, DataPath.S);
             AppendStringCompoundToCompound(&LibraryPath, &LIBRARY_FILE_NAME);
+            b32 FoundLibAtAppData = false;
             if(ReadBeginningOfFile(&GameState->ScratchArena, &R, LibraryPath.S, 1))
             {
                 GameState->LibraryPath = NewStringCompound(&GameState->FixArena, LibraryPath.Pos);
                 AppendStringCompoundToCompound(&GameState->LibraryPath, &LibraryPath);
+                FoundLibAtAppData = true;
+            }
+            
+            // PlaylistPath, this will only be to %APPDATA%/MPlay3Data if the library file is also there.
+            if(FoundLibAtAppData)
+            {
+                NewLocalString(PlaylistPath, MAX_PATH, DataPath.S);
+                AppendStringCompoundToCompound(&PlaylistPath, &PLAYLIST_FILE_NAME);
+                GameState->PlaylistPath = NewStringCompound(&GameState->FixArena, PlaylistPath.Pos);
+                AppendStringCompoundToCompound(&GameState->PlaylistPath, &PlaylistPath);
             }
         }
     }
@@ -459,6 +472,7 @@ RetrieveAndSetDataPaths(game_state *GameState)
     // If still 0 length, we put it in the local folder, aka just using the name.
     if(GameState->SettingsPath.Pos == 0) GameState->SettingsPath = SETTINGS_FILE_NAME;
     if(GameState->LibraryPath.Pos == 0)  GameState->LibraryPath  = LIBRARY_FILE_NAME;
+    if(GameState->PlaylistPath.Pos == 0) GameState->PlaylistPath = PLAYLIST_FILE_NAME;
 }
 
 inline b32
@@ -591,7 +605,7 @@ WinMain(HINSTANCE Instance,
             // Preparing arguments for loading files
             b32 LoadedLibraryFile = false;
             u32 FileInfoCount = 0;
-            if(ConfirmLibraryWithCorrectVersionExists(GameState, CURRENT_LIBRARY_VERSION, &FileInfoCount) && 
+            if(ConfirmLibraryWithCorrectVersionExists(GameState, LIBRARY_CURRENT_VERSION, &FileInfoCount) && 
                ConfirmLibraryMusicPathExists(GameState))
             {
                 MP3Info = CreateMP3InfoStruct(&GameState->FixArena, FileInfoCount);
@@ -612,6 +626,21 @@ WinMain(HINSTANCE Instance,
             FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
             UpdatePlayingSongForSelectionChange(MusicInfo);
+            
+            while(true)
+            {
+                array_file_id FileIDs = {};
+                string_c PlaylistName = {};
+                b32 FoundPlaylist = LoadPlaylist(GameState, MusicInfo->Playlists.Count, &FileIDs, &PlaylistName);
+                if(!FoundPlaylist) break;
+                
+                playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo);
+                FillPlaylistWithFileIDs(MusicInfo, &MP3Info->FileInfo, NewPL, FileIDs);
+                
+                AddPlaylistToColumn(MusicInfo, NewPL, PlaylistName);
+                SyncPlaylists_playlist_column(MusicInfo);
+            }
+            
             
             // ********************************************
             // FONT stuff *********************************
@@ -760,8 +789,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             
             check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
             CreateFileInfoStruct(&CheckMusicPath->TestInfo, FileInfoCount);
-            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->FixArena, FileInfoCount);
-            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->FixArena, FileInfoCount);
+            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->JobThreadsArena, FileInfoCount);
+            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->JobThreadsArena, FileInfoCount);
             
             AddJob_CheckMusicPathChanged(CheckMusicPath);
             ApplySettings(GameState, GameState->Settings);
@@ -1026,6 +1055,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             SwitchSelection(&DisplayInfo->Playlists, &NewPL->Playlists, MusicInfo->Playlists.Count-1);
                             SwitchPlaylistFromDisplayID(&DisplayInfo->Playlists, MusicInfo->Playlists.Count-1);
                             UpdateSelectionColors(MusicInfo);
+                            
+                            SavePlaylist(GameState, NewPL);
                         }
                         
                         // ******************

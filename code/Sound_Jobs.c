@@ -356,6 +356,8 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
     mp3_file_info *FileInfo = &CheckMusicPath->MP3Info->FileInfo;
     
     // Find which files are missing and remove them from library
+    array_u32 *AddArray  = &CheckMusicPath->AddTestInfoIDs;
+    array_u32 *RemoveArray  = &CheckMusicPath->RemoveIDs;
     For(FileInfo->Count_, MD)
     {
         b32 FileFound = false;
@@ -371,7 +373,17 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
             }
         }
         
-        if(!FileFound) Push(&CheckMusicPath->RemoveIDs, MDIt);
+        if(!FileFound) 
+        {
+            if(RemoveArray->Count >= RemoveArray->Length)
+            {
+                u32 NewCount = RemoveArray->Length*2;
+                RemoveArray->Slot = ReallocateArray(&GlobalGameState.JobThreadsArena, RemoveArray->Slot, 
+                                                    RemoveArray->Length, NewCount, u32);
+                RemoveArray->Length = NewCount;
+            }
+            Push(RemoveArray, MDIt);
+        }
     }
     QuickSort(0, CheckMusicPath->RemoveIDs.Count-1, &CheckMusicPath->RemoveIDs, {IsHigher, &CheckMusicPath->RemoveIDs});
     
@@ -393,7 +405,17 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
                 }
             }
             
-            if(!FileFound) Push(&CheckMusicPath->AddTestInfoIDs, NewIt);
+            if(!FileFound) 
+            {
+                if(AddArray->Count >= AddArray->Length)
+                {
+                    u32 NewCount = AddArray->Length*2;
+                    AddArray->Slot = ReallocateArray(&GlobalGameState.JobThreadsArena, AddArray->Slot, 
+                                                     AddArray->Length, NewCount, u32);
+                    AddArray->Length = NewCount;
+                }
+                Push(AddArray, NewIt);
+            }
         }
     }
     CheckMusicPath->State = threadState_Finished;
@@ -590,7 +612,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
             {
                 Put(&MP3Info->DecodeInfo.FileIDs, NewDecodeID(DecodeID), FileID);
                 TouchDecoded(&MP3Info->DecodeInfo, DecodeID);
-                DebugLog(255, "NOTE:: Loaded %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
+                DebugLog(255, "Loaded %s.\n", MP3Info->FileInfo.Metadata[FileID.ID].Title.S);
                 
                 if(SecondsToDecode != DECODE_PRELOAD_SECONDS)
                     CreateSongDurationForMetadata(MP3Info, FileID.ID, DecodeID);

@@ -17,7 +17,7 @@
 // - generate huge amount of fake mp3 files and test with those!
 // - Solidify playlists
 //      - show current playlist button
-// - still hardcapped at 10k mp3 files
+// - still hardcapped at 10k mp3 files - Fixed, TEST?!
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
 // - properly round for song panel time and slider
@@ -38,19 +38,21 @@
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
 // - selecting and deselecting stuff (in combination with search) is buggy.
 
+// - Cleanup all the StringCompound procedures... Their names are sooo stupidly long..
+// - Print user error when save files could not be correctly loaded.
+// - Cleanup of FillDisplayables. Or at least find out what exactly I am doing and comment that!?
+
 // PLAYLIST:
 // - what happens when search is open
-// - remove old playlist try
 // - add playlist save file (?), or add to existing save file
 // - Add playlist column visuals
+//    - Add buttons to delete and create playlits
+//    - Add way to remove or add songs to playlists
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// 
+// - Playlist playlist selected array should only be length 1
 
 
 #include "Sound_UI_TD.h"
-
-global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
-global_variable u32 CURRENT_LIBRARY_VERSION = 3;
 
 struct column_info
 {
@@ -107,7 +109,7 @@ struct playlist_column
     
     union {
         sort_batch Batch;      // Used for Genre, Artist, Album column_types.
-        array_file_id FileIDs; // ::PLAYLIST_ID Used for Song column_type/Acces this with any file_id to get to mp3_file_info.
+        array_file_id FileIDs; // ::FILE_ID Used for Song column_type/Acces this with any playlist_id to get to mp3_file_info.
     };
 };
 
@@ -136,7 +138,7 @@ struct playlist_info
     };
 };
 internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
-void SyncPlaylists_playlist_column(music_info *MusicInfo, playlist_column *SyncToThis);
+void SyncPlaylists_playlist_column(music_info *MusicInfo);
 
 struct playlist_array
 {
@@ -213,6 +215,7 @@ struct mp3_file_info //::MAPPED FILE_ID
     string_c     *FileNames_;
     string_c     *SubPath;
     mp3_metadata *Metadata;
+    // NoHash:: u32          *Hashes;  // Hashes for specific file identification.
     u32 Count_;
     u32 MaxCount_;
 };

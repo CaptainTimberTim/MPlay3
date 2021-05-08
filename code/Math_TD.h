@@ -17,6 +17,8 @@
 #define MIN_REAL64 -1.7E+308
 #define MAX_REAL64 1.7E+308
 
+#define MAX_UINT64 18446744073709551615
+
 // Struct defines ******************
 
 union v2

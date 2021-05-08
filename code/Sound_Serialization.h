@@ -2,10 +2,13 @@
 #ifndef _SOUND__SERIALIZATION_H
 #define _SOUND__SERIALIZATION_H
 
-global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
+global_variable string_c SETTINGS_FILE_NAME  = NewStaticStringCompound("MPlay3Settings.save");
+global_variable string_c LIBRARY_FILE_NAME   = NewStaticStringCompound("MPlay3Library.save");
+global_variable string_c PLAYLIST_FILE_NAME  = NewStaticStringCompound("MPlay3Playlist_"); // Gets build in SavePlaylist
 
-#define LIBRARY_CURRENT_VERSION 3
 #define SETTINGS_CURRENT_VERSION 7
+#define  LIBRARY_CURRENT_VERSION 3
+#define PLAYLIST_CURRENT_VERSION 0
 struct settings
 {
     string_c FontPath = {0, 0, 0}; // Only for users at this point.

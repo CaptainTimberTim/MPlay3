@@ -1766,8 +1766,6 @@ internal void
 InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp3_info *MP3Info, 
                       layout_definition *Layout)
 {
-    timer T = StartTimer();
-    
     color_palette *Palette = &DisplayInfo->ColorPalette;
     renderer *Renderer = &GameState->Renderer;
     r32 WWidth = (r32)Renderer->Window.FixedDim.Width;

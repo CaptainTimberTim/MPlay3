@@ -149,7 +149,7 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
         // is then only monitoring the sub-threads for 
         // updating the current crawl count, for the loading
         // bar.
-        timer T = StartTimer();
+        RestartTimer("MetadataCrawl");
 #ifdef  DO_METADATA_SUB_CRAWL
         
         // Preparing crawl jobs.
@@ -207,8 +207,7 @@ LoadNewMetadata_Thread(arena_allocator *ScratchArena, crawl_thread *CrawlInfo)
 #else
         CrawlFilesForMetadata(ScratchArena, &MP3Info->FileInfo, 0, MP3Info->FileInfo.Count, &MP3Info->FolderPath, &CrawlInfo->Out->CurrentCount);
 #endif
-        string_c TText = NewStaticStringCompound("MetadataCrawl");
-        SnapTimer(&T, TText);
+        SnapTimer("MetadataCrawl");
         
         CrawlInfo->Out->DoneCrawling = true;
     }

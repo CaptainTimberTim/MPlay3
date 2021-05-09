@@ -70,24 +70,93 @@ FreeImage_STB(loaded_bitmap Bitmap)
 
 
 #if DEBUG_TD
-inline timer
-StartTimer()
+
+inline void
+InitTimers()
 {
-    timer Timer = {};
-    Timer.Start = Timer.LastSnap = GetWallClock();
-    return Timer;
+    _debugTimerTable = HashTable(&GlobalGameState.FixArena, TIMER_MAX_COUNT);
 }
 
 inline void
-SnapTimer(timer *Timer, string_c Identification)
+_StartTimer(u8 *Name)
+{
+    timer *Timer = 0;
+    if(AddToHashTable(&_debugTimerTable, Name, _debugTimerCount)) 
+    {
+        Assert(_debugTimerCount < TIMER_MAX_COUNT);
+        
+        Timer = _debugTimers + _debugTimerCount++;
+        Timer->LastSnap = GetWallClock();
+        Timer->Total    = 0;
+    }
+    else 
+    {
+        u32 ID;
+        if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+        Timer = _debugTimers + ID;
+        
+        if(Timer->Paused) 
+        {
+            Timer->LastSnap = GetWallClock();
+        }
+    }
+    Timer->Paused = false;
+}
+
+inline void
+_RestartTimer(u8 *Name)
+{
+    Assert(_debugTimerCount < TIMER_MAX_COUNT);
+    
+    timer *Timer = 0;
+    if(AddToHashTable(&_debugTimerTable, Name, _debugTimerCount))
+    {
+        Timer = _debugTimers + _debugTimerCount++;
+    }
+    else 
+    {
+        u32 ID;
+        if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+        Timer = _debugTimers + ID;
+    }
+    
+    Timer->LastSnap = GetWallClock();
+    Timer->Total    = 0;
+    Timer->Paused   = false;
+    Timer->Count    = 0;
+}
+
+inline void
+_PauseTimer(u8 *Name)
 {
     i64 NewSnap = GetWallClock();
+    
+    u32 ID;
+    if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+    timer *Timer = _debugTimers + ID;
+    
+    Timer->Paused = true;
+    Timer->Total += NewSnap - Timer->LastSnap;
+}
+
+inline void
+_SnapTimer(u8 *Name)
+{
+    i64 NewSnap = GetWallClock();
+    
+    u32 ID;
+    if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+    timer *Timer = _debugTimers + ID;
+    
+    if(!Timer->Paused) Timer->Total += NewSnap - Timer->LastSnap;
+    else NewSnap = Timer->LastSnap;
     r32 CurrentSnap = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->LastSnap, NewSnap);
-    r32 Total = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->Start, NewSnap);
-    u8 *Addon = Identification.Pos ? Identification.S : (u8 *)"";
-    DebugLog(255, "%s Timer snap %i: %.8f, total: %.8f\n", Addon, ++Timer->Count, CurrentSnap, Total);
+    r32 Total = ((r32)Timer->Total / (r32)GlobalGameState.Time.PerfCountFrequency);
+    
+    DebugLog(255, "%s Timer snap %i: %.8f, total: %.8f\n", Name, ++Timer->Count, CurrentSnap, Total);
     Timer->LastSnap = NewSnap;
 }
+
 #endif
 
 // Color picker *********************************************

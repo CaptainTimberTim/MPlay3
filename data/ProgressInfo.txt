@@ -213,3 +213,37 @@
 - Added new playlists being inserted into the playlists column.
 - Playlists can now be switched with mouse-selection, similar to the other columns.
 - Added saving and loading of PlaylistsGenre edge position from/to settings file.
+
+07.05.2021
+- Added Hashing of Filename+CreationDate for saving playlists
+
+08.05.2021
+- Removed Hashing of Filename+CreationDate, because using the subPath+Filename is nicer
+- Now saving playlists, each in a seperate file.
+- New loading the playlists from previously saved files.
+
+09.05.2021
+- Fixed sorting taking 1.2 seconds for playlist with 8k+ songs in it. Now the time is ~0.01s, which is more reasonable.
+  The problem was, that it was triggering the worst case of quicksort (O(n^2)), because the list was perfectly sorted already.
+  Hacky solution for now is just shuffling the list beforehand. Makes it ~95 times faster... silly.
+- Reworked debug timers, which are now more flexible and useful. Downside being that they also are less performant... So using   them inside of loops which you want to measure, then it does not really matter.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

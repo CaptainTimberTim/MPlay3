@@ -1815,7 +1815,6 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         }
     }
     
-    timer Timer = StartTimer();
 #if 0
     if(Playlist->Artist.Displayable.A.Count > 0) QuickSort3(Playlist->Artist.Displayable.A, true);
     if(Playlist->Album.Displayable.A.Count > 0) QuickSort3(Playlist->Album.Displayable.A, true);
@@ -1825,7 +1824,6 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     if(Playlist->Album.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Album.Displayable.A, CheckValue);
     if(Playlist->Song.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Song.Displayable.A, CheckValue);
 #endif
-    SnapTimer(&Timer, {});
     
     if(Playlist->Genre.Selected.A.Count == 0)
     {
@@ -1866,10 +1864,10 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     playlist_info *Playlist         = MusicInfo->Playlist_;
     
     FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
-    SortDisplayables(MusicInfo, &MP3Info->FileInfo);
-    UpdatePlayingSongForSelectionChange(MusicInfo);
-    
     if(MusicInfo->IsShuffled) ShuffleStack(&Playlist->Song.Displayable);
+    else                      SortDisplayables(MusicInfo, &MP3Info->FileInfo);
+    
+    UpdatePlayingSongForSelectionChange(MusicInfo);
     DisplayInfo->Song.Base.DisplayCursor = 0;
     
     displayable_id GenreDisplayID = NewDisplayableID(0);
@@ -2072,7 +2070,13 @@ SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
     QuickSort(0, Artist->A.Count-1, Artist, {IsHigherInAlphabet, &ArtistBlob});
     QuickSort(0, Album->A.Count-1,  Album,  {IsHigherInAlphabet, &AlbumBlob});
     
+    RestartTimer("SortSongs");
+    // TODO:: This is a f*cking stupid hack... Why is it so slow
+    // for switching in a playlist, but not when switching to the
+    // 'main' playlist...
+    ShuffleStack(&MusicInfo->Playlist_->Song.Displayable);
     QuickSortSongColumn(0, MusicInfo->Playlist_->Song.Displayable.A.Count-1, MP3FileInfo, &MusicInfo->Playlist_->Song);
+    SnapTimer("SortSongs");
 }
 
 internal void

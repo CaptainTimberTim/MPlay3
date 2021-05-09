@@ -50,7 +50,7 @@
 //    - Add way to remove or add songs to playlists
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
 // - Playlist playlist selected array should only be length 1
-
+// - Preload songs when switching playlists.
 
 #include "Sound_UI_TD.h"
 

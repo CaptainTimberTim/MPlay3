@@ -164,7 +164,7 @@ internal b32
 AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
 {
     b32 Result = false;
-    local_persist timer T = StartTimer();
+    RestartTimer("GetFontGroup");
     
     u32 GroupCodepoints[] = { Codepoint };
     unicode_group *Group = GetUnicodeGroup(Codepoint);
@@ -254,8 +254,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
         }
     }
 #endif
-    string_c TT = NewStaticStringCompound("GetFontGroup");
-    SnapTimer(&T, TT);
+    SnapTimer("GetFontGroup");
     
     return Result;
 }

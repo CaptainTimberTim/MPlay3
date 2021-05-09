@@ -533,7 +533,8 @@ WinMain(HINSTANCE Instance,
         LONGLONG PrevCycleCount = GetWallClock();
         LONGLONG FlipWallClock  = GetWallClock();
         
-        timer StartupTimer = StartTimer();
+        InitTimers();
+        StartTimer("Initialization");
         
         SetRandomSeed(FlipWallClock);
         
@@ -838,6 +839,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             b32 PrevIsPlaying = MusicInfo->IsPlaying;
             scroll_load_info ScrollLoadInfo = {0, 0.5f, true};
             IsRunning = true;
+            SnapTimer("Initialization");
             while(IsRunning)
             {
                 ResetMemoryArena(&GameState->ScratchArena);
@@ -1055,6 +1057,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             SwitchSelection(&DisplayInfo->Playlists, &NewPL->Playlists, MusicInfo->Playlists.Count-1);
                             SwitchPlaylistFromDisplayID(&DisplayInfo->Playlists, MusicInfo->Playlists.Count-1);
                             UpdateSelectionColors(MusicInfo);
+                            SortDisplayables(MusicInfo, &MP3Info->FileInfo);
                             
                             SavePlaylist(GameState, NewPL);
                         }

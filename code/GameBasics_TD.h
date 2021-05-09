@@ -12,13 +12,6 @@ enum cursor_state
     cursorState_Drag,
 };
 
-struct timer
-{
-    u32 Count;
-    i64 Start;
-    i64 LastSnap;
-};
-
 struct palette_color
 {
     entry_id *Outline;
@@ -119,11 +112,35 @@ internal loaded_bitmap LoadImage_STB(read_file_result Memory);
 inline void FreeImage_STB(loaded_bitmap Bitmap);
 
 #if DEBUG_TD
-inline timer StartTimer();
-inline void SnapTimer(timer *Timer, string_c Identification);
+struct timer
+{
+    u32 Count;
+    i64 LastSnap;
+    i64 Total;
+    b32 Paused;
+};
+
+#define TIMER_MAX_COUNT 200
+global_variable hash_table _debugTimerTable = {};
+global_variable timer      _debugTimers[TIMER_MAX_COUNT] = {};
+global_variable u32        _debugTimerCount = 0;
+
+inline void InitTimers();
+inline void _StartTimer(u8 *Name);
+#define StartTimer(Name)   _StartTimer((u8 *)(Name))   /* Starts a new timer, if it exists already, it gets unpaused. */
+inline void _RestartTimer(u8 *Name);
+#define RestartTimer(Name) _RestartTimer((u8 *)(Name)) /* Let's you restart a timer with the given name. */
+inline void _PauseTimer(u8 *Name);
+#define PauseTimer(Name) _PauseTimer((u8 *)(Name)) /* Stops the timer, can be unpaused with StartTimer. */
+inline void _SnapTimer(u8 *Name);
+#define SnapTimer(Name)    _SnapTimer((u8 *)(Name)) /* Creates a snapshot and prints the time since last snapshot and total.*/
+
 #else
-#define StartTimer() {}
-#define SnapTimer(f, s)
+#define InitTimers() 
+#define StartTimer(n)
+#define RestartTimer(n)
+#define PauseTimer(n)
+#define SnapTimer(n)
 #endif
 
 // Color Picker

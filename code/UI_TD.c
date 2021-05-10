@@ -15,13 +15,13 @@ NewButton(renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
     Result->HoverColor = HoverColor;
     Result->IsToggle = IsToggle;
     
-    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, IconPath);
+    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, IconPath);
     Result->Icon->ID->Color = IconColor;
     
     if(IsToggle)
     {
         Assert(ToggleIconPath);
-        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, ToggleIconPath);
+        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, ToggleIconPath);
         Result->ToggleIcon->ID->Render = false;
         Result->ToggleIcon->ID->Color = IconColor;
     }
@@ -44,13 +44,13 @@ NewButton(renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
     Result->HoverColor = HoverColor;
     Result->IsToggle = IsToggle;
     
-    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, IconBitmapID);
+    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, IconBitmapID);
     Result->Icon->ID->Color = IconColor;
     
     if(IsToggle)
     {
         Assert(ToggleIconBitmapID >= 0);
-        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, ToggleIconBitmapID);
+        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, ToggleIconBitmapID);
         Result->ToggleIcon->ID->Render = false;
         Result->ToggleIcon->ID->Color = IconColor;
     }
@@ -249,9 +249,10 @@ AddDragable(drag_list *DragList, entry_id *Entry,
     DragList->OnDragEnd[DragList->Count++] = OnDragEnd;
 }
 
-inline void
+inline b32
 OnDraggingStart(drag_list *DragableList, renderer *Renderer, v2 MouseP)
 {
+    b32 Result = false;
     For(DragableList->Count)
     {
         if(!DragableList->Dragables[It]->ID->Render) continue;
@@ -265,8 +266,11 @@ OnDraggingStart(drag_list *DragableList, renderer *Renderer, v2 MouseP)
                 DragableList->OnDragStart[It].Func(Renderer, AdjustedMouseP, DragableList->Dragables[It], 
                                                    DragableList->OnDragStart[It].Data);
             }
+            Result = true;
+            break;
         }
     }
+    return Result;
 }
 
 inline void

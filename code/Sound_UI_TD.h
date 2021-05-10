@@ -266,6 +266,17 @@ struct shortcut_popups
     b32 IsActive;
 };
 
+struct playlist_ui
+{
+    entry_id *Panel;
+    entry_id *BtnAnchor;
+    button   *Add;
+    button   *Remove;
+    button   *Rename;
+    entry_id *BtnDivider;
+    button_colors BtnColors;
+};
+
 struct music_display_info
 {
     // General
@@ -275,11 +286,13 @@ struct music_display_info
     display_column_song_extension Song;
     
     music_display_column Playlists;
+    playlist_ui PlaylistUI;
     
     color_palette ColorPalette;
     u32 ColorPaletteID;
     
     i32 SearchIsActive;
+    v2 MouseBtnDownLocation;
     
     // Foreground
     entry_id *EdgeBottom;
@@ -318,6 +331,24 @@ struct music_display_info
     user_error_text UserErrorText;
 };
 
+struct drag_drop
+{
+    b32 Dragging;
+    v2 StartMouseP;
+    displayable_id ID;
+    entry_id *DragSlot;
+    v2 DragSlotP;
+    
+    i32 AnimDir = 1;
+    r32 dAnim   = 0;
+    v2  ShakeDir;
+    
+    r32 ShakeThreshold; // Depends on the distance to playlist column.
+    r32 ShakeMaxRadius = 5.0f;
+    r32 ShakeMaxAnimTime = 0.01f;
+    r32 MaxTransparency  = 0.95f;
+};
+
 struct layout_definition
 {
     // General
@@ -330,8 +361,8 @@ struct layout_definition
     r32 DragEdgeWidth          = 8;
     r32 HorizontalSliderHeight = 26;
     r32 VerticalSliderWidth    = 26;
-    r32 HorizontalSliderGrabThingBorder = 4;
-    r32 VerticalSliderGrabThingBorder   = 4;
+    r32 HorizontalSliderGrabThingBorder = 2;
+    r32 VerticalSliderGrabThingBorder   = 2;
     
     // Slot
     r32 SlotHeight     = 30;
@@ -379,6 +410,10 @@ struct layout_definition
     
     r32 StopNextPrevBtnYOffsetFromPlayPause = 20.75f;
     r32 LoopShuffleBtnYOffsetFromPlayPause  = 24;
+    
+    // Playlist panel
+    r32 PlaylistPanelHeight   = 40;
+    r32 PlaylistDividerHeight = 2;
     
     // Volume slider
     r32 VolumeGrabThingWidth = 10;

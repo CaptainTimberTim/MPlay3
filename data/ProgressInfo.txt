@@ -223,11 +223,17 @@
 - New loading the playlists from previously saved files.
 
 09.05.2021
-- Fixed sorting taking 1.2 seconds for playlist with 8k+ songs in it. Now the time is ~0.01s, which is more reasonable.
+- Fixed sorting taking 1.2 seconds for playlist with 8k+ songs in it. Now the time is ~0.013s, which is more reasonable.
   The problem was, that it was triggering the worst case of quicksort (O(n^2)), because the list was perfectly sorted already.
   Hacky solution for now is just shuffling the list beforehand. Makes it ~95 times faster... silly.
 - Reworked debug timers, which are now more flexible and useful. Downside being that they also are less performant... So using   them inside of loops which you want to measure, then it does not really matter.
 
+10.05.2021
+- Added playlist panel for playlist buttons
+- Added playlist buttons: add, remove, rename (no functionality yet)
+- Fixed depth issues with search button, now they do not need to be deactivated, when the window is very small. They just   dissapear behind the top border.
+- Fixed bug where, if you click+hold the mouse btn und then go over a colum slot and release, it was considered a click. 
+- Added start of drag&drop for adding stuff to playlists. First version of drag anim is done. Drop not working yet.
 
 
 

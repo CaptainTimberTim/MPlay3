@@ -817,7 +817,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             
             DebugLog(250, "FILENAME::: %s\n", __FILENAME__);
             
-            
+            drag_drop DragDrop = {};
             
             // ********************************************
             // FPS ****************************************
@@ -980,21 +980,26 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     b32 LeftMouseUpAndNoDragging = false;
                     if(Input->KeyChange[KEY_LMB] == KeyDown)
                     {
-                        OnDraggingStart(DragableList, Renderer, Input->MouseP);
+                        DisplayInfo->MouseBtnDownLocation = Input->MouseP;
+                        
+                        if(!OnDraggingStart(DragableList, Renderer, Input->MouseP))
+                        {
+                            CheckSlotDragDrop(Input, GameState, &DragDrop);
+                        }
                     }
-                    if(Input->Pressed[KEY_LMB] && 
-                       DragableList->DraggingID >= 0)
+                    if(Input->Pressed[KEY_LMB])
                     {
-                        OnDragging(DragableList, Renderer, Input->MouseP);
+                        if(DragableList->DraggingID >= 0) OnDragging(DragableList, Renderer, Input->MouseP);
+                        else if(DragDrop.Dragging) DoDragDropAnim(GameState, &DragDrop);
                     }
-                    else if(DragableList->DraggingID >= 0) 
+                    if(Input->KeyChange[KEY_LMB] == KeyUp)
                     {
-                        OnDraggingEnd(DragableList, Renderer, Input->MouseP);
-                    }
-                    else if(Input->KeyChange[KEY_LMB] == KeyUp &&
-                            DragableList->DraggingID < 0)
-                    {
-                        LeftMouseUpAndNoDragging = true;
+                        if(DragableList->DraggingID >= 0) OnDraggingEnd(DragableList, Renderer, Input->MouseP);
+                        else 
+                        {
+                            if(DragDrop.Dragging) StopDragDrop(GameState, &DragDrop);
+                            LeftMouseUpAndNoDragging = true;
+                        }
                     }
                     
                     // TODO:: Change this to: IsInSubmenu? Then do this for musicPath as well!
@@ -1004,7 +1009,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                         if(LeftMouseUpAndNoDragging)
                         {
-                            column_type ChangedSelection = CheckColumnsForSelectionChange();
+                            column_type ChangedSelection = CheckColumnsForSelectionChange(DisplayInfo->MouseBtnDownLocation);
                             if(ChangedSelection != columnType_None)
                             {
                                 UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);

@@ -144,6 +144,24 @@ global_variable u8 const Search_Icon_Data[] = {0};
 
 
 
+global_variable u32 const Playlist_Add_Icon_Width = 0;
+global_variable u32 const Playlist_Add_Icon_Height = 0;
+global_variable u8 const Playlist_Add_Icon_Data[] = {0};
+
+
+
+global_variable u32 const Playlist_Remove_Icon_Width = 0;
+global_variable u32 const Playlist_Remove_Icon_Height = 0;
+global_variable u8 const Playlist_Remove_Icon_Data[] = {0};
+
+
+
+global_variable u32 const Playlist_Rename_Icon_Width = 0;
+global_variable u32 const Playlist_Rename_Icon_Height = 0;
+global_variable u8 const Playlist_Rename_Icon_Data[] = {0};
+
+
+
 global_variable u32 const carmini_DataCount = 0;
 global_variable u8 const carmini_Data[] = {0};
 

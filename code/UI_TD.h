@@ -39,7 +39,7 @@ struct button
     b32 ClickedInBtn;
 };
 
-#define MAX_BUTTONS 50
+#define MAX_BUTTONS 80
 struct button_group
 {
     button Buttons[MAX_BUTTONS];

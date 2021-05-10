@@ -41,16 +41,21 @@
 // - Cleanup all the StringCompound procedures... Their names are sooo stupidly long..
 // - Print user error when save files could not be correctly loaded.
 // - Cleanup of FillDisplayables. Or at least find out what exactly I am doing and comment that!?
+// - Sort out depth everywhere in the application
+// - Fix stutter on first play of song.
+// - Make it possible to close colorpicker with the colorpicker button
+// - Make selection more versatile. Shift-select would be nice.
+
 
 // PLAYLIST:
 // - what happens when search is open
-// - add playlist save file (?), or add to existing save file
 // - Add playlist column visuals
 //    - Add buttons to delete and create playlits
 //    - Add way to remove or add songs to playlists
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
 // - Playlist playlist selected array should only be length 1
 // - Preload songs when switching playlists.
+// - Add tooltips for new stuff.
 
 #include "Sound_UI_TD.h"
 

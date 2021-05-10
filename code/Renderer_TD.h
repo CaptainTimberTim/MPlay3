@@ -230,6 +230,8 @@ internal entry_id *CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, en
 internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path);
 internal void RemoveRenderEntry(renderer *Renderer, entry_id *EntryID);
 
+internal entry_id *Copy(renderer *Renderer, entry_id *Entry);
+
 inline void SetTransparency(entry_id *Entry, r32 T);
 inline void ApplyTransform(render_entry *Entry, v3 *Result);
 
@@ -256,6 +258,10 @@ inline b32  IsActive(entry_id *Entry);
 inline void SetColor(entry_id *Entry, v3 *Color);
 inline v3   GetColor(entry_id *Entry);
 inline void SetParent(entry_id *Entry, entry_id *Parent);
+inline r32  GetDepth(entry_id *Entry);
+inline void SetDepth(entry_id *Entry, r32 Depth);
+
+inline r32  GetDistance(entry_id *E1, entry_id *E2);
 
 // Helper for entry relations
 inline rect ExtractScreenRect(entry_id *Entry);

@@ -144,11 +144,11 @@ Abs(r32 Value)
 }
 
 inline r32
-Pow(r32 Base, i32 Exponent)
+Pow(r32 Base, r32 Exponent)
 {
     r32 Result = 0;
     // TODO:: Stop using library and use compiler stuff...
-    Result = (r32)pow(Base, Exponent);
+    Result = powf(Base, Exponent);
     
     return Result;
 }
@@ -346,6 +346,12 @@ RadToDeg(r32 Radian)
 }
 
 inline r32 
+Log(r32 x)
+{
+    return logf(x);
+}
+
+inline r32 
 Lerp(r32 A, r32 B, r32 T)
 {
     r32 Result = A + (B - A)*T;
@@ -356,6 +362,13 @@ inline r32
 Lerp(i32 A, i32 B, r32 T)
 {
     r32 Result = A + (B - A)*T;
+    return Result;
+}
+
+inline r32
+Root2_8(r32 V)
+{
+    r32 Result = Pow(V, 1.0f/2.8f);
     return Result;
 }
 

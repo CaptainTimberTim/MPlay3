@@ -1555,7 +1555,7 @@ SwitchSelection(music_display_column *DisplayColumn, playlist_column *PlaylistCo
 }
 
 internal column_type // returns none if not in any rect, and corresponding column if it is
-UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn)
+UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, v2 MouseBtnDownLocation)
 {
     column_type Result = columnType_None;
     DisplayColumn->LastClickSlotID = -1;
@@ -1564,7 +1564,8 @@ UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *Disp
         It < DisplayColumn->Count;
         ++It)
     {
-        if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP))
+        if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP) && 
+           IsInRect(DisplayColumn->BGRects[It], MouseBtnDownLocation))
         {
             Result = DisplayColumn->Type;
             DisplayColumn->LastClickSlotID = It;

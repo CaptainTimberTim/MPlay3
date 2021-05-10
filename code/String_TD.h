@@ -684,7 +684,7 @@ ProcessNextR32InString(u8 *Character, u8 Delimiter, u8 &NumberLength)
             i32 E10Muliplier = ProcessNextI32InString(Character, Delimiter, NumberLengthB);
             Character += ++NumberLengthB;
             NumberLength += NumberLengthB;
-            Result = Result*Pow(10, E10Muliplier);
+            Result = Result*Pow(10, (r32)E10Muliplier);
         }
     }
     Result *= Sign;
@@ -796,7 +796,7 @@ inline r32 ProcessNextR32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, 
             i32 E10Muliplier = ProcessNextI32InString(Character, Delimiters, DeliCount, NumberLengthB);
             Character += ++NumberLengthB;
             NumberLength += NumberLengthB;
-            Result = Result*Pow(10, E10Muliplier);
+            Result = Result*Pow(10, (r32)E10Muliplier);
         }
     }
     Result *= Sign;

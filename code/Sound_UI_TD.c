@@ -26,7 +26,7 @@ internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue
 internal void AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
 internal i32 AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, playlist_id PlaylistID);
 internal b32 AddJob_LoadMetadata(game_state *GameState);
-internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn);
+internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, v2 MouseBtnDownLocation);
 internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, playlist_column *PlaylistColumn);
 internal void PropagateSelectionChange(music_info *SortingInfo);
 internal void UpdatePlayingSongForSelectionChange(music_info *MusicInfo);
@@ -312,7 +312,7 @@ CreateSearchBar(column_info ColumnInfo, arena_allocator *Arena, entry_id *Parent
 {
     search_bar Result = {};
     renderer *Renderer = ColumnInfo.Renderer;
-    r32 BtnDepth        = -0.6f;
+    r32 BtnDepth        = -0.395f;
     r32 SearchExt       = Layout->SearchButtonExtents;
     
 #if RESOURCE_PNG
@@ -358,8 +358,10 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     DisplayColumn->Type        = Type;
     DisplayColumn->ZValue      = ZValue;
     DisplayColumn->LeftBorder  = LeftBorder;
-    DisplayColumn->TopBorder   = DisplayInfo->EdgeTop;
     DisplayColumn->Colors      = ColumnColors;
+    
+    if(Type == columnType_Playlists) DisplayColumn->TopBorder = DisplayInfo->PlaylistUI.Panel;
+    else DisplayColumn->TopBorder = DisplayInfo->EdgeTop;
     // NOTE:: Right and bottom border is a slider, therefore set later in procedure
     
     if(Type == columnType_Song) 
@@ -372,8 +374,6 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
         DisplayColumn->SlotHeight  = Layout->SlotHeight;
         DisplayColumn->TextX       = Layout->SmallTextLeftBorder;
     }
-    
-    //color_palette *Palette = ;
     
     // Creating horizontal slider 
     r32 SliderHoriHeight = Layout->HorizontalSliderHeight;
@@ -407,7 +407,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     
     DisplayColumn->SliderVertical.GrabThing  = 
         CreateRenderRect(Renderer, {-VertSliderExtends+V2(InsetVert, 0), VertSliderExtends-V2(InsetVert, 0)},
-                         DisplayColumn->ZValue-0.0312f, RightBorder, ColumnColors.SliderGrabThing);
+                         ZValue-0.0312f, RightBorder, ColumnColors.SliderGrabThing);
     SetPosition(DisplayColumn->SliderVertical.GrabThing, BottomLeft2+VertSliderExtends);
     
     DisplayColumn->RightBorder = DisplayColumn->SliderVertical.Background;
@@ -416,10 +416,11 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     rect BGRect = {BottomLeft+V2(0, SliderHoriHeight), BottomLeft+V2(DisplayColumn->SlotWidth, SliderHoriHeight+ColumnHeight)};
     DisplayColumn->Background = CreateRenderRect(Renderer, BGRect, ZValue+0.01f, 0, ColumnColors.Background);
     
-    DisplayColumn->Count = CountPossibleDisplayedSlots(Renderer, DisplayColumn);
+    DisplayColumn->Count  = CountPossibleDisplayedSlots(Renderer, DisplayColumn);
     
     DisplayColumn->BGRectAnchor = CreateRenderRect(Renderer, V2(0), 0, ColumnColors.Background, 0);
-    r32 AnchorY = Renderer->Window.CurrentDim.Height - GetSize(DisplayInfo->EdgeTop).y - DisplayColumn->SlotHeight/2.0f;
+    r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y-GetSize(DisplayColumn->TopBorder).y/2.0f-
+        DisplayColumn->SlotHeight/2.0f;
     SetPosition(DisplayColumn->BGRectAnchor, V2(0, AnchorY));
     TranslateWithScreen(&Renderer->TransformList, DisplayColumn->BGRectAnchor, fixedTo_Top);
     
@@ -451,7 +452,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     r32 HalfHori = SliderHoriHeight/2;
     r32 HalfVert = SliderVertWidth/2;
     rect BetweenRect = {{-HalfVert, -HalfHori},{HalfVert, HalfHori}};
-    DisplayColumn->BetweenSliderRect = CreateRenderRect(Renderer, BetweenRect, -0.5f, RightBorder, 
+    DisplayColumn->BetweenSliderRect = CreateRenderRect(Renderer, BetweenRect, -0.392f, RightBorder, 
                                                         &DisplayColumn->Base->ColorPalette.Foreground);
     
     DisplayColumn->Search = CreateSearchBar(ColumnInfo, Arena, DisplayColumn->BetweenSliderRect, Layout);
@@ -1165,7 +1166,7 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
 {
     // Calc new column scale
     DisplayColumn->ColumnHeight = HeightBetweenRects(DisplayColumn->TopBorder, DisplayColumn->BottomBorder);
-    DisplayColumn->SlotWidth = 4+WidthBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->RightBorder);
+    DisplayColumn->SlotWidth    = /*4+*/WidthBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->RightBorder);
     
     // Calc new column translation
     r32 CenterX = CenterXBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->RightBorder);
@@ -1195,8 +1196,22 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
     
     // Search bar
     SetSize(DisplayColumn->Search.TextField.Background,
-            V2(DisplayColumn->SlotWidth-4, GetSize(DisplayColumn->Search.TextField.Background).y)); // @Layout
-    SetLocalPosition(DisplayColumn->Search.TextField.LeftAlign, V2(-(DisplayColumn->SlotWidth-4)/2.0f, 0));
+            V2(DisplayColumn->SlotWidth, GetSize(DisplayColumn->Search.TextField.Background).y)); // @Layout
+    SetLocalPosition(DisplayColumn->Search.TextField.LeftAlign, V2(-(DisplayColumn->SlotWidth)/2.0f, 0));
+    
+    // Fitting the playlist panel at this point, as nothing depends on it being set directly.
+    // This is a good place to set it, as it is technically part of the column itself.
+    if(DisplayColumn->Type == columnType_Playlists)
+    {
+        playlist_ui *PlaylistUI = &DisplayColumn->Base->PlaylistUI;
+        r32 PLCenterX = CenterXBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->Base->PlaylistsGenre.Edge);
+        r32 PLWidth   = WidthBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->Base->PlaylistsGenre.Edge);
+        SetSize(PlaylistUI->Panel, V2(PLWidth, GetSize(PlaylistUI->Panel).y));
+        SetLocalPosition(PlaylistUI->Panel, V2(PLCenterX, GetLocalPosition(PlaylistUI->Panel).y));
+        
+        SetSize(PlaylistUI->BtnDivider, V2(PLWidth, GetSize(PlaylistUI->BtnDivider).y));
+        SetLocalPosition(PlaylistUI->BtnDivider, V2(PLCenterX, GetLocalPosition(PlaylistUI->BtnDivider).y));
+    }
 }
 
 internal void
@@ -1215,8 +1230,6 @@ ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, m
     // ID. See: #LastSlotOverflow in MoveDisplayColumn
     drag_slider_data Data = { MusicInfo, DisplayColumn};
     OnVerticalSliderDrag(Renderer, GetPosition(DisplayColumn->SliderVertical.GrabThing), 0, &Data);
-    
-    SetActive(DisplayColumn->Search.Button, (Renderer->Window.CurrentDim.Height > (GlobalMinWindowHeight + 15)));
 }
 
 internal void
@@ -1276,6 +1289,7 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
         
         LeftSideP = NewX;
     }
+    
     
     playlist_info *Playlist = Info->MusicInfo->Playlist_;
     FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Playlists, Playlist->Playlists.Displayable.A.Count);
@@ -1827,8 +1841,10 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     u32 ColorPickerID      = DecodeAndCreateGLTexture(ColorPicker_Icon_DataCount, (u8 *)ColorPicker_Icon_Data);
     u32 ShortcutID         = DecodeAndCreateGLTexture(Help_Icon_DataCount, (u8 *)Help_Icon_Data);
     u32 ShortcutPressedID  = DecodeAndCreateGLTexture(Help_Pressed_Icon_DataCount, (u8 *)Help_Pressed_Icon_Data);
+    u32 PLAddID            = DecodeAndCreateGLTexture(Playlist_Add_Icon_DataCount, (u8 *)Playlist_Add_Icon_Data);
+    u32 PLRemoveID         = DecodeAndCreateGLTexture(Playlist_Remove_Icon_DataCount, (u8 *)Playlist_Remove_Icon_Data);
+    u32 PLRenameID         = DecodeAndCreateGLTexture(Playlist_Rename_Icon_DataCount, (u8 *)Playlist_Rename_Icon_Data);
 #else
-    
     bitmap_color_format cF = colorFormat_RGBA;
     loaded_bitmap Bitmap = {1, Background_Icon_Width, Background_Icon_Height, 
         (u32 *)Background_Icon_Data, cF, ArrayCount(Background_Icon_Data)};
@@ -1884,6 +1900,15 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     Bitmap = {1, Help_Pressed_Icon_Width, Help_Pressed_Icon_Height, 
         (u32 *)Help_Pressed_Icon_Data, cF, ArrayCount(Help_Pressed_Icon_Data)};
     u32 ShortcutPressedID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Playlist_Add_Icon_Width, Playlist_Add_Icon_Height, 
+        (u32 *)Playlist_Add_Icon_Data, cF, ArrayCount(Playlist_Add_Icon_Data)};
+    u32 PLAddID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Playlist_Remove_Icon_Width, Playlist_Remove_Icon_Height, 
+        (u32 *)Playlist_Remove_Icon_Data, cF, ArrayCount(Playlist_Remove_Icon_Data)};
+    u32 PLRemoveID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Playlist_Rename_Icon_Width, Playlist_Rename_Icon_Height, 
+        (u32 *)Playlist_Rename_Icon_Data, cF, ArrayCount(Playlist_Rename_Icon_Data)};
+    u32 PLRenameID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
 #endif
     
     r32 BtnDepth         = -0.6f;
@@ -1896,10 +1921,13 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 MediumRectS = Layout->MediumButtonExtents;
     r32 LargeRectS  = Layout->LargeButtonExtents;
     r32 PlayPauseS  = Layout->PlayPauseButtonExtents;
+    r32 TinyRectS   = Layout->SearchButtonExtents;
     rect PlayPauseRect = {{-PlayPauseS, -PlayPauseS}, {PlayPauseS,PlayPauseS}};
     rect LargeBtnRect  = {{-LargeRectS, -LargeRectS}, {LargeRectS, LargeRectS}};
     rect MediumBtnRect = {{-MediumRectS,-MediumRectS},{MediumRectS,MediumRectS}};
     rect SmallBtnRect  = {{-SmallRectS, -SmallRectS}, {SmallRectS,SmallRectS}};
+    rect TinyBtnRect   = {{-TinyRectS, -TinyRectS}, {TinyRectS,TinyRectS}};
+    
     DisplayInfo->PlayPause = NewButton(Renderer, PlayPauseRect, BtnDepth, true, Renderer->ButtonBaseID, 
                                        PlayID, Renderer->ButtonColors, 0, PauseID);
     SetLocalPosition(DisplayInfo->PlayPause, PlayPauseP);
@@ -1942,8 +1970,19 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     
     // All the Column stuff ******************************
+    music_info *MusicInfo    = &GameState->MusicInfo;
+    playlist_info *Playlist  = MusicInfo->Playlist_;
+    column_colors ColumnColors = {
+        &Palette->Slot,
+        &Palette->Text,
+        &Palette->Foreground,
+        &Palette->SliderGrabThing,
+        &Palette->SliderBackground,
+        &Palette->Selected,
+    };
     r32 EdgeWidth = Layout->DragEdgeWidth;
     r32 ColumnWidth = (WWidth/2.0f)/4.0f + 30;
+    
     
     r32 PlaylistsGenreX = ColumnWidth*1+LeftBorder*0;
     DisplayInfo->PlaylistsGenre.Edge = 
@@ -1953,7 +1992,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->PlaylistsGenre.OriginalYHeight = GetPosition(DisplayInfo->PlaylistsGenre.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->PlaylistsGenre.Edge, scaleAxis_Y);
     
-    
     r32 GenreArtistX = ColumnWidth*2+LeftBorder*1;
     DisplayInfo->GenreArtist.Edge = CreateRenderRect(Renderer, 
                                                      {{GenreArtistX,BottomBorder},{GenreArtistX+EdgeWidth,WHeight-TopBorder}},
@@ -1961,6 +1999,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->GenreArtist.XPercent        = GetPosition(DisplayInfo->GenreArtist.Edge).x/WWidth;
     DisplayInfo->GenreArtist.OriginalYHeight = GetPosition(DisplayInfo->GenreArtist.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->GenreArtist.Edge, scaleAxis_Y);
+    
+    
     
     r32 ArtistAlbumX = ColumnWidth*3+LeftBorder+EdgeWidth*2;
     DisplayInfo->ArtistAlbum.Edge = CreateRenderRect(Renderer, 
@@ -1970,6 +2010,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->ArtistAlbum.OriginalYHeight = GetPosition(DisplayInfo->ArtistAlbum.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->ArtistAlbum.Edge, scaleAxis_Y);
     
+    
+    
     r32 AlbumSongX  = ColumnWidth*4+LeftBorder+EdgeWidth*3;
     DisplayInfo->AlbumSong.Edge   = CreateRenderRect(Renderer, 
                                                      {{AlbumSongX,BottomBorder},{AlbumSongX+EdgeWidth,WHeight-TopBorder}},
@@ -1978,9 +2020,46 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->AlbumSong.OriginalYHeight = GetPosition(DisplayInfo->AlbumSong.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->AlbumSong.Edge, scaleAxis_Y);
     
+    // PlaylistsUI extra stuff ****
+    playlist_ui *PlaylistUI = &DisplayInfo->PlaylistUI;
+    PlaylistUI->BtnColors = {
+        &Palette->Text,
+        &Palette->SliderBackground, 
+        &Palette->ButtonActive,
+        &Palette->SliderGrabThing,
+    };
     
-    music_info *MusicInfo    = &GameState->MusicInfo;
-    playlist_info *Playlist  = MusicInfo->Playlist_;
+    
+    r32 PlaylistColumnDepth = 0.0f;
+    r32 PanelDepth = PlaylistColumnDepth-0.012f;
+    PlaylistUI->Panel = CreateRenderRect(Renderer, {{LeftBorder,WHeight - TopBorder - Layout->PlaylistPanelHeight},
+                                             {PlaylistsGenreX,WHeight-TopBorder}}, PanelDepth, 0, &Palette->Slot);
+    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->Panel, fixedTo_TopLeft);
+    
+    PlaylistUI->BtnDivider = CreateRenderRect(Renderer, {{LeftBorder,WHeight - TopBorder - Layout->PlaylistDividerHeight},
+                                                  {PlaylistsGenreX,WHeight-TopBorder}}, PanelDepth-0.00001f, 
+                                              0, &Palette->Slot);
+    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->BtnDivider, fixedTo_TopLeft);
+    
+    PlaylistUI->BtnAnchor = CreateRenderRect(Renderer, V2(0), 0, &Palette->Foreground, 0);
+    v2 AnchorP = GetPosition(PlaylistUI->Panel) + V2(-GetSize(PlaylistUI->Panel).x*0.5f + SmallRectS, 0);
+    SetPosition(PlaylistUI->BtnAnchor, AnchorP);
+    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->BtnAnchor, fixedTo_TopLeft);
+    
+    r32 PLBtnYOff = Layout->PlaylistDividerHeight/2.0f;
+    PlaylistUI->Add = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
+                                Renderer->ButtonBaseID, PLAddID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+    SetLocalPosition(PlaylistUI->Add, V2(0, -PLBtnYOff));
+    
+    //DisplayInfo->Stop->OnPressed = {OnStopSong, &DisplayInfo->MusicBtnInfo};
+    PlaylistUI->Remove = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
+                                   Renderer->ButtonBaseID, PLRemoveID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+    SetLocalPosition(PlaylistUI->Remove, V2(SmallRectS*2 + Layout->TopLeftButtonGroupGap, -PLBtnYOff));
+    PlaylistUI->Rename = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
+                                   Renderer->ButtonBaseID, PLRenameID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+    SetLocalPosition(PlaylistUI->Rename, V2(SmallRectS*2*2 + Layout->TopLeftButtonGroupGap*2, -PLBtnYOff));
+    
+    //                         ****
     
     column_info GenreColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Genre, &Playlist->Genre};
     column_info ArtistColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Artist, &Playlist->Artist};
@@ -1988,14 +2067,6 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     column_info SongColumn   = {Renderer, DisplayInfo, MusicInfo, Parent(&DisplayInfo->Song), &Playlist->Song};
     column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, &Playlist->Playlists};
     
-    column_colors ColumnColors = {
-        &Palette->Slot,
-        &Palette->Text,
-        &Palette->Foreground,
-        &Palette->SliderGrabThing,
-        &Palette->SliderBackground,
-        &Palette->Selected,
-    };
     CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, ColumnColors, -0.025f, 
                         DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->GenreArtist.Edge, Layout);
     CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, ColumnColors, -0.05f, 
@@ -2008,7 +2079,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     ColumnColors.Slot       = &Palette->SliderBackground;
     ColumnColors.Text       = &Palette->ForegroundText;
     ColumnColors.Selected   = &Palette->Foreground;
-    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, ColumnColors, -0.0f, 
+    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, ColumnColors, PlaylistColumnDepth, 
                         DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenre.Edge, Layout);
     
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
@@ -2623,7 +2694,7 @@ TestHoveringEdgeDrags(game_state *GameState, v2 MouseP, music_display_info *Disp
 }
 
 internal column_type
-CheckColumnsForSelectionChange()
+CheckColumnsForSelectionChange(v2 MouseBtnDownLocation)
 {
     column_type Result = columnType_None;
     
@@ -2634,7 +2705,6 @@ CheckColumnsForSelectionChange()
     
     if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
     {
-        
         if(GlobalGameState.Time.GameTime - DisplayInfo->Song.Base.LastClickTime < DOUBLE_CLICK_TIME)
         {
             if(Playlist->Song.Selected.A.Count > 0)
@@ -2667,7 +2737,7 @@ CheckColumnsForSelectionChange()
         }
         else 
         {
-            if(UpdateSelectionArray(&Playlist->Song, &DisplayInfo->Song.Base))
+            if(UpdateSelectionArray(&Playlist->Song, &DisplayInfo->Song.Base, MouseBtnDownLocation))
             {
                 UpdateColumnColor(&DisplayInfo->Song.Base, &Playlist->Song);
             }
@@ -2680,7 +2750,7 @@ CheckColumnsForSelectionChange()
         
         if(GlobalGameState.Time.GameTime - DisplayInfo->Genre.LastClickTime < DOUBLE_CLICK_TIME)
             Result = SelectAllOrNothing(&DisplayInfo->Genre, &Playlist->Genre);
-        else Result = UpdateSelectionArray(&Playlist->Genre, &DisplayInfo->Genre);
+        else Result = UpdateSelectionArray(&Playlist->Genre, &DisplayInfo->Genre, MouseBtnDownLocation);
         
         if(Result)
         {
@@ -2695,7 +2765,7 @@ CheckColumnsForSelectionChange()
     {
         if(GlobalGameState.Time.GameTime - DisplayInfo->Artist.LastClickTime < DOUBLE_CLICK_TIME)
             Result = SelectAllOrNothing(&DisplayInfo->Artist, &Playlist->Artist);
-        else Result = UpdateSelectionArray(&Playlist->Artist, &DisplayInfo->Artist);
+        else Result = UpdateSelectionArray(&Playlist->Artist, &DisplayInfo->Artist, MouseBtnDownLocation);
         
         if(Result)
         {
@@ -2709,13 +2779,13 @@ CheckColumnsForSelectionChange()
     {
         if(GlobalGameState.Time.GameTime - DisplayInfo->Album.LastClickTime < DOUBLE_CLICK_TIME)
             Result = SelectAllOrNothing(&DisplayInfo->Album, &Playlist->Album);
-        else Result = UpdateSelectionArray(&Playlist->Album, &DisplayInfo->Album);
+        else Result = UpdateSelectionArray(&Playlist->Album, &DisplayInfo->Album, MouseBtnDownLocation);
         
         DisplayInfo->Album.LastClickTime = GlobalGameState.Time.GameTime;
     }
     else if(IsInRect(DisplayInfo->Playlists.Background, Input->MouseP))
     {
-        Result = UpdateSelectionArray(&Playlist->Playlists, &DisplayInfo->Playlists);
+        Result = UpdateSelectionArray(&Playlist->Playlists, &DisplayInfo->Playlists, MouseBtnDownLocation);
     }
     
     return Result;
@@ -2764,10 +2834,113 @@ AnimateErrorMessage(user_error_text *ErrorInfo, r32 dTime)
     }
 }
 
+// Drag and Drop ************************
+
+internal b32
+CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
+{
+    b32 IsInColumn = false;
+    music_display_info     *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    music_display_column *DisplayColumn = NULL;
+    playlist_column     *PlaylistColumn = NULL;
+    
+    if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
+    {
+        DisplayColumn  = &GS->MusicInfo.DisplayInfo.Song.Base;
+        PlaylistColumn = &GS->MusicInfo.Playlist_->Song;
+        IsInColumn = true;
+    }
+    else if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
+    {
+        DisplayColumn  = &DisplayInfo->Album;
+        PlaylistColumn = &GS->MusicInfo.Playlist_->Album;
+        IsInColumn = true;
+    }
+    else if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
+    {
+        DisplayColumn  = &DisplayInfo->Artist;
+        PlaylistColumn = &GS->MusicInfo.Playlist_->Artist;
+        IsInColumn = true;
+    }
+    else if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
+    {
+        DisplayColumn  = &DisplayInfo->Genre;
+        PlaylistColumn = &GS->MusicInfo.Playlist_->Genre;
+        IsInColumn = true;
+    }
+    
+    if(IsInColumn)
+    {
+        for(u32 It = 0; 
+            It < PlaylistColumn->Displayable.A.Count && 
+            It < DisplayColumn->Count;
+            ++It)
+        {
+            if(IsInRect(DisplayColumn->BGRects[It], Input->MouseP))
+            {
+                DragDrop->Dragging       = true;
+                DragDrop->ID             = DisplayColumn->OnScreenIDs[It];
+                DragDrop->DragSlotP      = GetPosition(DisplayColumn->BGRects[It]);
+                DragDrop->StartMouseP    = Input->MouseP;
+                DragDrop->ShakeThreshold = GetDistance(DisplayColumn->BGRects[It], DisplayInfo->Playlists.BGRects[0])/3;
+                DragDrop->DragSlot       = Copy(&GS->Renderer, DisplayColumn->BGRects[It]);
+                SetDepth(DragDrop->DragSlot, GetDepth(DragDrop->DragSlot) - 10.1f);
+                SetTransparency(DragDrop->DragSlot, 0.0f);
+                break;
+            }
+        }
+    }
+    
+    return DragDrop->Dragging;
+}
+
+internal void
+DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
+{
+    input_info *Input = &GS->Input;
+    r32 Dist = Distance(DragDrop->StartMouseP, Input->MouseP);
+    if(Dist < DragDrop->ShakeThreshold)
+    {
+        if(DragDrop->dAnim > 1.0f || DragDrop->dAnim < -1.0f)
+        {
+            DragDrop->AnimDir *= -1;
+            Clamp(&DragDrop->dAnim, -1.0f, 1.0f);
+            DragDrop->ShakeDir = Normalize(V2(Random01()*2-1, Random01()*2-1));
+        }
+        else
+        {
+            r32 NDist = Dist/DragDrop->ShakeThreshold;
+            r32 RDist = Root2_8(NDist);
+            
+            r32 ShakeSpeed = SafeRatio1(DragDrop->ShakeMaxAnimTime, RDist);
+            DragDrop->dAnim += GS->Time.dTime/ShakeSpeed * DragDrop->AnimDir;
+            
+            r32 dMove = RDist*DragDrop->dAnim*DragDrop->ShakeMaxRadius;
+            
+            v2 GrabOffset = DragDrop->DragSlotP - DragDrop->StartMouseP;
+            v2 OriP = DragDrop->DragSlotP + (Input->MouseP - DragDrop->DragSlotP+GrabOffset)*NDist;
+            SetPosition(DragDrop->DragSlot, V2(OriP.x + (dMove*DragDrop->ShakeDir.x), 
+                                               OriP.y + (dMove*DragDrop->ShakeDir.y)));
+            SetTransparency(DragDrop->DragSlot, RDist*DragDrop->MaxTransparency);
+            
+            //DebugLog(100, "NDist: %.4f, RDist: %.4f, ShakeSpeed: %.4f, dMove: %.4f\n", NDist, RDist, ShakeSpeed, dMove);
+        }
+    }
+    else
+    {
+        v2 P = Input->MouseP + (DragDrop->DragSlotP - DragDrop->StartMouseP);
+        SetTransparency(DragDrop->DragSlot, DragDrop->MaxTransparency);
+        SetPosition(DragDrop->DragSlot, P);
+    }
+}
 
 
-
-
+internal void
+StopDragDrop(game_state *GS, drag_drop *DragDrop)
+{
+    RemoveRenderEntry(&GS->Renderer, DragDrop->DragSlot);
+    DragDrop->Dragging = false;
+}
 
 
 

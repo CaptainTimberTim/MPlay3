@@ -1,6 +1,7 @@
 #include "Sound_Backend_TD.h"
 #include "GameBasics_TD.h"
 internal u32 CreateHash(string_c Name, u64 CreationDate);
+internal void SavePlaylist(game_state *GS, playlist_info *Playlist);
 
 // This is done in such a way because having the large list
 // as a global variable destroys the CodeGeneration stage
@@ -1859,16 +1860,9 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
 }
 
 internal void
-UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
+UpdateSelectionChangedVisuals(renderer *Renderer, music_info *MusicInfo, music_display_info *DisplayInfo, column_type Type)
 {
-    music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
-    playlist_info *Playlist         = MusicInfo->Playlist_;
     
-    FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
-    if(MusicInfo->IsShuffled) ShuffleStack(&Playlist->Song.Displayable);
-    else                      SortDisplayables(MusicInfo, &MP3Info->FileInfo);
-    
-    UpdatePlayingSongForSelectionChange(MusicInfo);
     DisplayInfo->Song.Base.DisplayCursor = 0;
     
     displayable_id GenreDisplayID = NewDisplayableID(0);
@@ -1904,6 +1898,20 @@ UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3I
     
     UpdateSelectionColors(MusicInfo);
     UpdateVerticalSliders(MusicInfo);
+}
+
+internal void
+UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
+{
+    music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
+    playlist_info *Playlist         = MusicInfo->Playlist_;
+    
+    FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
+    if(MusicInfo->IsShuffled) ShuffleStack(&Playlist->Song.Displayable);
+    else                      SortDisplayables(MusicInfo, &MP3Info->FileInfo);
+    
+    UpdatePlayingSongForSelectionChange(MusicInfo);
+    UpdateSelectionChangedVisuals(Renderer, MusicInfo, DisplayInfo, Type);
 }
 
 internal void
@@ -2223,7 +2231,6 @@ CreatePlaylistsSortingInfo(playlist_column *Playlists)
     Playlists->Batch.Names      = AllocateArray(&GlobalGameState.FixArena, 250, string_c);
     Playlists->Batch.MaxBatches = 250;
     
-    
     Push(&Playlists->Displayable, {0});
     string_c *Name = Playlists->Batch.Names+Playlists->Batch.BatchCount++;
     *Name = NewStringCompound(&GlobalGameState.FixArena, 4+8);
@@ -2236,6 +2243,12 @@ internal playlist_info *
 CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount/*default -1*/, i32 GenreBatchCount/*default -1*/, i32 ArtistBatchCount/*default -1*/, i32 AlbumBatchCount/*default -1*/)
 {
     Assert(MusicInfo->Playlists.Count < MusicInfo->Playlists.MaxCount);
+    if(MusicInfo->Playlists.Count >= MusicInfo->Playlists.MaxCount)
+    {
+        MusicInfo->Playlists.MaxCount = MusicInfo->Playlists.Count*2;
+        MusicInfo->Playlists.List = ReallocateArray(Arena, MusicInfo->Playlists.List, MusicInfo->Playlists.Count,
+                                                    MusicInfo->Playlists.MaxCount, playlist_info);
+    }
     playlist_info *Playlist = MusicInfo->Playlists.List+MusicInfo->Playlists.Count++;
     
     // First entry in Playlists.List is the 'everything' list.
@@ -2477,6 +2490,17 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     NewPlaylist->Album.Batch  = Album;
 }
 
+internal void
+InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID)
+{
+    Assert(Type != columnType_Playlists);
+    Assert(Type != columnType_None);
+    playlist_column     *PlaylistColumn = GS->MusicInfo.Playlist_->Columns + Type;
+    music_display_column *DisplayColumn = GS->MusicInfo.DisplayInfo.Columns[Type];
+    
+    DebugLog(100, "TODO:: Finish me. Before you should make \"create empty playlist\".\n");
+}
+
 inline i32
 GetPlaylistID(music_info *MusicInfo, playlist_info *Playlist)
 {
@@ -2496,7 +2520,7 @@ GetPlaylistID(music_info *MusicInfo, playlist_info *Playlist)
 }
 
 inline void
-AddPlaylistToColumn(music_info *MusicInfo, playlist_id PlaylistID, string_c PlaylistName)
+AddPlaylistToSortingColumn(music_info *MusicInfo, playlist_id PlaylistID, string_c PlaylistName)
 {
     Assert(PlaylistID >= 0);
     
@@ -2510,18 +2534,16 @@ AddPlaylistToColumn(music_info *MusicInfo, playlist_id PlaylistID, string_c Play
 }
 
 inline void
-AddPlaylistToColumn(music_info *MusicInfo, playlist_info *Playlist, string_c PlaylistName)
+AddPlaylistToSortingColumn(music_info *MusicInfo, playlist_info *Playlist, string_c PlaylistName)
 {
     playlist_id PlaylistID = NewPlaylistID(GetPlaylistID(MusicInfo, Playlist));
-    AddPlaylistToColumn(MusicInfo, PlaylistID, PlaylistName);
+    AddPlaylistToSortingColumn(MusicInfo, PlaylistID, PlaylistName);
 }
 
-internal void 
-SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDisplayID)
+internal void // Without changing visuals
+SwitchPlaylistFromPlaylistID(music_display_column *DisplayColumn, playlist_id PlaylistID)
 {
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
-    
-    playlist_id PlaylistID = Get(&MusicInfo->Playlist_->Playlists.Displayable, DisplayColumn->OnScreenIDs[ColumnDisplayID]);
     
     SyncPlaylists_playlist_column(MusicInfo); // We need to sync before switching to the new playlist.
     
@@ -2529,6 +2551,33 @@ SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDispl
     MusicInfo->PlayingSong.DisplayableID.ID = -1;
     MusicInfo->PlayingSong.PlaylistID.ID    = -1;
     MusicInfo->PlayingSong.DecodeID         = -1;
+}
+
+inline void // Without changing visuals
+SwitchPlaylistFromDisplayableID(music_display_column *DisplayColumn, displayable_id DisplayableID)
+{
+    playlist_id PlaylistID = Get(&GlobalGameState.MusicInfo.Playlist_->Playlists.Displayable, DisplayableID);
+    SwitchPlaylistFromPlaylistID(DisplayColumn, PlaylistID);
+}
+
+inline void // Without changing visuals
+SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDisplayID)
+{
+    SwitchPlaylistFromDisplayableID(DisplayColumn, DisplayColumn->OnScreenIDs[ColumnDisplayID]);
+}
+
+internal void // With visuals
+SwitchPlaylist(game_state *GS, playlist_info *Playlist)
+{
+    music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    
+    // MoveDisplayColumn fills the OnScreenIDs array, which is needed for switching visuals...
+    MoveDisplayColumn(&GS->Renderer, &GS->MusicInfo, &DisplayInfo->Playlists);
+    i32 PlaylistID = GetPlaylistID(&GS->MusicInfo, Playlist);
+    SwitchSelection(&DisplayInfo->Playlists, &Playlist->Playlists, PlaylistID);
+    SwitchPlaylistFromPlaylistID(&DisplayInfo->Playlists, {PlaylistID});
+    SortDisplayables(&GS->MusicInfo, &GS->MP3Info->FileInfo);
+    UpdateSelectionChangedVisuals(&GS->Renderer, &GS->MusicInfo, DisplayInfo, columnType_Playlists);
 }
 
 inline void
@@ -2540,8 +2589,65 @@ SyncPlaylists_playlist_column(music_info *MusicInfo)
     }
 }
 
+internal void
+OnNewPlaylistClick(void *Data)
+{
+    game_state *GS = (game_state *)Data;
+    
+    playlist_info *Playlist = CreateEmptyPlaylist(&GS->FixArena, &GS->MusicInfo);
+    
+    NewLocalString(PlaylistName, 30, "New Playlist");
+    I32ToString(&PlaylistName, GS->MusicInfo.Playlists.Count-1);
+    AppendStringToCompound(&PlaylistName, (u8 *)" (0)");
+    
+    AddPlaylistToSortingColumn(&GS->MusicInfo, Playlist, PlaylistName);
+    UpdateSelectionChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, columnType_Playlists);
+    
+    SavePlaylist(GS, Playlist);
+}
 
-
+inline void
+OnRemovePlaylistClick(void *Data)
+{
+    game_state *GS = (game_state *)Data;
+    
+    playlist_info *Playlist = GS->MusicInfo.Playlist_;
+    i32 PlaylistID          = GetPlaylistID(&GS->MusicInfo, Playlist);
+    Assert(PlaylistID >= 0);
+    if(PlaylistID == 0) return; // Cannot delete the first playlist.
+    
+    DestroyArray(&GS->FixArena, Playlist->Genre.Selected.A);
+    DestroyArray(&GS->FixArena, Playlist->Artist.Selected.A);
+    DestroyArray(&GS->FixArena, Playlist->Album.Selected.A);
+    DestroyArray(&GS->FixArena, Playlist->Song.Selected.A);
+    
+    DestroyArray(&GS->FixArena, Playlist->Genre.Displayable.A);
+    DestroyArray(&GS->FixArena, Playlist->Artist.Displayable.A);
+    DestroyArray(&GS->FixArena, Playlist->Album.Displayable.A);
+    DestroyArray(&GS->FixArena, Playlist->Song.Displayable.A);
+    //TODO:: Also remove sort_batch arrays.
+    
+    SwitchPlaylistFromPlaylistID(&GS->MusicInfo.DisplayInfo.Playlists, {PlaylistID});
+    Playlist = GS->MusicInfo.Playlist_;
+    RemoveItem(GS->MusicInfo.Playlists.List, GS->MusicInfo.Playlists.Count, PlaylistID, playlist_info);
+    --GS->MusicInfo.Playlists.Count;
+    // TODO:: Removing last item triggered exception. Look into it.
+    RemoveItem(Playlist->Playlists.Batch.Names, Playlist->Playlists.Batch.BatchCount, PlaylistID, string_c);
+    --Playlist->Playlists.Batch.BatchCount;
+    StackFindAndTake(&Playlist->Playlists.Displayable.A, PlaylistID);
+    // Now we need to decrease the value of every entry in displayables by one
+    // from all that are higher than PlaylistID to realign the 'ID's again.
+    For(Playlist->Playlists.Displayable.A.Count)
+    {
+        u32 ID = Get(&Playlist->Playlists.Displayable.A, It);
+        if(ID > (u32)PlaylistID) 
+        {
+            ReplaceAt(&Playlist->Playlists.Displayable.A, It, ID-1);
+        }
+    }
+    
+    SwitchPlaylist(GS, GS->MusicInfo.Playlists.List+(PlaylistID%Playlist->Playlists.Batch.BatchCount));
+}
 
 
 

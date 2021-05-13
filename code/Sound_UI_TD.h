@@ -284,6 +284,7 @@ struct music_display_info
     music_display_column Artist;
     music_display_column Album;
     display_column_song_extension Song;
+    music_display_column *Columns[5]; // Easy acces through column_type.
     
     music_display_column Playlists;
     playlist_ui PlaylistUI;
@@ -334,10 +335,15 @@ struct music_display_info
 struct drag_drop
 {
     b32 Dragging;
+    column_type Type;
+    displayable_id SlotID;
     v2 StartMouseP;
-    displayable_id ID;
+    v2 SlotStartP;
     entry_id *DragSlot;
-    v2 DragSlotP;
+    entry_id *Border;
+    render_text SlotText;
+    r32 TextOverhang;
+    v2 GrabOffset;
     
     i32 AnimDir = 1;
     r32 dAnim   = 0;
@@ -347,6 +353,13 @@ struct drag_drop
     r32 ShakeMaxRadius = 5.0f;
     r32 ShakeMaxAnimTime = 0.01f;
     r32 MaxTransparency  = 0.95f;
+    
+    b32 ShakeTransition = false;
+    v2 Velocity;
+    
+    // Drop Info
+    i32 CurHoverID = -1;
+    v3 *CurOriginalColor;
 };
 
 struct layout_definition

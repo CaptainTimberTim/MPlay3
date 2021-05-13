@@ -598,7 +598,7 @@ WinMain(HINSTANCE Instance,
             b32 *ReRender = &Renderer->Rerender;
             
             music_info *MusicInfo     = &GameState->MusicInfo;
-            MusicInfo->Playlists      = CreatePlaylistList(&GameState->FixArena, 10); // TODO:: Fixed length
+            MusicInfo->Playlists      = CreatePlaylistList(&GameState->FixArena, 20);
             playing_song *PlayingSong = &MusicInfo->PlayingSong;
             *PlayingSong = {-1, -1, -1};
             mp3_info *MP3Info = 0;
@@ -638,7 +638,7 @@ WinMain(HINSTANCE Instance,
                 playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo);
                 FillPlaylistWithFileIDs(MusicInfo, &MP3Info->FileInfo, NewPL, FileIDs);
                 
-                AddPlaylistToColumn(MusicInfo, NewPL, PlaylistName);
+                AddPlaylistToSortingColumn(MusicInfo, NewPL, PlaylistName);
                 SyncPlaylists_playlist_column(MusicInfo);
             }
             
@@ -990,7 +990,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     if(Input->Pressed[KEY_LMB])
                     {
                         if(DragableList->DraggingID >= 0) OnDragging(DragableList, Renderer, Input->MouseP);
-                        else if(DragDrop.Dragging) DoDragDropAnim(GameState, &DragDrop);
+                        else if(DragDrop.Dragging) 
+                        {
+                            DoDragDropAnim(GameState, &DragDrop);
+                            EvalDragDropPosition(GameState, &DragDrop);
+                        }
                     }
                     if(Input->KeyChange[KEY_LMB] == KeyUp)
                     {
@@ -1045,9 +1049,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             FillPlaylistWithCurrentSelection(MusicInfo, &MP3Info->FileInfo, NewPL);
                             
                             MusicInfo->Playlist_ = NewPL;
-                            MusicInfo->PlayingSong.DisplayableID.ID = -1; // If we swtich playlist, playing song will reset.
-                            MusicInfo->PlayingSong.PlaylistID.ID    = -1;
-                            MusicInfo->PlayingSong.DecodeID         = -1;
                             
                             NewLocalString(PlaylistName, 30, "NewPlaylist");
                             I32ToString(&PlaylistName, MusicInfo->Playlists.Count-1);
@@ -1055,14 +1056,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             I32ToString(&PlaylistName, MusicInfo->Playlist_->Song.Displayable.A.Count);
                             AppendCharToCompound(&PlaylistName, ')');
                             
-                            AddPlaylistToColumn(MusicInfo, NewPL, PlaylistName);
+                            AddPlaylistToSortingColumn(MusicInfo, NewPL, PlaylistName);
                             
-                            UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, columnType_Playlists);
-                            
-                            SwitchSelection(&DisplayInfo->Playlists, &NewPL->Playlists, MusicInfo->Playlists.Count-1);
-                            SwitchPlaylistFromDisplayID(&DisplayInfo->Playlists, MusicInfo->Playlists.Count-1);
-                            UpdateSelectionColors(MusicInfo);
-                            SortDisplayables(MusicInfo, &MP3Info->FileInfo);
+                            FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
+                            SwitchPlaylist(GameState, NewPL);
                             
                             SavePlaylist(GameState, NewPL);
                         }

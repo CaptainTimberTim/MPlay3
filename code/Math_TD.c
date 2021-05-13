@@ -736,6 +736,17 @@ HadamardProduct(v2 A, v2 B)
 }
 
 inline v2
+Scale(v2 A, v2 B)
+{
+    v2 Result;
+    
+    Result.x = A.x * B.x;
+    Result.y = A.y * B.y;
+    
+    return(Result);
+}
+
+inline v2
 HadamardDivision(v2 A, v2 B)
 {
     v2 Result;

@@ -30,6 +30,9 @@ internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, music
 internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, playlist_column *PlaylistColumn);
 internal void PropagateSelectionChange(music_info *SortingInfo);
 internal void UpdatePlayingSongForSelectionChange(music_info *MusicInfo);
+internal void InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID);
+internal void   OnNewPlaylistClick(void *Data);
+inline void   OnRemovePlaylistClick(void *Data);
 
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayColumn)
@@ -459,7 +462,22 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
 }
 
 internal r32
-CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Text, u32 DisplayableCount)
+CalcTextOverhang(entry_id *Rect, render_text Text)
+{
+    r32 Result = 0;
+    
+    if(Text.Count > 0) 
+    {
+        v2 TextT = GetPosition(&Text, Text.Count-1);
+        v2 TextP = TextT+V2(15,0);
+        Result = DistanceToRectEdge(Rect, TextP);
+    }
+    
+    return Result;
+}
+
+internal r32
+CalcTextOverhang(music_display_column *DisplayColumn, render_text *TextArray, u32 DisplayableCount)
 {
     r32 Result = 0;
     
@@ -469,9 +487,9 @@ CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Tex
         It < DisplayableCount;
         It++)
     {
-        if(Text[It].Count > 0) 
+        if(TextArray[It].Count > 0) 
         {
-            v2 TextT = GetPosition(&Text[It], Text[It].Count-1);
+            v2 TextT = GetPosition(&TextArray[It], TextArray[It].Count-1);
             v2 TextP = TextT+V2(15,0);
             r32 Overhang = DistanceToRectEdge(DisplayColumn->BGRects[It], TextP);
             if(Overhang > MaxOverhang)
@@ -481,8 +499,16 @@ CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Tex
         }
     }
     
-    Result = (1.0f/DisplayColumn->SlotWidth) * MaxOverhang;
+    Result = MaxOverhang;
     
+    return Result;
+}
+
+internal r32
+CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *TextArray, u32 DisplayableCount)
+{
+    r32 Result = CalcTextOverhang(DisplayColumn, TextArray, DisplayableCount);
+    Result = (1.0f/DisplayColumn->SlotWidth) * Result;
     return Result;
 }
 
@@ -877,9 +903,9 @@ UpdateDisplayColumnColor(music_display_column *DisplayColumn, playlist_column *P
     {
         if(IsSelected(DisplayColumn, PlaylistColumn, It))
         {
-            DisplayColumn->BGRects[It]->ID->Color = DisplayColumn->Colors.Selected;
+            SetColor(DisplayColumn->BGRects[It], DisplayColumn->Colors.Selected);
         }
-        else DisplayColumn->BGRects[It]->ID->Color = DisplayColumn->Colors.Slot; 
+        else SetColor(DisplayColumn->BGRects[It], DisplayColumn->Colors.Slot); 
     }
 }
 
@@ -894,13 +920,13 @@ UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *Pla
         playlist_id ActualID  = Get(&PlaylistColumn->Displayable, DisplayColumn->OnScreenIDs[It]);
         if(PlaylistID == ActualID)
         {
-            DisplayColumn->BGRects[It]->ID->Color = Color;
+            SetColor(DisplayColumn->BGRects[It], Color);
         }
         else if(StackContains(&PlaylistColumn->Selected, ActualID))
         {
-            DisplayColumn->BGRects[It]->ID->Color = DisplayColumn->Colors.Selected;
+            SetColor(DisplayColumn->BGRects[It], DisplayColumn->Colors.Selected);
         }
-        else DisplayColumn->BGRects[It]->ID->Color = DisplayColumn->Colors.Slot; 
+        else SetColor(DisplayColumn->BGRects[It], DisplayColumn->Colors.Slot); 
     }
 }
 
@@ -1406,7 +1432,7 @@ OnStopSong(void *Data)
         PushSoundBufferClear(GameState->SoundThreadInterface);
         
         GameState->MusicInfo.DisplayInfo.PlayPause->State = buttonState_Unpressed;
-        GameState->MusicInfo.DisplayInfo.PlayPause->Entry->ID->Color = GameState->MusicInfo.DisplayInfo.PlayPause->BaseColor;
+        SetColor(GameState->MusicInfo.DisplayInfo.PlayPause->Entry, GameState->MusicInfo.DisplayInfo.PlayPause->BaseColor);
     }
 }
 
@@ -2050,16 +2076,24 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     PlaylistUI->Add = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                 Renderer->ButtonBaseID, PLAddID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
     SetLocalPosition(PlaylistUI->Add, V2(0, -PLBtnYOff));
+    PlaylistUI->Add->OnPressed = {OnNewPlaylistClick, GameState};
     
-    //DisplayInfo->Stop->OnPressed = {OnStopSong, &DisplayInfo->MusicBtnInfo};
     PlaylistUI->Remove = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                    Renderer->ButtonBaseID, PLRemoveID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
     SetLocalPosition(PlaylistUI->Remove, V2(SmallRectS*2 + Layout->TopLeftButtonGroupGap, -PLBtnYOff));
+    PlaylistUI->Remove->OnPressed = {OnRemovePlaylistClick, GameState};
+    
     PlaylistUI->Rename = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                    Renderer->ButtonBaseID, PLRenameID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
     SetLocalPosition(PlaylistUI->Rename, V2(SmallRectS*2*2 + Layout->TopLeftButtonGroupGap*2, -PLBtnYOff));
     
     //                         ****
+    
+    DisplayInfo->Columns[0] = &DisplayInfo->Genre;
+    DisplayInfo->Columns[1] = &DisplayInfo->Artist;
+    DisplayInfo->Columns[2] = &DisplayInfo->Album;
+    DisplayInfo->Columns[3] = &DisplayInfo->Song.Base;
+    DisplayInfo->Columns[4] = &DisplayInfo->Playlists;
     
     column_info GenreColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Genre, &Playlist->Genre};
     column_info ArtistColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Artist, &Playlist->Artist};
@@ -2834,7 +2868,9 @@ AnimateErrorMessage(user_error_text *ErrorInfo, r32 dTime)
     }
 }
 
+// **************************************
 // Drag and Drop ************************
+// **************************************
 
 internal b32
 CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
@@ -2879,19 +2915,52 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
             if(IsInRect(DisplayColumn->BGRects[It], Input->MouseP))
             {
                 DragDrop->Dragging       = true;
-                DragDrop->ID             = DisplayColumn->OnScreenIDs[It];
-                DragDrop->DragSlotP      = GetPosition(DisplayColumn->BGRects[It]);
+                DragDrop->Type           = DisplayColumn->Type;
+                DragDrop->SlotID         = DisplayColumn->OnScreenIDs[It];
+                DragDrop->SlotStartP     = GetPosition(DisplayColumn->BGRects[It]);
                 DragDrop->StartMouseP    = Input->MouseP;
-                DragDrop->ShakeThreshold = GetDistance(DisplayColumn->BGRects[It], DisplayInfo->Playlists.BGRects[0])/3;
-                DragDrop->DragSlot       = Copy(&GS->Renderer, DisplayColumn->BGRects[It]);
-                SetDepth(DragDrop->DragSlot, GetDepth(DragDrop->DragSlot) - 10.1f);
+                DragDrop->ShakeThreshold = GetDistance(DisplayColumn->BGRects[It], DisplayInfo->Playlists.BGRects[0])/4;
+                
+                render_text *ToCopy = 0;
+                if(DisplayColumn->Type == columnType_Song) ToCopy = ColumnExt(DisplayColumn)->SongTitle+It;
+                else ToCopy = DisplayColumn->Text+It;
+                CopyRenderText(GS, ToCopy, &DragDrop->SlotText, -0.9999f);
+                SetTransparency(&DragDrop->SlotText, 0.0f);
+                
+                DragDrop->DragSlot = Copy(&GS->Renderer, DisplayColumn->BGRects[It]);
+                DragDrop->TextOverhang = CalcTextOverhang(DisplayColumn->BGRects[It], *ToCopy)+20;
+                SetSize(DragDrop->DragSlot, GetSize(DragDrop->DragSlot)+V2(DragDrop->TextOverhang, 0));
+                SetDepth(DragDrop->DragSlot, GetDepth(DragDrop->SlotText.Base) + 0.0001f); // Then move down a little bit.
                 SetTransparency(DragDrop->DragSlot, 0.0f);
+                
+                Translate(&DragDrop->SlotText, V2(-DragDrop->TextOverhang*0.5f, 0));
+                SetParent(DragDrop->SlotText.Base, DragDrop->DragSlot);
+                DragDrop->GrabOffset = (DragDrop->SlotStartP - DragDrop->StartMouseP);
+                DragDrop->SlotStartP.x += DragDrop->TextOverhang*0.5f;
+                
                 break;
             }
         }
     }
     
     return DragDrop->Dragging;
+}
+
+internal void 
+CalculateRubberDrag(drag_drop *DragDrop, r32 dTime, v2 Force)
+{
+    const r32 Mass    = 10;
+    const r32 Tension = 4000;
+    const r32 Drag    = 15;
+    
+    Force *= Tension;
+    v2 Acceleration = (Force/Mass) - Drag*DragDrop->Velocity;
+    DragDrop->Velocity = Acceleration*dTime + DragDrop->Velocity;
+    // Remove small jitter when having small velocity.
+    if(LengthSquared(DragDrop->Velocity) < 4) DragDrop->Velocity = V2(0);
+    
+    v2 P = DragDrop->Velocity*dTime + GetPosition(DragDrop->DragSlot);
+    SetPosition(DragDrop->DragSlot, P);
 }
 
 internal void
@@ -2901,6 +2970,16 @@ DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
     r32 Dist = Distance(DragDrop->StartMouseP, Input->MouseP);
     if(Dist < DragDrop->ShakeThreshold)
     {
+        if(DragDrop->ShakeTransition)
+        {
+            DragDrop->ShakeTransition = false;
+            if(DragDrop->Border) 
+            {
+                RemoveRenderEntry(&GS->Renderer, DragDrop->Border);
+                DragDrop->Border = 0;
+            }
+        }
+        
         if(DragDrop->dAnim > 1.0f || DragDrop->dAnim < -1.0f)
         {
             DragDrop->AnimDir *= -1;
@@ -2917,28 +2996,100 @@ DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
             
             r32 dMove = RDist*DragDrop->dAnim*DragDrop->ShakeMaxRadius;
             
-            v2 GrabOffset = DragDrop->DragSlotP - DragDrop->StartMouseP;
-            v2 OriP = DragDrop->DragSlotP + (Input->MouseP - DragDrop->DragSlotP+GrabOffset)*NDist;
+            v2 OriP = DragDrop->SlotStartP + (Input->MouseP - DragDrop->SlotStartP+DragDrop->GrabOffset)*NDist;
             SetPosition(DragDrop->DragSlot, V2(OriP.x + (dMove*DragDrop->ShakeDir.x), 
                                                OriP.y + (dMove*DragDrop->ShakeDir.y)));
             SetTransparency(DragDrop->DragSlot, RDist*DragDrop->MaxTransparency);
+            SetTransparency(&DragDrop->SlotText, RDist*DragDrop->MaxTransparency);
             
             //DebugLog(100, "NDist: %.4f, RDist: %.4f, ShakeSpeed: %.4f, dMove: %.4f\n", NDist, RDist, ShakeSpeed, dMove);
         }
     }
     else
     {
-        v2 P = Input->MouseP + (DragDrop->DragSlotP - DragDrop->StartMouseP);
-        SetTransparency(DragDrop->DragSlot, DragDrop->MaxTransparency);
-        SetPosition(DragDrop->DragSlot, P);
+        v2 DragDir = Input->MouseP - GetPosition(DragDrop->DragSlot) + DragDrop->GrabOffset + V2(DragDrop->TextOverhang/2, 0);
+        
+        if(!DragDrop->ShakeTransition)
+        {
+            DragDrop->ShakeTransition = true;
+            SetTransparency(DragDrop->DragSlot, DragDrop->MaxTransparency*0.9f);
+            SetTransparency(&DragDrop->SlotText, DragDrop->MaxTransparency*0.9f);
+            DragDrop->Border = Copy(&GS->Renderer, DragDrop->DragSlot);
+            SetDepth(DragDrop->Border, GetDepth(DragDrop->DragSlot) + 0.0001f);
+            SetColor(DragDrop->Border, &GS->MusicInfo.DisplayInfo.ColorPalette.Text);
+            SetLocalPosition(DragDrop->Border, {});
+            SetSize(DragDrop->Border, GetSize(DragDrop->Border)+V2(6, 6));
+            SetTransparency(DragDrop->Border, DragDrop->MaxTransparency*0.5f);
+            SetParent(DragDrop->Border, DragDrop->DragSlot);
+            
+            // Add strong bounce at beginning of rubber banding.
+            DragDir = Input->MouseP - DragDrop->SlotStartP + DragDrop->GrabOffset;
+            DragDir *= 5;
+        }
+        CalculateRubberDrag(DragDrop, GS->Time.dTime, DragDir);
     }
 }
 
 
 internal void
+EvalDragDropPosition(game_state *GS, drag_drop *DragDrop)
+{
+    music_display_info     *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    music_display_column *DisplayColumn = &DisplayInfo->Playlists;
+    v2 TopLeftCorner = GetPosition(DragDrop->DragSlot)+Scale(GetSize(DragDrop->DragSlot)*0.5f, V2(-1, 1));
+    
+    b32 InSlot = false;
+    if(IsInRect(DisplayColumn->Background, TopLeftCorner))
+    {
+        playlist_column *PlaylistColumn = &GS->MusicInfo.Playlist_->Playlists;
+        
+        for(u32 It = 0; 
+            It < PlaylistColumn->Displayable.A.Count && 
+            It < DisplayColumn->Count;
+            ++It)
+        {
+            if(IsInRect(DisplayColumn->BGRects[It], TopLeftCorner))
+            {
+                if(DragDrop->CurHoverID >= 0) 
+                    SetColor(DisplayColumn->BGRects[DragDrop->CurHoverID], DragDrop->CurOriginalColor); 
+                
+                DragDrop->CurHoverID = It;
+                DragDrop->CurOriginalColor = GetColorPtr(DisplayColumn->BGRects[It]);
+                SetColor(DisplayColumn->BGRects[It], &DisplayInfo->ColorPalette.Text);
+                
+                InSlot = true;
+                break;
+            }
+        }
+    }
+    if(!InSlot && DragDrop->CurHoverID >= 0)
+    {
+        SetColor(DisplayColumn->BGRects[DragDrop->CurHoverID], DragDrop->CurOriginalColor); 
+        DragDrop->CurHoverID = -1;
+    }
+}
+
+internal void
 StopDragDrop(game_state *GS, drag_drop *DragDrop)
 {
+    if(DragDrop->Border) 
+    {
+        RemoveRenderEntry(&GS->Renderer, DragDrop->Border);
+        DragDrop->Border = 0;
+    }
     RemoveRenderEntry(&GS->Renderer, DragDrop->DragSlot);
+    RemoveRenderText(&GS->Renderer, &DragDrop->SlotText);
+    if(DragDrop->CurHoverID >= 0)
+    {
+        SetColor(GS->MusicInfo.DisplayInfo.Playlists.BGRects[DragDrop->CurHoverID], DragDrop->CurOriginalColor); 
+        
+        playlist_id PlaylistID = Get(&GS->MusicInfo.Playlist_->Playlists.Displayable,
+                                     GS->MusicInfo.DisplayInfo.Playlists.OnScreenIDs[DragDrop->CurHoverID]);
+        playlist_info *Playlist = GS->MusicInfo.Playlists.List + PlaylistID.ID;
+        InsertSlotIntoPlaylist(GS, Playlist, DragDrop->Type, DragDrop->SlotID);
+        
+        DragDrop->CurHoverID = -1;
+    }
     DragDrop->Dragging = false;
 }
 

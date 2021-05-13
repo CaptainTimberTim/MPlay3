@@ -235,8 +235,17 @@
 - Fixed bug where, if you click+hold the mouse btn und then go over a colum slot and release, it was considered a click. 
 - Added start of drag&drop for adding stuff to playlists. First version of drag anim is done. Drop not working yet.
 
+11.05.2021
+- Added visual part of dropping.
 
+12.05.2021
+- Refined the dragging animation, added the "second phase" after the initial shaking-and-ripping-off animation it now follows
+  the cursor like a stiff rubber-band.
+- Added text and a border around the dragging slot.
 
+13.05.2021
+- Added functionality for add playlist button
+- Added functionality for delete playlist button (not 100% working everytime)
 
 
 

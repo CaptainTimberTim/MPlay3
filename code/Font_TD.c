@@ -423,6 +423,40 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size_id FontSize, string
     }
 }
 
+internal void
+CopyRenderText(game_state *GS, render_text *In, render_text *Out, r32 Depth = -2.0f)
+{
+    if(Out->MaxCount == 0)
+    {
+        Out->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, In->Count);
+        Out->RenderEntries    = AllocateArray(&GS->FixArena, Out->MaxCount, render_entry);
+    }
+    else if (Out->MaxCount < In->Count)
+    {
+        Out->RenderEntries = ReallocateArray(&GS->FixArena, Out->RenderEntries, Out->MaxCount, In->Count, render_entry);
+        Out->MaxCount = In->Count;
+    }
+    r32 DepthOffset = (Depth > -2.0f) ? Depth : GetDepth(In->Base);
+    Out->CurrentP = In->CurrentP;
+    Out->Count    = In->Count;
+    Out->Extends  = In->Extends;
+    Out->Base     = CreateRenderBitmap(&GS->Renderer, V2(0), DepthOffset, GetParent(In->Base), 0); // GLID can be 0, never used!
+    SetPosition(Out->Base, GetPosition(In->Base));
+    Out->Base->ID->Type = renderType_Text;
+    Out->Base->ID->Text = Out;
+    
+    For(Out->Count)
+    {
+        Out->RenderEntries[It] = In->RenderEntries[It];
+        Out->RenderEntries[It].Parent = Out->Base;
+        Out->RenderEntries[It].Vertice[0].z = DepthOffset;
+        Out->RenderEntries[It].Vertice[1].z = DepthOffset;
+        Out->RenderEntries[It].Vertice[2].z = DepthOffset;
+        Out->RenderEntries[It].Vertice[3].z = DepthOffset;
+        DepthOffset -= 0.000001f;
+    }
+}
+
 inline b32
 IsPlaneOne(u8 Char)
 {

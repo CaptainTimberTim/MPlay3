@@ -34,18 +34,22 @@ typedef double r64;
 // NOTE:: Counts the size of a fixed array.
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
+// NOTE:: Meta-Macro, converts a macro back to a 'one-line' statement, which requires a semicolon at the end.
+#define ToStatement(E) do{E}while(0)
+
 #ifndef __CD // Combine both params to a single name
 #define __CD2(X, Y) X##Y
 #define __CD(X, Y) __CD2(X, Y)
 #endif
 
 // NOTE:: General macro for removing an entry/item from an arbitrary array. Moving all following items one up.
-#define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) { \
+#define RemoveItem(Array, ArrayCount, RemovePos, ArrayType) \
+ToStatement( \
 u32 MoveSize = (ArrayCount-RemovePos)*sizeof(ArrayType); \
 u8 *Goal = ((u8 *)Array) + (RemovePos*sizeof(ArrayType)); \
 u8 *Start = Goal + sizeof(ArrayType); \
 memmove_s(Goal, MoveSize, Start, MoveSize); \
-} 
+) 
 
 // NOTE:: Cuts off the path from the file
 inline i32 LastOccurrenceOfCharacterInString(u8 CharToFind, u8 *String, u8 Delimiter);
@@ -76,8 +80,6 @@ char B[Count]; \
 sprintf_s(B, Text, __VA_ARGS__);\
 printf(B); \
 }
-
-#define ToStatement(E) do{E}while(0)
 
 #if DEBUG_TD
 #define Assert(Expression)                                                                        \

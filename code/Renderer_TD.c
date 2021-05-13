@@ -355,7 +355,6 @@ internal entry_id *
 Copy(renderer *Renderer, entry_id *Entry)
 {
     entry_id *Result = 0;
-    v2 P = GetPosition(Entry);
     if(Entry->ID->Type == renderType_2DRectangle)
     {
         Result = CreateRenderRect(Renderer, GetSize(Entry), Entry->ID->Vertice[0].z, Entry->ID->Color, Entry->ID->Parent);
@@ -365,7 +364,7 @@ Copy(renderer *Renderer, entry_id *Entry)
         Result = CreateRenderBitmap(Renderer, GetSize(Entry), Entry->ID->Vertice[0].z, Entry->ID->Parent, Entry->ID->TexID);
     }
     else InvalidCodePath;
-    SetPosition(Result, P);
+    SetPosition(Result, GetPosition(Entry));
     
     return Result;
 }
@@ -518,10 +517,24 @@ GetColor(entry_id *Entry)
     return Result;
 }
 
+inline v3 *
+GetColorPtr(entry_id *Entry)
+{
+    v3 *Result = Entry->ID->Color;
+    return Result;
+}
+
 inline void 
 SetParent(entry_id *Entry, entry_id *Parent)
 {
     Entry->ID->Parent = Parent;
+}
+
+inline entry_id *
+GetParent(entry_id *Entry)
+{
+    entry_id *Result = Entry->ID->Parent;
+    return Result;
 }
 
 inline void 

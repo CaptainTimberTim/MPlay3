@@ -14,6 +14,8 @@
 
 // TODO::
 //
+// - HardLimit:: is a label where I set a hard limit, the user could exceed and needs to be dealt with.
+//
 // - generate huge amount of fake mp3 files and test with those!
 // - Solidify playlists
 //      - show current playlist button
@@ -56,6 +58,7 @@
 // - Playlist playlist selected array should only be length 1
 // - Preload songs when switching playlists.
 // - Add tooltips for new stuff.
+// - Add drag&drop for sorting playlist slots.
 
 #include "Sound_UI_TD.h"
 
@@ -147,6 +150,7 @@ void SyncPlaylists_playlist_column(music_info *MusicInfo);
 
 struct playlist_array
 {
+    // The ID for this List is the same for Names in sort_batch.
     playlist_info *List;
     u32 Count;
     u32 MaxCount;

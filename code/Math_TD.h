@@ -241,6 +241,7 @@ inline r32 Length(v2 A);
 inline r32 Distance(v2 A, v2 B);
 inline v2 Normalize(v2 A);
 inline v2 HadamardProduct(v2 A, v2 B);
+inline v2 Scale(v2 A, v2 B);
 inline v2 HadamardDivision(v2 A, v2 B);
 
 // 2D integer Vectors

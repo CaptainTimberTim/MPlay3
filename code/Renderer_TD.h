@@ -257,7 +257,9 @@ inline void SetActive(entry_id *Entry, b32 Activate);
 inline b32  IsActive(entry_id *Entry);
 inline void SetColor(entry_id *Entry, v3 *Color);
 inline v3   GetColor(entry_id *Entry);
+inline v3  *GetColorPtr(entry_id *Entry);
 inline void SetParent(entry_id *Entry, entry_id *Parent);
+inline entry_id *GetParent(entry_id *Entry);
 inline r32  GetDepth(entry_id *Entry);
 inline void SetDepth(entry_id *Entry, r32 Depth);
 

@@ -2627,11 +2627,6 @@ OnRemovePlaylistClick(void *Data)
     DestroyArray(&GS->FixArena, Playlist->Song.Displayable.A);
     //TODO:: Also remove sort_batch arrays.
     
-    SwitchPlaylistFromPlaylistID(&GS->MusicInfo.DisplayInfo.Playlists, {PlaylistID});
-    Playlist = GS->MusicInfo.Playlist_;
-    RemoveItem(GS->MusicInfo.Playlists.List, GS->MusicInfo.Playlists.Count, PlaylistID, playlist_info);
-    --GS->MusicInfo.Playlists.Count;
-    // TODO:: Removing last item triggered exception. Look into it.
     RemoveItem(Playlist->Playlists.Batch.Names, Playlist->Playlists.Batch.BatchCount, PlaylistID, string_c);
     --Playlist->Playlists.Batch.BatchCount;
     StackFindAndTake(&Playlist->Playlists.Displayable.A, PlaylistID);
@@ -2647,6 +2642,14 @@ OnRemovePlaylistClick(void *Data)
     }
     
     SwitchPlaylist(GS, GS->MusicInfo.Playlists.List+(PlaylistID%Playlist->Playlists.Batch.BatchCount));
+    
+    // Needs to be last, as this removes the place where the actual playlist was stored.
+    // All accesses need to happen beforehand.
+    RemoveItem(GS->MusicInfo.Playlists.List, GS->MusicInfo.Playlists.Count, PlaylistID, playlist_info);
+    --GS->MusicInfo.Playlists.Count;
+    
+    
+    //DeleteFile();
 }
 
 

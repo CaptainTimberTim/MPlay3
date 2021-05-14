@@ -247,6 +247,11 @@
 - Added functionality for add playlist button
 - Added functionality for delete playlist button (not 100% working everytime)
 
+14.05.2021
+- Almost finished delete playlist (actual file deletion still missing)
+- Adjusted the playlist save file loading. Now only the string 'MPlay3Playlist_' at the beginning and '.save' at the end is      required. Inbetween the user can put whatever they want.
+- Added comments in the playlist save file which explain save position and the renaming scheme.
+- Removed ID from playlist save file as it was unnecessary.
 
 
 

@@ -59,6 +59,10 @@
 // - Preload songs when switching playlists.
 // - Add tooltips for new stuff.
 // - Add drag&drop for sorting playlist slots.
+// - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
+// - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
+
+
 
 #include "Sound_UI_TD.h"
 
@@ -144,6 +148,7 @@ struct playlist_info
         };
         playlist_column Columns[5];
     };
+    string_c Filename;
 };
 internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
 void SyncPlaylists_playlist_column(music_info *MusicInfo);

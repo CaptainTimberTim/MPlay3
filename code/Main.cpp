@@ -628,20 +628,7 @@ WinMain(HINSTANCE Instance,
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
             UpdatePlayingSongForSelectionChange(MusicInfo);
             
-            while(true)
-            {
-                array_file_id FileIDs = {};
-                string_c PlaylistName = {};
-                b32 FoundPlaylist = LoadPlaylist(GameState, MusicInfo->Playlists.Count, &FileIDs, &PlaylistName);
-                if(!FoundPlaylist) break;
-                
-                playlist_info *NewPL = CreateEmptyPlaylist(&GameState->FixArena, MusicInfo);
-                FillPlaylistWithFileIDs(MusicInfo, &MP3Info->FileInfo, NewPL, FileIDs);
-                
-                AddPlaylistToSortingColumn(MusicInfo, NewPL, PlaylistName);
-                SyncPlaylists_playlist_column(MusicInfo);
-            }
-            
+            LoadAllPlaylists(GameState);
             
             // ********************************************
             // FONT stuff *********************************

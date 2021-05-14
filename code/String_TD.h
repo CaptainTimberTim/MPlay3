@@ -231,8 +231,8 @@ CopyIntoCompound(string_c *Into, string_c *Copy)
     {
         Into->S[It] = Copy->S[It];
     }
-    Into->S[Into->Pos] = '\0';
     Into->Pos = Copy->Pos;
+    Into->S[Into->Pos] = '\0';
 }
 
 inline void

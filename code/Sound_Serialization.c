@@ -989,8 +989,14 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Playlist\nVersion: ");
     I32ToString(&SaveData, PLAYLIST_CURRENT_VERSION);
+    
     AppendStringToCompound(&SaveData, (u8 *)"\nName: ");
-    AppendStringCompoundToCompound(&SaveData, Playlist->Playlists.Batch.Names+PlaylistID);
+    NewLocalString(PLName, PLAYLIST_MAX_NAME_LENGTH, Playlist->Playlists.Batch.Names[PlaylistID].S);
+    i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&PLName, '(');
+    Assert(NameEndP >= 0);
+    PLName.Pos = NameEndP-1;
+    AppendStringCompoundToCompound(&SaveData, &PLName);
+    
     AppendStringToCompound(&SaveData, (u8 *)"\nCount: ");
     I32ToString(&SaveData, Playlist->Song.FileIDs.A.Count);
     AppendStringToCompound(&SaveData, (u8 *)"\n\n");
@@ -1031,10 +1037,16 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     else
     {
         // TODO:: When we use this now. It is possible that a file already exists with this name and
-        // we just overwrite it. 
+        // we just overwrite it. NOTE:: Made a bit more 'save' as I added the count as well.
         AppendStringCompoundToCompound(&PlaylistPath, &GS->PlaylistPath);
         I32ToString(&PlaylistPath, PlaylistID);
+        AppendCharToCompound(&PlaylistPath, '_');
+        I32ToString(&PlaylistPath, Playlist->Song.FileIDs.A.Count);
         AppendStringToCompound(&PlaylistPath, (u8 *)".save");
+        
+        // If we are here and build our own path, we also need to save it for later.
+        Playlist->Filename = NewStringCompound(&GS->FixArena, PlaylistPath.Pos);
+        AppendStringCompoundToCompound(&Playlist->Filename, &PlaylistPath);
     }
     
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
@@ -1081,7 +1093,7 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         AdvanceToNewline(&C);
         
         C += 6; // "Name: "
-        u32 HardLimit = 100;
+        u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;
         u32 NameLength = CountToNewline(C);
         *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit); // HardLimit:: Limit to 100 chars for now.
         CopyStringToCompound(PlaylistName, C, 0u, Min(NameLength, HardLimit));
@@ -1089,8 +1101,12 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         
         C += 7; // "Count: "
         u32 SongCount      = ProcessNextI32InString(C, '\n', L);
-        PlaylistFileIDs->A = CreateArray(&GS->ScratchArena, SongCount);
+        PlaylistFileIDs->A = CreateArray(&GS->ScratchArena, FileInfo->Count_);
         AdvanceToNewline(&C);
+        
+        AppendStringToCompound(PlaylistName, (u8 *)" (");
+        I32ToString(PlaylistName, SongCount);
+        AppendCharToCompound(PlaylistName, ')');
         
         NewEmptyLocalString(CurrentSubPath, 260); 
         NewEmptyLocalString(Filename, 260); 

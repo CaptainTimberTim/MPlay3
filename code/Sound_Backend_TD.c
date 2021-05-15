@@ -1484,9 +1484,12 @@ CreateMusicSortingInfo()
     For(Album.BatchCount)
     {
         Album.Song[It].A = CreateArray(FixArena, Album_CountForBatches[It]);
-        // TODO:: If I delete this, we fail in FillDisplayables... But why exactly
-        // do I do this? Thats all too complicated and I did not properly comment it...
-        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100);
+        // Every album has at least one genre associated with it. If the metadata
+        // did not have an entry for genre, the empty genre will be assigned to it.
+        // As the first album (index 0) is the empty album, it can have actually 
+        // many genres, thats why it has a higher limit (should be done dynamically
+        // at some point).
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // HardLimit::
         else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
@@ -1632,9 +1635,9 @@ PropagateSelectionChange(music_info *MusicInfo)
         For(Artist->A.Count)
         {
             b32 Found = false;
-            for(u32 GenreID = 0; GenreID < Genre->A.Count; GenreID++)
+            For(Genre->A.Count, Genre)
             {
-                array_batch_id *GenreArtists = MusicInfo->Playlist_->Genre.Batch.Artist+Get(Genre, NewSelectID(GenreID)).ID;
+                array_batch_id *GenreArtists = MusicInfo->Playlist_->Genre.Batch.Artist+Get(Genre, NewSelectID(GenreIt)).ID;
                 if(StackContains(GenreArtists, Get(Artist, NewSelectID(It))))
                 {
                     Found = true;
@@ -1746,7 +1749,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     // For performance I use the displayable lists not as stacks in this procedure.
     // I fill them with a value they can never be, put the values to insert at the 
     // array position it itself points to (so duplicates are just written twice at 
-    // the same location) and in the end remove the 'gaps' to re-stack-afy them.
+    // the same location) and in the end remove the 'gaps' to re-stack-ify them.
     u32 CheckValue = MP3FileInfo->Count_+1;
     if(DoArtist) Clear(&Playlist->Artist.Displayable, CheckValue);
     if(DoAlbum)  Clear(&Playlist->Album.Displayable, CheckValue);
@@ -1755,9 +1758,10 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     For(Playlist->Genre.Selected.A.Count) // Going through Genres
     {
         batch_id BatchID = Get(&Playlist->Genre.Selected, NewSelectID(It));
-        sort_batch *GenreBatch = &MusicInfo->Playlist_->Genre.Batch;
+        sort_batch *GenreBatch = &Playlist->Genre.Batch;
         
         if(DoArtist) MergeDisplayArrays(&Playlist->Artist.Displayable, GenreBatch->Artist+BatchID.ID, CheckValue);
+        
         if(Playlist->Artist.Selected.A.Count == 0)
         {
             if(DoAlbum) MergeDisplayArrays(&Playlist->Album.Displayable, GenreBatch->Album+BatchID.ID, CheckValue);
@@ -1768,36 +1772,43 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         }
     }
     
-    For(Playlist->Artist.Selected.A.Count) // Going through Artists
+    sort_batch *ArtistBatch = &Playlist->Artist.Batch;
+    sort_batch  *AlbumBatch = &Playlist->Album.Batch;
+    
+    // Go through all selected artists...
+    For(Playlist->Artist.Selected.A.Count)
     {
-        batch_id BatchID = Get(&Playlist->Artist.Selected, NewSelectID(It));
-        sort_batch *ArtistBatch = &MusicInfo->Playlist_->Artist.Batch;
+        select_id               SelectedArtistID = NewSelectID(It);
+        batch_id                   ArtistBatchID = Get(&Playlist->Artist.Selected, SelectedArtistID);
+        array_batch_id *AlbumsFromSelectedArtist = ArtistBatch->Album + ArtistBatchID.ID;
         
-        // For every album in batch, look if it is one of the selected genres. if not, skip.
-        For(ArtistBatch->Album[BatchID.ID].A.Count, Album)
+        // For every artist go through all their albums...
+        For(AlbumsFromSelectedArtist->A.Count, Album)
         {
-            sort_batch *AlbumBatch = &MusicInfo->Playlist_->Album.Batch;
-            select_id AlbumSelectID = NewSelectID(AlbumIt);
-            batch_id AlbumBatchID = Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID);
+            select_id AlbumFromSelectedArtistID = NewSelectID(AlbumIt);
+            batch_id               AlbumBatchID = Get(AlbumsFromSelectedArtist, AlbumFromSelectedArtistID);
+            array_batch_id *GenresOfAlbumFromSelectedArtist = AlbumBatch->Genre+AlbumBatchID.ID;
             
-            // TODO:: What am I doing here exactly? This defenitely needs to be cleaned up...
-            For(AlbumBatch->Genre[AlbumBatchID.ID].A.Count, Genre)
+            // Now go through all genres which are part of the album...(almost always 1)
+            For(GenresOfAlbumFromSelectedArtist->A.Count, Genre)
             {
-                if(StackContains(&Playlist->Genre.Selected, Get(AlbumBatch->Genre+AlbumBatchID.ID, NewSelectID(GenreIt))) ||
-                   Playlist->Genre.Selected.A.Count == 0)
+                select_id GenreOfAlbumFromSelectedArtistID = NewSelectID(GenreIt);
+                batch_id GenreBatchID = Get(GenresOfAlbumFromSelectedArtist, GenreOfAlbumFromSelectedArtistID);
+                
+                // Only go on if no genre is selected or the genre of this album is selected...
+                if(Playlist->Genre.Selected.A.Count == 0 || StackContains(&Playlist->Genre.Selected, GenreBatchID))
                 {
-                    if(DoAlbum) PutAndCheck(&Playlist->Album.Displayable, 
-                                            Get(ArtistBatch->Album+BatchID.ID, AlbumSelectID), CheckValue);
-                    // If no album is selected, fill song list from the verified album songs and
+                    if(DoAlbum) PutAndCheck(&Playlist->Album.Displayable, AlbumBatchID, CheckValue);
+                    // If no album is selected, fill song list from the current album and
                     // check that _only_ songs which are also corresponding to the artist are inserted.
-                    if(Playlist->Album.Selected.A.Count == 0)
+                    if(Playlist->Album.Selected.A.Count == 0 && DoSong)
                     {
                         For(AlbumBatch->Song[AlbumBatchID.ID].A.Count, Song)
                         {
                             playlist_id PlaylistID = Get(AlbumBatch->Song+AlbumBatchID.ID, NewSelectID(SongIt));
-                            if(StackContains(ArtistBatch->Song+BatchID.ID, PlaylistID))
+                            if(StackContains(ArtistBatch->Song+ArtistBatchID.ID, PlaylistID))
                             {
-                                if(DoSong) PutAndCheck(&Playlist->Song.Displayable, PlaylistID, CheckValue);
+                                PutAndCheck(&Playlist->Song.Displayable, PlaylistID, CheckValue);
                             }
                         }
                     }
@@ -1813,7 +1824,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         {
             batch_id BatchID = Get(&Playlist->Album.Selected, NewSelectID(It));
             
-            MergeDisplayArrays(&Playlist->Song.Displayable, MusicInfo->Playlist_->Album.Batch.Song+BatchID.ID, CheckValue);
+            MergeDisplayArrays(&Playlist->Song.Displayable, Playlist->Album.Batch.Song+BatchID.ID, CheckValue);
         }
     }
     
@@ -1831,7 +1842,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     {
         if(DoArtist) 
         {
-            For(MusicInfo->Playlist_->Artist.Batch.BatchCount)
+            For(Playlist->Artist.Batch.BatchCount)
             {
                 Push(&Playlist->Artist.Displayable, NewPlaylistID(It));
             }
@@ -1840,7 +1851,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         {
             if(DoAlbum) 
             {
-                For(MusicInfo->Playlist_->Album.Batch.BatchCount)
+                For(Playlist->Album.Batch.BatchCount)
                 {
                     Push(&Playlist->Album.Displayable, NewPlaylistID(It));
                 }
@@ -2262,10 +2273,10 @@ CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCou
     Playlist->Album.Type    = columnType_Album;
     Playlist->Song.Type     = columnType_Song;
     
-    Playlist->Genre.Selected.A  = CreateArray(Arena, GenreBatchCount);
-    Playlist->Artist.Selected.A = CreateArray(Arena, ArtistBatchCount);
-    Playlist->Album.Selected.A  = CreateArray(Arena, AlbumBatchCount);
-    Playlist->Song.Selected.A   = CreateArray(Arena, SongIDCount);
+    Playlist->Genre.Selected.A  = CreateArray(Arena, 1);
+    Playlist->Artist.Selected.A = CreateArray(Arena, 1);
+    Playlist->Album.Selected.A  = CreateArray(Arena, 1);
+    Playlist->Song.Selected.A   = CreateArray(Arena, 1);
     
     Playlist->Genre.Displayable.A  = CreateArray(Arena, GenreBatchCount);
     Playlist->Artist.Displayable.A = CreateArray(Arena, ArtistBatchCount);
@@ -2287,7 +2298,7 @@ FillPlaylistWithFileIDs(music_info *MusicInfo, mp3_file_info *FileInfo, playlist
     // NOTE:: We look only at the Song column and put everything 
     // in the other colums based on what we find there.
     
-    playlist_info   *Playlist     = MusicInfo->Playlist_;
+    playlist_info   *Playlist     = MusicInfo->Playlists.List+0;
     arena_allocator *FixArena     = &GlobalGameState.FixArena;
     arena_allocator *ScratchArena = &GlobalGameState.ScratchArena;
     
@@ -2338,6 +2349,13 @@ FillPlaylistWithFileIDs(music_info *MusicInfo, mp3_file_info *FileInfo, playlist
     For(Album.BatchCount)
     {
         Album.Song[It].A = CreateArray(FixArena, Album_CountForBatches[It]);
+        // Every album has at least one genre associated with it. If the metadata
+        // did not have an entry for genre, the empty genre will be assigned to it.
+        // As the first album (index 0) is the empty album, it can have actually 
+        // many genres, thats why it has a higher limit (should be done dynamically
+        // at some point).
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // HardLimit::
+        else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
     FreeMemory(ScratchArena, Genre_CountForBatches);
@@ -2357,9 +2375,14 @@ FillPlaylistWithFileIDs(music_info *MusicInfo, mp3_file_info *FileInfo, playlist
         PushIfNotExist(&Artist.Album[ArtistBatchID].A, AlbumBatchID);
         PushIfNotExist(&Artist.Song[ArtistBatchID].A, It);
         
+        PushIfNotExist(&Album.Genre[AlbumBatchID].A, GenreBatchID);
         PushIfNotExist(&Album.Song[AlbumBatchID].A, It);
     }
     
+    Reset(&NewPlaylist->Genre.Displayable);
+    Reset(&NewPlaylist->Artist.Displayable);
+    Reset(&NewPlaylist->Album.Displayable);
+    Reset(&NewPlaylist->Song.Displayable);
     
     For(Genre.BatchCount)  Push(&NewPlaylist->Genre.Displayable, NewPlaylistID(It));
     For(Artist.BatchCount) Push(&NewPlaylist->Artist.Displayable, NewPlaylistID(It));
@@ -2371,7 +2394,7 @@ FillPlaylistWithFileIDs(music_info *MusicInfo, mp3_file_info *FileInfo, playlist
     if(NewPlaylist->Song.FileIDs.A.Count    > 0) DestroyArray(FixArena, NewPlaylist->Song.FileIDs.A);
     
     // Now fill playlist_colum song
-    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, FileIDs.A.Count); // TODO:: Think about making it the max size during creation.
+    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, Playlist->Song.FileIDs.A.Count);
     For(FileIDs.A.Count)
     {
         Push(&NewPlaylist->Song.Displayable.A, It);
@@ -2445,6 +2468,13 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     For(Album.BatchCount)
     {
         Album.Song[It].A = CreateArray(FixArena, Album_CountForBatches[It]);
+        // Every album has at least one genre associated with it. If the metadata
+        // did not have an entry for genre, the empty genre will be assigned to it.
+        // As the first album (index 0) is the empty album, it can have actually 
+        // many genres, thats why it has a higher limit (should be done dynamically
+        // at some point).
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // HardLimit::
+        else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
     FreeMemory(ScratchArena, Genre_CountForBatches);
@@ -2464,9 +2494,14 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
         PushIfNotExist(&Artist.Album[ArtistBatchID].A, AlbumBatchID);
         PushIfNotExist(&Artist.Song[ArtistBatchID].A, It);
         
+        PushIfNotExist(&Album.Genre[AlbumBatchID].A, GenreBatchID);
         PushIfNotExist(&Album.Song[AlbumBatchID].A, It);
     }
     
+    Reset(&NewPlaylist->Genre.Displayable);
+    Reset(&NewPlaylist->Artist.Displayable);
+    Reset(&NewPlaylist->Album.Displayable);
+    Reset(&NewPlaylist->Song.Displayable);
     
     For(Genre.BatchCount)  Push(&NewPlaylist->Genre.Displayable, NewPlaylistID(It));
     For(Artist.BatchCount) Push(&NewPlaylist->Artist.Displayable, NewPlaylistID(It));
@@ -2478,7 +2513,7 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     if(NewPlaylist->Song.FileIDs.A.Count    > 0) DestroyArray(FixArena, NewPlaylist->Song.FileIDs.A);
     
     // Now fill playlist_colum song
-    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, Playlist->Song.Displayable.A.Count); // TODO:: Think about making it the max size during creation.
+    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, Playlist->Song.FileIDs.A.Count);
     For(Playlist->Song.Displayable.A.Count)
     {
         Push(&NewPlaylist->Song.Displayable.A,                            Get(&Playlist->Song.Displayable.A, It));
@@ -2488,17 +2523,6 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     NewPlaylist->Genre.Batch  = Genre;
     NewPlaylist->Artist.Batch = Artist;
     NewPlaylist->Album.Batch  = Album;
-}
-
-internal void
-InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID)
-{
-    Assert(Type != columnType_Playlists);
-    Assert(Type != columnType_None);
-    playlist_column     *PlaylistColumn = GS->MusicInfo.Playlist_->Columns + Type;
-    music_display_column *DisplayColumn = GS->MusicInfo.DisplayInfo.Columns[Type];
-    
-    DebugLog(100, "TODO:: Finish me. Before you should make \"create empty playlist\".\n");
 }
 
 inline i32
@@ -2519,6 +2543,88 @@ GetPlaylistID(music_info *MusicInfo, playlist_info *Playlist)
     return Result;
 }
 
+internal i32
+FromPlaylistToOnScreenID(game_state *GS, playlist_info *Playlist)
+{
+    i32 Result = -1;
+    
+    playlist_column    *PlaylistsColumn = &GS->MusicInfo.Playlist_->Playlists;
+    music_display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+    
+    For(DisplayColumn->Count)
+    {
+        playlist_id  PlaylistID      = Get(&PlaylistsColumn->Displayable, DisplayColumn->OnScreenIDs[It]);
+        playlist_info *CheckPlaylist = GS->MusicInfo.Playlists.List + PlaylistID.ID;
+        if(Playlist == CheckPlaylist) 
+        {
+            Result = It;
+            break;
+        }
+    }
+    
+    return Result;
+}
+
+internal void
+UpdatePlaylistScreenName(game_state *GS, playlist_info *Playlist)
+{
+    music_display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+    i32 OnScreenID = FromPlaylistToOnScreenID(GS, Playlist);
+    i32 PlaylistID = GetPlaylistID(&GS->MusicInfo, Playlist);
+    
+    RemoveRenderText(&GS->Renderer, DisplayColumn->Text + OnScreenID);
+    NewLocalString(ScreenName, PLAYLIST_MAX_NAME_LENGTH + 10, Playlist->Playlists.Batch.Names[PlaylistID].S);
+    i32 Pos = FindLastOccurrenceOfCharInStringCompound(&ScreenName, '(');
+    Assert(Pos >= 0);
+    ScreenName.Pos = Pos+1;
+    I32ToString(&ScreenName, Playlist->Song.Displayable.A.Count);
+    AppendCharToCompound(&ScreenName, ')');
+    
+    ResetStringCompound(Playlist->Playlists.Batch.Names[PlaylistID]);
+    AppendStringCompoundToCompound(Playlist->Playlists.Batch.Names+PlaylistID, &ScreenName);
+    
+    RenderText(GS, &GS->FixArena, font_Small, &ScreenName, DisplayColumn->Colors.Text,
+               DisplayColumn->Text+OnScreenID,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[OnScreenID]);
+    Translate(DisplayColumn->Text+OnScreenID, V2(0, 3));
+    ResetColumnText(DisplayColumn, Playlist->Playlists.Displayable.A.Count);
+}
+
+internal void
+InsertSlotIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type Type, displayable_id DisplayableID)
+{
+    Assert(Type != columnType_Playlists);
+    Assert(Type != columnType_None);
+    playlist_info         *FromPlaylist = GS->MusicInfo.Playlist_;
+    playlist_column     *PlaylistColumn = FromPlaylist->Columns + Type;
+    
+    array_file_id FileIDs = IntoPlaylist->Song.FileIDs;
+    
+    if(Type == columnType_Song)
+    {
+        file_id FileID = FileIDFromDisplayableID(&GS->MusicInfo, DisplayableID);
+        if(!StackContains(&FileIDs.A, FileID.ID)) Push(&FileIDs, FileID);
+    }
+    else
+    {
+        array_playlist_id Songs = PlaylistColumn->Batch.Song[Get(&PlaylistColumn->Displayable, DisplayableID).ID];
+        For(Songs.A.Count)
+        {
+            playlist_id PlaylistID = Get(&Songs, NewDisplayableID(It));
+            file_id FileID = NewFileID(Get(&FromPlaylist->Song.FileIDs.A, PlaylistID.ID));
+            
+            if(!StackContains(&FileIDs.A, FileID.ID)) Push(&FileIDs, FileID);
+        }
+    }
+    
+    FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, IntoPlaylist, FileIDs);
+    
+    UpdatePlaylistScreenName(GS, IntoPlaylist);
+    
+    SyncPlaylists_playlist_column(&GS->MusicInfo);
+    
+    SavePlaylist(GS, IntoPlaylist);
+}
+
 inline void
 AddPlaylistToSortingColumn(music_info *MusicInfo, playlist_id PlaylistID, string_c PlaylistName)
 {
@@ -2529,7 +2635,8 @@ AddPlaylistToSortingColumn(music_info *MusicInfo, playlist_id PlaylistID, string
     Assert(PlaylistID == Playlists->Batch.BatchCount);
     Assert(Playlists->Batch.BatchCount < Playlists->Batch.MaxBatches);
     Push(&Playlists->Displayable, PlaylistID);
-    Playlists->Batch.Names[Playlists->Batch.BatchCount] = NewStringCompound(&GlobalGameState.FixArena, PlaylistName.Pos);
+    Playlists->Batch.Names[Playlists->Batch.BatchCount] = NewStringCompound(&GlobalGameState.FixArena, 
+                                                                            PLAYLIST_MAX_NAME_LENGTH);
     AppendStringCompoundToCompound(Playlists->Batch.Names+Playlists->Batch.BatchCount++, &PlaylistName);
 }
 
@@ -2643,13 +2750,12 @@ OnRemovePlaylistClick(void *Data)
     
     SwitchPlaylist(GS, GS->MusicInfo.Playlists.List+(PlaylistID%Playlist->Playlists.Batch.BatchCount));
     
+    DeleteFile(&GS->ScratchArena, Playlist->Filename);
+    
     // Needs to be last, as this removes the place where the actual playlist was stored.
     // All accesses need to happen beforehand.
     RemoveItem(GS->MusicInfo.Playlists.List, GS->MusicInfo.Playlists.Count, PlaylistID, playlist_info);
     --GS->MusicInfo.Playlists.Count;
-    
-    
-    //DeleteFile();
 }
 
 

@@ -49,6 +49,31 @@ FreeFileMemory(arena_allocator *Arena, read_file_result File)
     }
 }
 
+internal b32
+DeleteFile(string_w Filename)
+{
+    b32 Result = false;
+    
+    if(DeleteFileW(Filename.S))
+    {
+        Result = true;
+    }
+    return Result;
+}
+
+internal b32
+DeleteFile(arena_allocator *Arena, string_c Filename)
+{
+    b32 Result = false;
+    
+    string_w FileNameWide = {};
+    ConvertString8To16(Arena, &Filename, &FileNameWide);
+    Result = DeleteFile(FileNameWide);
+    DeleteStringW(Arena, &FileNameWide);
+    
+    return Result;
+}
+
 internal b32 
 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename)
 {
@@ -382,4 +407,21 @@ ConvertBMPToBlackWhiteTransparent(arena_allocator *Arena, loaded_bitmap *Existin
     return Result;
 }
 
-
+internal void
+OutputLastWindowsError()
+{
+    i32 Result = GetLastError();
+    
+    switch(Result)
+    {
+        case ERROR_SUCCESS:         DebugLog(150, "ERROR_SUCCESS\n"); break;
+        case ERROR_FILE_NOT_FOUND:  DebugLog(150, "ERROR_FILE_NOT_FOUND\n"); break;
+        case ERROR_ACCESS_DENIED:   DebugLog(150, "ERROR_ACCESS_DENIED\n"); break;
+        case ERROR_PATH_NOT_FOUND:  DebugLog(150, "ERROR_PATH_NOT_FOUND\n"); break;
+        
+        
+        default: {
+            DebugLog(150, "Error not in list, value: %i\n", Result);
+        }
+    }
+}

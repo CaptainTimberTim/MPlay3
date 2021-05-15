@@ -165,9 +165,9 @@ GetOpenSearch(music_display_info *DisplayInfo)
 {
     column_type Result = columnType_None;
     
-    if(DisplayInfo->Genre.Search.TextField.IsActive) Result = columnType_Genre;
-    else if(DisplayInfo->Artist.Search.TextField.IsActive) Result = columnType_Artist;
-    else if(DisplayInfo->Album.Search.TextField.IsActive) Result = columnType_Album;
+    if(DisplayInfo->Genre.Search.TextField.IsActive)          Result = columnType_Genre;
+    else if(DisplayInfo->Artist.Search.TextField.IsActive)    Result = columnType_Artist;
+    else if(DisplayInfo->Album.Search.TextField.IsActive)     Result = columnType_Album;
     else if(DisplayInfo->Song.Base.Search.TextField.IsActive) Result = columnType_Song;
     
     return Result;
@@ -1060,7 +1060,7 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_colum
     
     For(DisplayColumn->Count)
     {
-        if(DisplayColumn->Type == columnType_Song) 
+        if(DisplayColumn->Type == columnType_Song)
         {
             RemoveSongText(DisplayColumn, It);
             SetSongButtonsActive(ColumnExt(DisplayColumn), It, false);
@@ -2786,7 +2786,7 @@ CheckColumnsForSelectionChange(v2 MouseBtnDownLocation)
             Result = SelectAllOrNothing(&DisplayInfo->Genre, &Playlist->Genre);
         else Result = UpdateSelectionArray(&Playlist->Genre, &DisplayInfo->Genre, MouseBtnDownLocation);
         
-        if(Result)
+        if(Result != columnType_None)
         {
             PropagateSelectionChange(&GlobalGameState.MusicInfo);
             DisplayInfo->Artist.DisplayCursor = 0;
@@ -2801,7 +2801,7 @@ CheckColumnsForSelectionChange(v2 MouseBtnDownLocation)
             Result = SelectAllOrNothing(&DisplayInfo->Artist, &Playlist->Artist);
         else Result = UpdateSelectionArray(&Playlist->Artist, &DisplayInfo->Artist, MouseBtnDownLocation);
         
-        if(Result)
+        if(Result != columnType_None)
         {
             PropagateSelectionChange(&GlobalGameState.MusicInfo);
             DisplayInfo->Album.DisplayCursor  = 0;

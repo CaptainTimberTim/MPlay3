@@ -47,7 +47,7 @@
 // - Fix stutter on first play of song.
 // - Make it possible to close colorpicker with the colorpicker button
 // - Make selection more versatile. Shift-select would be nice.
-
+// - sorting is broken
 
 // PLAYLIST:
 // - what happens when search is open
@@ -61,7 +61,7 @@
 // - Add drag&drop for sorting playlist slots.
 // - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
 // - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
-
+// - Grey out the delete button when 'All' is selected.
 
 
 #include "Sound_UI_TD.h"
@@ -100,13 +100,21 @@ struct song_sort_info
     u32 AlbumBatchID;
 };
 
+#define PLAYLIST_MAX_NAME_LENGTH 100
 struct sort_batch
 {
-    // These arrays of arrays contain the id for the other columns respectively
-    array_batch_id *Genre; 
-    array_batch_id *Artist;
-    array_batch_id *Album;
-    array_playlist_id  *Song;
+    // These arrays of arrays contain the id for the other columns respectively.
+    // Example for ArtistSortBatch: Band AC/DC is the first entry in Names, index 0. 
+    // The genre array with index 0 contains all genres which AC/DC had in their 
+    // metadata (i.e. heavy metal). The Artist array is empty, as the sort_batch
+    // itself is for artists. Album contains all of their albums at index 0 and
+    // finally, Song contains all songs. The entries in these arrays are all indexes
+    // for the corresponding other batch. Genre contains indexes to the "Names" field
+    // in the Genre sort_batch, and so forth.
+    array_batch_id   *Genre; 
+    array_batch_id  *Artist;
+    array_batch_id   *Album;
+    array_playlist_id *Song;
     
     string_c       *Names; // ::BATCH_ID
     u32 BatchCount;
@@ -117,7 +125,7 @@ struct playlist_column
 {
     column_type   Type;
     array_playlist_id Selected;    // stores playlist for song column and sortBatchIDs for the rest!
-    array_playlist_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
+    array_playlist_id Displayable; // ::DISPLAYABLE_ID,  stores _PlaylistIDs_ for song column and sortBatchIDs for the rest!
     
     union {
         sort_batch Batch;      // Used for Genre, Artist, Album column_types.

@@ -253,7 +253,13 @@
 - Added comments in the playlist save file which explain save position and the renaming scheme.
 - Removed ID from playlist save file as it was unnecessary.
 
-
+15.05.2021
+- Added actual removal of the playlist file when clicking remove button. Not just in the app, but also in windows.
+- Added functionality for drop from drag&drop. Now all songs that correspond to a column slot that gets dropped onto a playlist
+  are added to it, except the ones that are already in it.
+- Fixed bug where playlists did not show anything, when selecting an artist or album.
+- Fixed bug introduced through switching columType enum around. columnType_Genre is now the zero-th position, which broke an
+  if which checked for zero/non-zero (as columnType_None was 0 before). 
 
 
 

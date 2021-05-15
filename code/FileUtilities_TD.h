@@ -10,16 +10,24 @@ struct read_file_result
 };
 
 // General file methods
-internal b32 WriteEntireFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory);
-internal b32 WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory);
-internal void   FreeFileMemory(arena_allocator *Arena, read_file_result File);
-internal b32 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename);
-internal b32 ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename);
-internal b32 ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
-internal b32 ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
-internal b32 ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
-internal b32 ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
-internal b32 AppendToFile(arena_allocator *Arena, char *FileName, u32 MemorySize, void *Memory);
+internal b32  WriteEntireFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory);
+internal b32  WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory);
+
+internal void FreeFileMemory(arena_allocator *Arena, read_file_result File);
+
+internal b32  DeleteFile(string_w Filename);
+internal b32  DeleteFile(arena_allocator *Arena, string_c Filename);
+
+internal b32  ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename);
+internal b32  ReadEntireFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename);
+
+internal b32  ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
+internal b32  ReadBeginningOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
+
+internal b32  ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, u8 *Filename, u32 ReadAmount);
+internal b32  ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, string_w *Filename, u32 ReadAmount);
+
+internal b32  AppendToFile(arena_allocator *Arena, char *FileName, u32 MemorySize, void *Memory);
 
 // .obj loader methods
 

@@ -17,21 +17,15 @@ load_paths_base = {
 };
 load_paths = {
  .win = load_paths_base,
- .linux = load_paths_base,
- .mac = load_paths_base,
 };
 
 commands = {
  .build = { .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
-   .win = "build.bat",
-   .linux = "./build.sh",
-   .mac = "./build.sh", },
+   .win = "build.bat", },
  .run = { .out = "*run*", .footer_panel = false, .save_dirty_files = false,
-   .win = ".\\build\\MPlay3.exe",
-   .linux = "./build/MPlay3",
-   .mac = "./build/MPlay3", },
+   .win = ".\\build\\MPlay3.exe", }
 };
 fkey_command = {
-.F1 = "run",
+.F1 = "build",
 .F2 = "run",
 };

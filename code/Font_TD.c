@@ -148,12 +148,19 @@ IsCodepointInFont(u8 *Data, u32 Codepoint)
 {
     b32 Result = false;
     
-    stbtt_fontinfo FontInfo;
-    if(stbtt_InitFont(&FontInfo, Data, 0))
+    u32 FCount = stbtt_GetNumberOfFonts(Data);
+    For(FCount)
     {
-        if(stbtt_FindGlyphIndex(&FontInfo, Codepoint))
+        i32 Offset = stbtt_GetFontOffsetForIndex(Data, It);
+        
+        stbtt_fontinfo FontInfo;
+        if(stbtt_InitFont(&FontInfo, Data, Offset))
         {
-            Result = true;
+            if(stbtt_FindGlyphIndex(&FontInfo, Codepoint))
+            {
+                Result = true;
+                break;
+            }
         }
     }
     
@@ -379,7 +386,7 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size_id FontSize, string
         
         if(NextChar == 10) // On '\n' we insert a newline
         {
-            ResultText->CurrentP = V2(0/*StartP.x*/, ResultText->CurrentP.y + (OldBaseline-NewBaseline)*2);
+            ResultText->CurrentP = V2(0/*StartP.x*/, ResultText->CurrentP.y + (OldBaseline-NewBaseline)*1.5f);
             continue;
         }
         u32 CharDataID = NextChar - FontGroupStart; // Map codepoint into array range.

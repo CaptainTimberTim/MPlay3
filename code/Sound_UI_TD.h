@@ -360,6 +360,11 @@ struct drag_drop
     // Drop Info
     i32 CurHoverID = -1;
     v3 *CurOriginalColor;
+    
+    // Drop delete info
+    v3 RemoveColor;
+    v3 *OriginalAllColor       = NULL;
+    render_text *AllRenderText = NULL;
 };
 
 struct layout_definition
@@ -489,7 +494,7 @@ internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *Playli
 internal void UpdateColumnVerticalSlider(music_display_column *DisplayColumn, u32 DisplayableCount);
 inline void PushUserErrorMessage(string_c *String);
 
-
+inline string_c GetRandomExitMessage(game_state *GS, string_c *Language = NULL);
 
 
 

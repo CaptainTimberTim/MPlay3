@@ -636,7 +636,7 @@ CreateSlider(slider *Result, renderer *Renderer, v2 BGSize, v2 GrabSize, r32 Dep
 // Quit curtain ************************
 
 internal void
-CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime)
+CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, string_c *BonusText)
 {
     renderer *Renderer = &GlobalGameState.Renderer;
     music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
@@ -652,6 +652,14 @@ CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 
     SetPosition(&Result->Text, Size/2.0f);
     SetActive(&Result->Text, false);
     
+    if(BonusText)
+    {
+        RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, BonusText, &DisplayInfo->ColorPalette.Text, 
+                   &Result->BonusText, -0.995f, 0);
+        SetPosition(&Result->BonusText, V2(0, Size.y - 45));
+        SetActive(&Result->BonusText, false);
+    }
+    
     Result->LastEscapePressTime = -10;
 }
 
@@ -661,6 +669,7 @@ SetActive(quit_animation *Quit, b32 Activate)
     Quit->AnimationStart = Activate;
     SetActive(Quit->Curtain, Activate);
     SetActive(&Quit->Text, Activate);
+    if(Quit->BonusText.MaxCount) SetActive(&Quit->BonusText, Activate);
 }
 
 internal b32
@@ -689,6 +698,8 @@ QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size)
         r32 CurrentHeight = GetSize(Quit->Curtain).y/2.0f;
         SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
         SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
+        if(Quit->BonusText.MaxCount) 
+            SetPosition(&Quit->BonusText, V2(10, Position.y - CurrentHeight*2 + 20));
         
         SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
     }

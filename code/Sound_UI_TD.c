@@ -18,7 +18,7 @@ inline void CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount);
 inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
 inline void SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
-internal void UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
+internal void UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
 inline void SwitchSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 inline displayable_id SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID);
 inline void HandleChangeToNextSong(game_state *GameState);
@@ -31,8 +31,10 @@ internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, pla
 internal void PropagateSelectionChange(music_info *SortingInfo);
 internal void UpdatePlayingSongForSelectionChange(music_info *MusicInfo);
 internal void InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID);
+internal void RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID);
 internal void   OnNewPlaylistClick(void *Data);
 inline void   OnRemovePlaylistClick(void *Data);
+internal i32 FromPlaylistToOnScreenID(game_state *GS, playlist_info *Playlist);
 
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayColumn)
@@ -302,7 +304,7 @@ ProcessActiveSearch(column_info ColumnInfo, r32 dTime, input_info *Input, mp3_fi
             UpdateColumnColor(DisplayColumn, PlaylistColumn);
         }
         ResetSearchList(Renderer, DisplayColumn);
-        UpdateSelectionChanged(Renderer, &GlobalGameState.MusicInfo, GlobalGameState.MP3Info, DisplayColumn->Type);
+        UpdateSortingInfoChanged(Renderer, &GlobalGameState.MusicInfo, GlobalGameState.MP3Info, DisplayColumn->Type);
         
         playlist_id SelectedID = Get(&PlaylistColumn->Selected, NewSelectID(0));
         if(DisplayColumn->Type == columnType_Song) BringDisplayableEntryOnScreen(ColumnInfo.MusicInfo, DisplayColumn, SelectedID);
@@ -2260,8 +2262,9 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
     
     // Quit curtain ****************************
-    string_c QuitText = NewStaticStringCompound("Goodbye!");
-    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime);
+    NewEmptyLocalString(LanguageText, 200);
+    string_c QuitText = GetRandomExitMessage(GameState, &LanguageText);
+    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime, &LanguageText);
     
     
     // User error text *************************************
@@ -2868,6 +2871,135 @@ AnimateErrorMessage(user_error_text *ErrorInfo, r32 dTime)
     }
 }
 
+inline string_c 
+GetRandomExitMessage(game_state *GS, string_c *Language)
+{
+    string_c Result = {};
+    local_persist const string_compound ExitMessagesLanguage[] = 
+    {
+        NewStaticStringCompound("Afrikaans"), //  0. 
+        NewStaticStringCompound("Arabic"),    //  1.
+        NewStaticStringCompound("Bengali"),   //  2.
+        NewStaticStringCompound("Bosnian"),   //  3.
+        NewStaticStringCompound("Cantonese"), //  4.
+        NewStaticStringCompound("Cherokee"),  //  5.
+        NewStaticStringCompound("Croatian"),  //  6.
+        NewStaticStringCompound("Czech"),     //  7.
+        NewStaticStringCompound("Danish"),    //  8.
+        NewStaticStringCompound("Dutch"),     //  9.
+        NewStaticStringCompound("English"),   // 10.
+        NewStaticStringCompound("Estonian"),  // 11.
+        NewStaticStringCompound("Finnish"),   // 12.
+        NewStaticStringCompound("French"),    // 13.
+        NewStaticStringCompound("German"),    // 14.
+        NewStaticStringCompound("Greek"),     // 15.
+        NewStaticStringCompound("Hawaiian"),  // 16.
+        NewStaticStringCompound("Hebrew"),    // 17.
+        NewStaticStringCompound("Hindi"),     // 18.
+        NewStaticStringCompound("Hungarian"), // 19.
+        NewStaticStringCompound("Icelandic"), // 20.
+        NewStaticStringCompound("Indonesian"),// 21.
+        NewStaticStringCompound("Irish"),     // 22.
+        NewStaticStringCompound("Italian"),   // 23.
+        NewStaticStringCompound("Japanese"),  // 24.
+        NewStaticStringCompound("Korean"),    // 25.
+        NewStaticStringCompound("Latin"),     // 26.
+        NewStaticStringCompound("Latvian"),   // 27.
+        NewStaticStringCompound("Lithuanian"),// 28.
+        NewStaticStringCompound("Mandarin"),  // 29.
+        NewStaticStringCompound("Nepalese"),  // 30.
+        NewStaticStringCompound("Norwegian"), // 31.
+        NewStaticStringCompound("Persian"),   // 32.
+        NewStaticStringCompound("Polish"),    // 33.
+        NewStaticStringCompound("Portuguese"),// 34.
+        NewStaticStringCompound("Punjabi"),   // 35.
+        NewStaticStringCompound("Romanian"),  // 36.
+        NewStaticStringCompound("Russian"),   // 37.
+        NewStaticStringCompound("Serbian"),   // 38.
+        NewStaticStringCompound("Slovak"),    // 39.
+        NewStaticStringCompound("Slovene"),   // 40.
+        NewStaticStringCompound("Spanish"),   // 41.
+        NewStaticStringCompound("Swedish"),   // 42.
+        NewStaticStringCompound("Tamil"),     // 43.
+        NewStaticStringCompound("Thai"),      // 44.
+        NewStaticStringCompound("Turkish"),   // 45.
+        NewStaticStringCompound("Ukrainian"), // 46.
+        NewStaticStringCompound("Urdu"),      // 47.
+        NewStaticStringCompound("Vietnamese"),// 48.
+        NewStaticStringCompound("Welsh"),     // 49.
+        NewStaticStringCompound("Zulu"),      // 50.
+    };
+    
+    local_persist const string_compound ExitMessages[] = 
+    {
+        NewStaticStringCompound("Totsiens!"), // 0. Afrikaans 
+        NewStaticStringCompound("       مع السلامة \n(Ma'a as-salaama!)"), // 1. Arabic
+        NewStaticStringCompound("   বিদায় \n(Bidāẏa!)"), // 2. Bengali
+        NewStaticStringCompound("Zdravo!"), // 3. Bosnian
+        NewStaticStringCompound("Joigin!"), // 4. Cantonese
+        NewStaticStringCompound("Donadagohvi!"), // 5. Cherokee
+        NewStaticStringCompound("Doviđenja!"), // 6. Croatian
+        NewStaticStringCompound("Sbohem!"), // 7. Czech
+        NewStaticStringCompound("Farvel!"), // 8. Danish
+        NewStaticStringCompound("Tot ziens!"), // 9. Dutch
+        NewStaticStringCompound("Goodbye!"), // 10. English
+        NewStaticStringCompound("Nägemist!"), // 11. Estonian
+        NewStaticStringCompound("Näkemiin!"), // 12. Finnish
+        NewStaticStringCompound("Au Revoir!"), // 13. French
+        NewStaticStringCompound("Auf Wiedersehen!"), // 14. German
+        NewStaticStringCompound("Αντίο!"), // 15. Greek
+        NewStaticStringCompound("Aloha!"), // 16. Hawaiian
+        NewStaticStringCompound(" הֱיה שלום\n(L'hitraot!)"), // 17. Hebrew
+        NewStaticStringCompound("   अलविदा\n(alavida!)"), // 18. Hindi
+        NewStaticStringCompound("Viszontlátásra!"), // 19. Hungarian
+        NewStaticStringCompound("Vertu sæll!"), // 20. Icelandic
+        NewStaticStringCompound("Selamat tinggal!"), // 21. Indonesian
+        NewStaticStringCompound("Slán!"), // 22. Irish
+        NewStaticStringCompound("Arrivederci!"), // 23. Italian
+        NewStaticStringCompound(" さようなら \n(Sayōnara!)"), // 24. Japanese
+        NewStaticStringCompound("      안녕히 가세요\n(Annyeonghi Gaseyo!)"), // 25. Korean
+        NewStaticStringCompound("Vale!"), // 26. Latin
+        NewStaticStringCompound("Uz redzēšanos!"), // 27. Latvian
+        NewStaticStringCompound("Sudie!"), // 28. Lithuanian
+        NewStaticStringCompound("   再见 \n(Zài jiàn)"), // 29. Mandarin
+        NewStaticStringCompound("   अलविदा  \n(Alavidā!)"), // 30. Nepalese
+        NewStaticStringCompound("Ha det bra!"), // 31. Norwegian
+        NewStaticStringCompound("     خداحافظی\n(Khodaa haafez!)"), // 32. Persian
+        NewStaticStringCompound("Żegnaj!"), // 33. Polish
+        NewStaticStringCompound("Adeus!"), // 34. Portuguese
+        NewStaticStringCompound("  ਅਲਵਿਦਾ \n(Alweda!)"), // 35. Punjabi
+        NewStaticStringCompound("La revedere!"), // 36. Romanian
+        NewStaticStringCompound("До свидания \n(Do svidaniya!)"), // 37. Russian
+        NewStaticStringCompound("збогом!\n(zbogom!)"), // 38. Serbian
+        NewStaticStringCompound("Dovidenia!"), // 39. Slovak
+        NewStaticStringCompound("Nasvidenje!"), // 40. Slovene
+        NewStaticStringCompound("Adios!"), // 41. Spanish
+        NewStaticStringCompound("Adjö!"), // 42. Swedish
+        NewStaticStringCompound("பிரியாவிடை \n(Poitu varein!)"), // 43. Tamil
+        NewStaticStringCompound("   ลาก่อน  \n(Laa Gòn!)"), // 44. Thai
+        NewStaticStringCompound("Görüşürüz!"), // 45. Turkish
+        NewStaticStringCompound(" До побачення \n(Do pobachennia!)"), // 46. Ukrainian
+        NewStaticStringCompound("    خدا حافظ \n(Khuda hafiz!)"), // 47. Urdu
+        NewStaticStringCompound("Tạm biệt!"), // 48. Vietnamese
+        NewStaticStringCompound("Hwyl fawr!"), // 49. Welsh
+        NewStaticStringCompound("Hamba kahle!"), // 50. Zulu
+    };
+    
+    u32 RandValue = Floor(Random01()*ArrayCount(ExitMessages));
+    Assert(RandValue < ArrayCount(ExitMessages));
+    
+    Result = NewStringCompound(&GS->ScratchArena, ExitMessages[RandValue].Pos);
+    AppendStringCompoundToCompound(&Result, (string_c *)ExitMessages+RandValue);
+    
+    if(Language)
+    {
+        AppendStringCompoundToCompound(Language, (string_c *)ExitMessagesLanguage+RandValue);
+    }
+    
+    return Result;
+}
+
+
 // **************************************
 // Drag and Drop ************************
 // **************************************
@@ -2876,32 +3008,33 @@ internal b32
 CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
 {
     b32 IsInColumn = false;
-    music_display_info     *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    music_info *MusicInfo               = &GS->MusicInfo;
+    music_display_info     *DisplayInfo = &MusicInfo->DisplayInfo;
     music_display_column *DisplayColumn = NULL;
     playlist_column     *PlaylistColumn = NULL;
     
     if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
     {
-        DisplayColumn  = &GS->MusicInfo.DisplayInfo.Song.Base;
-        PlaylistColumn = &GS->MusicInfo.Playlist_->Song;
+        DisplayColumn  = &MusicInfo->DisplayInfo.Song.Base;
+        PlaylistColumn = &MusicInfo->Playlist_->Song;
         IsInColumn = true;
     }
     else if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
     {
         DisplayColumn  = &DisplayInfo->Album;
-        PlaylistColumn = &GS->MusicInfo.Playlist_->Album;
+        PlaylistColumn = &MusicInfo->Playlist_->Album;
         IsInColumn = true;
     }
     else if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
     {
         DisplayColumn  = &DisplayInfo->Artist;
-        PlaylistColumn = &GS->MusicInfo.Playlist_->Artist;
+        PlaylistColumn = &MusicInfo->Playlist_->Artist;
         IsInColumn = true;
     }
     else if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
     {
         DisplayColumn  = &DisplayInfo->Genre;
-        PlaylistColumn = &GS->MusicInfo.Playlist_->Genre;
+        PlaylistColumn = &MusicInfo->Playlist_->Genre;
         IsInColumn = true;
     }
     
@@ -2914,6 +3047,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
         {
             if(IsInRect(DisplayColumn->BGRects[It], Input->MouseP))
             {
+                // Caching all needed drag/drop information
                 DragDrop->Dragging       = true;
                 DragDrop->Type           = DisplayColumn->Type;
                 DragDrop->SlotID         = DisplayColumn->OnScreenIDs[It];
@@ -2937,6 +3071,37 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 SetParent(DragDrop->SlotText.Base, DragDrop->DragSlot);
                 DragDrop->GrabOffset = (DragDrop->SlotStartP - DragDrop->StartMouseP);
                 DragDrop->SlotStartP.x += DragDrop->TextOverhang*0.5f;
+                
+                // TODO:: Think about doing this always, even when we are in All playlist, as that
+                // would make the behaviour similar everywhere and dropping the thing to delete
+                // would do nothing.
+                
+                // If we are in a playlist (not All), then create "Delete slot" on top of all.
+                if(MusicInfo->Playlist_ != MusicInfo->Playlists.List+0) // Pointer compare
+                {
+                    i32 OnScreenID             = FromPlaylistToOnScreenID(GS, MusicInfo->Playlists.List+0);
+                    DragDrop->OriginalAllColor = GetColorPtr(DisplayInfo->Playlists.BGRects[OnScreenID]);
+                    DragDrop->AllRenderText    = DisplayInfo->Playlists.Text + OnScreenID;
+                    DragDrop->RemoveColor      = *DragDrop->OriginalAllColor;
+                    if(DragDrop->RemoveColor.r < 0.9f) // TODO:: Maybe rather use the original r and invert-substract it?
+                    {
+                        DragDrop->RemoveColor   += V3(0.2f, 0, 0);
+                        DragDrop->RemoveColor.r *= 1.5f;
+                    }
+                    else
+                    {
+                        DragDrop->RemoveColor   += V3(0, 0.2f, 0.2f);
+                        DragDrop->RemoveColor.g *= 1.5f;
+                        DragDrop->RemoveColor.b *= 1.5f;
+                    }
+                    DragDrop->RemoveColor = Clamp01(DragDrop->RemoveColor);
+                    SetColor(DisplayInfo->Playlists.BGRects[OnScreenID], &DragDrop->RemoveColor);
+                    RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);
+                    NewLocalString(RemoveText, 7, "REMOVE");
+                    RenderText(GS, &GS->FixArena, font_Small, &RemoveText, DisplayInfo->Playlists.Colors.Text, DragDrop->AllRenderText, DisplayInfo->Playlists.ZValue-0.01f, DisplayInfo->Playlists.BGRects[OnScreenID]);
+                    Translate(DragDrop->AllRenderText, V2(0, 3));
+                    ResetColumnText(&DisplayInfo->Playlists, MusicInfo->Playlist_->Playlists.Displayable.A.Count);
+                }
                 
                 break;
             }
@@ -3043,7 +3208,7 @@ EvalDragDropPosition(game_state *GS, drag_drop *DragDrop)
     {
         playlist_column *PlaylistColumn = &GS->MusicInfo.Playlist_->Playlists;
         
-        for(u32 It = 0; 
+        for(u32 It = 0;
             It < PlaylistColumn->Displayable.A.Count && 
             It < DisplayColumn->Count;
             ++It)
@@ -3086,9 +3251,32 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
         playlist_id PlaylistID = Get(&GS->MusicInfo.Playlist_->Playlists.Displayable,
                                      GS->MusicInfo.DisplayInfo.Playlists.OnScreenIDs[DragDrop->CurHoverID]);
         playlist_info *Playlist = GS->MusicInfo.Playlists.List + PlaylistID.ID;
-        InsertSlotIntoPlaylist(GS, Playlist, DragDrop->Type, DragDrop->SlotID);
+        
+        if(DragDrop->CurHoverID == 0) // 'All' playlist removes slots from playlists...
+        {
+            if(Playlist != GS->MusicInfo.Playlist_) // Except when were in itself, then nothing happens.
+                RemoveSlotFromPlaylist(GS, DragDrop->Type, DragDrop->SlotID);
+        }
+        else 
+            InsertSlotIntoPlaylist(GS, Playlist, DragDrop->Type, DragDrop->SlotID);
         
         DragDrop->CurHoverID = -1;
+    }
+    
+    if(DragDrop->OriginalAllColor)
+    {
+        music_display_column *DColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+        i32 OnScreenID = FromPlaylistToOnScreenID(GS, GS->MusicInfo.Playlists.List+0);
+        
+        RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);
+        RenderText(GS, &GS->FixArena, font_Small, GS->MusicInfo.Playlist_->Playlists.Batch.Names+0, DColumn->Colors.Text, DragDrop->AllRenderText, DColumn->ZValue-0.01f, DColumn->BGRects[OnScreenID]);
+        Translate(DragDrop->AllRenderText, V2(0, 3));
+        ResetColumnText(DColumn, GS->MusicInfo.Playlist_->Playlists.Displayable.A.Count);
+        
+        SetColor(DColumn->BGRects[OnScreenID], DragDrop->OriginalAllColor);
+        
+        DragDrop->OriginalAllColor = NULL;
+        DragDrop->AllRenderText    = NULL;
     }
     DragDrop->Dragging = false;
 }

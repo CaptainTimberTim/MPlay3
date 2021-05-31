@@ -1489,7 +1489,7 @@ CreateMusicSortingInfo()
         // As the first album (index 0) is the empty album, it can have actually 
         // many genres, thats why it has a higher limit (should be done dynamically
         // at some point).
-        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // HardLimit::
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // @HardLimit
         else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
@@ -1539,16 +1539,47 @@ CreateMusicSortingInfo()
 inline void
 SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
 {
-    // If no control key is pressed...
-    if(!GlobalGameState.Input.Pressed[KEY_CONTROL_LEFT] && !GlobalGameState.Input.Pressed[KEY_CONTROL_RIGHT])
+    b32 ControlIsPressed = GlobalGameState.Input.Pressed[KEY_CONTROL_LEFT] || GlobalGameState.Input.Pressed[KEY_CONTROL_RIGHT];
+    b32 ShiftIsPressed   = GlobalGameState.Input.Pressed[KEY_SHIFT_LEFT]   || GlobalGameState.Input.Pressed[KEY_SHIFT_RIGHT];
+    
+    if(ControlIsPressed)
     {
-        // ...and it is not selected or something else was selected clear it
+        ToggleSelection(DisplayColumn, PlaylistColumn, ColumnDisplayID);
+    }
+    else if(ShiftIsPressed)
+    {
+        // If shift is pressed, we do the standard thing of selecting every slot inbetween the new selected and the 
+        // previous selected.
+        
+        displayable_id NewSelectedDisplayableID = DisplayColumn->OnScreenIDs[ColumnDisplayID];
+        displayable_id LastSelectedDisplayableID;
+        // If nothing was selected previously, just use the same ID for both and just select the one.
+        if(PlaylistColumn->Selected.A.Count > 0)
+        {
+            playlist_id LastSelectedID = NewPlaylistID(Get(&PlaylistColumn->Selected.A, PlaylistColumn->Selected.A.Count-1));
+            if(!StackFind(&PlaylistColumn->Displayable, LastSelectedID, &LastSelectedDisplayableID.ID)) Assert(false);
+        }
+        else LastSelectedDisplayableID = NewSelectedDisplayableID;
+        
+        i32 SmallerID = (LastSelectedDisplayableID.ID+1 > NewSelectedDisplayableID.ID) 
+            ? (NewSelectedDisplayableID.ID) : (LastSelectedDisplayableID.ID+1);
+        i32 LargerID  = (LastSelectedDisplayableID.ID > NewSelectedDisplayableID.ID+1) 
+            ? (LastSelectedDisplayableID.ID) : (NewSelectedDisplayableID.ID+1);
+        for(i32 It = SmallerID; It < LargerID; ++It)
+        {
+            u32 PlaylistID = Get(&PlaylistColumn->Displayable.A, It);
+            PushIfNotExist(&PlaylistColumn->Selected.A, PlaylistID);
+        }
+    }
+    else 
+    {
+        // If it is not selected or something else was selected clear it
         if(!IsSelected(DisplayColumn, PlaylistColumn, ColumnDisplayID) || PlaylistColumn->Selected.A.Count > 1)
         {
             ClearSelection(PlaylistColumn);
         }
+        ToggleSelection(DisplayColumn, PlaylistColumn, ColumnDisplayID);
     }
-    ToggleSelection(DisplayColumn, PlaylistColumn, ColumnDisplayID);
 }
 
 inline void
@@ -1871,7 +1902,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
 }
 
 internal void
-UpdateSelectionChangedVisuals(renderer *Renderer, music_info *MusicInfo, music_display_info *DisplayInfo, column_type Type)
+UpdateSortingInfoChangedVisuals(renderer *Renderer, music_info *MusicInfo, music_display_info *DisplayInfo, column_type Type)
 {
     
     DisplayInfo->Song.Base.DisplayCursor = 0;
@@ -1912,17 +1943,20 @@ UpdateSelectionChangedVisuals(renderer *Renderer, music_info *MusicInfo, music_d
 }
 
 internal void
-UpdateSelectionChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
+UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
 {
     music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
     playlist_info *Playlist         = MusicInfo->Playlist_;
     
     FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
-    if(MusicInfo->IsShuffled) ShuffleStack(&Playlist->Song.Displayable);
-    else                      SortDisplayables(MusicInfo, &MP3Info->FileInfo);
+    if(MusicInfo->IsShuffled && Type == columnType_Song) 
+    {
+        ShuffleStack(&Playlist->Song.Displayable);
+    }
+    else SortDisplayables(MusicInfo, &MP3Info->FileInfo);
     
     UpdatePlayingSongForSelectionChange(MusicInfo);
-    UpdateSelectionChangedVisuals(Renderer, MusicInfo, DisplayInfo, Type);
+    UpdateSortingInfoChangedVisuals(Renderer, MusicInfo, DisplayInfo, Type);
 }
 
 internal void
@@ -2273,10 +2307,10 @@ CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCou
     Playlist->Album.Type    = columnType_Album;
     Playlist->Song.Type     = columnType_Song;
     
-    Playlist->Genre.Selected.A  = CreateArray(Arena, 1);
-    Playlist->Artist.Selected.A = CreateArray(Arena, 1);
-    Playlist->Album.Selected.A  = CreateArray(Arena, 1);
-    Playlist->Song.Selected.A   = CreateArray(Arena, 1);
+    Playlist->Genre.Selected.A  = CreateArray(Arena, GenreBatchCount);
+    Playlist->Artist.Selected.A = CreateArray(Arena, ArtistBatchCount);
+    Playlist->Album.Selected.A  = CreateArray(Arena, AlbumBatchCount);
+    Playlist->Song.Selected.A   = CreateArray(Arena, SongIDCount);
     
     Playlist->Genre.Displayable.A  = CreateArray(Arena, GenreBatchCount);
     Playlist->Artist.Displayable.A = CreateArray(Arena, ArtistBatchCount);
@@ -2354,7 +2388,7 @@ FillPlaylistWithFileIDs(music_info *MusicInfo, mp3_file_info *FileInfo, playlist
         // As the first album (index 0) is the empty album, it can have actually 
         // many genres, thats why it has a higher limit (should be done dynamically
         // at some point).
-        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // HardLimit::
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // @HardLimit
         else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
@@ -2473,7 +2507,7 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
         // As the first album (index 0) is the empty album, it can have actually 
         // many genres, thats why it has a higher limit (should be done dynamically
         // at some point).
-        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // HardLimit::
+        if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // @HardLimit
         else Album.Genre[It].A = CreateArray(FixArena, 10);
     }
     
@@ -2594,9 +2628,6 @@ InsertSlotIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type 
 {
     Assert(Type != columnType_Playlists);
     Assert(Type != columnType_None);
-    playlist_info         *FromPlaylist = GS->MusicInfo.Playlist_;
-    playlist_column     *PlaylistColumn = FromPlaylist->Columns + Type;
-    
     array_file_id FileIDs = IntoPlaylist->Song.FileIDs;
     
     if(Type == columnType_Song)
@@ -2606,6 +2637,9 @@ InsertSlotIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type 
     }
     else
     {
+        playlist_info     *FromPlaylist = GS->MusicInfo.Playlist_;
+        playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
+        
         array_playlist_id Songs = PlaylistColumn->Batch.Song[Get(&PlaylistColumn->Displayable, DisplayableID).ID];
         For(Songs.A.Count)
         {
@@ -2617,12 +2651,50 @@ InsertSlotIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type 
     }
     
     FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, IntoPlaylist, FileIDs);
-    
     UpdatePlaylistScreenName(GS, IntoPlaylist);
-    
     SyncPlaylists_playlist_column(&GS->MusicInfo);
     
     SavePlaylist(GS, IntoPlaylist);
+}
+
+internal void
+RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID)
+{
+    Assert(Type != columnType_Playlists);
+    Assert(Type != columnType_None);
+    playlist_info *FromPlaylist = GS->MusicInfo.Playlist_;
+    array_file_id FileIDs;
+    
+    if(Type == columnType_Song)
+    {
+        FileIDs = FromPlaylist->Song.FileIDs;
+        file_id FileID = FileIDFromDisplayableID(&GS->MusicInfo, DisplayableID);
+        StackFindAndTake(&FileIDs.A, FileID.ID);
+    }
+    else
+    {
+        // As we manipulate the array we also read from, we need to copy it.
+        // @SLOW
+        FileIDs.A = CreateArray(&GS->ScratchArena, FromPlaylist->Song.FileIDs.A.Length);
+        Copy(&FileIDs.A, &FromPlaylist->Song.FileIDs.A);
+        playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
+        
+        array_playlist_id Songs = PlaylistColumn->Batch.Song[Get(&PlaylistColumn->Displayable, DisplayableID).ID];
+        For(Songs.A.Count)
+        {
+            playlist_id PlaylistID = Get(&Songs, NewDisplayableID(It));
+            file_id FileID = NewFileID(Get(&FromPlaylist->Song.FileIDs.A, PlaylistID.ID));
+            
+            StackFindAndTake(&FileIDs.A, FileID.ID);
+        }
+    }
+    
+    FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, FromPlaylist, FileIDs);
+    UpdatePlaylistScreenName(GS, FromPlaylist);
+    SyncPlaylists_playlist_column(&GS->MusicInfo);
+    UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
+    
+    SavePlaylist(GS, FromPlaylist);
 }
 
 inline void
@@ -2684,7 +2756,7 @@ SwitchPlaylist(game_state *GS, playlist_info *Playlist)
     SwitchSelection(&DisplayInfo->Playlists, &Playlist->Playlists, PlaylistID);
     SwitchPlaylistFromPlaylistID(&DisplayInfo->Playlists, {PlaylistID});
     SortDisplayables(&GS->MusicInfo, &GS->MP3Info->FileInfo);
-    UpdateSelectionChangedVisuals(&GS->Renderer, &GS->MusicInfo, DisplayInfo, columnType_Playlists);
+    UpdateSortingInfoChangedVisuals(&GS->Renderer, &GS->MusicInfo, DisplayInfo, columnType_Playlists);
 }
 
 inline void
@@ -2707,8 +2779,10 @@ OnNewPlaylistClick(void *Data)
     I32ToString(&PlaylistName, GS->MusicInfo.Playlists.Count-1);
     AppendStringToCompound(&PlaylistName, (u8 *)" (0)");
     
+    
+    FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, Playlist, {});
     AddPlaylistToSortingColumn(&GS->MusicInfo, Playlist, PlaylistName);
-    UpdateSelectionChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, columnType_Playlists);
+    UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, columnType_Playlists);
     
     SavePlaylist(GS, Playlist);
 }

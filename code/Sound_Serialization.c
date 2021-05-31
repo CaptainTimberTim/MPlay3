@@ -1095,7 +1095,7 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         C += 6; // "Name: "
         u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;
         u32 NameLength = CountToNewline(C);
-        *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit); // HardLimit:: Limit to 100 chars for now.
+        *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit); // @HardLimit, Limit to 100 chars for now.
         CopyStringToCompound(PlaylistName, C, 0u, Min(NameLength, HardLimit));
         AdvanceToNewline(&C);
         

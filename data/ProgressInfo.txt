@@ -261,7 +261,16 @@
 - Fixed bug introduced through switching columType enum around. columnType_Genre is now the zero-th position, which broke an
   if which checked for zero/non-zero (as columnType_None was 0 before). 
 
+16.05.2021
+- Added removal of slots from playlists by drag&dropping them onto the 'All' playlist.
+- Added shift selection. Now holding shift while selecting will select all slots inbetween the last selected and the new one.
 
+31.05.2021
+- Fixed missing sorting for other columns, when Shuffle songs was active.
+- Added visuals for removing slots from playlists. The All playlist is the "trashcan"
+- Added goodbye in 50 different languages for the quit curtain.
+- Added usage of .ttc files, which contain multiple fonts. Goes through all from the first and picks the first that has the
+  required codepoint.
 
 
 

@@ -9,12 +9,12 @@
 // - think about selecting all entries that are visible when pressing enter during search
 // - if song selected, pressing the big play should start it?
 // - Think about if search in song column should work differently, or search through Title/artist/album
-// - Make a long list of 'goodbyes' for the quit curtain.
 // - loading metadata could be "interactive" and all songs already loaded be available already?
 
 // TODO::
 //
-// - HardLimit:: is a label where I set a hard limit, the user could exceed and needs to be dealt with.
+// - @HardLimit, is a label where I set a hard limit, the user could exceed and needs to be dealt with.
+// - @SLOW     , is a label where I think it's unnecessary slow.
 //
 // - generate huge amount of fake mp3 files and test with those!
 // - Solidify playlists
@@ -62,7 +62,9 @@
 // - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
 // - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
 // - Grey out the delete button when 'All' is selected.
-
+// - make dragged song slot small like the other columns, after it is ripped off.
+// - Stop drag/drop when ColorPicker is open.
+// - update visuals after removing playlist
 
 #include "Sound_UI_TD.h"
 
@@ -116,7 +118,7 @@ struct sort_batch
     array_batch_id   *Album;
     array_playlist_id *Song;
     
-    string_c       *Names; // ::BATCH_ID
+    string_c         *Names; // ::BATCH_ID
     u32 BatchCount;
     u32 MaxBatches;
 }; 
@@ -128,7 +130,7 @@ struct playlist_column
     array_playlist_id Displayable; // ::DISPLAYABLE_ID,  stores _PlaylistIDs_ for song column and sortBatchIDs for the rest!
     
     union {
-        sort_batch Batch;      // Used for Genre, Artist, Album column_types.
+        sort_batch Batch;      // Used for Genre, Artist, Album, Playlists column_types.
         array_file_id FileIDs; // ::FILE_ID Used for Song column_type/Acces this with any playlist_id to get to mp3_file_info.
     };
 };
@@ -152,6 +154,7 @@ struct playlist_info
             // That means we need to keep all playlists in sync. with each other, 
             // which is only keeping the .Counts updated, as all memory pointers
             // point to the same location (so it is not as bad).
+            // This is done with the procedure "SyncPlaylists_playlist_column".
             playlist_column Playlists;
         };
         playlist_column Columns[5];

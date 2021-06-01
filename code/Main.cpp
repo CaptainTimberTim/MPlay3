@@ -628,7 +628,6 @@ WinMain(HINSTANCE Instance,
             LoadFonts(&GameState->FixArena, &GameState->ScratchArena, &Renderer->FontAtlas,
                       (u8 *)GetUsedFontData(GameState).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
             
-            
             /*
 GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             GetFontGroup(GameState, &Renderer->FontAtlas, 0x2F00);

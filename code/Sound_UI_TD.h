@@ -332,18 +332,28 @@ struct music_display_info
     user_error_text UserErrorText;
 };
 
-struct drag_drop
+struct drag_drop_slot
 {
-    b32 Dragging;
-    column_type Type;
     displayable_id SlotID;
-    v2 StartMouseP;
     v2 SlotStartP;
     entry_id *DragSlot;
     entry_id *Border;
     render_text SlotText;
     r32 TextOverhang;
     v2 GrabOffset;
+    u32 DistToBaseSlot;
+};
+
+#define MAX_DRAG_SLOT_VISUALS 7u
+struct drag_drop
+{
+    b32 Dragging;
+    column_type Type;
+    v2 StartMouseP;
+    drag_drop_slot Slots[MAX_DRAG_SLOT_VISUALS];
+    u32 SlotCount = 0;
+    r32 TransparencyFalloff = 0.3f;
+    b32 DragsSelected = false;
     
     i32 AnimDir = 1;
     r32 dAnim   = 0;
@@ -405,6 +415,7 @@ struct layout_definition
     r32 SongSecondRowYOffset  = -8;
     r32 SongThirdRowYOffset   = -33;
     
+    r32 SlotTextYOffset       = 3;
     
     // Search
     r32 SearchFieldHeight   = 50;

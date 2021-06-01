@@ -852,7 +852,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         string_c FPSComp = NewStringCompound(&GameState->ScratchArena, 10);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(Renderer, &FPSText);
-                        RenderText(GameState, &GameState->FixArena, font_Small, &FPSComp,
+                        RenderText(GameState, font_Small, &FPSComp,
                                    &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
                         DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }

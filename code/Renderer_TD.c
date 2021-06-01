@@ -1026,6 +1026,13 @@ PerformScreenTransform(renderer *Renderer)
 
 // Render Text********************************************************
 
+inline v2
+GetPosition(render_text *Text)
+{
+    if(Text->Base == 0) return V2(0);
+    return GetPosition(Text->Base);
+}
+
 inline void
 SetPosition(render_text *Text, v2 P)
 {

@@ -325,7 +325,7 @@ CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui
         AppendStringToCompound(&MusicPath->OutputString, (u8 *)" songs from old path.");
         
         RemoveRenderText(&GlobalGameState.Renderer, &MusicPath->Output);
-        RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &MusicPath->OutputString,
+        RenderText(&GlobalGameState, font_Medium, &MusicPath->OutputString,
                    &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &MusicPath->Output, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, -175));
     }
     
@@ -665,7 +665,7 @@ AddJob_LoadMP3(circular_job_queue *JobQueue, playlist_id PlaylistID,
     i32 DecodeID = -1;
     // PlaylistID needs to be mapped before the multithreaded code to avoid
     // accessing the playlist at that stage. @PlaylistChange
-    file_id FileID = FileIDFromPlaylistID(&MP3Info->MusicInfo->Playlist_->Song, PlaylistID);
+    file_id FileID = GetFileID(&MP3Info->MusicInfo->Playlist_->Song, PlaylistID);
     if(!IsSongDecoded(MP3Info, FileID, &DecodeID))
     {
         DecodeID = GetNextDecodeIDToEvict(&MP3Info->DecodeInfo, IgnoreDecodeIDs);
@@ -717,7 +717,7 @@ AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, playlist_id PlaylistID)
     
     // PlaylistID needs to be mapped before the multithreaded code to avoid
     // accessing the playlist at that stage. @PlaylistChange
-    file_id FileID = FileIDFromPlaylistID(&GlobalGameState.MusicInfo.Playlist_->Song, PlaylistID);
+    file_id FileID = GetFileID(&GlobalGameState.MusicInfo.Playlist_->Song, PlaylistID);
     job_load_decode_mp3 Data = {GlobalGameState.MP3Info, FileID, DecodeID, 1000000};
     AddJobToQueue(JobQueue, JobLoadAndDecodeEntireMP3File, Data);
     
@@ -745,13 +745,13 @@ AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 
             if(DoNext)
             {
                 CurrentNext.ID = (CurrentNext.ID+1)%DisplayableCount;
-                playlist_id PlaylistID = PlaylistIDFromDisplayableID(MP3Info->MusicInfo, CurrentNext);
+                playlist_id PlaylistID = GetPlaylistID(MP3Info->MusicInfo, CurrentNext);
                 AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
             }
             else
             {
                 CurrentPrev    = GetPreviousSong(DisplayableCount, CurrentPrev);
-                playlist_id PlaylistID = PlaylistIDFromDisplayableID(MP3Info->MusicInfo, CurrentPrev);
+                playlist_id PlaylistID = GetPlaylistID(MP3Info->MusicInfo, CurrentPrev);
                 AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
             }
             DoNext = !DoNext;
@@ -772,7 +772,7 @@ AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, ar
         It < MAX_MP3_DECODE_COUNT - IgnoreCount;
         It++)
     {
-        playlist_id PlaylistID = PlaylistIDFromDisplayableID(&GameState->MusicInfo, DisplayColumn->OnScreenIDs[It]);
+        playlist_id PlaylistID = GetPlaylistID(&GameState->MusicInfo, DisplayColumn->OnScreenIDs[It]);
         AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
     }
 }
@@ -795,7 +795,7 @@ AddJob_NextUndecodedInPlaylist()
     {
         u32 DecodeID = 0;
         displayable_id DisplayableID = NewDisplayableID(It);
-        file_id FileID = FileIDFromDisplayableID(MusicInfo, DisplayableID);
+        file_id FileID = GetFileID(MusicInfo, DisplayableID);
         if(!Find(&DecodeInfo->FileIDs, FileID, &DecodeID))
         {
             Result = true;
@@ -814,7 +814,7 @@ AddJob_NextUndecodedInPlaylist()
         {
             u32 DecodeID = 0;
             displayable_id PID = NewDisplayableID(It);
-            file_id FileID    = FileIDFromDisplayableID(MusicInfo, PID);
+            file_id FileID    = GetFileID(MusicInfo, PID);
             if(!Find(&DecodeInfo->FileIDs, FileID, &DecodeID))
             {
                 Result = true;

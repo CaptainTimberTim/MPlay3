@@ -383,7 +383,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     v2i Dim = GetWindowSize();
     file_id FileID = NewFileID(-1);
     if(GameState->MusicInfo.PlayingSong.PlaylistID >= 0) 
-        FileID = FileIDFromPlaylistID(&GameState->MusicInfo.Playlist_->Song, GameState->MusicInfo.PlayingSong.PlaylistID);
+        FileID = GetFileID(&GameState->MusicInfo.Playlist_->Song, GameState->MusicInfo.PlayingSong.PlaylistID);
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
     I32ToString(&FileFontOffset, Settings->FontHeightOffset);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
@@ -466,8 +466,8 @@ ApplySettings(game_state *GameState, settings Settings)
     ChangeVolume(GameState, Settings.Volume);
     music_info *MusicInfo = &GameState->MusicInfo;
     
-    MusicInfo->PlayingSong.PlaylistID    = PlaylistIDFromFileID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
-    MusicInfo->PlayingSong.DisplayableID = DisplayableIDFromPlaylistID(MusicInfo, MusicInfo->PlayingSong.PlaylistID);
+    MusicInfo->PlayingSong.PlaylistID    = GetPlaylistID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
+    MusicInfo->PlayingSong.DisplayableID = GetDisplayableID(MusicInfo, MusicInfo->PlayingSong.PlaylistID);
     
     ChangeSong(GameState, &MusicInfo->PlayingSong); 
     
@@ -488,7 +488,7 @@ ApplySettings(game_state *GameState, settings Settings)
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base, Playlist->Song.Displayable.A.Count);
     UpdateHorizontalSliders(MusicInfo);
     
-    playlist_id PlaylistID = PlaylistIDFromFileID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
+    playlist_id PlaylistID = GetPlaylistID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
     if(PlaylistID >= 0)
     {
         BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Genre,     PlaylistID);
@@ -1010,7 +1010,7 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     {
         // TODO:: It seems the subpathing is not perfectly sorted. Maybe bunch them up
         // and try to have each subpath only once.
-        file_id FileID = FileIDFromPlaylistID(&Playlist->Song, NewPlaylistID(It));
+        file_id FileID = GetFileID(&Playlist->Song, NewPlaylistID(It));
         
         if(!CompareStringCompounds(CurrentSubPath, FileInfo->SubPath+FileID.ID))
         {
@@ -1131,7 +1131,7 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             WipeStringCompound(&Filename);
             CopyStringToCompound(&Filename, C, (u8 *)"\n\r", 2);
             
-            file_id FileID = FileIDFromFilePath(FileInfo, &CurrentSubPath, &Filename);
+            file_id FileID = GetFileID(FileInfo, &CurrentSubPath, &Filename);
             Push(PlaylistFileIDs, FileID);
             
             AdvanceToNewline(&C);

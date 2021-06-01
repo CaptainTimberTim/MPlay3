@@ -315,7 +315,7 @@ CreateFontEntry(v2 Extends, r32 Depth, u32 BitmapID, v3 *Color, entry_id *Parent
 }
 
 internal void
-RenderText(game_state *GS, arena_allocator *Arena, font_size_id FontSize, string_c *Text,
+RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
            v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP)
 {
     // Create memory if this render_text was not used before
@@ -323,11 +323,11 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size_id FontSize, string
     if(ResultText->MaxCount == 0)
     {
         ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
-        ResultText->RenderEntries    = AllocateArray(Arena, ResultText->MaxCount, render_entry);
+        ResultText->RenderEntries    = AllocateArray(&GS->FixArena, ResultText->MaxCount, render_entry);
     }
     else if (ResultText->MaxCount < Text->Pos)
     {
-        ResultText->RenderEntries = ReallocateArray(Arena, ResultText->RenderEntries, ResultText->MaxCount, 
+        ResultText->RenderEntries = ReallocateArray(&GS->FixArena, ResultText->RenderEntries, ResultText->MaxCount, 
                                                     Text->Pos, render_entry);
         ResultText->MaxCount = Text->Pos;
     }

@@ -272,6 +272,11 @@
 - Added usage of .ttc files, which contain multiple fonts. Goes through all from the first and picks the first that has the
   required codepoint.
 
+01.06.2021
+- Added possibility to drop more than one slot into a playlist, when drag&dropping a selection.
+- Added visuals for grabbing selections and dropping them into a playlist.
+- Fixed bug where on first time insertion of slot in new playlist the text was not positioned properly.
+
 
 
 

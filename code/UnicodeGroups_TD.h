@@ -28,7 +28,7 @@ PrepareUnicodeGroupList()
 {
 #define NewSSC NewStaticStringCompound
     const unicode_group UnicodeGroups[] = {
-        /*Name,                                              First, Last, Length,       Font  */
+        /*Name,                                                    First, Last, Length,       Font  */
         { {(u8 *)"Basic Latin", 11, 11},                           {0x0, 0x7F, 128},          {(u8 *)"Segoesc.ttf", 11, 11} },
         { {(u8 *)"Latin-1 Supplement", 18, 18},                    {0x80, 0xFF, 128},         {(u8 *)"Segoesc.ttf", 11, 11} },
         { {(u8 *)"Latin Extended-A", 16, 16},                      {0x100, 0x17F, 128},       {(u8 *)"Segoesc.ttf", 11, 11} },

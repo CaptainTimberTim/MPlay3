@@ -303,6 +303,7 @@ inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixT
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff
+inline v2   GetPosition(render_text *Text);
 inline void SetPosition(render_text *Info, v2 P);
 inline void SetPositionX(render_text *Info, r32 X);
 inline void SetPositionY(render_text *Info, r32 Y);

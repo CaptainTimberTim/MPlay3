@@ -2936,6 +2936,8 @@ OnRemovePlaylistClick(void *Data)
     // All accesses need to happen beforehand.
     RemoveItem(GS->MusicInfo.Playlists.List, GS->MusicInfo.Playlists.Count, PlaylistID, playlist_info);
     --GS->MusicInfo.Playlists.Count;
+    
+    UpdateSortingInfoChangedVisuals(&GS->Renderer, &GS->MusicInfo, &GS->MusicInfo.DisplayInfo, columnType_Playlists);
 }
 
 

@@ -276,6 +276,7 @@
 - Added possibility to drop more than one slot into a playlist, when drag&dropping a selection.
 - Added visuals for grabbing selections and dropping them into a playlist.
 - Fixed bug where on first time insertion of slot in new playlist the text was not positioned properly.
+- Fixed not updating the visuals when removing a playlist.
 
 
 

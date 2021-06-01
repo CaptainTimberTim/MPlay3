@@ -64,7 +64,6 @@
 // - Grey out the delete button when 'All' is selected.
 // - make dragged song slot small like the other columns, after it is ripped off.
 // - Stop drag/drop when ColorPicker is open.
-// - update visuals after removing playlist
 
 #include "Sound_UI_TD.h"
 

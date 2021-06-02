@@ -672,6 +672,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
             
             
+            // @TemporaryDisable:: 
+            SetDisabled(DisplayInfo->PlaylistUI.Remove, true, &DisplayInfo->ColorPalette.ForegroundText);
+            SetDisabled(DisplayInfo->PlaylistUI.Rename, true, &DisplayInfo->ColorPalette.ForegroundText);
             // ********************************************
             // Dragging************************************
             // ********************************************
@@ -871,7 +874,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 if(CheckMusicPath->State == threadState_Finished) 
                     CheckForMusicPathMP3sChanged_End(CheckMusicPath, &DisplayInfo->MusicPath);
                 
-                
                 // *******************************************
                 // Input handling ****************************
                 // *******************************************
@@ -879,20 +881,23 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 
                 if(Input->KeyChange[KEY_ESCAPE] == KeyDown)
                 {
-                    if(DisplayInfo->MusicPath.TextField.IsActive && 
-                       !CrawlInfoOut.ThreadIsRunning) 
+                    if(IsActive(GameState, mode_MusicPath) && !CrawlInfoOut.ThreadIsRunning) 
                     {
                         // TODO:: Maybe rather kill crawl thread if escape is pressed?
                         // TODO:: Do not save when I directly exit from here
                         OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
                     }
-                    else if(ColorPicker->IsActive)
+                    else if(IsActive(GameState, mode_ColorPicker))
                     {
                         SetActive(ColorPicker, false);
                     }
-                    else if(IsSearchOpen(DisplayInfo))
+                    else if(IsActive(GameState, mode_Search))
                     {
                         InterruptSearch(Renderer, MusicInfo);
+                    }
+                    else if(IsActive(GameState, mode_PLRename))
+                    {
+                        OnRenamePlaylistClick(GameState);
                     }
                     else 
                     {
@@ -953,10 +958,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     else OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
                 }
                 
-                if(DisplayInfo->MusicPath.TextField.IsActive)
+                if(IsActive(GameState, mode_MusicPath))
                 {
                     HandleActiveMusicPath(DisplayInfo, Input, &CrawlInfoOut);
-                    if(ColorPicker->IsActive) SetActive(ColorPicker, false);
                 } // This is only reachable if MusicPath stuff is not on screen
                 else 
                 {
@@ -971,7 +975,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                         if(!OnDraggingStart(DragableList, Renderer, Input->MouseP))
                         {
-                            CheckSlotDragDrop(Input, GameState, &DragDrop);
+                            if(!IsActive(GameState, mode_ColorPicker)) 
+                                CheckSlotDragDrop(Input, GameState, &DragDrop);
                         }
                     }
                     if(Input->Pressed[KEY_LMB])
@@ -993,8 +998,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                     }
                     
-                    // TODO:: Change this to: IsInSubmenu? Then do this for musicPath as well!
-                    if(!ColorPicker->IsActive || !IsInRect(ColorPicker->Background, Input->MouseP))
+                    if(!IsActive(GameState, mode_ColorPicker) || !IsInRect(ColorPicker->Background, Input->MouseP))
                     {
                         UpdateButtons(Renderer, Input);
                         
@@ -1005,17 +1009,28 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             {
                                 UpdateSortingInfoChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
                                 AddJobs_LoadOnScreenMP3s(GameState, JobQueue);
+                                
+                                if(ChangedSelection == columnType_Playlists && IsActive(GameState, mode_PLRename))
+                                    SetPlaylistRenameActive(GameState, false);
                             }
                         }
                         
                     }
                     
-                    
+                    ProcessTextField(Renderer, GameState->Time.dTime, Input, &DisplayInfo->PlaylistUI.RenameField);
+                    if(Input->KeyChange[KEY_ENTER] == KeyDown)
+                    {
+                        if(DisplayInfo->PlaylistUI.RenameField.IsActive)
+                        {
+                            SaveNewPlaylistName(GameState);
+                            OnRenamePlaylistClick(GameState);
+                        }
+                    }
                     //if(Input->KeyChange[KEY_F9]  == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
                     //if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
                     
-                    if(ColorPicker->IsActive)
+                    if(IsActive(GameState, mode_ColorPicker))
                     {
                         HandleActiveColorPicker(ColorPicker);
                     }
@@ -1087,7 +1102,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if(Input->KeyChange[KEY_SPACE] == KeyDown ||
                            Input->KeyChange[KEY_PLAY_PAUSE] == KeyDown)
                         {
-                            if(DisplayInfo->SearchIsActive >= 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
+                            if(GameState->ModeFlags > 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
                             else
                             {
                                 MusicInfo->IsPlaying = !MusicInfo->IsPlaying;
@@ -1167,22 +1182,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             else ScrollLoadInfo.dTime += GameState->Time.dTime/ScrollLoadInfo.WaitTime;
                         }
                         
-                        // Search bar  ******************
-                        column_info ColumnInfo = {Renderer, DisplayInfo, MusicInfo, 
-                            &DisplayInfo->Genre, &MusicInfo->Playlist_->Genre};
-                        ProcessActiveSearch(ColumnInfo, GameState->Time.dTime, Input);
-                        
-                        ColumnInfo.DisplayColumn  = &DisplayInfo->Artist;
-                        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Artist;
-                        ProcessActiveSearch(ColumnInfo, GameState->Time.dTime, Input);
-                        
-                        ColumnInfo.DisplayColumn  = &DisplayInfo->Album;
-                        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Album;
-                        ProcessActiveSearch(ColumnInfo, GameState->Time.dTime, Input);
-                        
-                        ColumnInfo.DisplayColumn  = &DisplayInfo->Song.Base;
-                        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Song;
-                        ProcessActiveSearch(ColumnInfo, GameState->Time.dTime, Input, &MP3Info->FileInfo);
+                        ProcessAllSearchBars(GameState);
                         
                         if(PrevIsPlaying != MusicInfo->IsPlaying)
                         {
@@ -1259,6 +1259,44 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                     PrevIsPlaying = MusicInfo->IsPlaying;
                 }
+                
+                // *******************************************
+                // Mode Handling *****************************
+                // *******************************************
+                GameState->ModeFlags = 0;
+                if(DisplayInfo->MusicPath.TextField.IsActive)    GameState->ModeFlags |= mode_MusicPath;
+                if(ColorPicker->IsActive)                        GameState->ModeFlags |= mode_ColorPicker;
+                if(IsSearchOpen(DisplayInfo))                    GameState->ModeFlags |= mode_Search;
+                if(DisplayInfo->PlaylistUI.RenameField.IsActive) GameState->ModeFlags |= mode_PLRename;
+                
+                if(IsActive(GameState, mode_MusicPath))
+                {
+                    if(IsActive(GameState, mode_ColorPicker))
+                    {
+                        OnCancelColorPicker(ColorPicker);
+                        GameState->ModeFlags &= ~mode_ColorPicker;
+                    }
+                }
+                if(IsActive(GameState, mode_MusicPath) ||
+                   IsActive(GameState, mode_ColorPicker))
+                {
+                    if(IsActive(GameState, mode_Search))
+                    {
+                        InterruptSearch(Renderer, MusicInfo);
+                        GameState->ModeFlags &= ~mode_Search;
+                    }
+                }
+                if(IsActive(GameState, mode_MusicPath)   ||
+                   IsActive(GameState, mode_ColorPicker) ||
+                   IsActive(GameState, mode_Search)) 
+                {
+                    if(IsActive(GameState, mode_PLRename))
+                    {
+                        SetPlaylistRenameActive(GameState, false);
+                        GameState->ModeFlags &= ~mode_PLRename;
+                    }
+                }
+                
                 
                 // *******************************************
                 // Rendering *********************************

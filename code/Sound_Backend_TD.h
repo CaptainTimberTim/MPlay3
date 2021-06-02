@@ -10,11 +10,13 @@
 // - if song selected, pressing the big play should start it?
 // - Think about if search in song column should work differently, or search through Title/artist/album
 // - loading metadata could be "interactive" and all songs already loaded be available already?
+// - adjust many sizes, text for example is too big imo. Which happened because of the bad rendering, which is now fixed.
 
 // TODO::
 //
 // - @HardLimit, is a label where I set a hard limit, the user could exceed and needs to be dealt with.
 // - @SLOW     , is a label where I think it's unnecessary slow.
+// - @Layout   , where the Layout struct should hold the magic values.
 //
 // - generate huge amount of fake mp3 files and test with those!
 // - Solidify playlists
@@ -47,23 +49,20 @@
 // - Fix stutter on first play of song.
 // - Make it possible to close colorpicker with the colorpicker button
 // - Make selection more versatile. Shift-select would be nice.
+// - Add a on_screen_id for tha visuals, to have typechecking on it! (like displayable_id, etc.).
 // - sorting is broken
 
 // PLAYLIST:
-// - what happens when search is open
-// - Add playlist column visuals
-//    - Add buttons to delete and create playlits
-//    - Add way to remove or add songs to playlists
-// - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// - Playlist playlist selected array should only be length 1
-// - Preload songs when switching playlists.
+// - make dragged song slot small like the other columns, after it is ripped off?
+// - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
 // - Add tooltips for new stuff.
+// - InitialDisplayable count for playlist is capped to 250, should be expandable.
 // - Add drag&drop for sorting playlist slots.
 // - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
 // - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
-// - Grey out the delete button when 'All' is selected.
-// - make dragged song slot small like the other columns, after it is ripped off.
-// - Stop drag/drop when ColorPicker is open.
+// - Save active playlist in settings (@TemporaryDisable::).
+// - Add Btn for creating playlist with current selection.
+// - space activates playPause btn when renaming playlist.
 
 #include "Sound_UI_TD.h"
 
@@ -72,7 +71,7 @@ struct column_info
     struct renderer             *Renderer;
     struct music_display_info   *DisplayInfo;
     struct music_info           *MusicInfo;
-    struct music_display_column *DisplayColumn;
+    struct display_column *DisplayColumn;
     
     struct playlist_column      *PlaylistColumn;
 };
@@ -276,10 +275,10 @@ struct mp3_info
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
 
-inline displayable_id PlaylistIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, playlist_id PlaylistID);
+inline displayable_id PlaylistIDToColumnDisplayID(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID);
 internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 
 internal void CreatePlaylistsSortingInfo(playlist_column *Playlists);
-internal void SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDisplayID);
+internal void SwitchPlaylistFromDisplayID(display_column *DisplayColumn, u32 ColumnDisplayID);
 

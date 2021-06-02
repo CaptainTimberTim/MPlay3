@@ -278,7 +278,15 @@
 - Fixed bug where on first time insertion of slot in new playlist the text was not positioned properly.
 - Fixed not updating the visuals when removing a playlist.
 
-
+02.06.2021
+- Stopped drag/drop when ColorPicker is open.
+- Added 'official' way to disable buttons.
+- Now 'Remove' and 'Rename' for playlists are disabled when 'All' is selected.
+- Fixed visuals for playlist column panel and button icon sizes.
+- Activated search for playlists.
+- Now search gets deactivated when switching playlists.
+- Introduced mode flags, which clearly define what ui elemts are active (MusicPath, ColorPicker, Search, Rename)
+- Implemented renaming of playlists with the rename button.
 
 
 

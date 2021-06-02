@@ -762,7 +762,7 @@ AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 
 internal void
 AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs)
 {
-    music_display_column *DisplayColumn = &GameState->MusicInfo.DisplayInfo.Song.Base;
+    display_column *DisplayColumn = &GameState->MusicInfo.DisplayInfo.Song.Base;
     
     u32 IgnoreCount = 0;
     if(IgnoreDecodeIDs) IgnoreCount = Min((i32)IgnoreDecodeIDs->Count, MAX_MP3_DECODE_COUNT);

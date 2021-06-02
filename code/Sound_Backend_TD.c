@@ -281,7 +281,7 @@ GetPlaylistID(playlist_column *SongColumn, file_id FileID)
 }
 
 inline i32
-GetOnScreenID(music_display_column *DisplayColumn, displayable_id DisplayableID)
+GetOnScreenID(display_column *DisplayColumn, displayable_id DisplayableID)
 {
     i32 Result = -1;
     
@@ -302,7 +302,7 @@ GetOnScreenID(game_state *GS, column_type Type, displayable_id DisplayableID)
 {
     i32 Result = -1;
     
-    music_display_column *DisplayColumn = 0;
+    display_column *DisplayColumn = 0;
     switch(Type)
     {
         case columnType_Playlists:
@@ -596,7 +596,7 @@ GetDisplayableID(music_info *MusicInfo, u32 OnScreenID, playlist_id *PlaylistID)
 
 // Acquires the corresponding Genre/Artist/Album DisplayID for given FileID
 inline displayable_id
-PlaylistIDToColumnDisplayID(music_info *MusicInfo, music_display_column *DisplayColumn, playlist_id PlaylistID)
+PlaylistIDToColumnDisplayID(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID)
 {
     displayable_id Result = NewDisplayableID(-1);
     string_c *CompareS = 0;
@@ -635,7 +635,7 @@ PlaylistIDToColumnDisplayID(music_info *MusicInfo, music_display_column *Display
 }
 
 inline displayable_id
-SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID)
+SortingIDToColumnDisplayID(playlist_info *Playlist, display_column *DisplayColumn, batch_id BatchID)
 {
     displayable_id Result = NewDisplayableID(-1);
     
@@ -1605,7 +1605,7 @@ CreateMusicSortingInfo()
 }
 
 inline void
-SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
+SetSelectionArray(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
 {
     b32 ControlIsPressed = GlobalGameState.Input.Pressed[KEY_CONTROL_LEFT] || GlobalGameState.Input.Pressed[KEY_CONTROL_RIGHT];
     b32 ShiftIsPressed   = GlobalGameState.Input.Pressed[KEY_SHIFT_LEFT]   || GlobalGameState.Input.Pressed[KEY_SHIFT_RIGHT];
@@ -1651,14 +1651,14 @@ SetSelectionArray(music_display_column *DisplayColumn, playlist_column *Playlist
 }
 
 inline void
-SwitchSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
+SwitchSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID)
 {
     ClearSelection(PlaylistColumn);
     Select(DisplayColumn, PlaylistColumn, ColumnDisplayID);
 }
 
 internal column_type // returns none if not in any rect, and corresponding column if it is
-UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, v2 MouseBtnDownLocation)
+UpdateSelectionArray(playlist_column *PlaylistColumn, display_column *DisplayColumn, v2 MouseBtnDownLocation)
 {
     column_type Result = columnType_None;
     DisplayColumn->LastClickSlotID = -1;
@@ -1686,7 +1686,7 @@ UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *Disp
 }
 
 internal column_type
-SelectAllOrNothing(music_display_column *DisplayColumn, playlist_column *PlaylistColumn)
+SelectAllOrNothing(display_column *DisplayColumn, playlist_column *PlaylistColumn)
 {
     column_type Result = columnType_None;
     b32 SelectAll = false;
@@ -2338,7 +2338,7 @@ internal void
 CreatePlaylistsSortingInfo(playlist_column *Playlists)
 {
     Playlists->Type             = columnType_Playlists;
-    Playlists->Selected.A       = CreateArray(&GlobalGameState.FixArena, 250);
+    Playlists->Selected.A       = CreateArray(&GlobalGameState.FixArena, 1);
     Playlists->Displayable.A    = CreateArray(&GlobalGameState.FixArena, 250);
     
     Playlists->Batch.Names      = AllocateArray(&GlobalGameState.FixArena, 250, string_c);
@@ -2651,7 +2651,7 @@ GetOnScreenID(game_state *GS, playlist_info *Playlist)
     i32 Result = -1;
     
     playlist_column    *PlaylistsColumn = &GS->MusicInfo.Playlist_->Playlists;
-    music_display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+    display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
     
     For(DisplayColumn->Count)
     {
@@ -2670,15 +2670,15 @@ GetOnScreenID(game_state *GS, playlist_info *Playlist)
 internal void
 UpdatePlaylistScreenName(game_state *GS, playlist_info *Playlist)
 {
-    music_display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+    display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
     i32 OnScreenID = GetOnScreenID(GS, Playlist);
     i32 PlaylistID = GetPlaylistID(&GS->MusicInfo, Playlist);
     
     RemoveRenderText(&GS->Renderer, DisplayColumn->Text + OnScreenID);
     NewLocalString(ScreenName, PLAYLIST_MAX_NAME_LENGTH + 10, Playlist->Playlists.Batch.Names[PlaylistID].S);
     i32 Pos = FindLastOccurrenceOfCharInStringCompound(&ScreenName, '(');
-    Assert(Pos >= 0);
-    ScreenName.Pos = Pos+1;
+    if(Pos >= 0) ScreenName.Pos = Pos+1;
+    else AppendStringToCompound(&ScreenName, (u8 *)" (");
     I32ToString(&ScreenName, Playlist->Song.Displayable.A.Count);
     AppendCharToCompound(&ScreenName, ')');
     
@@ -2826,7 +2826,7 @@ AddPlaylistToSortingColumn(music_info *MusicInfo, playlist_info *Playlist, strin
 }
 
 internal void // Without changing visuals
-SwitchPlaylistFromPlaylistID(music_display_column *DisplayColumn, playlist_id PlaylistID)
+SwitchPlaylistFromPlaylistID(display_column *DisplayColumn, playlist_id PlaylistID)
 {
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
     
@@ -2836,25 +2836,35 @@ SwitchPlaylistFromPlaylistID(music_display_column *DisplayColumn, playlist_id Pl
     MusicInfo->PlayingSong.DisplayableID.ID = -1;
     MusicInfo->PlayingSong.PlaylistID.ID    = -1;
     MusicInfo->PlayingSong.DecodeID         = -1;
+    
+    if(PlaylistID == 0) // Playlist All
+    {
+        SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Remove, true, &MusicInfo->DisplayInfo.ColorPalette.ForegroundText);
+        SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Rename, true, &MusicInfo->DisplayInfo.ColorPalette.ForegroundText);
+    }
+    else
+    {
+        SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Remove, false, &MusicInfo->DisplayInfo.ColorPalette.ButtonActive);
+        SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Rename, false, &MusicInfo->DisplayInfo.ColorPalette.ButtonActive);
+    }
 }
 
 inline void // Without changing visuals
-SwitchPlaylistFromDisplayableID(music_display_column *DisplayColumn, displayable_id DisplayableID)
+SwitchPlaylistFromDisplayID(display_column *DisplayColumn, u32 ColumnDisplayID)
 {
-    playlist_id PlaylistID = Get(&GlobalGameState.MusicInfo.Playlist_->Playlists.Displayable, DisplayableID);
+    InterruptSearch(&GlobalGameState.Renderer, &GlobalGameState.MusicInfo);
+    
+    playlist_id PlaylistID = Get(&GlobalGameState.MusicInfo.Playlist_->Playlists.Displayable, 
+                                 DisplayColumn->OnScreenIDs[ColumnDisplayID]);
     SwitchPlaylistFromPlaylistID(DisplayColumn, PlaylistID);
-}
-
-inline void // Without changing visuals
-SwitchPlaylistFromDisplayID(music_display_column *DisplayColumn, u32 ColumnDisplayID)
-{
-    SwitchPlaylistFromDisplayableID(DisplayColumn, DisplayColumn->OnScreenIDs[ColumnDisplayID]);
 }
 
 internal void // With visuals
 SwitchPlaylist(game_state *GS, playlist_info *Playlist)
 {
     music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    
+    InterruptSearch(&GS->Renderer, &GS->MusicInfo);
     
     // MoveDisplayColumn fills the OnScreenIDs array, which is needed for switching visuals...
     MoveDisplayColumn(&GS->Renderer, &GS->MusicInfo, &DisplayInfo->Playlists);
@@ -2893,7 +2903,7 @@ OnNewPlaylistClick(void *Data)
     SavePlaylist(GS, Playlist);
 }
 
-inline void
+internal void
 OnRemovePlaylistClick(void *Data)
 {
     game_state *GS = (game_state *)Data;
@@ -2940,5 +2950,52 @@ OnRemovePlaylistClick(void *Data)
     UpdateSortingInfoChangedVisuals(&GS->Renderer, &GS->MusicInfo, &GS->MusicInfo.DisplayInfo, columnType_Playlists);
 }
 
+internal void
+OnRenamePlaylistClick(void *Data)
+{
+    game_state          *GS = (game_state *)Data;
+    text_field   *TextField = &GS->MusicInfo.DisplayInfo.PlaylistUI.RenameField;
+    playlist_info *Playlist = GS->MusicInfo.Playlist_;
+    display_column *DColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+    i32          OnScreenID = GetOnScreenID(GS, Playlist);
+    
+    b32 ActivateTextfield = !TextField->IsActive;
+    SetActive(TextField, ActivateTextfield);
+    // SetActive(DColumn->Text+OnScreenID, !ActivateTextfield); // Actually nice to hover and see original name.
+    
+    if(ActivateTextfield)
+    {
+        SetParent(TextField, DColumn->BGRects[OnScreenID]);
+        SetSize(TextField->Background, V2(DColumn->SlotWidth, GetSize(TextField->Background).y));
+        SetLocalPosition(TextField->LeftAlign, V2(DColumn->SlotWidth*-0.5f, 0));
+        ResetStringCompound(TextField->TextString);
+        UpdateTextField(&GS->Renderer, TextField);
+    }
+    else
+    {
+        
+    }
+}
 
+inline void
+SetPlaylistRenameActive(game_state *GS, b32 Activate)
+{
+    text_field *TextField = &GS->MusicInfo.DisplayInfo.PlaylistUI.RenameField;
+    if(TextField->IsActive != Activate) OnRenamePlaylistClick(GS);
+}
+
+internal void
+SaveNewPlaylistName(game_state *GS)
+{
+    text_field   *TextField = &GS->MusicInfo.DisplayInfo.PlaylistUI.RenameField;
+    playlist_info *Playlist = GS->MusicInfo.Playlist_;
+    i32 PlaylistID          = GetPlaylistID(&GS->MusicInfo, Playlist);
+    
+    ResetStringCompound(Playlist->Playlists.Batch.Names[PlaylistID]);
+    CopyIntoCompound(Playlist->Playlists.Batch.Names+PlaylistID, &TextField->TextString);
+    
+    UpdatePlaylistScreenName(GS, Playlist);
+    
+    SavePlaylist(GS, Playlist);
+}
 

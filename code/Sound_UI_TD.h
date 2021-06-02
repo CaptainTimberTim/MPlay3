@@ -53,7 +53,7 @@ global_variable string_c GlobalDefaultColorPaletteNames[] =
 struct drag_slider_data
 {
     struct music_info *MusicInfo;
-    struct music_display_column *DisplayColumn;
+    struct display_column *DisplayColumn;
 };
 
 struct search_bar_btn_info
@@ -61,7 +61,7 @@ struct search_bar_btn_info
     struct renderer   *Renderer;
     struct search_bar *Search;
     struct music_info *MusicInfo;
-    struct music_display_column *DisplayColumn;
+    struct display_column *DisplayColumn;
     enum column_type   ColumnType;
 };
 
@@ -82,7 +82,7 @@ struct column_colors
     v3 *Selected;
 };
 
-struct music_display_column
+struct display_column
 {
     struct music_display_info *Base;
     enum column_type Type;
@@ -126,7 +126,7 @@ struct song_play_btn
 
 struct display_column_song_extension
 {
-    music_display_column Base;
+    display_column Base;
     
     render_text SongTitle  [MAX_DISPLAY_SONG_COUNT];
     render_text SongArtist [MAX_DISPLAY_SONG_COUNT];
@@ -269,24 +269,26 @@ struct shortcut_popups
 struct playlist_ui
 {
     entry_id *Panel;
+    entry_id *PanelRightEdge;
     entry_id *BtnAnchor;
     button   *Add;
     button   *Remove;
     button   *Rename;
-    entry_id *BtnDivider;
     button_colors BtnColors;
+    
+    text_field RenameField;
 };
 
 struct music_display_info
 {
     // General
-    music_display_column Genre;
-    music_display_column Artist;
-    music_display_column Album;
+    display_column Genre;
+    display_column Artist;
+    display_column Album;
     display_column_song_extension Song;
-    music_display_column *Columns[5]; // Easy acces through column_type.
+    display_column *Columns[5]; // Easy acces through column_type.
     
-    music_display_column Playlists;
+    display_column Playlists;
     playlist_ui PlaylistUI;
     
     color_palette ColorPalette;
@@ -489,20 +491,20 @@ struct layout_definition
     r32 ErrorTextAnimationTime    = 2.5f;
 };
 
-inline void UpdateColumnColor(music_display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
-internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *DisplayColumn, playlist_id PlaylistID);
-internal void BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id SortID);
-inline void ToggleSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
-internal void UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 FileID, v4 *Color);
+inline void UpdateColumnColor(display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
+internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID);
+internal void BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, display_column *DisplayColumn, batch_id SortID);
+inline void ToggleSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
+internal void UpdatePlayingSongColor(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 FileID, v4 *Color);
 internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *MusicInfo);
-internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn,
+internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn,
                                   playlist_column *PlaylistColumn, i32 ScrollAmount);
-internal void ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, r32 ScrollAmount);
+internal void ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn, r32 ScrollAmount);
 internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
 
 
 internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, struct search_bar *Search, mp3_file_info *FileInfo = 0);
-internal void UpdateColumnVerticalSlider(music_display_column *DisplayColumn, u32 DisplayableCount);
+internal void UpdateColumnVerticalSlider(display_column *DisplayColumn, u32 DisplayableCount);
 inline void PushUserErrorMessage(string_c *String);
 
 inline string_c GetRandomExitMessage(game_state *GS, string_c *Language = NULL);

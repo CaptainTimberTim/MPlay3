@@ -5,31 +5,32 @@ inline displayable_id GetPreviousSong(u32 DisplayableCount, displayable_id Displ
 inline void SetPreviousSong(music_info *MusicInfo);
 
 internal void MillisecondsToMinutes(u32 Millis, string_c *Out);
-internal void MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, 
+internal void MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn, 
                                 displayable_id DisplayableStartID = {0}, r32 StartY = 0);
 internal void SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo);
 inline mp3_info *CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount);
 inline void CreateFileInfoStruct(mp3_file_info *FileInfo, u32 FileInfoCount);
 inline void DeleteFileInfoStruct(mp3_file_info *FileInfo);
 inline void ReplaceFolderPath(mp3_info *MP3Info, string_c *NewPath);
-inline void SetSelectionArray(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
+inline void SetSelectionArray(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
 internal void UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type);
-inline void SwitchSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
-inline displayable_id SortingIDToColumnDisplayID(playlist_info *Playlist, music_display_column *DisplayColumn, batch_id BatchID);
+inline void SwitchSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
+inline displayable_id SortingIDToColumnDisplayID(playlist_info *Playlist, display_column *DisplayColumn, batch_id BatchID);
 inline void HandleChangeToNextSong(game_state *GameState);
 internal void AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
 internal void AddJobs_LoadMP3s(game_state *GameState, circular_job_queue *JobQueue, array_u32 *IgnoreDecodeIDs = 0);
 internal i32 AddJob_LoadNewPlayingSong(circular_job_queue *JobQueue, playlist_id PlaylistID);
 internal b32 AddJob_LoadMetadata(game_state *GameState);
-internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, v2 MouseBtnDownLocation);
-internal column_type SelectAllOrNothing(music_display_column *DisplayColumn, playlist_column *PlaylistColumn);
+internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, display_column *DisplayColumn, v2 MouseBtnDownLocation);
+internal column_type SelectAllOrNothing(display_column *DisplayColumn, playlist_column *PlaylistColumn);
 internal void PropagateSelectionChange(music_info *SortingInfo);
 internal void UpdatePlayingSongForSelectionChange(music_info *MusicInfo);
 internal void InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID);
 internal void InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type Type, array_u32 DisplayableIDs);
 internal void RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID);
 internal void OnNewPlaylistClick(void *Data);
-inline void   OnRemovePlaylistClick(void *Data);
+internal void OnRemovePlaylistClick(void *Data);
+internal void OnRenamePlaylistClick(void *Data);
 inline r32 GetXTextPosition(entry_id *Background, r32 XOffset);
 
 inline file_id        GetFileID(music_info *MusicInfo, displayable_id DisplayableID);
@@ -37,13 +38,13 @@ inline playlist_id    GetPlaylistID(music_info *MusicInfo, displayable_id Displa
 inline playlist_id    GetPlaylistID(playlist_column *SongColumn, file_id FileID);
 inline displayable_id GetDisplayableID(music_info *MusicInfo, u32 OnScreenID, playlist_id *PlaylistID = 0);
 inline displayable_id GetDisplayableID(array_playlist_id *Displayable, playlist_id PlaylistID);
-inline   i32          GetOnScreenID(music_display_column *DisplayColumn, displayable_id DisplayableID);
+inline   i32          GetOnScreenID(display_column *DisplayColumn, displayable_id DisplayableID);
 internal i32          GetOnScreenID(game_state *GS, column_type Type, displayable_id DisplayableID);
 internal i32          GetOnScreenID(game_state *GS, playlist_info *Playlist);
 inline string_c *     GetName(playlist_column *PlaylistColumn, displayable_id DID);
 
 inline u32 
-CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayColumn)
+CountPossibleDisplayedSlots(renderer *Renderer, display_column *DisplayColumn)
 {
     u32 Result = 0;
     r32 Height = HeightBetweenRects(DisplayColumn->TopBorder, DisplayColumn->BottomBorder);
@@ -52,7 +53,7 @@ CountPossibleDisplayedSlots(renderer *Renderer, music_display_column *DisplayCol
 }
 
 inline void
-CreateDisplayBackgroundRect(renderer *Renderer, music_display_column *DisplayColumn, u32 ID, r32 ZValue, entry_id *Parent)
+CreateDisplayBackgroundRect(renderer *Renderer, display_column *DisplayColumn, u32 ID, r32 ZValue, entry_id *Parent)
 {
     r32 SlotGap = GlobalGameState.Layout.SlotGap;
     v2 HalfDim = V2(DisplayColumn->SlotWidth, DisplayColumn->SlotHeight-SlotGap)/2;
@@ -62,7 +63,7 @@ CreateDisplayBackgroundRect(renderer *Renderer, music_display_column *DisplayCol
 }
 
 inline r32
-GetInitialYForDisplayColumnSlot(music_display_column *DisplayColumn)
+GetInitialYForDisplayColumnSlot(display_column *DisplayColumn)
 {
     r32 Result = 0;
     Result  = GetLocalPosition(DisplayColumn->TopBorder).y;
@@ -76,7 +77,7 @@ OnSongPlayPressed(void *Data)
 {
     song_play_btn *PlayInfo = (song_play_btn *)Data;
     music_info *MusicInfo = &PlayInfo->GameState->MusicInfo;
-    music_display_column *SongColumn = &MusicInfo->DisplayInfo.Song.Base;
+    display_column *SongColumn = &MusicInfo->DisplayInfo.Song.Base;
     b32 *IsPlaying = &MusicInfo->IsPlaying;
     
     if(!IsInRect(SongColumn->Background, GlobalGameState.Input.MouseP)) return;
@@ -114,7 +115,7 @@ OnSongAddPressed(void *Data)
 {
     song_play_btn *PlayInfo = (song_play_btn *)Data;
     music_info *MusicInfo = &PlayInfo->GameState->MusicInfo;
-    music_display_column *SongColumn = &MusicInfo->DisplayInfo.Song.Base;
+    display_column *SongColumn = &MusicInfo->DisplayInfo.Song.Base;
     
     if(!IsInRect(SongColumn->Background, GlobalGameState.Input.MouseP)) return;
     
@@ -177,12 +178,13 @@ GetOpenSearch(music_display_info *DisplayInfo)
     else if(DisplayInfo->Artist.Search.TextField.IsActive)    Result = columnType_Artist;
     else if(DisplayInfo->Album.Search.TextField.IsActive)     Result = columnType_Album;
     else if(DisplayInfo->Song.Base.Search.TextField.IsActive) Result = columnType_Song;
+    else if(DisplayInfo->Playlists.Search.TextField.IsActive) Result = columnType_Playlists;
     
     return Result;
 }
 
 inline void
-CopyBackDisplayable(music_display_column *DisplayColumn)
+CopyBackDisplayable(display_column *DisplayColumn)
 {
     Copy(&DisplayColumn->SearchInfo.MusicInfo->Playlist_->Columns[DisplayColumn->SearchInfo.ColumnType].Displayable,
          &DisplayColumn->Search.InitialDisplayables);
@@ -235,6 +237,11 @@ OnSearchPressed(void *Data)
                 CopyBackDisplayable(&DisplayInfo->Song.Base);
                 OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
             }
+            else if(DisplayInfo->SearchIsActive == columnType_Playlists)
+            {
+                CopyBackDisplayable(&DisplayInfo->Playlists);
+                OnSearchPressed(&DisplayInfo->Playlists.SearchInfo);
+            }
             
             DisplayInfo->SearchIsActive = SearchInfo->DisplayColumn->Type;
             UpdateTextField(SearchInfo->Renderer, &Search->TextField);
@@ -251,7 +258,7 @@ OnSearchPressed(void *Data)
 }
 
 inline void
-ResetSearchList(renderer *Renderer, music_display_column *DisplayColumn)
+ResetSearchList(renderer *Renderer, display_column *DisplayColumn)
 {
     array_playlist_id *Displayable = &DisplayColumn->SearchInfo.MusicInfo->Playlist_->Columns[DisplayColumn->SearchInfo.ColumnType].Displayable;
     Copy(Displayable, &DisplayColumn->Search.InitialDisplayables);
@@ -262,7 +269,7 @@ ResetSearchList(renderer *Renderer, music_display_column *DisplayColumn)
 internal void
 InterruptSearch(renderer *Renderer, music_info *MusicInfo)
 {
-    music_display_column *DisplayColumn = 0;
+    display_column *DisplayColumn = 0;
     switch(GetOpenSearch(&MusicInfo->DisplayInfo))
     {
         case columnType_Genre: 
@@ -281,17 +288,20 @@ InterruptSearch(renderer *Renderer, music_info *MusicInfo)
         {
             DisplayColumn = &MusicInfo->DisplayInfo.Song.Base;
         } break;
+        case columnType_Playlists: 
+        {
+            DisplayColumn = &MusicInfo->DisplayInfo.Playlists;
+        } break;
     }
-    Assert(DisplayColumn);
-    ResetSearchList(Renderer, DisplayColumn);
+    if(DisplayColumn) ResetSearchList(Renderer, DisplayColumn);
 }
 
-inline void
+internal void
 ProcessActiveSearch(column_info ColumnInfo, r32 dTime, input_info *Input, mp3_file_info *FileInfo = 0)
 {
     Assert(ColumnInfo.PlaylistColumn);
     renderer *Renderer                   = ColumnInfo.Renderer;
-    music_display_column *DisplayColumn  = ColumnInfo.DisplayColumn;
+    display_column *DisplayColumn  = ColumnInfo.DisplayColumn;
     playlist_column      *PlaylistColumn = ColumnInfo.PlaylistColumn;
     text_field_flag_result FieldResult   = ProcessTextField(Renderer, dTime, Input, &DisplayColumn->Search.TextField);
     
@@ -315,6 +325,44 @@ ProcessActiveSearch(column_info ColumnInfo, r32 dTime, input_info *Input, mp3_fi
         playlist_id SelectedID = Get(&PlaylistColumn->Selected, NewSelectID(0));
         if(DisplayColumn->Type == columnType_Song) BringDisplayableEntryOnScreen(ColumnInfo.MusicInfo, DisplayColumn, SelectedID);
         else BringDisplayableEntryOnScreenWithSortID(DisplayColumn->SearchInfo.MusicInfo, DisplayColumn, SelectedID);
+    }
+}
+
+internal void
+ProcessAllSearchBars(game_state *GS)
+{
+    music_info *MusicInfo = &GS->MusicInfo;
+    column_info ColumnInfo = {&GS->Renderer, &MusicInfo->DisplayInfo, MusicInfo, /*Rest gets filled below*/};
+    
+    if(MusicInfo->DisplayInfo.Genre.Search.TextField.IsActive)
+    {
+        ColumnInfo.DisplayColumn  = &MusicInfo->DisplayInfo.Genre;
+        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Genre;
+        ProcessActiveSearch(ColumnInfo, GS->Time.dTime, &GS->Input);
+    }
+    else if(MusicInfo->DisplayInfo.Artist.Search.TextField.IsActive)
+    {
+        ColumnInfo.DisplayColumn  = &MusicInfo->DisplayInfo.Artist;
+        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Artist;
+        ProcessActiveSearch(ColumnInfo, GS->Time.dTime, &GS->Input);
+    }
+    else if(MusicInfo->DisplayInfo.Album.Search.TextField.IsActive)
+    {
+        ColumnInfo.DisplayColumn  = &MusicInfo->DisplayInfo.Album;
+        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Album;
+        ProcessActiveSearch(ColumnInfo, GS->Time.dTime, &GS->Input);
+    }
+    else if(MusicInfo->DisplayInfo.Song.Base.Search.TextField.IsActive)
+    {
+        ColumnInfo.DisplayColumn  = &MusicInfo->DisplayInfo.Song.Base;
+        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Song;
+        ProcessActiveSearch(ColumnInfo, GS->Time.dTime, &GS->Input, &GS->MP3Info->FileInfo);
+    }
+    else if(MusicInfo->DisplayInfo.Playlists.Search.TextField.IsActive)
+    {
+        ColumnInfo.DisplayColumn  = &MusicInfo->DisplayInfo.Playlists;
+        ColumnInfo.PlaylistColumn = &MusicInfo->Playlist_->Playlists;
+        ProcessActiveSearch(ColumnInfo, GS->Time.dTime, &GS->Input);
     }
 }
 
@@ -349,7 +397,7 @@ CreateSearchBar(column_info ColumnInfo, arena_allocator *Arena, entry_id *Parent
     Result.TextField = CreateTextField(Renderer, Arena, TextFieldSize, 
                                        ColumnInfo.DisplayColumn->ZValue-0.029f, (u8 *)"Search...", ColumnInfo.DisplayColumn->SliderHorizontal.Background, 
                                        &ColumnInfo.DisplayInfo->ColorPalette.Text,
-                                       &ColumnInfo.DisplayInfo->ColorPalette.ButtonActive);
+                                       &ColumnInfo.DisplayInfo->ColorPalette.ButtonActive, font_Medium);
     Translate(&Result.TextField, V2(0, Layout->SearchFieldHeight/2 + 
                                     GetExtends(ColumnInfo.DisplayColumn->SliderHorizontal.Background).y));
     
@@ -362,7 +410,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
 {
     music_display_info *DisplayInfo = ColumnInfo.DisplayInfo;
     renderer *Renderer = ColumnInfo.Renderer;
-    music_display_column *DisplayColumn = ColumnInfo.DisplayColumn;
+    display_column *DisplayColumn = ColumnInfo.DisplayColumn;
     
     // NOTE:: This should only happen at the very beginning, before a window resize
     DisplayColumn->Base        = DisplayInfo;
@@ -485,7 +533,7 @@ CalcTextOverhang(entry_id *Rect, render_text Text)
 }
 
 internal r32
-CalcTextOverhang(music_display_column *DisplayColumn, render_text *TextArray, u32 DisplayableCount)
+CalcTextOverhang(display_column *DisplayColumn, render_text *TextArray, u32 DisplayableCount)
 {
     r32 Result = 0;
     
@@ -513,7 +561,7 @@ CalcTextOverhang(music_display_column *DisplayColumn, render_text *TextArray, u3
 }
 
 internal r32
-CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *TextArray, u32 DisplayableCount)
+CalcTextOverhangPercentage(display_column *DisplayColumn, render_text *TextArray, u32 DisplayableCount)
 {
     r32 Result = CalcTextOverhang(DisplayColumn, TextArray, DisplayableCount);
     Result = (1.0f/DisplayColumn->SlotWidth) * Result;
@@ -521,7 +569,7 @@ CalcTextOverhangPercentage(music_display_column *DisplayColumn, render_text *Tex
 }
 
 internal r32
-CalcSongTextOverhangPercentage(music_display_column *DisplayColumn, u32 DisplayableCount)
+CalcSongTextOverhangPercentage(display_column *DisplayColumn, u32 DisplayableCount)
 {
     r32 Result = 0;
     display_column_song_extension *Song = ColumnExt(DisplayColumn);
@@ -543,7 +591,7 @@ GetXTextPosition(entry_id *Background, r32 XOffset)
 }
 
 internal void
-ResetColumnText(music_display_column *DisplayColumn, u32 DisplayableCount)
+ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
     for(u32 It = 0;
@@ -582,7 +630,7 @@ ResetColumnText(music_display_column *DisplayColumn, u32 DisplayableCount)
 }
 
 internal void
-UpdateColumnHorizontalSlider(music_display_column *DisplayColumn, u32 DisplayableCount)
+UpdateColumnHorizontalSlider(display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider = &DisplayColumn->SliderHorizontal;
     
@@ -614,7 +662,7 @@ UpdateHorizontalSliders(music_info *MusicInfo)
 }
 
 inline void
-UpdateOnHorizontalSliderDrag(renderer *Renderer, music_display_column *DisplayColumn, r32 TranslationX, u32 It, 
+UpdateOnHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, r32 TranslationX, u32 It, 
                              render_text *Text)
 {
     Translate(&Text[It], {TranslationX, 0});
@@ -635,7 +683,7 @@ UpdateOnHorizontalSliderDrag(renderer *Renderer, music_display_column *DisplayCo
 }
 
 internal void
-SongHorizontalSliderDrag(renderer *Renderer, music_display_column *DisplayColumn, r32 TranslationX, u32 It)
+SongHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, r32 TranslationX, u32 It)
 {
     display_column_song_extension *Song = ColumnExt(DisplayColumn);
     
@@ -662,7 +710,7 @@ internal void
 OnHorizontalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
     drag_slider_data *Info = (drag_slider_data *)Data;
-    music_display_column *DisplayColumn = Info->DisplayColumn;
+    display_column *DisplayColumn = Info->DisplayColumn;
     slider *Slider = &DisplayColumn->SliderHorizontal;
     u32 DisplayableCount = Info->MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable.A.Count;
     
@@ -696,7 +744,7 @@ GetDisplayableHeight(u32 DisplayableCount, r32 SlotHeight)
 }
 
 inline void
-UpdateColumnVerticalSliderPosition(music_display_column *DisplayColumn, u32 DisplayableCount)
+UpdateColumnVerticalSliderPosition(display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider       = &DisplayColumn->SliderVertical;
     r32 TotalSliderScale = GetScale(Slider->Background).y;
@@ -712,7 +760,7 @@ UpdateColumnVerticalSliderPosition(music_display_column *DisplayColumn, u32 Disp
 }
 
 internal void
-UpdateColumnVerticalSlider(music_display_column *DisplayColumn, u32 DisplayableCount)
+UpdateColumnVerticalSlider(display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider = &DisplayColumn->SliderVertical;
     
@@ -740,7 +788,7 @@ internal void
 OnVerticalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data)
 {
     drag_slider_data *DragData = (drag_slider_data *)Data;
-    music_display_column *DisplayColumn = DragData->DisplayColumn;
+    display_column *DisplayColumn = DragData->DisplayColumn;
     slider *Slider = &DisplayColumn->SliderVertical;
     u32 DisplayableCount = DragData->MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable.A.Count;
     
@@ -840,7 +888,7 @@ OnVolumeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Da
 }
 
 inline b32 
-IsInOnScreenList(music_display_column *DisplayColumn, displayable_id PlaylistID, u32 *OnScreenID = 0)
+IsInOnScreenList(display_column *DisplayColumn, displayable_id PlaylistID, u32 *OnScreenID = 0)
 {
     b32 Result = false;
     
@@ -858,7 +906,7 @@ IsInOnScreenList(music_display_column *DisplayColumn, displayable_id PlaylistID,
 }
 
 inline void
-SetSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, displayable_id ID, b32 Select)
+SetSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, displayable_id ID, b32 Select)
 {
     Assert(ID.ID < (i32)PlaylistColumn->Displayable.A.Count);
     
@@ -868,7 +916,7 @@ SetSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColum
 }
 
 inline void
-Select(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
+Select(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
     Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
     
@@ -877,7 +925,7 @@ Select(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32
 }
 
 inline void
-Deselect(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
+Deselect(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
     Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
     
@@ -886,7 +934,7 @@ Deselect(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u
 }
 
 inline b32
-IsSelected(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
+IsSelected(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
     Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
     
@@ -895,7 +943,7 @@ IsSelected(music_display_column *DisplayColumn, playlist_column *PlaylistColumn,
 }
 
 inline void
-ToggleSelection(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
+ToggleSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
     if(IsSelected(DisplayColumn, PlaylistColumn, OnScreenIDsID)) Deselect(DisplayColumn, PlaylistColumn, OnScreenIDsID);
     else Select(DisplayColumn, PlaylistColumn, OnScreenIDsID);
@@ -908,7 +956,7 @@ ClearSelection(playlist_column *PlaylistColumn)
 }
 
 internal void
-UpdateDisplayColumnColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn)
+UpdateDisplayColumnColor(display_column *DisplayColumn, playlist_column *PlaylistColumn)
 {
     Assert(DisplayColumn->Type != columnType_Song);
     for(u32 It = 0; 
@@ -925,7 +973,7 @@ UpdateDisplayColumnColor(music_display_column *DisplayColumn, playlist_column *P
 }
 
 internal void
-UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn, playlist_id PlaylistID, v3 *Color)
+UpdatePlayingSongColor(display_column *DisplayColumn, playlist_column *PlaylistColumn, playlist_id PlaylistID, v3 *Color)
 {
     for(u32 It = 0; 
         It < DisplayColumn->Count &&
@@ -946,7 +994,7 @@ UpdatePlayingSongColor(music_display_column *DisplayColumn, playlist_column *Pla
 }
 
 inline void
-UpdateColumnColor(music_display_column *DisplayColumn, playlist_column *PlaylistColumn)
+UpdateColumnColor(display_column *DisplayColumn, playlist_column *PlaylistColumn)
 {
     music_info *MusicInfo = &GlobalGameState.MusicInfo;
     if(DisplayColumn->Type == columnType_Song)
@@ -978,7 +1026,7 @@ UpdateSelectionColors(music_info *MusicInfo)
 }
 
 inline void
-ChangeDisplayColumnCount(renderer *Renderer, music_display_column *DisplayColumn, u32 NewCount)
+ChangeDisplayColumnCount(renderer *Renderer, display_column *DisplayColumn, u32 NewCount)
 {
     For(NewCount)
     {
@@ -1010,7 +1058,7 @@ ChangeDisplayColumnCount(renderer *Renderer, music_display_column *DisplayColumn
 }
 
 inline void
-RemoveSongText(music_display_column *DisplayColumn, u32 ID)
+RemoveSongText(display_column *DisplayColumn, u32 ID)
 {
     display_column_song_extension *DisplaySong = ColumnExt(DisplayColumn);
     RemoveRenderText(&GlobalGameState.Renderer, DisplaySong->SongTitle+ID);
@@ -1021,7 +1069,7 @@ RemoveSongText(music_display_column *DisplayColumn, u32 ID)
 }
 
 inline void
-UpdateSongText(playlist_column *PlaylistColumn, music_display_column *DisplayColumn, u32 ID, displayable_id NextID)
+UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u32 ID, displayable_id NextID)
 {
     Assert(DisplayColumn->Type == columnType_Song);
     
@@ -1063,7 +1111,7 @@ UpdateSongText(playlist_column *PlaylistColumn, music_display_column *DisplayCol
 }
 
 internal void
-MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn,
+MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn,
                   displayable_id DisplayableStartID, r32 StartY)
 { 
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
@@ -1119,7 +1167,7 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_colum
 }
 
 internal void
-ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn, r32 ScrollAmount)
+ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn, r32 ScrollAmount)
 {
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
     r32 SlotHeight = DisplayColumn->SlotHeight;
@@ -1161,7 +1209,7 @@ UpdateAllDisplayColumns(game_state *GameState)
 }
 
 internal void
-BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *DisplayColumn, playlist_id PlaylistID)
+BringDisplayableEntryOnScreen(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID)
 {
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
     displayable_id DisplayID = PlaylistIDToColumnDisplayID(MusicInfo, DisplayColumn, PlaylistID);
@@ -1172,7 +1220,7 @@ BringDisplayableEntryOnScreen(music_info *MusicInfo, music_display_column *Displ
 }
 
 internal void
-BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, music_display_column *DisplayColumn, batch_id BatchID)
+BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, display_column *DisplayColumn, batch_id BatchID)
 {
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
     displayable_id DisplayID = SortingIDToColumnDisplayID(MusicInfo->Playlist_, DisplayColumn, BatchID);
@@ -1186,7 +1234,7 @@ internal void
 KeepPlayingSongOnScreen(renderer *Renderer, music_info *MusicInfo)
 {
     if(MusicInfo->PlayingSong.DisplayableID < 0) return;
-    music_display_column *DisplayColumn = &MusicInfo->DisplayInfo.Song.Base;
+    display_column *DisplayColumn = &MusicInfo->DisplayInfo.Song.Base;
     u32 OnScreenID = 0;
     if(IsInOnScreenList(DisplayColumn, MusicInfo->PlayingSong.DisplayableID, &OnScreenID))
     {
@@ -1202,7 +1250,7 @@ KeepPlayingSongOnScreen(renderer *Renderer, music_info *MusicInfo)
 }
 
 internal void
-FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn, u32 DisplayableCount)
+FitDisplayColumnIntoSlot(renderer *Renderer, display_column *DisplayColumn, u32 DisplayableCount)
 {
     // Calc new column scale
     DisplayColumn->ColumnHeight = HeightBetweenRects(DisplayColumn->TopBorder, DisplayColumn->BottomBorder);
@@ -1237,7 +1285,7 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
     // Search bar
     SetSize(DisplayColumn->Search.TextField.Background,
             V2(DisplayColumn->SlotWidth, GetSize(DisplayColumn->Search.TextField.Background).y)); // @Layout
-    SetLocalPosition(DisplayColumn->Search.TextField.LeftAlign, V2(-(DisplayColumn->SlotWidth)/2.0f, 0));
+    SetLocalPosition(DisplayColumn->Search.TextField.LeftAlign, V2(DisplayColumn->SlotWidth*-0.5f, 0));
     
     // Fitting the playlist panel at this point, as nothing depends on it being set directly.
     // This is a good place to set it, as it is technically part of the column itself.
@@ -1249,13 +1297,20 @@ FitDisplayColumnIntoSlot(renderer *Renderer, music_display_column *DisplayColumn
         SetSize(PlaylistUI->Panel, V2(PLWidth, GetSize(PlaylistUI->Panel).y));
         SetLocalPosition(PlaylistUI->Panel, V2(PLCenterX, GetLocalPosition(PlaylistUI->Panel).y));
         
-        SetSize(PlaylistUI->BtnDivider, V2(PLWidth, GetSize(PlaylistUI->BtnDivider).y));
-        SetLocalPosition(PlaylistUI->BtnDivider, V2(PLCenterX, GetLocalPosition(PlaylistUI->BtnDivider).y));
+        r32 PanelEdgeX = GetSize(PlaylistUI->Panel).x*0.5f - GetSize(PlaylistUI->PanelRightEdge).x*0.5f;
+        SetLocalPosition(PlaylistUI->PanelRightEdge, V2(PanelEdgeX,0));
+        
+        text_field *RenameField = &PlaylistUI->RenameField;
+        if(RenameField->IsActive)
+        {
+            SetSize(RenameField->Background, V2(DisplayColumn->SlotWidth, GetSize(RenameField->Background).y));
+            SetLocalPosition(RenameField->LeftAlign, V2(DisplayColumn->SlotWidth*-0.5f, 0));
+        }
     }
 }
 
 internal void
-ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, music_display_column *DisplayColumn)
+ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn)
 {
     array_playlist_id *Displayable = &MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable;
     
@@ -1686,10 +1741,6 @@ OnMusicPathPressed(void *Data)
     SetActive(&MusicPath->TextField, !MusicPath->TextField.IsActive);
     if(MusicPath->TextField.IsActive)
     {
-        if(IsSearchOpen(DisplayInfo))
-        {
-            InterruptSearch(&MusicBtnInfo->GameState->Renderer, &MusicBtnInfo->GameState->MusicInfo);
-        }
         UpdateTextField(&MusicBtnInfo->GameState->Renderer, &MusicPath->TextField);
         
         string_c PathText = NewStringCompound(&MusicBtnInfo->GameState->ScratchArena, 255+12);
@@ -2020,6 +2071,15 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
         &Palette->SliderBackground,
         &Palette->Selected,
     };
+    column_colors PLColumnColors = {
+        &Palette->SliderBackground,
+        &Palette->ForegroundText,
+        &Palette->Slot,
+        &Palette->SliderGrabThing,
+        &Palette->SliderBackground,
+        &Palette->Foreground,
+    };
+    
     r32 EdgeWidth = Layout->DragEdgeWidth;
     r32 ColumnWidth = (WWidth/2.0f)/4.0f + 30;
     
@@ -2072,14 +2132,16 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     r32 PlaylistColumnDepth = 0.0f;
     r32 PanelDepth = PlaylistColumnDepth-0.012f;
-    PlaylistUI->Panel = CreateRenderRect(Renderer, {{LeftBorder,WHeight - TopBorder - Layout->PlaylistPanelHeight},
-                                             {PlaylistsGenreX,WHeight-TopBorder}}, PanelDepth, 0, &Palette->Slot);
+    r32 PanelYMax  = WHeight - TopBorder;
+    r32 PanelYMin  = PanelYMax - Layout->PlaylistPanelHeight;
+    PlaylistUI->Panel = CreateRenderRect(Renderer, {{LeftBorder,PanelYMin},{PlaylistsGenreX,PanelYMax}}, 
+                                         PanelDepth, 0, &Palette->Slot);
     TranslateWithScreen(&Renderer->TransformList, PlaylistUI->Panel, fixedTo_TopLeft);
     
-    PlaylistUI->BtnDivider = CreateRenderRect(Renderer, {{LeftBorder,WHeight - TopBorder - Layout->PlaylistDividerHeight},
-                                                  {PlaylistsGenreX,WHeight-TopBorder}}, PanelDepth-0.00001f, 
-                                              0, &Palette->Slot);
-    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->BtnDivider, fixedTo_TopLeft);
+    PlaylistUI->PanelRightEdge = CreateRenderRect(Renderer, 
+                                                  {{PlaylistsGenreX - Layout->VerticalSliderWidth,PanelYMin}, {PlaylistsGenreX,PanelYMax}}, 
+                                                  PanelDepth-0.0021f, 0, &Palette->Foreground);
+    SetParent(PlaylistUI->PanelRightEdge, PlaylistUI->Panel);
     
     PlaylistUI->BtnAnchor = CreateRenderRect(Renderer, V2(0), 0, &Palette->Foreground, 0);
     v2 AnchorP = GetPosition(PlaylistUI->Panel) + V2(-GetSize(PlaylistUI->Panel).x*0.5f + SmallRectS, 0);
@@ -2100,6 +2162,13 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     PlaylistUI->Rename = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                    Renderer->ButtonBaseID, PLRenameID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
     SetLocalPosition(PlaylistUI->Rename, V2(SmallRectS*2*2 + Layout->TopLeftButtonGroupGap*2, -PLBtnYOff));
+    PlaylistUI->Rename->OnPressed = {OnRenamePlaylistClick, GameState};
+    
+    PlaylistUI->RenameField = CreateTextField(Renderer, &GameState->FixArena, V2(200.0f, Layout->SlotHeight-Layout->SlotGap), 
+                                              PanelDepth-0.0019f, (u8 *)"New name...", 0, 
+                                              PLColumnColors.Text, PLColumnColors.Slot, font_Small, PLAYLIST_MAX_NAME_LENGTH);
+    SetActive(&PlaylistUI->RenameField, false);
+    UpdateTextField(Renderer, &PlaylistUI->RenameField);
     
     //                         ****
     
@@ -2123,11 +2192,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
                         DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, Layout);
     CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, ColumnColors, -0.1f, 
                         DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight, Layout);
-    ColumnColors.Background = &Palette->Slot;
-    ColumnColors.Slot       = &Palette->SliderBackground;
-    ColumnColors.Text       = &Palette->ForegroundText;
-    ColumnColors.Selected   = &Palette->Foreground;
-    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, ColumnColors, PlaylistColumnDepth, 
+    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, PLColumnColors, PlaylistColumnDepth, 
                         DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenre.Edge, Layout);
     
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
@@ -2150,14 +2215,11 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 VolumeHeight    = PlayPauseS*2 - (LargeRectS*2 + Gap);
     r32 VolumeUpperY    = SNPBtnY - (LargeRectS+Gap);
     r32 VolumeXEnd      = PlayPauseAndGap+LargeRectS*2*3+Gap*2;
-    DisplayInfo->Volume.Background = CreateRenderRect(Renderer, {
-                                                          {PlayPauseAndGap, VolumeUpperY - VolumeHeight}, 
-                                                          {VolumeXEnd, VolumeUpperY}}, 
-                                                      BtnDepth, 0, &Palette->SliderBackground);
-    DisplayInfo->Volume.GrabThing  = CreateRenderRect(Renderer, {
-                                                          {PlayPauseAndGap, VolumeUpperY - VolumeHeight}, 
-                                                          {PlayPauseAndGap+Layout->VolumeGrabThingWidth, VolumeUpperY}
-                                                      }, BtnDepth - 0.000001f, 0, &Palette->SliderGrabThing);
+    DisplayInfo->Volume.Background = 
+        CreateRenderRect(Renderer, {{PlayPauseAndGap, VolumeUpperY - VolumeHeight}, {VolumeXEnd, VolumeUpperY}}, 
+                         BtnDepth, 0, &Palette->SliderBackground);
+    DisplayInfo->Volume.GrabThing  = 
+        CreateRenderRect(Renderer, {{PlayPauseAndGap, VolumeUpperY - VolumeHeight}, {PlayPauseAndGap+Layout->VolumeGrabThingWidth, VolumeUpperY}}, BtnDepth - 0.000001f, 0, &Palette->SliderGrabThing);
     DisplayInfo->Volume.MaxSlidePix =
         GetExtends(DisplayInfo->Volume.Background).x - GetExtends(DisplayInfo->Volume.GrabThing).x;
     OnVolumeDrag(Renderer, GetLocalPosition(DisplayInfo->Volume.Background), DisplayInfo->Volume.Background, GameState);
@@ -2168,14 +2230,14 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     r32 TimelineX   = VolumeXEnd + Layout->TimelineXGap;
     r32 TimelineGTY = (PlayPauseP.y - PlayPauseS);
-    Panel->Timeline.GrabThing  = CreateRenderRect(Renderer, 
-                                                  {{TimelineX, TimelineGTY}, {TimelineX+Layout->TimelineGrapThingWidth, TimelineGTY+Layout->TimelineGrapThingHeight}}, BtnDepth - 0.0000001f, 0, &Palette->SliderGrabThing);
+    Panel->Timeline.GrabThing  = 
+        CreateRenderRect(Renderer, {{TimelineX, TimelineGTY}, {TimelineX+Layout->TimelineGrapThingWidth, TimelineGTY+Layout->TimelineGrapThingHeight}}, BtnDepth - 0.0000001f, 0, &Palette->SliderGrabThing);
     
     r32 TimelineY = TimelineGTY + Layout->TimelineGrapThingHeight*0.5f;
-    Panel->Timeline.Background = CreateRenderRect(Renderer, {
-                                                      {TimelineX, TimelineY - Layout->TimelineHeight*0.5f}, 
-                                                      {TimelineX+Layout->TimelineWidth, TimelineY+Layout->TimelineHeight*0.5f}
-                                                  }, BtnDepth, 0, &Palette->SliderBackground);
+    Panel->Timeline.Background = 
+        CreateRenderRect(Renderer, {{TimelineX, TimelineY - Layout->TimelineHeight*0.5f}, 
+                             {TimelineX+Layout->TimelineWidth, TimelineY+Layout->TimelineHeight*0.5f}
+                         }, BtnDepth, 0, &Palette->SliderBackground);
     
     Panel->Timeline.MaxSlidePix = GetExtends(Panel->Timeline.Background).x - GetExtends(Panel->Timeline.GrabThing).x;
     SetTheNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
@@ -2229,7 +2291,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, 
                                            V2(WWidth-WWidth*0.1f, TextFieldHeight), BtnDepth-0.001f,
                                            (u8 *)"New Path...", 0, &Palette->Text, 
-                                           &Palette->ButtonActive);
+                                           &Palette->ButtonActive, font_Medium);
     Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
     MusicPath->TextField.DoMouseHover = false;
     TransformWithScreen(&Renderer->TransformList, MusicPath->TextField.Background, fixedTo_FixYToGiven_XCenter, 
@@ -3022,7 +3084,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
     b32 IsInColumn = false;
     music_info *MusicInfo               = &GS->MusicInfo;
     music_display_info     *DisplayInfo = &MusicInfo->DisplayInfo;
-    music_display_column *DisplayColumn = NULL;
+    display_column *DisplayColumn = NULL;
     playlist_column     *PlaylistColumn = NULL;
     
     if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
@@ -3189,6 +3251,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                         SetTransparency(SubSlot->DragSlot, 0.0f);
                         SetTransparency(&SubSlot->SlotText, 0.0f);
                         Translate(&SubSlot->SlotText, V2(-SubSlot->TextOverhang*0.5f, TextYOffset));
+                        Translate(&SubSlot->SlotText, V2(-Slot->TextOverhang*0.5f, 0));
                         
                         SubSlot->GrabOffset = (SubSlot->SlotStartP - DragDrop->StartMouseP);
                         SubSlot->SlotStartP.x += SubSlot->TextOverhang*0.5f;
@@ -3331,7 +3394,7 @@ internal void
 EvalDragDropPosition(game_state *GS, drag_drop *DragDrop)
 {
     music_display_info     *DisplayInfo = &GS->MusicInfo.DisplayInfo;
-    music_display_column *DisplayColumn = &DisplayInfo->Playlists;
+    display_column *DisplayColumn = &DisplayInfo->Playlists;
     v2 TopLeftCorner = GetPosition(DragDrop->Slots[0].DragSlot)+Scale(GetSize(DragDrop->Slots[0].DragSlot)*0.5f, V2(-1, 1));
     
     b32 InSlot = false;
@@ -3418,7 +3481,7 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
     
     if(DragDrop->OriginalAllColor)
     {
-        music_display_column *DColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+        display_column *DColumn = &GS->MusicInfo.DisplayInfo.Playlists;
         i32 OnScreenID = GetOnScreenID(GS, GS->MusicInfo.Playlists.List+0);
         
         RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);

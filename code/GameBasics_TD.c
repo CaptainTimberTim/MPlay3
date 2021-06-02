@@ -1,5 +1,12 @@
 #include "GameBasics_TD.h"
 
+inline b32
+IsActive(game_state *GS, mode_flags Mode)
+{
+    b32 Result = (GS->ModeFlags&Mode) == Mode;
+    return Result;
+}
+
 internal loaded_bitmap 
 LoadImage_STB(u8 *Path)
 {
@@ -518,7 +525,7 @@ HandleActiveColorPicker(color_picker *ColorPicker)
     
     // Process button presses
     ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->New);
-    if(!IsColorPaletteDefault()) 
+    //if(!IsColorPaletteDefault()) 
     {
         ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Remove);
         ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Save);
@@ -538,15 +545,15 @@ HandleActiveColorPicker(color_picker *ColorPicker)
         // Change buttons colors if deactivated
         if(IsColorPaletteDefault()) 
         {
-            SetColor(ColorPicker->Save->Icon, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
-            SetColor(ColorPicker->Remove->Icon, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
+            SetDisabled(ColorPicker->Save,   true, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
+            SetDisabled(ColorPicker->Remove, true, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
             
             SetActive(ColorPicker->PaletteName.Cursor, false);
         }
         else 
         {
-            SetColor(ColorPicker->Save->Icon, GlobalGameState.Renderer.ButtonColors.IconColor);
-            SetColor(ColorPicker->Remove->Icon, GlobalGameState.Renderer.ButtonColors.IconColor);
+            SetDisabled(ColorPicker->Save,   false, GlobalGameState.Renderer.ButtonColors.IconColor);
+            SetDisabled(ColorPicker->Remove, false, GlobalGameState.Renderer.ButtonColors.IconColor);
         }
         ColorToPickerPosition(ColorPicker, GetColor(ColorPicker->PaletteColors[0].Preview));
         SetColor(ColorPicker->InnerDot, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.Colors[0]);
@@ -718,7 +725,7 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     // Create Textfield for palette names ****************
     Result->PaletteName = CreateTextField(Renderer, &GlobalGameState.FixArena, V2((r32)BitmapSize.x, 20.0f), 
                                           Depth-0.01f, (u8 *)"Custom Palette", Result->Background, 
-                                          &Palette->ForegroundText, &Palette->Foreground);
+                                          &Palette->ForegroundText, &Palette->Foreground, font_Medium);
     Translate(&Result->PaletteName, BGOffset + V2(-8.0f, BitmapSize.y*0.5f + 10 + 11));
     SetActive(&Result->PaletteName, true);
     AppendStringCompoundToCompound(&Result->PaletteName.TextString, GetCurrentPaletteName());

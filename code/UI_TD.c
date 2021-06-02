@@ -79,6 +79,8 @@ ToggleButtonVisuals(button *Button, b32 ToggleOn)
 internal void
 ButtonTestMouseInteraction(renderer *Renderer, input_info *Input, button *Button)
 {
+    if(Button->IsDisabled) return;
+    
     b32 MouseInsideButton = false;
     MouseInsideButton = IsInRect(Button->Entry, Input->MouseP);
     
@@ -178,7 +180,8 @@ UpdateButtons(renderer *Renderer, input_info *Input)
 {
     For(Renderer->ButtonGroup.Count)
     {
-        if(Renderer->ButtonGroup.Buttons[It].Entry->ID->Render) 
+        if(Renderer->ButtonGroup.Buttons[It].Entry->ID->Render &&
+           !Renderer->ButtonGroup.Buttons[It].IsDisabled) 
             ButtonTestMouseInteraction(Renderer, Input,
                                        Renderer->ButtonGroup.Buttons+It);
     }
@@ -195,6 +198,13 @@ IsOnButton(button *Button, v2 Position)
 {
     b32 Result = IsInRect(Button->Entry, Position);
     return Result;
+}
+
+inline void
+SetDisabled(button *Button, b32 Disable, v3 *Color)
+{
+    SetColor(Button->Icon, Color);
+    Button->IsDisabled = Disable;
 }
 
 inline void
@@ -317,7 +327,7 @@ SetActiveAllButGiven(drag_list *DragList, entry_id *ID, b32 Activate)
 // Textfield stuff
 
 internal text_field
-CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor)
+CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor, font_size_id FontSize, u32 MaxStringLength)
 {
     text_field Result = {};
     
@@ -325,6 +335,7 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
     Result.Transparency = 0.25f;
     Result.ZValue    = ZValue;
     Result.NoText    = NewStaticStringCompound(EmptyFieldString);
+    Result.FontSize  = FontSize;
     
     Result.Background = CreateRenderRect(Renderer, Size, Result.ZValue, BGColor, Parent);
     Result.Background->ID->Render = false;
@@ -333,13 +344,28 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
     SetLocalPosition(Result.LeftAlign, V2(-(Size.x-4)/2.0f, 0));
     
     // @Layout
-    Result.Cursor = CreateRenderRect(Renderer, V2(2, 35), 
+    r32 CursorHeight = 0;
+    switch(FontSize) {
+        case font_Small: {
+            CursorHeight = GlobalGameState.Layout.FontSizeSmall;  
+            Result._FontOffset = V2(10, 4);
+        } break;
+        case font_Medium: {
+            CursorHeight = GlobalGameState.Layout.FontSizeMedium; 
+            Result._FontOffset = V2(12, 10);
+        } break;
+        case font_Big: {
+            CursorHeight = GlobalGameState.Layout.FontSizeBig;    
+            Result._FontOffset = V2(14, 14); // Untested!
+        } break;
+    }
+    Result.Cursor = CreateRenderRect(Renderer, V2(2, CursorHeight), 
                                      Result.ZValue-0.001f, Result.TextColor,
                                      Result.LeftAlign);
     SetLocalPosition(Result.Cursor, V2(4, 0));
     Result.Cursor->ID->Render = false;
     
-    Result.TextString = NewStringCompound(Arena, 255);
+    Result.TextString = NewStringCompound(Arena, MaxStringLength);
     Result.DoMouseHover = true;
     
     return Result;
@@ -360,6 +386,12 @@ SetActive(text_field *TextField, b32 MakeActive)
     SetActive(&TextField->Text, MakeActive);
 }
 
+inline void 
+SetParent(text_field *TextField, entry_id *Parent)
+{
+    SetParent(TextField->Background, Parent);
+}
+
 inline void
 UpdateTextField(renderer *Renderer, text_field *TextField)
 {
@@ -368,18 +400,18 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
     
     RemoveRenderText(Renderer, &TextField->Text);
     
-    RenderText(&GlobalGameState, font_Medium, &TextField->TextString, 
+    RenderText(&GlobalGameState, TextField->FontSize, &TextField->TextString, 
                TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
-    Translate(&TextField->Text, V2(12, 10));
+    Translate(&TextField->Text, TextField->_FontOffset);
     SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0)); // @Layout
     
     if(TextField->TextString.Pos == 0)
     {
         RemoveRenderText(Renderer, &TextField->Text);
-        RenderText(&GlobalGameState, font_Medium, &TextField->NoText, 
+        RenderText(&GlobalGameState, TextField->FontSize, &TextField->NoText, 
                    TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
         SetTransparency(&TextField->Text, TextField->Transparency);
-        Translate(&TextField->Text, V2(12, 10));
+        Translate(&TextField->Text, TextField->_FontOffset);
     }
 }
 

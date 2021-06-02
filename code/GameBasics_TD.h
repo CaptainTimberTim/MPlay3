@@ -5,6 +5,13 @@
 #include "Sound_Jobs.h"
 #include "Sound_Serialization.h"
 
+enum mode_flags
+{
+    mode_MusicPath   = 1<<0,
+    mode_ColorPicker = 1<<1,
+    mode_Search      = 1<<2,
+    mode_PLRename    = 1<<3,
+};
 
 enum cursor_state
 {
@@ -66,6 +73,7 @@ enum color_picker_anim_btn
 
 struct game_state
 {
+    i32 ModeFlags; // enum mode_flags
     string_c SettingsPath;
     string_c LibraryPath;
     string_c PlaylistPath;

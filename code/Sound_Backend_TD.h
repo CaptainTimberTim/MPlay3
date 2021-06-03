@@ -12,15 +12,13 @@
 // - loading metadata could be "interactive" and all songs already loaded be available already?
 // - adjust many sizes, text for example is too big imo. Which happened because of the bad rendering, which is now fixed.
 
-// TODO::
-//
+// List of Tags to search for in the code:
+// - TODO::    , Stuff where I want to go and make something better later/clean it up/make it more save/etc.
 // - @HardLimit, is a label where I set a hard limit, the user could exceed and needs to be dealt with.
 // - @SLOW     , is a label where I think it's unnecessary slow.
 // - @Layout   , where the Layout struct should hold the magic values.
 //
 // - generate huge amount of fake mp3 files and test with those!
-// - Solidify playlists
-//      - show current playlist button
 // - still hardcapped at 10k mp3 files - Fixed, TEST?!
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
@@ -43,26 +41,24 @@
 // - selecting and deselecting stuff (in combination with search) is buggy.
 
 // - Cleanup all the StringCompound procedures... Their names are sooo stupidly long..
-// - Print user error when save files could not be correctly loaded.
 // - Cleanup of FillDisplayables. Or at least find out what exactly I am doing and comment that!?
 // - Sort out depth everywhere in the application
 // - Fix stutter on first play of song.
 // - Make it possible to close colorpicker with the colorpicker button
-// - Make selection more versatile. Shift-select would be nice.
 // - Add a on_screen_id for tha visuals, to have typechecking on it! (like displayable_id, etc.).
-// - sorting is broken
+// - glScissor is the keyword for cutting of text after column!
+// - Print user error when save files could not be correctly loaded.
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?
 // - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
+// - Add drag&drop for sorting playlist slots?
+
 // - Add tooltips for new stuff.
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// - Add drag&drop for sorting playlist slots.
 // - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
 // - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
 // - Save active playlist in settings (@TemporaryDisable::).
-// - Add Btn for creating playlist with current selection.
-// - space activates playPause btn when renaming playlist.
 
 #include "Sound_UI_TD.h"
 

@@ -216,6 +216,13 @@ SetActive(button *Button, b32 SetActive)
 }
 
 inline void
+ResetBtnState(button *Button)
+{
+    Button->State            = buttonState_Unpressed;
+    Button->Entry->ID->Color = Button->BaseColor;
+}
+
+inline void
 Translate(button *Button, v2 Translation)
 {
     Translate(Button->Entry, Translation);
@@ -666,28 +673,27 @@ CreateSlider(slider *Result, renderer *Renderer, v2 BGSize, v2 GrabSize, r32 Dep
 
 
 // Quit curtain ************************
-
 internal void
-CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, string_c *BonusText)
+CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, font_size_id FontSize, string_c *BonusText, r32 Depth)
 {
     renderer *Renderer = &GlobalGameState.Renderer;
     music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
     
-    Result->Curtain = CreateRenderRect(Renderer, Size, -0.99f, &DisplayInfo->ColorPalette.SliderGrabThing);
+    Result->Curtain = CreateRenderRect(Renderer, Size, Depth, &DisplayInfo->ColorPalette.SliderGrabThing);
     Translate(Result->Curtain, Size/2.0f);
     SetActive(Result->Curtain, false);
     Result->dAnim = 0;
     Result->Time = AnimationTime;
     
-    RenderText(&GlobalGameState, font_Big, ClosingText, &DisplayInfo->ColorPalette.Text, 
-               &Result->Text, -0.995f, 0);
+    RenderText(&GlobalGameState, FontSize, ClosingText, &DisplayInfo->ColorPalette.Text, 
+               &Result->Text, Depth-0.0001f, 0);
     SetPosition(&Result->Text, Size/2.0f);
     SetActive(&Result->Text, false);
     
     if(BonusText)
     {
         RenderText(&GlobalGameState, font_Small, BonusText, &DisplayInfo->ColorPalette.Text, 
-                   &Result->BonusText, -0.995f, 0);
+                   &Result->BonusText, Depth-0.0001f, 0);
         SetPosition(&Result->BonusText, V2(0, Size.y - 45));
         SetActive(&Result->BonusText, false);
     }
@@ -712,28 +718,38 @@ QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size)
     if(!Quit->AnimationStart) SetActive(Quit, true);
     
     time_management *Time = &GlobalGameState.Time;
-    if(Quit->dAnim >= 1.0f || Quit->dAnim < 0.0f)
+    // We have to check the direction as well, because it can happen
+    // that, for instance, dAnim was decreased and is < 0, therefore
+    // the next frame it would be set back in the 'if'. But before 
+    // that can happen the user start pressing the btn again and the 
+    // direction is changed. When we then trigger the 'if' we wrongfully 
+    // declare a finished animation for the new direction.
+    if((Quit->dAnim >= 1.0f && Dir > 0) || 
+       (Quit->dAnim <  0.0f && Dir < 0))
     {
         SetScale(Quit->Curtain, V2(1, 1));
         SetLocalPositionY(Quit->Curtain, Position.y);
-        Result = true;
         Quit->Activated = Quit->dAnim >= 1.0f;
         Quit->dAnim = 0.0f;
+        
+        Result = true;
     }
     else 
     {
         Quit->dAnim += Time->dTime/Quit->Time * Dir;
-        
-        r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
-        SetSize(Quit->Curtain, V2(Size.x, Size.y*NewYScale));
-        
-        r32 CurrentHeight = GetSize(Quit->Curtain).y/2.0f;
-        SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
-        SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
-        if(Quit->BonusText.MaxCount) 
-            SetPosition(&Quit->BonusText, V2(10, Position.y - CurrentHeight*2 + 20));
-        
-        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
+        if(Quit->dAnim < 1.0f && Quit->dAnim >= 0.0f)
+        {
+            r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
+            SetSize(Quit->Curtain, V2(Size.x, Size.y*NewYScale));
+            
+            r32 CurrentHeight = GetSize(Quit->Curtain).y/2.0f;
+            SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
+            SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
+            if(Quit->BonusText.MaxCount) 
+                SetPosition(&Quit->BonusText, V2(10, Position.y - CurrentHeight*2 + 20));
+            
+            SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
+        }
     }
     
     return Result;

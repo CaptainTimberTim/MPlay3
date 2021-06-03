@@ -455,7 +455,9 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     if(!WriteEntireFile(&GameState->ScratchArena, GameState->SettingsPath.S, SaveData.Pos, SaveData.S))
     {
-        DebugLog(255, "ERROR:: Could not write out settings file!\n");
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not write out settings file!");
+        PushErrorMessage(GameState, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
     DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
@@ -884,7 +886,9 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
     if(!WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, SaveData.Pos, SaveData.S))
     {
-        DebugLog(255, "ERROR:: Could not write out library file!\n");
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not write out library file!");
+        PushErrorMessage(GameState, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
     DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
@@ -894,7 +898,9 @@ WipeMP3LibraryFile(game_state *GameState)
 {
     if(!WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, 0, 0))
     {
-        DebugLog(255, "ERROR:: Could not write out library file!\n");
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not access library file!");
+        PushErrorMessage(GameState, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
 }
 
@@ -1052,7 +1058,11 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
     if(!WriteEntireFile(&GS->ScratchArena, PlaylistPath.S, SaveData.Pos, SaveData.S))
     {
-        DebugLog(255, "ERROR:: Could not write out playlist file file nr. %i!\n", PlaylistID);
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not write out playlist file file nr. ");
+        I32ToString(&ErrorMsg, PlaylistID);
+        AppendCharToCompound(&ErrorMsg, '!');
+        PushErrorMessage(GS, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
     DeleteStringCompound(&GS->ScratchArena, &SaveData);
 }
@@ -1074,8 +1084,9 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         string_c PlaylistFileID = NewStaticStringCompound("MPlay3Playlist");
         if(!CompareStringAndCompound(&PlaylistFileID, C, PlaylistFileID.Pos)) 
         {
-            // TODO:: User log?
-            DebugLog(150, "ERROR:: Playlist file is not a playlist file. It has to have 'MPlay3Playlist' at the beginning!\n");
+            NewLocalString(ErrorMsg, 300, "ERROR:: Playlist file is not a playlist file. It has to have 'MPlay3Playlist' at the beginning!");
+            PushErrorMessage(GS, ErrorMsg);
+            DebugLog(302, "%s\n", ErrorMsg.S);
             return Result;
         }
         AdvanceToNewline(&C);
@@ -1084,10 +1095,16 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         I32ToString(&VersionString, PLAYLIST_CURRENT_VERSION);
         if(!CompareStringAndCompound(&VersionString, C, VersionString.Pos)) 
         {
-            // TODO:: User log?
             C += 9; // "Version: "
             i32 V = ProcessNextI32InString(C, '\n', L);
-            DebugLog(150, "ERROR:: Playlist file is the wrong Version. Wanted: %i, found: %i.\n", PLAYLIST_CURRENT_VERSION, V);
+            
+            NewLocalString(ErrorMsg, 300, "ERROR:: Playlist file is the wrong Version. Wanted: ");
+            I32ToString(&ErrorMsg, PLAYLIST_CURRENT_VERSION);
+            AppendStringToCompound(&ErrorMsg, (u8 *)", found: ");
+            I32ToString(&ErrorMsg, V);
+            AppendCharToCompound(&ErrorMsg, '.');
+            PushErrorMessage(GS, ErrorMsg);
+            DebugLog(255, "%s\n", ErrorMsg.S);
             return Result;
         }
         AdvanceToNewline(&C);

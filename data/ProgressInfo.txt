@@ -104,7 +104,7 @@
 - Fixed time overflow at the end of song.
 - Added drag freezing for timeline slider, while song is not loaded.
 
-01.10.2020
+01.11.2020
 - Moved library files into separate folder.
 - Removed the MiniMP3_Ext.h file from project, as it is no more needed.
 - Fixing bugs found by mrmixer on handmade.network:
@@ -113,7 +113,7 @@
     - Added check if the folder path in the library file exists. If not, just do the same as if no library file exists.
     - Added fixed framerate even when VSYNC is disabled in the user driver. 
 
-02.10.2020
+02.11.2020
 - Fixed bug with u32 underflow in BringDisplayablesOnScreen while calling a max function.
 
 11.11.2020
@@ -288,9 +288,13 @@
 - Introduced mode flags, which clearly define what ui elemts are active (MusicPath, ColorPicker, Search, Rename)
 - Implemented renaming of playlists with the rename button.
 
-
-
-
+03.06.2021
+- Updated user error messages, which will now be used more often to inform the user if something goes wrong.
+- Added user error messages for file serialization.
+- Added playlist button for creating playlist with current selection.
+- Added verification curtains for playlist buttons.
+- Fixed long-standing bug with quit_animation where it falsely activated when spamming the trigger-key.
+- Added a threshold for activating REMOVE for 'All' playlist when drag&dropping.
 
 
 

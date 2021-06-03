@@ -29,6 +29,7 @@ internal void InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, co
 internal void InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type Type, array_u32 DisplayableIDs);
 internal void RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID);
 internal void OnNewPlaylistClick(void *Data);
+internal void OnNewPlaylistWithSelectionClick(void *Data);
 internal void OnRemovePlaylistClick(void *Data);
 internal void OnRenamePlaylistClick(void *Data);
 inline r32 GetXTextPosition(entry_id *Background, r32 XOffset);
@@ -42,6 +43,7 @@ inline   i32          GetOnScreenID(display_column *DisplayColumn, displayable_i
 internal i32          GetOnScreenID(game_state *GS, column_type Type, displayable_id DisplayableID);
 internal i32          GetOnScreenID(game_state *GS, playlist_info *Playlist);
 inline string_c *     GetName(playlist_column *PlaylistColumn, displayable_id DID);
+inline void OnAnimationDone(void *Data);
 
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, display_column *DisplayColumn)
@@ -1694,7 +1696,7 @@ AddCustomColorPalette(color_palette *ColorPalette, string_c *Name)
     if(Settings->PaletteCount+1 >= Settings->PaletteMaxCount)
     {
         NewLocalString(ErrorMsg, 255, "ERROR:: Created too many color palettes at once. Restart App if you want more!");
-        PushUserErrorMessage(&ErrorMsg);
+        PushErrorMessage(&GlobalGameState, ErrorMsg);
     }
     else
     {
@@ -1933,6 +1935,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     u32 ShortcutID         = DecodeAndCreateGLTexture(Help_Icon_DataCount, (u8 *)Help_Icon_Data);
     u32 ShortcutPressedID  = DecodeAndCreateGLTexture(Help_Pressed_Icon_DataCount, (u8 *)Help_Pressed_Icon_Data);
     u32 PLAddID            = DecodeAndCreateGLTexture(Playlist_Add_Icon_DataCount, (u8 *)Playlist_Add_Icon_Data);
+    u32 PLAddSelectionID   = DecodeAndCreateGLTexture(Playlist_AddSelection_Icon_DataCount, 
+                                                      (u8 *)Playlist_AddSelection_Icon_Data);
     u32 PLRemoveID         = DecodeAndCreateGLTexture(Playlist_Remove_Icon_DataCount, (u8 *)Playlist_Remove_Icon_Data);
     u32 PLRenameID         = DecodeAndCreateGLTexture(Playlist_Rename_Icon_DataCount, (u8 *)Playlist_Rename_Icon_Data);
 #else
@@ -1994,6 +1998,9 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     Bitmap = {1, Playlist_Add_Icon_Width, Playlist_Add_Icon_Height, 
         (u32 *)Playlist_Add_Icon_Data, cF, ArrayCount(Playlist_Add_Icon_Data)};
     u32 PLAddID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
+    Bitmap = {1, Playlist_AddSelection_Icon_Width, Playlist_AddSelection_Icon_Height, 
+        (u32 *)Playlist_AddSelection_Icon_Data, cF, ArrayCount(Playlist_AddSelection_Icon_Data)};
+    u32 PLAddSelectionID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
     Bitmap = {1, Playlist_Remove_Icon_Width, Playlist_Remove_Icon_Height, 
         (u32 *)Playlist_Remove_Icon_Data, cF, ArrayCount(Playlist_Remove_Icon_Data)};
     u32 PLRemoveID = DecodeAndCreateGLTexture(&GameState->ScratchArena, Bitmap);
@@ -2152,12 +2159,17 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     PlaylistUI->Add = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                 Renderer->ButtonBaseID, PLAddID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
     SetLocalPosition(PlaylistUI->Add, V2(0, -PLBtnYOff));
-    PlaylistUI->Add->OnPressed = {OnNewPlaylistClick, GameState};
+    PlaylistUI->Add->OnPressed = {OnAnimationDone, &PlaylistUI->AddCurtain.Activated};
+    
+    PlaylistUI->AddSelection = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, Renderer->ButtonBaseID, 
+                                         PLAddSelectionID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+    SetLocalPosition(PlaylistUI->AddSelection, V2(SmallRectS*2 + Layout->TopLeftButtonGroupGap, -PLBtnYOff));
+    PlaylistUI->AddSelection->OnPressed = {OnAnimationDone, &PlaylistUI->AddSelectionCurtain.Activated};
     
     PlaylistUI->Remove = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                    Renderer->ButtonBaseID, PLRemoveID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
-    SetLocalPosition(PlaylistUI->Remove, V2(SmallRectS*2 + Layout->TopLeftButtonGroupGap, -PLBtnYOff));
-    PlaylistUI->Remove->OnPressed = {OnRemovePlaylistClick, GameState};
+    SetLocalPosition(PlaylistUI->Remove, V2(SmallRectS*2*3 + Layout->TopLeftButtonGroupGap*3, -PLBtnYOff));
+    PlaylistUI->Remove->OnPressed = {OnAnimationDone, &PlaylistUI->RemoveCurtain.Activated};
     
     PlaylistUI->Rename = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
                                    Renderer->ButtonBaseID, PLRenameID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
@@ -2169,6 +2181,14 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
                                               PLColumnColors.Text, PLColumnColors.Slot, font_Small, PLAYLIST_MAX_NAME_LENGTH);
     SetActive(&PlaylistUI->RenameField, false);
     UpdateTextField(Renderer, &PlaylistUI->RenameField);
+    
+    string_c AddText          = NewStaticStringCompound("New Playlist.");
+    string_c AddSelectionText = NewStaticStringCompound("New Playlist\nwith selection.");
+    string_c RemoveText       = NewStaticStringCompound("Delete selected Playlist?");
+    CreateQuitAnimation(&PlaylistUI->AddCurtain,          V2(1), &AddText,          0.8f, font_Small, 0, PlaylistColumnDepth-0.02f);
+    CreateQuitAnimation(&PlaylistUI->AddSelectionCurtain, V2(1), &AddSelectionText, 0.8f, font_Small, 0, PlaylistColumnDepth-0.02f);
+    CreateQuitAnimation(&PlaylistUI->RemoveCurtain,       V2(1), &RemoveText,       1.2f, font_Small, 0, PlaylistColumnDepth-0.02f);
+    
     
     //                         ****
     
@@ -2338,14 +2358,9 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     // Quit curtain ****************************
     NewEmptyLocalString(LanguageText, 200);
     string_c QuitText = GetRandomExitMessage(GameState, &LanguageText);
-    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime, &LanguageText);
+    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime, font_Big, &LanguageText);
     
     
-    // User error text *************************************
-    user_error_text *UserErrorText = &DisplayInfo->UserErrorText;
-    
-    UserErrorText->AnimTime = Layout->ErrorTextAnimationTime;
-    UserErrorText->dAnim = 1.0f;
 }
 
 internal void
@@ -2902,49 +2917,6 @@ CheckColumnsForSelectionChange(v2 MouseBtnDownLocation)
     return Result;
 }
 
-inline void
-PushUserErrorMessage(string_c *String)
-{
-    renderer *Renderer = &GlobalGameState.Renderer;
-    user_error_text *ErrorInfo = &GlobalGameState.MusicInfo.DisplayInfo.UserErrorText;
-    
-    // For each output character we extend the visibility time of the message.
-    ErrorInfo->AnimTime = 1.0f + String->Pos*0.1f; 
-    
-    font_size_id FontSize = font_Medium;
-    if(String->Pos > 60) FontSize = font_Small;
-    
-    RenderText(&GlobalGameState, FontSize, String,
-               &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText,
-               &ErrorInfo->Message, -0.8f, 0);
-    SetTransparency(&ErrorInfo->Message, 0);
-    ErrorInfo->dAnim = 0;
-    ErrorInfo->IsAnimating = true;
-}
-
-inline void
-AnimateErrorMessage(user_error_text *ErrorInfo, r32 dTime)
-{
-    if(ErrorInfo->IsAnimating)
-    {
-        if(ErrorInfo->dAnim >= 1.0f)
-        {
-            SetActive(&ErrorInfo->Message, false);
-            RemoveRenderText(&GlobalGameState.Renderer, &ErrorInfo->Message);
-            ErrorInfo->IsAnimating = false;
-        }
-        else 
-        {
-            // @Layout
-            r32 Alpha = 1-Pow(ErrorInfo->dAnim, 10);
-            SetTransparency(&ErrorInfo->Message, Alpha);
-            SetPosition(&ErrorInfo->Message, V2(105, GlobalGameState.Renderer.Window.CurrentDim.Height - 16.0f));
-            
-            ErrorInfo->dAnim += dTime/ErrorInfo->AnimTime;
-        }
-    }
-}
-
 inline string_c 
 GetRandomExitMessage(game_state *GS, string_c *Language)
 {
@@ -3266,38 +3238,46 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
             // would make the behaviour similar everywhere and dropping the thing to delete
             // would do nothing.
             
-            // If we are in a playlist (not All), then create "Delete slot" on top of all.
-            if(MusicInfo->Playlist_ != MusicInfo->Playlists.List+0) // Pointer compare
-            {
-                i32 OnScreenID             = GetOnScreenID(GS, MusicInfo->Playlists.List+0);
-                DragDrop->OriginalAllColor = GetColorPtr(DisplayInfo->Playlists.BGRects[OnScreenID]);
-                DragDrop->AllRenderText    = DisplayInfo->Playlists.Text + OnScreenID;
-                DragDrop->RemoveColor      = *DragDrop->OriginalAllColor;
-                if(DragDrop->RemoveColor.r < 0.9f) // TODO:: Maybe rather use the original r and invert-substract it?
-                {
-                    DragDrop->RemoveColor   += V3(0.2f, 0, 0);
-                    DragDrop->RemoveColor.r *= 1.5f;
-                }
-                else
-                {
-                    DragDrop->RemoveColor   += V3(0, 0.2f, 0.2f);
-                    DragDrop->RemoveColor.g *= 1.5f;
-                    DragDrop->RemoveColor.b *= 1.5f;
-                }
-                DragDrop->RemoveColor = Clamp01(DragDrop->RemoveColor);
-                SetColor(DisplayInfo->Playlists.BGRects[OnScreenID], &DragDrop->RemoveColor);
-                RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);
-                NewLocalString(RemoveText, 7, "REMOVE");
-                RenderText(GS, font_Small, &RemoveText, DisplayInfo->Playlists.Colors.Text, DragDrop->AllRenderText, DisplayInfo->Playlists.ZValue-0.01f, DisplayInfo->Playlists.BGRects[OnScreenID]);
-                Translate(DragDrop->AllRenderText, V2(0, 3));
-                ResetColumnText(&DisplayInfo->Playlists, MusicInfo->Playlist_->Playlists.Displayable.A.Count);
-            }
-            
             break;
         }
     }
     
     return DragDrop->Dragging;
+}
+
+internal void
+CreateREMOVEVisuals(game_state *GS, drag_drop *DragDrop)
+{
+    music_info *MusicInfo = &GS->MusicInfo;
+    // If we are in a playlist (not All), then create "Delete slot" on top of 'All'.
+    if(DragDrop->OriginalAllColor == NULL &&                // To only activate it once.
+       MusicInfo->Playlist_ != MusicInfo->Playlists.List+0) // Pointer compare
+    {
+        music_display_info *DInfo = &MusicInfo->DisplayInfo;
+        
+        i32 OnScreenID             = GetOnScreenID(GS, MusicInfo->Playlists.List+0);
+        DragDrop->OriginalAllColor = GetColorPtr(DInfo->Playlists.BGRects[OnScreenID]);
+        DragDrop->AllRenderText    = DInfo->Playlists.Text + OnScreenID;
+        DragDrop->RemoveColor      = *DragDrop->OriginalAllColor;
+        if(DragDrop->RemoveColor.r < 0.9f) // TODO:: Maybe rather use the original r and invert-substract it?
+        {
+            DragDrop->RemoveColor   += V3(0.2f, 0, 0);
+            DragDrop->RemoveColor.r *= 1.5f;
+        }
+        else
+        {
+            DragDrop->RemoveColor   += V3(0, 0.2f, 0.2f);
+            DragDrop->RemoveColor.g *= 1.5f;
+            DragDrop->RemoveColor.b *= 1.5f;
+        }
+        DragDrop->RemoveColor = Clamp01(DragDrop->RemoveColor);
+        SetColor(DInfo->Playlists.BGRects[OnScreenID], &DragDrop->RemoveColor);
+        RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);
+        NewLocalString(RemoveText, 7, "REMOVE");
+        RenderText(GS, font_Small, &RemoveText, DInfo->Playlists.Colors.Text, DragDrop->AllRenderText, DInfo->Playlists.ZValue-0.01f, DInfo->Playlists.BGRects[OnScreenID]);
+        Translate(DragDrop->AllRenderText, V2(0, 3));
+        ResetColumnText(&DInfo->Playlists, MusicInfo->Playlist_->Playlists.Displayable.A.Count);
+    }
 }
 
 internal void 
@@ -3323,6 +3303,8 @@ DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
     input_info *Input = &GS->Input;
     drag_drop_slot *Slot = DragDrop->Slots+0;
     r32 Dist = Distance(DragDrop->StartMouseP, Input->MouseP);
+    
+    if(Dist > 1) CreateREMOVEVisuals(GS, DragDrop);
     if(Dist < DragDrop->ShakeThreshold)
     {
         if(DragDrop->ShakeTransition)
@@ -3497,6 +3479,42 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
     DragDrop->Dragging = false;
 }
 
+internal void
+HandlePlaylistButtonAnimation(game_state *GS, button *Btn, quit_animation *Anim, playlist_btn_type BtnType)
+{
+    if(!Anim->Activated)
+    {
+        display_column *DColumn = &GS->MusicInfo.DisplayInfo.Playlists;
+        playlist_ui *PlaylistUI = &GS->MusicInfo.DisplayInfo.PlaylistUI;
+        
+        if(Btn->State == buttonState_Pressed)
+        {
+            v2 Position = GetPosition(DColumn->Background)+V2(0, GetSize(DColumn->Background).y*0.5f);
+            v2 Size     = GetSize(DColumn->Background);
+            if(QuitAnimation(Anim, 1, Position, Size))
+            {
+                if     (BtnType == playlistBtnType_Add)          OnNewPlaylistClick(GS);
+                else if(BtnType == playlistBtnType_AddSelection) OnNewPlaylistWithSelectionClick(GS);
+                else if(BtnType == playlistBtnType_Remove)       OnRemovePlaylistClick(GS);
+                
+                SetActive(Anim, false);
+            }
+        }
+        else if(Anim->dAnim != 0)
+        {
+            v2 Position = GetPosition(DColumn->Background)+V2(0, GetSize(DColumn->Background).y*0.5f);
+            v2 Size     = GetSize(DColumn->Background);
+            if(QuitAnimation(Anim, -1, Position, Size))
+            {
+                SetActive(Anim, false);
+            }
+        }
+    }
+    if(Btn->State == buttonState_Unpressed) 
+    {
+        Anim->Activated = false;
+    }
+}
 
 
 

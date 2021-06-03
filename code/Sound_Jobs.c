@@ -521,7 +521,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
     // 4. Calculate maximum size to load for wanted amount
     // 5. Calculate initial buffer size and create it if needed.
     // 6. Load and decode the stuff
-    error_item Result = {(load_error_codes)DecodeID, FileID};
+    error_item Result = {(error_codes)DecodeID, FileID.ID};
     
     mp3_info *MP3Info = GlobalGameState.MP3Info;
     i16 *ExistingBuffer = DecodeResult->buffer;
@@ -557,7 +557,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
         }
         else
         {
-            Result.Code = loadErrorCode_FileLoadFailed;
+            Result.Code = errorCode_FileLoadFailed;
             break;
         }
         
@@ -565,7 +565,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
     }
     FreeMemory(ScratchArena, DecodeResult->buffer);
     
-    if(Result.Code != loadErrorCode_FileLoadFailed)
+    if(Result.Code != errorCode_FileLoadFailed)
     {
         Assert(DecodeResult->channels);
         Assert(DecodeResult->hz);
@@ -605,8 +605,8 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
             DecodeMP3StartFrames(&GlobalGameState.JobThreadsArena, &MP3Decoder, File, DecodeResult, 
                                  InitialSampleCount, DecodeFrameAmount, CancelDecode);
             
-            if(MP3Info->DecodeInfo.CancelDecoding) Result.Code = loadErrorCode_DecodingCanceled;
-            else if(DecodeResult->samples == 0)    Result.Code = loadErrorCode_DecodingFailed;
+            if(MP3Info->DecodeInfo.CancelDecoding) Result.Code = errorCode_DecodingCanceled;
+            else if(DecodeResult->samples == 0)    Result.Code = errorCode_DecodingFailed;
             else
             {
                 Put(&MP3Info->DecodeInfo.FileIDs, NewDecodeID(DecodeID), FileID);
@@ -619,7 +619,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
             
             FreeFileMemory(ScratchArena, File);
         }
-        else Result.Code = loadErrorCode_FileLoadFailed;
+        else Result.Code = errorCode_FileLoadFailed;
     }
     
     if(DecodeID >= 0) 
@@ -641,7 +641,7 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeMP3File)
     error_item Result = LoadAndDecodeMP3StartFrames(&ThreadInfo->ScratchArena, JobInfo->PreloadSeconds, JobInfo->FileID, 
                                                     JobInfo->DecodeID, DecodeResult);
     
-    if(Result.Code < 0) PushErrorMessageFromThread(Result);
+    if(Result.Code < 0) PushErrorMessage(&GlobalGameState, Result);
 }
 
 internal JOB_LIST_CALLBACK(JobLoadAndDecodeEntireMP3File)
@@ -652,7 +652,7 @@ internal JOB_LIST_CALLBACK(JobLoadAndDecodeEntireMP3File)
     error_item Result = LoadAndDecodeMP3StartFrames(&ThreadInfo->ScratchArena, JobInfo->PreloadSeconds, JobInfo->FileID, 
                                                     JobInfo->DecodeID, DecodeResult);
     
-    if(Result.Code < 0) PushErrorMessageFromThread(Result);
+    if(Result.Code < 0) PushErrorMessage(&GlobalGameState, Result);
 }
 
 internal i32
@@ -829,103 +829,3 @@ AddJob_NextUndecodedInPlaylist()
 }
 
 
-
-// ***************************************
-// Job error messaging *******************
-// ***************************************
-
-internal void
-PushErrorMessageFromThread(error_item Error)
-{
-    WaitForSingleObjectEx(GlobalGameState.ThreadErrorList.Mutex, INFINITE, false);
-    if(GlobalGameState.ThreadErrorList.Count < MAX_THREAD_ERRORS)
-    {
-        GlobalGameState.ThreadErrorList.Errors[GlobalGameState.ThreadErrorList.Count++] = Error;
-        GlobalGameState.ThreadErrorList.RemoveDecode = true;
-    }
-    ReleaseMutex(GlobalGameState.ThreadErrorList.Mutex);
-}
-
-internal error_item
-PopErrorMessageFromThread()
-{
-    error_item Result = {loadErrorCode_NoError, {-1}};
-    WaitForSingleObjectEx(GlobalGameState.ThreadErrorList.Mutex, INFINITE, false);
-    if(GlobalGameState.ThreadErrorList.Count > 0) 
-    {
-        Result = GlobalGameState.ThreadErrorList.Errors[--GlobalGameState.ThreadErrorList.Count];
-    }
-    ReleaseMutex(GlobalGameState.ThreadErrorList.Mutex);
-    return Result;
-}
-
-inline void
-RemoveDecodeFails()
-{
-    WaitForSingleObjectEx(GlobalGameState.ThreadErrorList.Mutex, INFINITE, false);
-    
-    u32 DecodeID = 0;
-    For(GlobalGameState.ThreadErrorList.Count)
-    {
-        if(Find(&GlobalGameState.MP3Info->DecodeInfo.FileIDs, GlobalGameState.ThreadErrorList.Errors[It].ID, &DecodeID))
-        {
-            Put(&GlobalGameState.MP3Info->DecodeInfo.FileIDs.A, DecodeID, MAX_UINT32);
-            Put(&GlobalGameState.MP3Info->DecodeInfo.LastTouched, DecodeID, 0);
-            if(GlobalGameState.MusicInfo.PlayingSong.DecodeID == (i32)DecodeID) 
-            {
-                GlobalGameState.MusicInfo.PlayingSong.DisplayableID.ID = -1;
-                GlobalGameState.MusicInfo.PlayingSong.PlaylistID.ID = -1;
-                GlobalGameState.MusicInfo.PlayingSong.DecodeID = -1;
-            }
-        }
-    }
-    
-    GlobalGameState.ThreadErrorList.RemoveDecode = false;
-    ReleaseMutex(GlobalGameState.ThreadErrorList.Mutex);
-}
-
-internal void
-ProcessThreadErrors()
-{
-    if(GlobalGameState.ThreadErrorList.Count)
-    {
-        if(GlobalGameState.ThreadErrorList.RemoveDecode) RemoveDecodeFails();
-        
-        if(!GlobalGameState.MusicInfo.DisplayInfo.UserErrorText.IsAnimating)
-        {
-            error_item NextError = PopErrorMessageFromThread();
-            switch(NextError.Code)
-            {
-                case loadErrorCode_DecodingFailed:
-                {
-                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not decode song. Is file corrupted? (");
-                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames_ + NextError.ID.ID);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
-                    PushUserErrorMessage(&ErrorMsg);
-                    DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
-                } break;
-                
-                case loadErrorCode_FileLoadFailed:
-                {
-                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song from disk. If files were moved, do a retrace. (");
-                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames_ + NextError.ID.ID);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
-                    PushUserErrorMessage(&ErrorMsg);
-                    DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
-                } break;
-                
-                case loadErrorCode_EmptyFile:
-                {
-                    string_c ErrorMsg = NewStringCompound(&GlobalGameState.ScratchArena, 555);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song. File was empty. (");
-                    AppendStringCompoundToCompound(&ErrorMsg, GlobalGameState.MP3Info->FileInfo.FileNames_ + NextError.ID.ID);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
-                    PushUserErrorMessage(&ErrorMsg);
-                    DeleteStringCompound(&GlobalGameState.ScratchArena, &ErrorMsg);
-                } break;
-            }
-        }
-    }
-}

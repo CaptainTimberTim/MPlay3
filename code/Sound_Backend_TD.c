@@ -1014,7 +1014,7 @@ MetadataID3v2_Helper(arena_allocator *Arena, u8 *C, u8 *Frame, string_compound *
         if(Length <= 0) ;
         else if(Length > 2500)
         {
-            DebugLog(255, "Error:: Could not load %s metadata. Tag size was %i, must be erroneous !\n", Frame, Length);
+            DebugLog(255, "ERROR:: Could not load %s metadata. Tag size was %i, must be erroneous !\n", Frame, Length);
         }
         else
         {
@@ -2080,12 +2080,24 @@ SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, sear
     }
 }
 
-internal i32 // 1 = A Higher, 0 = A == B, -1 = B Higher
+enum string_compare_result
+{
+    stringCompare_FirstLower  = -1,
+    stringCompare_Same        =  0,
+    stringCompare_FirstHigher =  1,
+    stringCompare_BothEmpty   =  2, 
+};
+
+internal string_compare_result
 CompareAB(string_c *A, string_c *B)
 {
-    i32 Result = 0;
+    string_compare_result Result = stringCompare_Same;
+    if(A->Pos == 0 && B->Pos == 0) return stringCompare_BothEmpty; // Early out
     
-    for(u32 It = 0; It < A->Pos && It < B->Pos; It++)
+    for(u32 It = 0; 
+        It < A->Pos && 
+        It < B->Pos; 
+        ++It)
     {
         u8 A1 = A->S[It];
         u8 B1 = B->S[It];
@@ -2095,17 +2107,17 @@ CompareAB(string_c *A, string_c *B)
         
         if(A1 < B1)
         {
-            Result = 1;
+            Result = stringCompare_FirstHigher;
             break;
         }
         else if(A1 > B1)
         {
-            Result = -1;
+            Result = stringCompare_FirstLower;
             break;
         }
     }
-    if(A->Pos == 0) Result = 1;
-    if(B->Pos == 0) Result = -1;
+    if(A->Pos == 0) Result = stringCompare_FirstHigher;
+    if(B->Pos == 0) Result = stringCompare_FirstLower;
     
     return Result;
 }
@@ -2133,22 +2145,25 @@ IsHigherInAlphabet(i32 T1, i32 T2, void *Data)
     return Result;
 }
 
-inline b32
+inline i32
 MetadataCompare(mp3_metadata *A, mp3_metadata *B)
 {
-    b32 Result = false;
+    b32 Result = -1;
     
-    i32 CompResult = CompareAB(&A->Artist, &B->Artist);
-    if(CompResult == 0)
+    string_compare_result CompResult = CompareAB(&A->Artist, &B->Artist);
+    if(CompResult == stringCompare_Same || 
+       CompResult == stringCompare_BothEmpty)
     {
         CompResult = CompareAB(&A->Album, &B->Album);
-        if(CompResult == 0)
+        if(CompResult == stringCompare_Same || 
+           CompResult == stringCompare_BothEmpty)
         {
-            Result = (A->Track <= B->Track);
+            if(A->Track == B->Track) ; // Both are exactly the same.
+            else Result = (A->Track < B->Track);
         }
-        else Result = (CompResult == 1);
+        else Result = (CompResult == stringCompare_FirstHigher);
     }
-    else Result = (CompResult == 1);
+    else Result = (CompResult == stringCompare_FirstHigher);
     
     return Result;
 }
@@ -2163,13 +2178,26 @@ QuickSortSongColumn(i32 Low, i32 High, mp3_file_info *FileInfo, playlist_column 
         
         for(i32 HighID = Low; HighID <= High - 1; HighID++) 
         { 
-            mp3_metadata *A = GetMetadata(SongPlaylist, FileInfo, NewPlaylistID(Get(&SongPlaylist->Displayable.A, HighID)));
-            mp3_metadata *B = GetMetadata(SongPlaylist, FileInfo, NewPlaylistID(Get(&SongPlaylist->Displayable.A, Pivot)));
-            if (MetadataCompare(A, B)) 
+            playlist_id PLA = NewPlaylistID(Get(&SongPlaylist->Displayable.A, HighID));
+            playlist_id PLB = NewPlaylistID(Get(&SongPlaylist->Displayable.A, Pivot));
+            mp3_metadata *A = GetMetadata(SongPlaylist, FileInfo, PLA);
+            mp3_metadata *B = GetMetadata(SongPlaylist, FileInfo, PLB);
+            i32 CompResult = MetadataCompare(A, B);
+            if(CompResult == 1) 
             { 
                 SmallID++;
                 Switch(&SongPlaylist->Displayable.A, SmallID, HighID); 
-            } 
+            }
+            else if(CompResult == -1) // If both have exactly the same Metadata, we check the filename itself.
+            {
+                string_c *AName = GetSongFileName(SongPlaylist, FileInfo, PLA);
+                string_c *BName = GetSongFileName(SongPlaylist, FileInfo, PLB);
+                if(CompareAB(AName, BName) == stringCompare_FirstHigher)
+                {
+                    SmallID++;
+                    Switch(&SongPlaylist->Displayable.A, SmallID, HighID); 
+                }
+            }
         } 
         Switch(&SongPlaylist->Displayable.A, SmallID+1, High); 
         i32 PartitionID = (SmallID + 1); 
@@ -2576,7 +2604,7 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
         // many genres, thats why it has a higher limit (should be done dynamically
         // at some point).
         if(It == 0) Album.Genre[It].A = CreateArray(FixArena, 100); // @HardLimit
-        else Album.Genre[It].A = CreateArray(FixArena, 10);
+        else Album.Genre[It].A = CreateArray(FixArena, 100);
     }
     
     FreeMemory(ScratchArena, Genre_CountForBatches);
@@ -2841,6 +2869,8 @@ SwitchPlaylistFromPlaylistID(display_column *DisplayColumn, playlist_id Playlist
     {
         SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Remove, true, &MusicInfo->DisplayInfo.ColorPalette.ForegroundText);
         SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Rename, true, &MusicInfo->DisplayInfo.ColorPalette.ForegroundText);
+        ResetBtnState(MusicInfo->DisplayInfo.PlaylistUI.Remove);
+        ResetBtnState(MusicInfo->DisplayInfo.PlaylistUI.Rename);
     }
     else
     {
@@ -2889,18 +2919,41 @@ OnNewPlaylistClick(void *Data)
 {
     game_state *GS = (game_state *)Data;
     
-    playlist_info *Playlist = CreateEmptyPlaylist(&GS->FixArena, &GS->MusicInfo);
+    playlist_info *NewPlaylist = CreateEmptyPlaylist(&GS->FixArena, &GS->MusicInfo);
     
     NewLocalString(PlaylistName, 30, "New Playlist");
     I32ToString(&PlaylistName, GS->MusicInfo.Playlists.Count-1);
     AppendStringToCompound(&PlaylistName, (u8 *)" (0)");
     
     
-    FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, Playlist, {});
-    AddPlaylistToSortingColumn(&GS->MusicInfo, Playlist, PlaylistName);
+    FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPlaylist, {});
+    AddPlaylistToSortingColumn(&GS->MusicInfo, NewPlaylist, PlaylistName);
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, columnType_Playlists);
     
-    SavePlaylist(GS, Playlist);
+    SyncPlaylists_playlist_column(&GS->MusicInfo);
+    SavePlaylist(GS, NewPlaylist);
+}
+
+internal void
+OnNewPlaylistWithSelectionClick(void *Data)
+{
+    game_state *GS = (game_state *)Data;
+    
+    playlist_info *NewPlaylist = CreateEmptyPlaylist(&GS->FixArena, &GS->MusicInfo);
+    
+    NewLocalString(PlaylistName, 30, "New Playlist");
+    I32ToString(&PlaylistName, GS->MusicInfo.Playlists.Count-1);
+    AppendStringToCompound(&PlaylistName, (u8 *)" (");
+    I32ToString(&PlaylistName, GS->MusicInfo.Playlist_->Song.Displayable.A.Count);
+    AppendCharToCompound(&PlaylistName, ')');
+    
+    FillPlaylistWithCurrentSelection(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPlaylist);
+    AddPlaylistToSortingColumn(&GS->MusicInfo, NewPlaylist, PlaylistName);
+    UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, columnType_Playlists);
+    
+    SyncPlaylists_playlist_column(&GS->MusicInfo);
+    SwitchPlaylist(GS, NewPlaylist);
+    SavePlaylist(GS, NewPlaylist);
 }
 
 internal void

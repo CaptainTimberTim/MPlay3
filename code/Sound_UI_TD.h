@@ -223,14 +223,6 @@ struct column_edge_drag
     struct music_info *MusicInfo;
 };
 
-struct user_error_text
-{
-    render_text Message;
-    b32 IsAnimating;
-    r32 dAnim;
-    r32 AnimTime;
-};
-
 struct shortcut_popups
 {
     string_c PaletteSwap; // 1
@@ -266,6 +258,59 @@ struct shortcut_popups
     b32 IsActive;
 };
 
+struct drag_drop_slot
+{
+    displayable_id SlotID;
+    v2 SlotStartP;
+    entry_id *DragSlot;
+    entry_id *Border;
+    render_text SlotText;
+    r32 TextOverhang;
+    v2 GrabOffset;
+    u32 DistToBaseSlot;
+};
+
+#define MAX_DRAG_SLOT_VISUALS 7u
+struct drag_drop
+{
+    b32 Dragging;
+    column_type Type;
+    v2 StartMouseP;
+    drag_drop_slot Slots[MAX_DRAG_SLOT_VISUALS];
+    u32 SlotCount = 0;
+    r32 TransparencyFalloff = 0.3f;
+    b32 DragsSelected = false;
+    
+    i32 AnimDir = 1;
+    r32 dAnim   = 0;
+    v2  ShakeDir;
+    
+    r32 ShakeThreshold; // Depends on the distance to playlist column.
+    r32 ShakeMaxRadius = 5.0f;
+    r32 ShakeMaxAnimTime = 0.01f;
+    r32 MaxTransparency  = 0.95f;
+    
+    b32 ShakeTransition = false;
+    v2 Velocity;
+    
+    // Drop Info
+    i32 CurHoverID = -1;
+    v3 *CurOriginalColor;
+    
+    // Drop delete info
+    v3 RemoveColor;
+    v3 *OriginalAllColor       = NULL;
+    render_text *AllRenderText = NULL;
+};
+
+enum playlist_btn_type
+{
+    playlistBtnType_Add,
+    playlistBtnType_AddSelection,
+    playlistBtnType_Remove,
+    playlistBtnType_Rename,
+};
+
 struct playlist_ui
 {
     entry_id *Panel;
@@ -274,7 +319,11 @@ struct playlist_ui
     button   *Add;
     button   *Remove;
     button   *Rename;
+    button   *AddSelection;
     button_colors BtnColors;
+    quit_animation AddCurtain;
+    quit_animation AddSelectionCurtain;
+    quit_animation RemoveCurtain;
     
     text_field RenameField;
 };
@@ -329,54 +378,8 @@ struct music_display_info
     playing_song_panel PlayingSongPanel;
     music_path_ui MusicPath;
     
+    drag_drop DragDrop;
     quit_animation Quit;
-    
-    user_error_text UserErrorText;
-};
-
-struct drag_drop_slot
-{
-    displayable_id SlotID;
-    v2 SlotStartP;
-    entry_id *DragSlot;
-    entry_id *Border;
-    render_text SlotText;
-    r32 TextOverhang;
-    v2 GrabOffset;
-    u32 DistToBaseSlot;
-};
-
-#define MAX_DRAG_SLOT_VISUALS 7u
-struct drag_drop
-{
-    b32 Dragging;
-    column_type Type;
-    v2 StartMouseP;
-    drag_drop_slot Slots[MAX_DRAG_SLOT_VISUALS];
-    u32 SlotCount = 0;
-    r32 TransparencyFalloff = 0.3f;
-    b32 DragsSelected = false;
-    
-    i32 AnimDir = 1;
-    r32 dAnim   = 0;
-    v2  ShakeDir;
-    
-    r32 ShakeThreshold; // Depends on the distance to playlist column.
-    r32 ShakeMaxRadius = 5.0f;
-    r32 ShakeMaxAnimTime = 0.01f;
-    r32 MaxTransparency  = 0.95f;
-    
-    b32 ShakeTransition = false;
-    v2 Velocity;
-    
-    // Drop Info
-    i32 CurHoverID = -1;
-    v3 *CurOriginalColor;
-    
-    // Drop delete info
-    v3 RemoveColor;
-    v3 *OriginalAllColor       = NULL;
-    render_text *AllRenderText = NULL;
 };
 
 struct layout_definition
@@ -488,7 +491,10 @@ struct layout_definition
     r32 QuitCurtainAnimationMultiplies = 1.75f;
     
     // User error text
-    r32 ErrorTextAnimationTime    = 2.5f;
+    r32 ErrorMessageX           = 180;
+    r32 ErrorMessageSmallTextY  = 12;
+    r32 ErrorMessageMediumTextY = 13;
+    r32 ErrorTextAnimationTime  = 2.5f;
 };
 
 inline void UpdateColumnColor(display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
@@ -505,7 +511,6 @@ internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel
 
 internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, struct search_bar *Search, mp3_file_info *FileInfo = 0);
 internal void UpdateColumnVerticalSlider(display_column *DisplayColumn, u32 DisplayableCount);
-inline void PushUserErrorMessage(string_c *String);
 
 inline string_c GetRandomExitMessage(game_state *GS, string_c *Language = NULL);
 

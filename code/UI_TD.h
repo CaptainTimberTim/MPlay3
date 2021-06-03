@@ -66,6 +66,7 @@ inline button *NewButton(struct renderer *Renderer, rect Rect, r32 Depth, b32 Is
                          button_colors Colors, entry_id *Parent, i32 ToggleIconBitmapID = -1);
 inline void SetDisabled(button *Button, b32 Disable, v3 *Color);
 inline void SetActive(button *Button, b32 SetActive);
+inline void ResetBtnState(button *Button);
 inline void Translate(button *Button, v2 Translation);
 inline void SetLocalPosition(button *Button, v2 Translation);
 inline void SetPosition(button *Button, v2 Translation);
@@ -201,7 +202,7 @@ struct quit_animation
     render_text BonusText;
 };
 
-internal void CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, string_c *BonusText = NULL);
+internal void CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, font_size_id FontSize = font_Big, string_c *BonusText = NULL, r32 Depth = -0.99f);
 inline void SetActive(quit_animation *Quit, b32 Activate);
 internal b32 QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size);
 

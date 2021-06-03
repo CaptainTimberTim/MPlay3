@@ -1,5 +1,6 @@
 #pragma once
 #include "Renderer_TD.h"
+#include "ErrorHandling_TD.h"
 #include "Sound_Thread_TD.h"
 #include "Sound_Backend_TD.h"
 #include "Sound_Jobs.h"
@@ -112,6 +113,7 @@ struct game_state
     
     color_picker ColorPicker;
     
+    user_error_text    UserErrorText;
     thread_error_list ThreadErrorList;
 };
 

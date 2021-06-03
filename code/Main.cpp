@@ -680,9 +680,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             DisplayInfo->DragDrop = {};
             
             
-            // @TemporaryDisable:: 
-            SetDisabled(DisplayInfo->PlaylistUI.Remove, true, &DisplayInfo->ColorPalette.ForegroundText);
-            SetDisabled(DisplayInfo->PlaylistUI.Rename, true, &DisplayInfo->ColorPalette.ForegroundText);
             // ********************************************
             // Dragging************************************
             // ********************************************

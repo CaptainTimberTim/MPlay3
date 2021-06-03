@@ -25,6 +25,7 @@ struct settings
     b32 Looping = false;
     b32 Shuffle = false;
     i32 FontHeightOffset = 0;
+    string_c ActivePlaylist;
     
     font_name_list *CachedFontNames;
     

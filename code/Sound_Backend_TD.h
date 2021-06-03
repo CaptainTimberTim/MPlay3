@@ -58,7 +58,7 @@
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
 // - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
 // - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
-// - Save active playlist in settings (@TemporaryDisable::).
+// - On load of playlist the FileIDs of song column is too small.
 
 #include "Sound_UI_TD.h"
 

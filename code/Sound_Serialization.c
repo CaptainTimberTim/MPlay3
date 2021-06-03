@@ -32,6 +32,7 @@
 // Looping: <0/1>
 // Shuffle: <0/1>
 // UsedFontCache: <font name>|<font name>
+// ActivePlaylist: <Name>
 // Palette: <Name>  // Palette with all following color values can occur multiple times
 //     Text: <R255> <G255> <B255>
 //     ForegroundText: <R255> <G255> <B255>
@@ -145,6 +146,7 @@ TryLoadSettingsFile(game_state *GameState)
             string_c LoopingS                       = NewStaticStringCompound("Looping:");
             string_c ShuffleS                       = NewStaticStringCompound("Shuffle:");
             string_c CachedFontS                    = NewStaticStringCompound("UsedFontCache:");
+            string_c ActivePlaylistS                = NewStaticStringCompound("ActivePlaylist:");
             
             string_c PaletteS                       = NewStaticStringCompound("Palette:");
             string_c TextS                          = NewStaticStringCompound("Text:");
@@ -317,6 +319,14 @@ TryLoadSettingsFile(game_state *GameState)
                     ++Result.PaletteCount;
                     continue; // We do this, because in ProcessNextPaletteColor we do a AdvancetoNewline.
                 }
+                else if(StringCompare(C, ActivePlaylistS.S, 0, ActivePlaylistS.Pos))
+                {
+                    C += ActivePlaylistS.Pos;
+                    EatLeadingSpaces(&C);
+                    u32 PLen = CountToDelimeters(C, (u8 *)"\r\n", 2);
+                    Result.ActivePlaylist = NewStringCompound(&GameState->FixArena, PLen);
+                    CopyStringToCompound(&Result.ActivePlaylist, C, 0u, PLen);
+                }
                 
                 AdvanceToNewline(&C);
             }
@@ -338,8 +348,9 @@ TryLoadSettingsFile(game_state *GameState)
        Result.GenreArtistEdgeXPercent    < 0.0f || Result.GenreArtistEdgeXPercent    > 1.0f || 
        Result.ArtistAlbumEdgeXPercent    < 0.0f || Result.ArtistAlbumEdgeXPercent    > 1.0f ||
        Result.AlbumSongEdgeXPercent      < 0.0f || Result.AlbumSongEdgeXPercent      > 1.0f || 
-       Result.GenreArtistEdgeXPercent >= Result.ArtistAlbumEdgeXPercent ||
-       Result.ArtistAlbumEdgeXPercent >= Result.AlbumSongEdgeXPercent) 
+       Result.PlaylistsGenreEdgeXPercent >= Result.GenreArtistEdgeXPercent ||
+       Result.GenreArtistEdgeXPercent    >= Result.ArtistAlbumEdgeXPercent ||
+       Result.ArtistAlbumEdgeXPercent    >= Result.AlbumSongEdgeXPercent) 
     {
         Result.PlaylistsGenreEdgeXPercent = 0.11f;
         Result.GenreArtistEdgeXPercent    = 0.25f;
@@ -378,7 +389,8 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     NewLocalString(WindowDimY,         50, "WindowDimensionY: ");
     NewLocalString(Looping,            50, "Looping: ");
     NewLocalString(Shuffle,            50, "Shuffle: ");
-    NewLocalString(CachedFontNames,    50, "UsedFontCache: ");
+    NewLocalString(CachedFontNames,   500, "UsedFontCache: ");
+    NewLocalString(ActivePlaylist, PLAYLIST_MAX_NAME_LENGTH+50, "ActivePlaylist: ");
     
     v2i Dim = GetWindowSize();
     file_id FileID = NewFileID(-1);
@@ -398,8 +410,13 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&Looping, GameState->MusicInfo.Looping == playLoop_Loop);
     I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
+    AppendStringCompoundToCompound(&ActivePlaylist, GetPlaylistName(&GameState->MusicInfo, GameState->MusicInfo.Playlist_));
+    i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&ActivePlaylist, '(');
+    Assert(NameEndP >= 0);
+    ActivePlaylist.Pos = NameEndP-1;
+    
     string_c LB   = NewStaticStringCompound("\n");
-    ConcatStringCompounds(28, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames);
+    ConcatStringCompounds(30, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames, &LB, &ActivePlaylist);
     
     // Save out used font names
     if(Settings->CachedFontNames)
@@ -468,6 +485,11 @@ ApplySettings(game_state *GameState, settings Settings)
     ChangeVolume(GameState, Settings.Volume);
     music_info *MusicInfo = &GameState->MusicInfo;
     
+    
+    playlist_info *Playlist = GetPlaylist(GameState, Settings.ActivePlaylist);
+    if(Playlist) SwitchPlaylist(GameState, Playlist);
+    else Playlist = GameState->MusicInfo.Playlist_;
+    
     MusicInfo->PlayingSong.PlaylistID    = GetPlaylistID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
     MusicInfo->PlayingSong.DisplayableID = GetDisplayableID(MusicInfo, MusicInfo->PlayingSong.PlaylistID);
     
@@ -483,7 +505,6 @@ ApplySettings(game_state *GameState, settings Settings)
     MusicInfo->DisplayInfo.AlbumSong.XPercent = Settings.AlbumSongEdgeXPercent;
     
     ProcessEdgeDragOnResize(&GameState->Renderer, &MusicInfo->DisplayInfo);
-    playlist_info *Playlist  = MusicInfo->Playlist_;
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Genre, Playlist->Genre.Displayable.A.Count);
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Artist, Playlist->Artist.Displayable.A.Count);
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Album, Playlist->Album.Displayable.A.Count);

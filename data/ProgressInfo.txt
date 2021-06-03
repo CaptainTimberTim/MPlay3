@@ -295,7 +295,7 @@
 - Added verification curtains for playlist buttons.
 - Fixed long-standing bug with quit_animation where it falsely activated when spamming the trigger-key.
 - Added a threshold for activating REMOVE for 'All' playlist when drag&dropping.
-
+- Added saving/loading of active playlist in settings. 
 
 
 

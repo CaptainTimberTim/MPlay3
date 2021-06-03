@@ -2695,6 +2695,40 @@ GetOnScreenID(game_state *GS, playlist_info *Playlist)
     return Result;
 }
 
+inline string_c *
+GetPlaylistName(music_info *MusicInfo, playlist_info *Playlist)
+{
+    string_c *Result = 0;
+    
+    i32 PlaylistID = GetPlaylistID(MusicInfo, Playlist);
+    Result = Playlist->Playlists.Batch.Names+PlaylistID;
+    
+    return Result;
+}
+
+internal playlist_info *
+GetPlaylist(game_state *GS, string_c PlaylistName)
+{
+    playlist_info *Result = 0;
+    
+    For(GS->MusicInfo.Playlists.Count)
+    {
+        playlist_info *NextPlaylist = GS->MusicInfo.Playlists.List+It;
+        NewLocalString(NextName, PLAYLIST_MAX_NAME_LENGTH+10, GetPlaylistName(&GS->MusicInfo, NextPlaylist)->S);
+        
+        i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&NextName, '(');
+        Assert(NameEndP >= 0);
+        NextName.Pos = NameEndP-1;
+        if(CompareStringCompounds(&PlaylistName, &NextName))
+        {
+            Result = NextPlaylist;
+            break;
+        }
+    }
+    
+    return Result;
+}
+
 internal void
 UpdatePlaylistScreenName(game_state *GS, playlist_info *Playlist)
 {

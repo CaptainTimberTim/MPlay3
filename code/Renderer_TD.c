@@ -805,6 +805,36 @@ IsInRect(rect Rect1,  entry_id *Entry)
     return Result;
 }
 
+inline b32 
+IsInRect(entry_id *Entry1, entry_id *Entry2)
+{
+    b32 Result = false;
+    
+    rect Rect1 = ExtractScreenRect(Entry1);
+    rect Rect2 = ExtractScreenRect(Entry2);
+    Result = IsInRect(Rect1, Rect2);
+    
+    return Result;
+}
+
+inline b32
+IsIntersectingRect(entry_id *E1, entry_id *E2)
+{
+    b32 Result = false;
+    
+    rect R1 = ExtractScreenRect(E1);
+    rect R2 = ExtractScreenRect(E2);
+    
+    if(!(R1.Min.x > R2.Max.x || R1.Max.x < R2.Min.x || 
+         R1.Min.y > R2.Max.y || R1.Max.y < R2.Min.y))
+    {
+        Result = true;
+        
+    }
+    
+    return Result;
+}
+
 inline rect
 ExtractScreenRect(entry_id *Entry)
 {

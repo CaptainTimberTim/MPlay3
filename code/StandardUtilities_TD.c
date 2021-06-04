@@ -576,13 +576,14 @@ MergeArrays(array_u32 *Array1, array_u32 *Array2)
 }
 
 inline void
-Switch(array_u32 *Array, u32 P1, u32 P2)
+Switch(void *Array, i32 P1, i32 P2)
 {
-    Assert(P1 < Array->Length);
-    Assert(P2 < Array->Length);
-    u32 T = Array->Slot[P1];
-    Array->Slot[P1] = Array->Slot[P2];
-    Array->Slot[P2] = T;
+    array_u32 *A = (array_u32 *)Array;
+    Assert((u32)P1 < A->Length);
+    Assert((u32)P2 < A->Length);
+    u32 T = A->Slot[P1];
+    A->Slot[P1] = A->Slot[P2];
+    A->Slot[P2] = T;
 }
 
 inline void 
@@ -611,7 +612,7 @@ CutValueFromArray_(void *Array, u32 *ArraySize, u32 ID, u32 ElementSize)
 }
 
 internal i32
-QuickSortPartition(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo) 
+QuickSortPartition(i32 Low, i32 High, void *SortArray, sort_info SortInfo) 
 { 
     i32 Pivot   = High;
     i32 SmallID = (Low - 1);
@@ -621,15 +622,15 @@ QuickSortPartition(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo)
         if (SortInfo.CompareFunc(HighID, Pivot, SortInfo.Data)) 
         { 
             SmallID++;
-            Switch(SortArray, SmallID, HighID); 
+            SortInfo.SwapFunc(SortArray, SmallID, HighID); 
         } 
     } 
-    Switch(SortArray, SmallID+1, High); 
+    SortInfo.SwapFunc(SortArray, SmallID+1, High); 
     return (SmallID + 1); 
 } 
 
 internal void 
-QuickSort(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo) 
+QuickSort(i32 Low, i32 High, void *SortArray, sort_info SortInfo) 
 { 
     if(Low < High)
     {

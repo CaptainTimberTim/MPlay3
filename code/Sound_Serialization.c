@@ -1033,11 +1033,17 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     
     string_c SMem = NewStaticStringCompound("ThisIsNoSubPathIJustWantToMakeSureThatTheFirstLoopCompareAlwaysFails!");
     string_c *CurrentSubPath = &SMem;
-    For(Playlist->Song.FileIDs.A.Count)
+    
+    // Because the Playlists can have the FileIDs list in any random order, we sort them
+    // before saving to the file. This bunches up all subpath again, making the file much
+    // more readable and a bit smaller as well.
+    array_u32 SortFileIDs = CreateArray(&GS->ScratchArena, Playlist->Song.FileIDs.A.Count);
+    AppendArray(&SortFileIDs, &Playlist->Song.FileIDs.A);
+    QuickSort3(SortFileIDs);
+    
+    For(SortFileIDs.Count)
     {
-        // TODO:: It seems the subpathing is not perfectly sorted. Maybe bunch them up
-        // and try to have each subpath only once.
-        file_id FileID = GetFileID(&Playlist->Song, NewPlaylistID(It));
+        file_id FileID = NewFileID(Get(&SortFileIDs, It));
         
         if(!CompareStringCompounds(CurrentSubPath, FileInfo->SubPath+FileID.ID))
         {

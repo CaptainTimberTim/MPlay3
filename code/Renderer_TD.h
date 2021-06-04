@@ -272,7 +272,9 @@ inline b32 IsInRect(rect_2D Rect, v2 P);
 inline b32 IsInRect(entry_id *Entry, v2 P);
 inline b32 IsInRect(rect Rect1,  rect Rect2);
 inline b32 IsInRect(rect Rect1,  entry_id *Entry);
+inline b32 IsInRect(entry_id *Entry1, entry_id *Entry2);
 
+inline b32 IsIntersectingRect(entry_id *E1, entry_id *E2);
 inline b32 IsLowerThanRect(entry_id *Entry, entry_id *Rect);
 inline b32 IsHigherThanRect(entry_id *Entry, entry_id *Rect);
 inline b32 IsTopShowing(entry_id *Entry, entry_id *Rect);

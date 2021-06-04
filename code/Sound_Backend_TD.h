@@ -54,11 +54,8 @@
 // - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
 // - Add drag&drop for sorting playlist slots?
 
-// - Add tooltips for new stuff.
-// - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// - SavePlaylist:: It seems the subpathing is not perfectly sorted. Maybe bunch them up and try to have each subpath only once.
 // - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
-// - On load of playlist the FileIDs of song column is too small.
+// - InitialDisplayable count for playlist is capped to 250, should be expandable.
 
 #include "Sound_UI_TD.h"
 
@@ -67,8 +64,7 @@ struct column_info
     struct renderer             *Renderer;
     struct music_display_info   *DisplayInfo;
     struct music_info           *MusicInfo;
-    struct display_column *DisplayColumn;
-    
+    struct display_column       *DisplayColumn;
     struct playlist_column      *PlaylistColumn;
 };
 

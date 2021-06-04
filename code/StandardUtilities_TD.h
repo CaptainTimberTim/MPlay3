@@ -107,7 +107,6 @@ inline void StackInsert(array_u32 *Array, u32 Pos, u32 Item);
 inline void PushIfNotExist(array_u32 *Array, u32 Item);
 inline void AppendArray(array_u32 *Array1, array_u32 *Array2);
 inline void MergeArrays(array_u32 *Array1, array_u32 *Array2); // Slow
-inline void Switch(array_u32 *Array, u32 P1, u32 P2);
 inline void Copy(array_u32 *To, array_u32 *From);
 internal void ShuffleStack(array_u32 *Array);
 internal void PrintArray(array_u32 Array);
@@ -115,11 +114,14 @@ internal void PrintArray(array_u32 Array);
 #define CutValueFromArray(Array, ArraySize, ID, type) CutValueFromArray_((void *)Array, ArraySize, ID, sizeof(type));
 inline void CutValueFromArray_(void *Array, u32 *ArraySize, u32 ID, u32 ElementSize);
 
+inline   void QuickSort3(array_u32 Array, b32 SortOnLength_NotCount = false);
+
 struct sort_info
 {
     b32 (*CompareFunc)(i32 T1, i32 T2, void *Data);
     void *Data;
+    void (*SwapFunc)(void *Array, i32 IndexA, i32 IndexB);
 };
 
-internal void QuickSort(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo);
-inline   void QuickSort3(array_u32 Array, b32 SortOnLength_NotCount = false);
+internal void QuickSort(i32 Low, i32 High, void *SortArray, sort_info SortInfo);
+inline void Switch(void *Array, i32 P1, i32 P2);

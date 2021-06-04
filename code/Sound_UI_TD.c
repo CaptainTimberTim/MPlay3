@@ -2397,6 +2397,12 @@ CreateShortcutPopups(music_display_info *DisplayInfo)
     Popups->DeletePalette   = NewStaticStringCompound("Deletes the current palette (only for custom palettes).");
     Popups->CancelPicker    = NewStaticStringCompound("Quits the color-picker.");
     
+    Popups->AddPlaylist     = NewStaticStringCompound("Create a new, empty playlist. Fill it, by Drag&Dropping 'Slots' onto it.");
+    Popups->AddSelectionPlaylist = NewStaticStringCompound("Create a playlist with the current selection of songs.");
+    Popups->RenamePlaylist  = NewStaticStringCompound("Rename the active playlist ('All' excluded).");
+    Popups->RemovePlaylist  = NewStaticStringCompound("Remove the active playlist ('All' excluded).");
+    Popups->SearchPlaylists = NewStaticStringCompound("Search playlist by name.");
+    
     CreatePopup(&GlobalGameState.Renderer, &GlobalGameState.FixArena, &Popups->Popup, Popups->Help, 
                 GetFontSize(&GlobalGameState.Renderer, font_Medium), -0.99f, 0.05f);
     Popups->ActiveText = 19;
@@ -2577,6 +2583,41 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
                         break;
                     }
                 }
+            }
+            else if(IsOnButton(DisplayInfo->PlaylistUI.Add, MouseP))
+            {
+                if(Popups->ActiveText != 27) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->AddPlaylist, FontSize);
+                Popups->ActiveText = 27;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->PlaylistUI.AddSelection, MouseP))
+            {
+                if(Popups->ActiveText != 28) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->AddSelectionPlaylist, FontSize);
+                Popups->ActiveText = 28;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->PlaylistUI.Rename, MouseP))
+            {
+                if(Popups->ActiveText != 29) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->RenamePlaylist, FontSize);
+                Popups->ActiveText = 29;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->PlaylistUI.Remove, MouseP))
+            {
+                if(Popups->ActiveText != 30) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->RemovePlaylist, FontSize);
+                Popups->ActiveText = 30;
+                Popups->IsHovering = true;
+            }
+            else if(IsOnButton(DisplayInfo->Playlists.Search.Button, MouseP))
+            {
+                if(Popups->ActiveText != 31) ChangeText(&GlobalGameState.Renderer, &GlobalGameState.FixArena, 
+                                                        &Popups->Popup, Popups->SearchPlaylists, FontSize);
+                Popups->ActiveText = 31;
+                Popups->IsHovering = true;
             }
         }
         else
@@ -3049,6 +3090,24 @@ GetRandomExitMessage(game_state *GS, string_c *Language)
 // **************************************
 // Drag and Drop ************************
 // **************************************
+struct select_item { select_id SID; displayable_id DID; playlist_id PID; };
+
+inline b32
+CompareDragDrop(i32 T1, i32 T2, void *Data)
+{
+    select_item *Array = (select_item *)Data;
+    b32 Result = (Array[T2].DID > Array[T1].DID);
+    return Result;
+}
+
+inline void
+SwitchDragDrop(void *Array, i32 IndexA, i32 IndexB)
+{
+    select_item *A = (select_item *)Array;
+    select_item TMP = A[IndexB];
+    A[IndexB] = A[IndexA];
+    A[IndexA] = TMP;
+}
 
 internal b32
 CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
@@ -3098,7 +3157,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
             DragDrop->DragsSelected  = false;
             DragDrop->Type           = DisplayColumn->Type;
             DragDrop->StartMouseP    = Input->MouseP;
-            DragDrop->ShakeThreshold = GetDistance(DisplayColumn->BGRects[It], DisplayInfo->Playlists.BGRects[0])/4;
+            DragDrop->ShakeThreshold = GetDistance(DisplayColumn->BGRects[It], DisplayInfo->Playlists.BGRects[0])/DragDrop->ShakeThresholdDistanceDivisor;
             
             drag_drop_slot *Slot = DragDrop->Slots+DragDrop->SlotCount++;
             Slot->DistToBaseSlot = 0;
@@ -3120,8 +3179,8 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
             
             Translate(&Slot->SlotText, V2(-Slot->TextOverhang*0.5f, 0));
             SetParent(Slot->SlotText.Base, Slot->DragSlot);
-            Slot->GrabOffset = (Slot->SlotStartP - DragDrop->StartMouseP);
             Slot->SlotStartP.x += Slot->TextOverhang*0.5f;
+            Slot->GrabOffset = (Slot->SlotStartP - DragDrop->StartMouseP);
             
             // If the grabbed slot is a selected slot, then we pull all other selected slots as well.
             // But we visualize max 5, to keep it reasonable.
@@ -3134,16 +3193,23 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 // pairs. With this, we then can easily go through and create
                 // the grab information for the slots that are closes to the 
                 // one picked with the mouse.
-                struct select_item { select_id SID; displayable_id DID; playlist_id PID; };
                 u32 SelectCount = PlaylistColumn->Selected.A.Count;
                 select_item *SelectIDOrder = AllocateArray(&GS->ScratchArena, PlaylistColumn->Selected.A.Count, select_item);
+                RestartTimer("SortDragDrop");
                 For(SelectCount, Select)
                 {
                     select_id SelectID      = NewSelectID(SelectIt);
                     playlist_id SelectPLID  = Get(&PlaylistColumn->Selected, SelectID);
+                    // TODO:: @SLOW:: This GetDisplayableID goes through most of diplayable every time
+                    // this costs .25s in deubg mode... What can we do to reduce this?
                     displayable_id NewDID   = GetDisplayableID(&PlaylistColumn->Displayable, SelectPLID);
                     SelectIDOrder[SelectIt] = {SelectID, NewDID, SelectPLID};
                 }
+                
+                SnapTimer("SortDragDrop");
+#if 0
+                QuickSort(0, SelectCount-1, SelectIDOrder, {CompareDragDrop, SelectIDOrder, SwitchDragDrop});
+#else
                 For(SelectCount-1, Outer) // @SLOW:: At least don't use Bubble sort...
                 {
                     for(u32 InnerIt = OuterIt+1; InnerIt < SelectCount; ++InnerIt)
@@ -3156,11 +3222,13 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                         }
                     }
                 }
+#endif
+                SnapTimer("SortDragDrop");
                 i32 StartIt = -1;
                 i32 PickSelectIt = -1;
                 r32 PositionOffsetY = GetSize(Slot->DragSlot).y + GS->Layout.SlotGap;
                 i32 HalfDragSlot = Floor(MAX_DRAG_SLOT_VISUALS/2.0f);
-                For(SelectCount, S)
+                For(SelectCount, S) // Get the one that was mouse picked
                 {
                     if(PLID == SelectIDOrder[SIt].PID) 
                     {
@@ -3184,7 +3252,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                         
                         i32 OnScreenID = GetOnScreenID(DisplayColumn, SubSlot->SlotID);
                         r32 TextYOffset = 0;
-                        if(OnScreenID > 0)
+                        if(OnScreenID >= 0)
                         {
                             render_text *ToCopy = 0;
                             if(DisplayColumn->Type == columnType_Song) 
@@ -3232,7 +3300,6 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                     }
                 }
             }
-            
             
             // TODO:: Think about doing this always, even when we are in All playlist, as that
             // would make the behaviour similar everywhere and dropping the thing to delete
@@ -3283,9 +3350,9 @@ CreateREMOVEVisuals(game_state *GS, drag_drop *DragDrop)
 internal void 
 CalculateRubberDrag(drag_drop *DragDrop, r32 dTime, v2 Force)
 {
-    const r32 Mass    = 10;
-    const r32 Tension = 4000;
-    const r32 Drag    = 15;
+    const r32 Mass    = 3;
+    const r32 Tension = 1600;
+    const r32 Drag    = 23;
     
     Force *= Tension;
     v2 Acceleration = (Force/Mass) - Drag*DragDrop->Velocity;
@@ -3333,9 +3400,11 @@ DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
             
             r32 dMove = RDist*DragDrop->dAnim*DragDrop->ShakeMaxRadius;
             
-            v2 OriP = Slot->SlotStartP + (Input->MouseP - Slot->SlotStartP + Slot->GrabOffset)*NDist;
-            SetPosition(Slot->DragSlot, V2(OriP.x + (dMove*DragDrop->ShakeDir.x), 
-                                           OriP.y + (dMove*DragDrop->ShakeDir.y)));
+            // Calculates position NDist percentage between the original and mouse position, with regards to the grab offset.
+            v2 OriP = Input->MouseP*NDist - (Slot->SlotStartP-Slot->GrabOffset)*NDist + Slot->SlotStartP;
+            //v2 OriP = ((Slot->SlotStartP-Slot->GrabOffset) + (Input->MouseP - (Slot->SlotStartP-Slot->GrabOffset))*NDist)+Slot->GrabOffset; // Old, more verbose
+            SetPosition(Slot->DragSlot, V2(OriP.x + (dMove*DragDrop->ShakeDir.x), OriP.y + (dMove*DragDrop->ShakeDir.y)));
+            
             For(DragDrop->SlotCount)
             {
                 drag_drop_slot *Slot = DragDrop->Slots + It;
@@ -3348,7 +3417,7 @@ DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
     }
     else
     {
-        v2 DragDir = Input->MouseP - GetPosition(Slot->DragSlot) + Slot->GrabOffset + V2(Slot->TextOverhang/2, 0);
+        v2 DragDir = Input->MouseP - GetPosition(Slot->DragSlot) + Slot->GrabOffset;
         
         if(!DragDrop->ShakeTransition)
         {
@@ -3375,32 +3444,45 @@ DoDragDropAnim(game_state *GS, drag_drop *DragDrop)
 internal void
 EvalDragDropPosition(game_state *GS, drag_drop *DragDrop)
 {
-    music_display_info     *DisplayInfo = &GS->MusicInfo.DisplayInfo;
-    display_column *DisplayColumn = &DisplayInfo->Playlists;
-    v2 TopLeftCorner = GetPosition(DragDrop->Slots[0].DragSlot)+Scale(GetSize(DragDrop->Slots[0].DragSlot)*0.5f, V2(-1, 1));
+    music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    display_column   *DisplayColumn = &DisplayInfo->Playlists;
+    entry_id                  *Slot = DragDrop->Slots[0].DragSlot;
     
     b32 InSlot = false;
-    if(IsInRect(DisplayColumn->Background, TopLeftCorner))
+    if(IsIntersectingRect(Slot, DisplayColumn->Background))
     {
         playlist_column *PlaylistColumn = &GS->MusicInfo.Playlist_->Playlists;
         
-        for(u32 It = 0;
-            It < PlaylistColumn->Displayable.A.Count && 
-            It < DisplayColumn->Count;
-            ++It)
+        array_u32 IntersectingSlots = CreateArray(&GS->ScratchArena, Min(PlaylistColumn->Displayable.A.Count, DisplayColumn->Count));
+        For(IntersectingSlots.Length)
         {
-            if(IsInRect(DisplayColumn->BGRects[It], TopLeftCorner))
+            if(IsIntersectingRect(Slot, DisplayColumn->BGRects[It])) 
+                Push(&IntersectingSlots, It);
+        }
+        
+        i32 ClosestID = -1;
+        r32   MinDist = MAX_REAL32;
+        v2      SlotP = GetPosition(Slot);
+        For(IntersectingSlots.Count)
+        {
+            u32 ID = Get(&IntersectingSlots, It);
+            r32 Dist = Distance(SlotP, GetPosition(DisplayColumn->BGRects[ID]));
+            if(Dist < MinDist)
             {
-                if(DragDrop->CurHoverID >= 0) 
-                    SetColor(DisplayColumn->BGRects[DragDrop->CurHoverID], DragDrop->CurOriginalColor); 
-                
-                DragDrop->CurHoverID = It;
-                DragDrop->CurOriginalColor = GetColorPtr(DisplayColumn->BGRects[It]);
-                SetColor(DisplayColumn->BGRects[It], &DisplayInfo->ColorPalette.Text);
-                
-                InSlot = true;
-                break;
+                MinDist   = Dist;
+                ClosestID = ID;
             }
+        }
+        if(ClosestID >= 0)
+        {
+            if(DragDrop->CurHoverID >= 0) 
+                SetColor(DisplayColumn->BGRects[DragDrop->CurHoverID], DragDrop->CurOriginalColor); 
+            
+            DragDrop->CurHoverID = ClosestID;
+            DragDrop->CurOriginalColor = GetColorPtr(DisplayColumn->BGRects[ClosestID]);
+            SetColor(DisplayColumn->BGRects[ClosestID], &DisplayInfo->ColorPalette.Text);
+            
+            InSlot = true;
         }
     }
     if(!InSlot && DragDrop->CurHoverID >= 0)

@@ -297,6 +297,16 @@
 - Added a threshold for activating REMOVE for 'All' playlist when drag&dropping.
 - Added saving/loading of active playlist in settings. 
 
-
+04.06.2021
+- Fixed off-by-one error for selecting dragging slots.
+- Fixed creating playlist with wrong sizes for 'New Playlist from selection'.
+- Fixed wrong filling of displayable array for 'New Playlist from selection'.
+- Fixed not actually using song selection, only always displayable list for 'New Playlist from selection'.
+- Added sorting of FileIds array before saving playlist to have a cleaner playlist file and subpaths are bunched together   
+  properly. Making it more readable and a bit smaller as well.
+- Added tooltips for the new buttons.
+- Improved the drop 'recognition' that makes it more logical how the 'you are over this playlist' works.
+- Adjusted the rubberband behaviour of currently dragged slots.
+- Fixed calculation of drag-rip animation. The direction was wrongly calculated because of the grab-offset.
 
 

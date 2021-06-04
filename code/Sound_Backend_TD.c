@@ -267,16 +267,9 @@ GetSongFileName(playlist_column *SongColumn, mp3_file_info *FileInfo, playlist_i
 inline file_id
 GetFileID(playlist_column *SongColumn, playlist_id PlaylistID)
 {
+    Assert(SongColumn->Type == columnType_Song);
     Assert(PlaylistID >= 0);
     file_id Result = NewFileID(Get(&SongColumn->FileIDs.A, PlaylistID.ID));
-    return Result;
-}
-
-inline playlist_id
-GetPlaylistID(playlist_column *SongColumn, file_id FileID)
-{
-    playlist_id Result = NewPlaylistID(-1);
-    StackFind(&SongColumn->FileIDs, FileID, &Result.ID);
     return Result;
 }
 
@@ -562,6 +555,22 @@ GetDisplayableID(music_info *MusicInfo, playlist_id PlaylistID)
 {
     array_playlist_id *Displayable = &MusicInfo->Playlist_->Song.Displayable;
     return GetDisplayableID(Displayable, PlaylistID);
+}
+
+inline playlist_id
+GetPlaylistID(playlist_column *SongColumn, file_id FileID)
+{
+    playlist_id Result = NewPlaylistID(-1);
+    StackFind(&SongColumn->FileIDs, FileID, &Result.ID);
+    return Result;
+}
+
+inline playlist_id
+GetPlaylistID(playlist_column *PLColumn, displayable_id DID)
+{
+    playlist_id Result = NewPlaylistID(-1);
+    Result = Get(&PLColumn->Displayable, DID);
+    return Result;
 }
 
 inline playlist_id
@@ -2207,6 +2216,7 @@ QuickSortSongColumn(i32 Low, i32 High, mp3_file_info *FileInfo, playlist_column 
     }
 }
 
+inline void Switch(void *Array, i32 P1, i32 P2);
 internal void
 SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
 {
@@ -2216,9 +2226,9 @@ SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
     sort_blob GenreBlob  = {&MusicInfo->Playlist_->Genre.Batch, Genre};
     sort_blob ArtistBlob = {&MusicInfo->Playlist_->Artist.Batch, Artist};
     sort_blob AlbumBlob  = {&MusicInfo->Playlist_->Album.Batch, Album};
-    QuickSort(0, Genre->A.Count-1,  Genre,  {IsHigherInAlphabet, &GenreBlob});
-    QuickSort(0, Artist->A.Count-1, Artist, {IsHigherInAlphabet, &ArtistBlob});
-    QuickSort(0, Album->A.Count-1,  Album,  {IsHigherInAlphabet, &AlbumBlob});
+    QuickSort(0, (i32)Genre->A.Count-1,  Genre,  {IsHigherInAlphabet, &GenreBlob, Switch});
+    QuickSort(0, (i32)Artist->A.Count-1, Artist, {IsHigherInAlphabet, &ArtistBlob, Switch});
+    QuickSort(0, (i32)Album->A.Count-1,  Album,  {IsHigherInAlphabet, &AlbumBlob, Switch});
     
     RestartTimer("SortSongs");
     // TODO:: This is a f*cking stupid hack... Why is it so slow
@@ -2547,23 +2557,31 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     // NOTE:: We look only at the Song column and put everything 
     // in the other colums based on what we find there.
     
-    playlist_info   *Playlist     = MusicInfo->Playlist_;
-    arena_allocator *FixArena     = &GlobalGameState.FixArena;
+    playlist_info       *Playlist = MusicInfo->Playlist_;
+    playlist_info    *AllPlaylist = MusicInfo->Playlists.List+0;
+    arena_allocator     *FixArena = &GlobalGameState.FixArena;
     arena_allocator *ScratchArena = &GlobalGameState.ScratchArena;
     
-    sort_batch Genre  = {};
-    InitializeSortBatch(FixArena, &Genre,  Playlist->Genre.Batch.BatchCount);
-    sort_batch Artist = {};
-    InitializeSortBatch(FixArena, &Artist, Playlist->Artist.Batch.BatchCount);
-    sort_batch Album  = {};
-    InitializeSortBatch(FixArena, &Album,  Playlist->Album.Batch.BatchCount);
+    // If the user has nothing selected in the Song column, then
+    // we use the whole song displayable list. If they have something
+    // selected, then we only use those.
+    array_playlist_id *SongList = 0;
+    if(Playlist->Song.Selected.A.Count > 0) SongList = &Playlist->Song.Selected;
+    else                                    SongList = &Playlist->Song.Displayable;
     
-    song_sort_info *SortBatchInfo = AllocateArray(ScratchArena, Playlist->Song.Displayable.A.Count, song_sort_info);
+    sort_batch Genre  = {};
+    InitializeSortBatch(FixArena, &Genre,  AllPlaylist->Genre.Batch.BatchCount);
+    sort_batch Artist = {};
+    InitializeSortBatch(FixArena, &Artist, AllPlaylist->Artist.Batch.BatchCount);
+    sort_batch Album  = {};
+    InitializeSortBatch(FixArena, &Album,  AllPlaylist->Album.Batch.BatchCount);
+    
+    song_sort_info *SortBatchInfo = AllocateArray(ScratchArena, AllPlaylist->Song.Displayable.A.Count, song_sort_info);
     u32 *Genre_CountForBatches    = AllocateArray(ScratchArena, Genre.MaxBatches, u32);
     u32 *Artist_CountForBatches   = AllocateArray(ScratchArena, Artist.MaxBatches, u32);
     u32 *Album_CountForBatches    = AllocateArray(ScratchArena, Album.MaxBatches, u32);
     
-    For(Playlist->Song.Displayable.A.Count)
+    For(SongList->A.Count)
     {
         mp3_metadata *MD = GetMetadata(&Playlist->Song, FileInfo, NewDisplayableID(It));
         
@@ -2611,7 +2629,7 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     FreeMemory(ScratchArena, Artist_CountForBatches);
     FreeMemory(ScratchArena, Album_CountForBatches);
     
-    For(Playlist->Song.Displayable.A.Count)
+    For(SongList->A.Count)
     {
         u32 GenreBatchID  = SortBatchInfo[It].GenreBatchID;
         u32 ArtistBatchID = SortBatchInfo[It].ArtistBatchID;
@@ -2642,12 +2660,14 @@ FillPlaylistWithCurrentSelection(music_info *MusicInfo, mp3_file_info *FileInfo,
     if(NewPlaylist->Album.Batch.BatchCount  > 0) FreeSortBatch(FixArena, &NewPlaylist->Album.Batch);
     if(NewPlaylist->Song.FileIDs.A.Count    > 0) DestroyArray(FixArena, NewPlaylist->Song.FileIDs.A);
     
-    // Now fill playlist_colum song
-    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, Playlist->Song.FileIDs.A.Count);
-    For(Playlist->Song.Displayable.A.Count)
+    // Now fill playlist_column song
+    NewPlaylist->Song.FileIDs.A = CreateArray(FixArena, AllPlaylist->Song.FileIDs.A.Count);
+    For(SongList->A.Count)
     {
-        Push(&NewPlaylist->Song.Displayable.A,                            Get(&Playlist->Song.Displayable.A, It));
-        Push(&NewPlaylist->Song.FileIDs.A, Get(&Playlist->Song.FileIDs.A, Get(&Playlist->Song.Displayable.A, It)));
+        playlist_id PLID = Get(SongList, NewDisplayableID(It));
+        file_id      FID = GetFileID(&Playlist->Song, PLID);
+        Push(&NewPlaylist->Song.Displayable, NewPlaylistID(It));
+        Push(&NewPlaylist->Song.FileIDs, FID);
     }
     
     NewPlaylist->Genre.Batch  = Genre;
@@ -2978,7 +2998,13 @@ OnNewPlaylistWithSelectionClick(void *Data)
     NewLocalString(PlaylistName, 30, "New Playlist");
     I32ToString(&PlaylistName, GS->MusicInfo.Playlists.Count-1);
     AppendStringToCompound(&PlaylistName, (u8 *)" (");
-    I32ToString(&PlaylistName, GS->MusicInfo.Playlist_->Song.Displayable.A.Count);
+    // If the user has nothing selected in the Song column, then
+    // we use the whole song displayable list. If they have something
+    // selected, then we only use those.
+    u32 Count = 0;
+    if(GS->MusicInfo.Playlist_->Song.Selected.A.Count > 0) Count = GS->MusicInfo.Playlist_->Song.Selected.A.Count;
+    else                                                   Count = GS->MusicInfo.Playlist_->Song.Displayable.A.Count;
+    I32ToString(&PlaylistName, Count);
     AppendCharToCompound(&PlaylistName, ')');
     
     FillPlaylistWithCurrentSelection(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPlaylist);

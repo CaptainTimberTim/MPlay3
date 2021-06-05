@@ -1,4 +1,6 @@
 #include "ErrorHandling_TD.h"
+internal void UpdatePlayingSong(music_info *MusicInfo);
+internal void ResetAllDecodedIDs(game_state *GS);
 
 internal void
 _PushUserErrorMessage(struct game_state *GS, string_c *String, v2 MessagePosition = {MIN_REAL32, MIN_REAL32})
@@ -153,16 +155,26 @@ ProcessThreadErrors(struct game_state *GS)
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     _PushUserErrorMessage(GS, &ErrorMsg);
                     DeleteStringCompound(&GS->ScratchArena, &ErrorMsg);
+                    
+                    UpdatePlayingSong(&GS->MusicInfo);
+                    ResetAllDecodedIDs(GS);
+                    ChangeSong(GS, &GS->MusicInfo.PlayingSong); 
                 } break;
                 
                 case errorCode_FileLoadFailed:
                 {
                     string_c ErrorMsg = NewStringCompound(&GS->ScratchArena, 555);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song from disk. If files were moved, do a retrace. (");
+                    AppendStringToCompound(&ErrorMsg, (u8 *)"ERROR:: Could not load song from disk (");
                     AppendStringCompoundToCompound(&ErrorMsg, GS->MP3Info->FileInfo.FileNames_ + NextError.ID);
-                    AppendStringToCompound(&ErrorMsg, (u8 *)")");
+                    AppendStringToCompound(&ErrorMsg, (u8 *)").\nFiles were moved, doing a retrace.");
                     _PushUserErrorMessage(GS, &ErrorMsg);
                     DeleteStringCompound(&GS->ScratchArena, &ErrorMsg);
+                    
+                    UpdatePlayingSong(&GS->MusicInfo);
+                    ResetAllDecodedIDs(GS);
+                    ChangeSong(GS, &GS->MusicInfo.PlayingSong); 
+                    
+                    AddJob_CheckMusicPathChanged(&GS->CheckMusicPath);
                 } break;
                 
                 case errorCode_EmptyFile:
@@ -173,8 +185,13 @@ ProcessThreadErrors(struct game_state *GS)
                     AppendStringToCompound(&ErrorMsg, (u8 *)")");
                     _PushUserErrorMessage(GS, &ErrorMsg);
                     DeleteStringCompound(&GS->ScratchArena, &ErrorMsg);
+                    
+                    UpdatePlayingSong(&GS->MusicInfo);
+                    ResetAllDecodedIDs(GS);
+                    ChangeSong(GS, &GS->MusicInfo.PlayingSong); 
                 } break;
             }
+            
         }
     }
 }

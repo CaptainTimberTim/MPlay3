@@ -24,7 +24,7 @@ internal b32 AddJob_LoadMetadata(game_state *GameState);
 internal column_type UpdateSelectionArray(playlist_column *PlaylistColumn, display_column *DisplayColumn, v2 MouseBtnDownLocation);
 internal column_type SelectAllOrNothing(display_column *DisplayColumn, playlist_column *PlaylistColumn);
 internal void PropagateSelectionChange(music_info *SortingInfo);
-internal void UpdatePlayingSongForSelectionChange(music_info *MusicInfo);
+internal void UpdatePlayingSong(music_info *MusicInfo);
 internal void InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID);
 internal void InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type Type, array_u32 DisplayableIDs);
 internal void RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID);
@@ -84,7 +84,7 @@ OnSongPlayPressed(void *Data)
     
     if(!IsInRect(SongColumn->Background, GlobalGameState.Input.MouseP)) return;
     
-    UpdatePlayingSongForSelectionChange(MusicInfo);
+    UpdatePlayingSong(MusicInfo);
     
     playlist_id PlaylistID = {};
     displayable_id DisplayableID = GetDisplayableID(MusicInfo, PlayInfo->DisplayID, &PlaylistID);
@@ -249,7 +249,7 @@ OnSearchPressed(void *Data)
             UpdateTextField(SearchInfo->Renderer, &Search->TextField);
             Copy(&Search->InitialDisplayables, Displayable);
         }
-        UpdatePlayingSongForSelectionChange(&GlobalGameState.MusicInfo);
+        UpdatePlayingSong(&GlobalGameState.MusicInfo);
         UpdateColumnVerticalSlider(SearchInfo->DisplayColumn, Displayable->A.Count);
     }
     
@@ -1535,7 +1535,7 @@ OnShufflePlaylistToggleOn(void *Data)
     MusicInfo->IsShuffled = true;
     
     ShuffleStack(&MusicInfo->Playlist_->Song.Displayable);
-    UpdatePlayingSongForSelectionChange(MusicInfo);
+    UpdatePlayingSong(MusicInfo);
     MoveDisplayColumn(&GameState->Renderer, MusicInfo, &MusicInfo->DisplayInfo.Song.Base);
 }
 
@@ -1549,7 +1549,7 @@ OnShufflePlaylistToggleOff(void *Data)
     MusicInfo->IsShuffled = false;
     
     SortDisplayables(MusicInfo, &GameState->MP3Info->FileInfo);
-    UpdatePlayingSongForSelectionChange(MusicInfo);
+    UpdatePlayingSong(MusicInfo);
     MoveDisplayColumn(&GameState->Renderer, MusicInfo, &MusicInfo->DisplayInfo.Song.Base);
 }
 

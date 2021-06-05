@@ -316,3 +316,8 @@
 - Changed sorting policy to, when no artist & album metadata exist, use first the subpath and then the filename.
 - Added support for playlist for music path and rescan stuff. If songs get deleted that are in a playlist, they will 
   automatically be removed from it.
+- Added user warnings when playlists have different count than their save file said. On count of 0, we don't overwrite the
+  .save file, as this indicates a different error (like the library file missing) and would otherwise nuke all playlist files.
+- Fixed crash when playling song is missing and it gave the user errer, then the user pressed play anyway... Set stuff to NULL 
+  after free guys!
+- Now doing automatically a retrace, when we cannot find the file.

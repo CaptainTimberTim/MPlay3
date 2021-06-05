@@ -633,7 +633,7 @@ WinMain(HINSTANCE Instance,
             CreateMusicSortingInfo(MusicInfo->Playlists.List+0, true);
             FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
-            UpdatePlayingSongForSelectionChange(MusicInfo);
+            UpdatePlayingSong(MusicInfo);
             
             LoadAllPlaylists(GameState);
             

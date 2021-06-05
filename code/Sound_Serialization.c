@@ -1096,9 +1096,10 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
 
 enum load_playlist_result
 {
-    loadPlaylistResult_NothingFound         = -3,
-    loadPlaylistResult_WrongIdentifier      = -2,
-    loadPlaylistResult_WrongVersion         = -1,
+    loadPlaylistResult_NothingFound         = -4,
+    loadPlaylistResult_WrongIdentifier      = -3,
+    loadPlaylistResult_WrongVersion         = -2,
+    loadPlaylistResult_LoadedButEmpty       = -1,
     loadPlaylistResult_LoadedSucessfully    =  0,
     loadPlaylistResult_LoadedNeedsReSaving  =  1,
 };
@@ -1146,9 +1147,9 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         AdvanceToNewline(&C);
         
         C += 6; // "Name: "
-        u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;
+        u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;  // @HardLimit, Limit to 100 chars for now.
         u32 NameLength = CountToNewline(C);
-        *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit); // @HardLimit, Limit to 100 chars for now.
+        *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit);
         CopyStringToCompound(PlaylistName, C, 0u, Min(NameLength, HardLimit));
         AdvanceToNewline(&C);
         
@@ -1191,10 +1192,28 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         I32ToString(PlaylistName, PlaylistFileIDs->A.Count);
         AppendCharToCompound(PlaylistName, ')');
         
-        if(PlaylistFileIDs->A.Count != PlaylistFileIDs->A.Length) 
+        if(PlaylistFileIDs->A.Count == 0)
         {
-            // Do something;
-            DebugLog(150, "WARNING:: Playlist file indicated a song count of %i, but we found only %i songs in it.\n", SongCount, PlaylistFileIDs->A.Count);
+            NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
+            AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
+            AppendStringToCompound(&ErrorMsg, (u8 *)"' had a count of ");
+            I32ToString(&ErrorMsg, SongCount);
+            AppendStringToCompound(&ErrorMsg, (u8 *)", but nothing could be found.");
+            
+            DebugLog(150, "%s\n", ErrorMsg.S);
+            PushErrorMessage(GS, ErrorMsg);
+            Result = loadPlaylistResult_LoadedButEmpty;
+        }
+        if(PlaylistFileIDs->A.Count != SongCount) 
+        {
+            NewLocalString(ErrorMsg, 150, "WARNING:: Playlist file indicated a song count of ");
+            I32ToString(&ErrorMsg, SongCount);
+            AppendStringToCompound(&ErrorMsg, (u8 *)", but we found only ");
+            I32ToString(&ErrorMsg, PlaylistFileIDs->A.Count);
+            AppendStringToCompound(&ErrorMsg, (u8 *)" songs in it.");
+            
+            DebugLog(150, "%s\n", ErrorMsg.S);
+            PushErrorMessage(GS, ErrorMsg);
             Result = loadPlaylistResult_LoadedNeedsReSaving;
         }
         else Result = loadPlaylistResult_LoadedSucessfully;
@@ -1244,7 +1263,6 @@ LoadAllPlaylists(game_state *GS)
                         if(CompareStringAndCompound(&FileType, FileExtension))
                         {
                             // We found a potential playlist file.
-                            
                             array_file_id FileIDs = {};
                             string_c PlaylistName = {};
                             

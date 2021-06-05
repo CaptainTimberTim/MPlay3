@@ -455,8 +455,8 @@ CreateMP3InfoStruct(arena_allocator *Arena, u32 FileInfoCount)
 {
     mp3_info *Result = AllocateStruct(Arena, mp3_info);
     CreateFileInfoStruct(&Result->FileInfo, FileInfoCount);
-    Result->DecodeInfo.FileIDs.A = CreateArray(Arena, MAX_MP3_DECODE_COUNT);
-    Result->DecodeInfo.LastTouched   = CreateArray(Arena, MAX_MP3_DECODE_COUNT);
+    Result->DecodeInfo.FileIDs.A   = CreateArray(Arena, MAX_MP3_DECODE_COUNT);
+    Result->DecodeInfo.LastTouched = CreateArray(Arena, MAX_MP3_DECODE_COUNT);
     
     return Result;
 }
@@ -699,7 +699,7 @@ SortingIDToColumnDisplayID(playlist_info *Playlist, display_column *DisplayColum
 }
 
 internal void
-UpdatePlayingSongForSelectionChange(music_info *MusicInfo)
+UpdatePlayingSong(music_info *MusicInfo)
 {
     // If the currently playing song is in the new displayable list set DisplayableID.
     // If not, the music stops.
@@ -1298,7 +1298,26 @@ TouchDecoded(mp3_decode_info *DecodeInfo, u32 DecodeID)
     Put(&DecodeInfo->LastTouched, DecodeID, DecodeInfo->TouchCount++);
 }
 
-inline i32
+internal void
+ResetAllDecodedIDs(game_state *GS)
+{
+    mp3_decode_info *DecodeInfo = &GS->MP3Info->DecodeInfo;
+    if(DecodeInfo->PlayingDecoded.CurrentlyDecoding)
+    {
+        DebugLog(235, "NOTE:: Canceled previous loading of song to load the new playing song!\n");
+        
+        DecodeInfo->CancelDecoding = true;
+        while(DecodeInfo->PlayingDecoded.CurrentlyDecoding) Sleep(1); // Loop 1 ms between checks. Seems fine for now.
+        DecodeInfo->CancelDecoding = false;
+    }
+    
+    For(DecodeInfo->Count)
+    {
+        Put(&DecodeInfo->FileIDs.A, It, MAX_UINT32);
+    }
+}
+
+internal i32
 GetNextDecodeIDToEvict(mp3_decode_info *DecodeInfo, array_u32 *IgnoreDecodeIDs = 0)
 {
     i32 Result = -1;
@@ -2065,7 +2084,7 @@ UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP
     }
     else SortDisplayables(MusicInfo, &MP3Info->FileInfo);
     
-    UpdatePlayingSongForSelectionChange(MusicInfo);
+    UpdatePlayingSong(MusicInfo);
     UpdateSortingInfoChangedVisuals(Renderer, MusicInfo, DisplayInfo, Type);
 }
 
@@ -2401,7 +2420,7 @@ ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
         MusicInfo->PlayingSong = {-1, -1, -1, 0};
         FillDisplayables(MusicInfo, &GameState->MP3Info->FileInfo, &MusicInfo->DisplayInfo);
         SortDisplayables(MusicInfo, &GameState->MP3Info->FileInfo);
-        UpdatePlayingSongForSelectionChange(MusicInfo);
+        UpdatePlayingSong(MusicInfo);
         UpdateAllDisplayColumns(GameState);
         
         MusicInfo->DisplayInfo.Genre.DisplayCursor = 0;

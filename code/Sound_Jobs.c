@@ -429,17 +429,20 @@ internal JOB_LIST_CALLBACK(JobCheckMusicPathChanged)
 internal void
 AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
 {
-    CheckMusicPath->State   = threadState_Running;
-    
-    if(CheckMusicPath->MP3Info == NULL)
+    if(CheckMusicPath->State == threadState_Inactive)
     {
-        CreateFileInfoStruct(&CheckMusicPath->TestInfo, 15);
-        CheckMusicPath->MP3Info        = GlobalGameState.MP3Info;
-        CheckMusicPath->RemoveIDs      = CreateArray(&GlobalGameState.JobThreadsArena, 15);
-        CheckMusicPath->AddTestInfoIDs = CreateArray(&GlobalGameState.JobThreadsArena, 15);
+        CheckMusicPath->State = threadState_Running;
+        
+        if(CheckMusicPath->MP3Info == NULL)
+        {
+            CreateFileInfoStruct(&CheckMusicPath->TestInfo, 15);
+            CheckMusicPath->MP3Info        = GlobalGameState.MP3Info;
+            CheckMusicPath->RemoveIDs      = CreateArray(&GlobalGameState.JobThreadsArena, 15);
+            CheckMusicPath->AddTestInfoIDs = CreateArray(&GlobalGameState.JobThreadsArena, 15);
+        }
+        
+        AddJobToQueue(&GlobalGameState.JobQueue, JobCheckMusicPathChanged, CheckMusicPath);
     }
-    
-    AddJobToQueue(&GlobalGameState.JobQueue, JobCheckMusicPathChanged, CheckMusicPath);
 }
 
 // ***************************************
@@ -571,6 +574,7 @@ LoadAndDecodeMP3StartFrames(arena_allocator *ScratchArena, i32 SecondsToDecode, 
         ReadAmount *= 10;
     }
     FreeMemory(ScratchArena, DecodeResult->buffer);
+    DecodeResult->buffer = NULL;
     
     if(Result.Code != errorCode_FileLoadFailed)
     {

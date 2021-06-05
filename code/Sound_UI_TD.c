@@ -856,7 +856,7 @@ OnSongDragEnd(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *D
     }
     
     AddJobs_LoadOnScreenMP3s(&GlobalGameState, &GlobalGameState.JobQueue, &IgnoreDecodeIDs);
-    DestroyArray(&GlobalGameState.ScratchArena, IgnoreDecodeIDs);
+    DestroyArray(&GlobalGameState.ScratchArena, &IgnoreDecodeIDs);
 }
 
 internal void
@@ -3196,6 +3196,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 u32 SelectCount = PlaylistColumn->Selected.A.Count;
                 select_item *SelectIDOrder = AllocateArray(&GS->ScratchArena, PlaylistColumn->Selected.A.Count, select_item);
                 RestartTimer("SortDragDrop");
+                
                 For(SelectCount, Select)
                 {
                     select_id SelectID      = NewSelectID(SelectIt);
@@ -3203,26 +3204,16 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                     // TODO:: @SLOW:: This GetDisplayableID goes through most of diplayable every time
                     // this costs .25s in deubg mode... What can we do to reduce this?
                     displayable_id NewDID   = GetDisplayableID(&PlaylistColumn->Displayable, SelectPLID);
+                    Assert(NewDID >= 0);
                     SelectIDOrder[SelectIt] = {SelectID, NewDID, SelectPLID};
                 }
                 
                 SnapTimer("SortDragDrop");
-#if 0
+                // @SLOW:: First we shuffle the list because of worst case quicksort aka list
+                // already being sorted. TODO:: Maybe implement a better suited sorting for my case?!
+                For(SelectCount, Shuffle) SwitchDragDrop(SelectIDOrder, ShuffleIt, (i32)(Random01()*SelectCount));
                 QuickSort(0, SelectCount-1, SelectIDOrder, {CompareDragDrop, SelectIDOrder, SwitchDragDrop});
-#else
-                For(SelectCount-1, Outer) // @SLOW:: At least don't use Bubble sort...
-                {
-                    for(u32 InnerIt = OuterIt+1; InnerIt < SelectCount; ++InnerIt)
-                    {
-                        if(SelectIDOrder[OuterIt].DID > SelectIDOrder[InnerIt].DID)
-                        {
-                            select_item TMP = SelectIDOrder[OuterIt];
-                            SelectIDOrder[OuterIt] = SelectIDOrder[InnerIt];
-                            SelectIDOrder[InnerIt] = TMP;
-                        }
-                    }
-                }
-#endif
+                
                 SnapTimer("SortDragDrop");
                 i32 StartIt = -1;
                 i32 PickSelectIt = -1;

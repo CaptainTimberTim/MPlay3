@@ -589,7 +589,6 @@ WinMain(HINSTANCE Instance,
             
             InitializeSoundThread(&SoundThreadData, ProcessSound, &SoundThreadInfo);
             
-            
             // Preparing base structs
             PrepareGenreTypesList();
             renderer *Renderer = &GameState->Renderer;
@@ -630,7 +629,8 @@ WinMain(HINSTANCE Instance,
             
             MusicInfo->UpNextList.A = CreateArray(&GameState->FixArena, 200);
             
-            CreateMusicSortingInfo();
+            
+            CreateMusicSortingInfo(MusicInfo->Playlists.List+0, true);
             FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
             if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
             UpdatePlayingSongForSelectionChange(MusicInfo);
@@ -781,14 +781,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {OnTimelineDrag, &TimelineDragInfo},
                         {OnTimelineDragEnd, &TimelineDragInfo});
             
-            if(!LoadedLibraryFile) OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
-            
-            check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
-            CreateFileInfoStruct(&CheckMusicPath->TestInfo, FileInfoCount);
-            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->JobThreadsArena, FileInfoCount);
-            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->JobThreadsArena, FileInfoCount);
-            
-            AddJob_CheckMusicPathChanged(CheckMusicPath);
+            if(LoadedLibraryFile) AddJob_CheckMusicPathChanged(&GameState->CheckMusicPath);
+            else                  OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
             ApplySettings(GameState, GameState->Settings);
             
             // Color Picker *******************************
@@ -878,12 +872,49 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 ProcessThreadErrors(GameState);
                 
                 // *******************************************
+                // Mode Handling *****************************
+                // *******************************************
+                GameState->ModeFlags = 0;
+                if(DisplayInfo->MusicPath.TextField.IsActive)    GameState->ModeFlags |= mode_MusicPath;
+                if(ColorPicker->IsActive)                        GameState->ModeFlags |= mode_ColorPicker;
+                if(IsSearchOpen(DisplayInfo))                    GameState->ModeFlags |= mode_Search;
+                if(DisplayInfo->PlaylistUI.RenameField.IsActive) GameState->ModeFlags |= mode_PLRename;
+                
+                if(IsActive(GameState, mode_MusicPath))
+                {
+                    if(IsActive(GameState, mode_ColorPicker))
+                    {
+                        OnCancelColorPicker(ColorPicker);
+                        GameState->ModeFlags &= ~mode_ColorPicker;
+                    }
+                }
+                if(IsActive(GameState, mode_MusicPath) ||
+                   IsActive(GameState, mode_ColorPicker))
+                {
+                    if(IsActive(GameState, mode_Search))
+                    {
+                        InterruptSearch(Renderer, MusicInfo);
+                        GameState->ModeFlags &= ~mode_Search;
+                    }
+                }
+                if(IsActive(GameState, mode_MusicPath)   ||
+                   IsActive(GameState, mode_ColorPicker) ||
+                   IsActive(GameState, mode_Search)) 
+                {
+                    if(IsActive(GameState, mode_PLRename))
+                    {
+                        SetPlaylistRenameActive(GameState, false);
+                        GameState->ModeFlags &= ~mode_PLRename;
+                    }
+                }
+                
+                // *******************************************
                 // Thread handling ****************************
                 // *******************************************
                 EmptyJobQueueWhenPossible(JobQueue);
                 
-                if(CheckMusicPath->State == threadState_Finished) 
-                    CheckForMusicPathMP3sChanged_End(CheckMusicPath, &DisplayInfo->MusicPath);
+                if(GameState->CheckMusicPath.State == threadState_Finished) 
+                    CheckForMusicPathMP3sChanged_End(&GameState->CheckMusicPath, &DisplayInfo->MusicPath);
                 
                 // *******************************************
                 // Input handling ****************************
@@ -1250,43 +1281,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     DebugLog(255, "Changing IsPlaying to: %i\n", MusicInfo->IsPlaying);
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                     PrevIsPlaying = MusicInfo->IsPlaying;
-                }
-                
-                // *******************************************
-                // Mode Handling *****************************
-                // *******************************************
-                GameState->ModeFlags = 0;
-                if(DisplayInfo->MusicPath.TextField.IsActive)    GameState->ModeFlags |= mode_MusicPath;
-                if(ColorPicker->IsActive)                        GameState->ModeFlags |= mode_ColorPicker;
-                if(IsSearchOpen(DisplayInfo))                    GameState->ModeFlags |= mode_Search;
-                if(DisplayInfo->PlaylistUI.RenameField.IsActive) GameState->ModeFlags |= mode_PLRename;
-                
-                if(IsActive(GameState, mode_MusicPath))
-                {
-                    if(IsActive(GameState, mode_ColorPicker))
-                    {
-                        OnCancelColorPicker(ColorPicker);
-                        GameState->ModeFlags &= ~mode_ColorPicker;
-                    }
-                }
-                if(IsActive(GameState, mode_MusicPath) ||
-                   IsActive(GameState, mode_ColorPicker))
-                {
-                    if(IsActive(GameState, mode_Search))
-                    {
-                        InterruptSearch(Renderer, MusicInfo);
-                        GameState->ModeFlags &= ~mode_Search;
-                    }
-                }
-                if(IsActive(GameState, mode_MusicPath)   ||
-                   IsActive(GameState, mode_ColorPicker) ||
-                   IsActive(GameState, mode_Search)) 
-                {
-                    if(IsActive(GameState, mode_PLRename))
-                    {
-                        SetPlaylistRenameActive(GameState, false);
-                        GameState->ModeFlags &= ~mode_PLRename;
-                    }
                 }
                 
                 

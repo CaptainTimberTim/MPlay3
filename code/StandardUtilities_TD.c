@@ -353,9 +353,12 @@ CreateArray(arena_allocator *Arena, i32 Length)
 }
 
 inline void 
-DestroyArray(arena_allocator *Arena, array_u32 Array)
+DestroyArray(arena_allocator *Arena, array_u32 *Array)
 {
-    FreeMemory(Arena, Array.Slot);
+    FreeMemory(Arena, Array->Slot);
+    Array->Slot   = NULL;
+    Array->Length = 0;
+    Array->Count  = 0;
 }
 
 inline void 

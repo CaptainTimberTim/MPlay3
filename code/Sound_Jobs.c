@@ -376,7 +376,7 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
         {
             if(RemoveArray->Count >= RemoveArray->Length)
             {
-                u32 NewCount = RemoveArray->Length*2;
+                u32 NewCount      = RemoveArray->Length*2;
                 RemoveArray->Slot = ReallocateArray(&GlobalGameState.JobThreadsArena, RemoveArray->Slot, 
                                                     RemoveArray->Length, NewCount, u32);
                 RemoveArray->Length = NewCount;
@@ -408,7 +408,7 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
             {
                 if(AddArray->Count >= AddArray->Length)
                 {
-                    u32 NewCount = AddArray->Length*2;
+                    u32 NewCount   = AddArray->Length*2;
                     AddArray->Slot = ReallocateArray(&GlobalGameState.JobThreadsArena, AddArray->Slot, 
                                                      AddArray->Length, NewCount, u32);
                     AddArray->Length = NewCount;
@@ -429,8 +429,15 @@ internal JOB_LIST_CALLBACK(JobCheckMusicPathChanged)
 internal void
 AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
 {
-    CheckMusicPath->MP3Info        = GlobalGameState.MP3Info;
-    CheckMusicPath->State          = threadState_Running;
+    CheckMusicPath->State   = threadState_Running;
+    
+    if(CheckMusicPath->MP3Info == NULL)
+    {
+        CreateFileInfoStruct(&CheckMusicPath->TestInfo, 15);
+        CheckMusicPath->MP3Info        = GlobalGameState.MP3Info;
+        CheckMusicPath->RemoveIDs      = CreateArray(&GlobalGameState.JobThreadsArena, 15);
+        CheckMusicPath->AddTestInfoIDs = CreateArray(&GlobalGameState.JobThreadsArena, 15);
+    }
     
     AddJobToQueue(&GlobalGameState.JobQueue, JobCheckMusicPathChanged, CheckMusicPath);
 }

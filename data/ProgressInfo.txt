@@ -326,3 +326,7 @@
 - Fixed missing drag&drop remove behaviour for playlists.
 - Fixed bug where the timeline unsyncs when the computer was in sleep mode.
 - Added playlist saving savety with checking the creation date of the file before saving.
+- Fixed bug where shuffle lead to not sorting the other display columns.
+- Fixed having open search and then removing slots, then closing search, that the visuals get screwed up.
+- Fixed bug where Drag&Drop doesn't like a selection that is not in displayable atm., now it will just ignore those.
+- Added column edge percentages and window dimensions to the layout definition struct.

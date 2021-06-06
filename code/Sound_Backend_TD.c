@@ -2077,11 +2077,12 @@ UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP
     playlist_info *Playlist         = MusicInfo->Playlist_;
     
     FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
+    
+    SortDisplayables(MusicInfo, &MP3Info->FileInfo);
     if(MusicInfo->IsShuffled && Type == columnType_Song) 
     {
         ShuffleStack(&Playlist->Song.Displayable);
     }
-    else SortDisplayables(MusicInfo, &MP3Info->FileInfo);
     
     UpdatePlayingSong(MusicInfo);
     UpdateSortingInfoChangedVisuals(Renderer, MusicInfo, DisplayInfo, Type);
@@ -2433,7 +2434,6 @@ ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
         AddJobs_LoadOnScreenMP3s(GameState, &GameState->JobQueue);
     }
     
-    //MusicInfo->UpNextList.A = CreateArray(&GameState->FixArena, 200); //TODO:: Why every time?
     SaveMP3LibraryFile(GameState, GameState->MP3Info);
     
     DestroyArray(&GameState->FixArena, &MusicInfo->DisplayInfo.Genre.Search.InitialDisplayables.A);
@@ -2971,6 +2971,7 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
     ClearSelection(PlaylistColumn);
+    KillSearch(GS);
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
     SavePlaylist(GS, FromPlaylist);
@@ -3014,6 +3015,7 @@ RemoveSlotsFromPlaylist(game_state *GS, column_type Type, array_u32 DisplayableI
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
     ClearSelection(PlaylistColumn);
+    KillSearch(GS);
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
     SavePlaylist(GS, FromPlaylist);

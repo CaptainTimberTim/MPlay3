@@ -391,18 +391,29 @@ struct music_display_info
 
 struct layout_definition
 {
-    // General
+    // Window size
+    i32 WindowWidth  = 1250; // 1416
+    i32 WindowHeight = 800; // 1039
+    
+    // Foreground Edges
     r32 TopBorder     = 50;
     r32 BottomBorder  = 120;
     r32 LeftBorder    = 24;
     r32 RightBorder   = 24;
     
+    // Column Initial edge X percentages
+    r32 PlaylistsGenreXP = 0.17f;
+    r32 GenreArtistXP    = 0.30f;
+    r32 ArtistAlbumXP    = 0.50f;
+    r32 AlbumSongXP      = 0.63f;
+    
+    
     // Drag and slide
-    r32 DragEdgeWidth          = 8;
-    r32 HorizontalSliderHeight = 26;
-    r32 VerticalSliderWidth    = 26;
-    r32 HorizontalSliderGrabThingBorder = 2;
-    r32 VerticalSliderGrabThingBorder   = 2;
+    r32 DragEdgeWidth                   =  8;
+    r32 HorizontalSliderHeight          = 26;
+    r32 VerticalSliderWidth             = 26;
+    r32 HorizontalSliderGrabThingBorder =  2;
+    r32 VerticalSliderGrabThingBorder   =  2;
     
     // Slot
     r32 SlotHeight     = 30;

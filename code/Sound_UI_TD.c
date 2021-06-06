@@ -166,8 +166,11 @@ IsSearchOpen(music_display_info *DisplayInfo)
 {
     b32 Result = false;
     
-    Result = DisplayInfo->Genre.Search.TextField.IsActive || DisplayInfo->Artist.Search.TextField.IsActive || 
-        DisplayInfo->Album.Search.TextField.IsActive || DisplayInfo->Song.Base.Search.TextField.IsActive;
+    Result = DisplayInfo->Genre.Search.TextField.IsActive 
+        || DisplayInfo->Artist.Search.TextField.IsActive 
+        || DisplayInfo->Album.Search.TextField.IsActive
+        || DisplayInfo->Song.Base.Search.TextField.IsActive
+        || DisplayInfo->Playlists.Search.TextField.IsActive;
     
     return Result;
 }
@@ -187,6 +190,23 @@ GetOpenSearch(music_display_info *DisplayInfo)
 }
 
 inline void
+KillSearch(game_state *GS)
+{
+    music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    column_type Type = GetOpenSearch(DisplayInfo);
+    if(Type != columnType_None)
+    {
+        search_bar *Search = &DisplayInfo->Columns[Type]->Search;
+        
+        DisplayInfo->SearchIsActive = -1;
+        RemoveRenderText(&GS->Renderer, &Search->TextField.Text);
+        SetActive(&Search->TextField, !Search->TextField.IsActive);
+        ResetStringCompound(Search->TextField.TextString);
+        Search->TextField.dBackspacePress = 0;
+    }
+}
+
+inline void
 CopyBackDisplayable(display_column *DisplayColumn)
 {
     Copy(&DisplayColumn->SearchInfo.MusicInfo->Playlist_->Columns[DisplayColumn->SearchInfo.ColumnType].Displayable,
@@ -201,7 +221,6 @@ OnSearchPressed(void *Data)
     search_bar *Search = SearchInfo->Search;
     music_display_info *DisplayInfo = &SearchInfo->MusicInfo->DisplayInfo;
     array_playlist_id *Displayable = &SearchInfo->MusicInfo->Playlist_->Columns[SearchInfo->ColumnType].Displayable;
-    
     
     if(DisplayInfo->SearchIsActive < 0) 
     {
@@ -2089,10 +2108,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     };
     
     r32 EdgeWidth = Layout->DragEdgeWidth;
-    r32 ColumnWidth = (WWidth/2.0f)/4.0f + 30;
     
-    
-    r32 PlaylistsGenreX = ColumnWidth*1+LeftBorder*0;
+    r32 PlaylistsGenreX = Layout->PlaylistsGenreXP*WWidth;
     DisplayInfo->PlaylistsGenre.Edge = 
         CreateRenderRect(Renderer, {{PlaylistsGenreX,BottomBorder},{PlaylistsGenreX+EdgeWidth,WHeight-TopBorder}},
                          -0.5f, 0, &Palette->Foreground);
@@ -2100,7 +2117,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     DisplayInfo->PlaylistsGenre.OriginalYHeight = GetPosition(DisplayInfo->PlaylistsGenre.Edge).y;
     ScaleWithScreen(&Renderer->TransformList, DisplayInfo->PlaylistsGenre.Edge, scaleAxis_Y);
     
-    r32 GenreArtistX = ColumnWidth*2+LeftBorder*1;
+    r32 GenreArtistX = Layout->GenreArtistXP*WWidth;
     DisplayInfo->GenreArtist.Edge = CreateRenderRect(Renderer, 
                                                      {{GenreArtistX,BottomBorder},{GenreArtistX+EdgeWidth,WHeight-TopBorder}},
                                                      -0.5f, 0, &Palette->Foreground);
@@ -2110,7 +2127,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     
     
-    r32 ArtistAlbumX = ColumnWidth*3+LeftBorder+EdgeWidth*2;
+    r32 ArtistAlbumX = Layout->ArtistAlbumXP*WWidth;
     DisplayInfo->ArtistAlbum.Edge = CreateRenderRect(Renderer, 
                                                      {{ArtistAlbumX,BottomBorder},{ArtistAlbumX+EdgeWidth,WHeight-TopBorder}}, 
                                                      -0.5f, 0, &Palette->Foreground);
@@ -2120,7 +2137,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     
     
-    r32 AlbumSongX  = ColumnWidth*4+LeftBorder+EdgeWidth*3;
+    r32 AlbumSongX = Layout->AlbumSongXP*WWidth;
     DisplayInfo->AlbumSong.Edge   = CreateRenderRect(Renderer, 
                                                      {{AlbumSongX,BottomBorder},{AlbumSongX+EdgeWidth,WHeight-TopBorder}},
                                                      -0.5f, 0, &Palette->Foreground);
@@ -2311,7 +2328,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 TextFieldHeight = Layout->MusicPathTextFieldHeight;
     MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, 
                                            V2(WWidth-WWidth*0.1f, TextFieldHeight), BtnDepth-0.001f,
-                                           (u8 *)"New Path...", 0, &Palette->Text, 
+                                           (u8 *)"New Path to music folder...", 0, &Palette->Text, 
                                            &Palette->ButtonActive, font_Medium);
     Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
     MusicPath->TextField.DoMouseHover = false;
@@ -3198,6 +3215,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 select_item *SelectIDOrder = AllocateArray(&GS->ScratchArena, PlaylistColumn->Selected.A.Count, select_item);
                 RestartTimer("SortDragDrop");
                 
+                u32 SelectIDOderCount = 0;
                 For(SelectCount, Select)
                 {
                     select_id SelectID      = NewSelectID(SelectIt);
@@ -3205,27 +3223,27 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                     // TODO:: @SLOW:: This GetDisplayableID goes through most of diplayable every time
                     // this costs .25s in deubg mode... What can we do to reduce this?
                     displayable_id NewDID   = GetDisplayableID(&PlaylistColumn->Displayable, SelectPLID);
-                    Assert(NewDID >= 0);
-                    SelectIDOrder[SelectIt] = {SelectID, NewDID, SelectPLID};
+                    if(NewDID >= 0) SelectIDOrder[SelectIDOderCount++] = {SelectID, NewDID, SelectPLID};
                 }
                 
                 SnapTimer("SortDragDrop");
                 // @SLOW:: First we shuffle the list because of worst case quicksort aka list
                 // already being sorted. TODO:: Maybe implement a better suited sorting for my case?!
-                For(SelectCount, Shuffle) SwitchDragDrop(SelectIDOrder, ShuffleIt, (i32)(Random01()*SelectCount));
-                QuickSort(0, SelectCount-1, SelectIDOrder, {CompareDragDrop, SelectIDOrder, SwitchDragDrop});
+                For(SelectIDOderCount, Shuffle) SwitchDragDrop(SelectIDOrder, ShuffleIt, (i32)(Random01()*SelectIDOderCount));
+                QuickSort(0, SelectIDOderCount-1, SelectIDOrder, {CompareDragDrop, SelectIDOrder, SwitchDragDrop});
                 
                 SnapTimer("SortDragDrop");
                 i32 StartIt = -1;
                 i32 PickSelectIt = -1;
                 r32 PositionOffsetY = GetSize(Slot->DragSlot).y + GS->Layout.SlotGap;
                 i32 HalfDragSlot = Floor(MAX_DRAG_SLOT_VISUALS/2.0f);
-                For(SelectCount, S) // Get the one that was mouse picked
+                For(SelectIDOderCount, S) // Get the one that was mouse picked
                 {
                     if(PLID == SelectIDOrder[SIt].PID) 
                     {
                         PickSelectIt = SIt;
-                        if(SIt+HalfDragSlot > SelectCount) StartIt = Max(0, (i32)SelectCount-(i32)MAX_DRAG_SLOT_VISUALS);
+                        if(SIt+HalfDragSlot > SelectIDOderCount) 
+                            StartIt = Max(0, (i32)SelectIDOderCount-(i32)MAX_DRAG_SLOT_VISUALS);
                         else StartIt = Max(0, (i32)SIt-HalfDragSlot);
                         break;
                     }
@@ -3233,7 +3251,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 Assert(PickSelectIt >= 0);
                 Assert(StartIt      >= 0);
                 
-                for(u32 SelectIt = StartIt; SelectIt < Min(SelectCount, (u32)StartIt+MAX_DRAG_SLOT_VISUALS); ++SelectIt)
+                for(u32 SelectIt = StartIt; SelectIt < Min(SelectIDOderCount, (u32)StartIt+MAX_DRAG_SLOT_VISUALS); ++SelectIt)
                 {
                     if(SelectIDOrder[SelectIt].PID != PLID)
                     {
@@ -3508,7 +3526,7 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
             {
                 displayable_id DID = GetDisplayableID(&GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Displayable, 
                                                       Get(Selected, NewSelectID(It)));
-                Push(&DisplayableIDs, DID.ID);
+                if(DID >= 0) Push(&DisplayableIDs, DID.ID);
             }
         }
         

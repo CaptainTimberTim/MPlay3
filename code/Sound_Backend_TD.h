@@ -39,6 +39,8 @@
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
 // - selecting and deselecting stuff (in combination with search) is buggy.
 
+// - If a render text needs to switch fonts insider their own text, it should restart with that new font for consistency?
+//      - Or check beforehand and then start with the other font.
 // - Cleanup all the StringCompound procedures... Their names are sooo stupidly long..
 // - Cleanup of FillDisplayables. Or at least find out what exactly I am doing and comment that!?
 // - Sort out depth everywhere in the application
@@ -47,6 +49,7 @@
 // - Add a on_screen_id for tha visuals, to have typechecking on it! (like displayable_id, etc.).
 // - glScissor is the keyword for cutting of text after column!
 // - Print user error when save files could not be correctly loaded.
+
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?

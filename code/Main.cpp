@@ -545,11 +545,12 @@ WinMain(HINSTANCE Instance,
         GameState->JobThreadsArena.Flags = arenaFlags_IsThreaded;
         
         // NOTE:: Loading Settings file
+        layout_definition *Layout = &GameState->Layout;
         RetrieveAndSetDataPaths(GameState);
         GameState->Settings = TryLoadSettingsFile(GameState);
         
-        u32 InitialWindowWidth  = GameState->Settings.WindowDimX;//1416;
-        u32 InitialWindowHeight = GameState->Settings.WindowDimY;//1039;
+        u32 InitialWindowWidth  = GameState->Settings.WindowDimX;
+        u32 InitialWindowHeight = GameState->Settings.WindowDimY;
         HWND Window = CreateWindowExW(0, WindowClass.lpszClassName, L"MPlay3", 
                                       WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, 
                                       CW_USEDEFAULT, InitialWindowWidth, -1, 
@@ -565,7 +566,6 @@ WinMain(HINSTANCE Instance,
             AddHotKey(Window, Input, KEY_NEXT);
             AddHotKey(Window, Input, KEY_PREVIOUS);
             
-            layout_definition *Layout = &GameState->Layout;
             
             // ********************************************
             // Threading***********************************

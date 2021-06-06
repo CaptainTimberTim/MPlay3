@@ -17,11 +17,11 @@ struct settings
     file_id PlayingSongID = {-1};
     u32 ColorPaletteID = 4;
     r32 PlaylistsGenreEdgeXPercent = -1.0f;
-    r32 GenreArtistEdgeXPercent = -1.0f;
-    r32 ArtistAlbumEdgeXPercent = -1.0f;
-    r32 AlbumSongEdgeXPercent = -1.0f;
-    i32 WindowDimX = 1416;
-    i32 WindowDimY = 1039;
+    r32 GenreArtistEdgeXPercent    = -1.0f;
+    r32 ArtistAlbumEdgeXPercent    = -1.0f;
+    r32 AlbumSongEdgeXPercent      = -1.0f;
+    i32 WindowDimX = 0;
+    i32 WindowDimY = 0;
     b32 Looping = false;
     b32 Shuffle = false;
     i32 FontHeightOffset = 0;

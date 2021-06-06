@@ -120,6 +120,8 @@ internal settings
 TryLoadSettingsFile(game_state *GameState)
 {
     settings Result = {};
+    Result.WindowDimX = GameState->Layout.WindowWidth;
+    Result.WindowDimY = GameState->Layout.WindowHeight;
     
     read_file_result Data = {};
     if(ReadEntireFile(&GameState->ScratchArena, &Data, GameState->SettingsPath.S))
@@ -352,10 +354,10 @@ TryLoadSettingsFile(game_state *GameState)
        Result.GenreArtistEdgeXPercent    >= Result.ArtistAlbumEdgeXPercent ||
        Result.ArtistAlbumEdgeXPercent    >= Result.AlbumSongEdgeXPercent) 
     {
-        Result.PlaylistsGenreEdgeXPercent = 0.11f;
-        Result.GenreArtistEdgeXPercent    = 0.25f;
-        Result.ArtistAlbumEdgeXPercent    = 0.44f;
-        Result.AlbumSongEdgeXPercent      = 0.6f;
+        Result.PlaylistsGenreEdgeXPercent = GameState->Layout.PlaylistsGenreXP;
+        Result.GenreArtistEdgeXPercent    = GameState->Layout.GenreArtistXP;
+        Result.ArtistAlbumEdgeXPercent    = GameState->Layout.ArtistAlbumXP;
+        Result.AlbumSongEdgeXPercent      = GameState->Layout.AlbumSongXP;
     }
     
     if(Result.WindowDimX < GlobalMinWindowWidth)  Result.WindowDimX = GlobalMinWindowWidth;

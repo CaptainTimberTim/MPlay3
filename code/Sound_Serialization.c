@@ -783,17 +783,6 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 }
                 else AdvanceToNewline(&C);
                 
-                /* // NoHash:: 
-                Count = CountToNewline(++C);
-                if(Count > 0)
-                {
-                    u8 Length = 0;
-                    MP3FileInfo->Hashes[MP3FileInfo->Count_] =  ProcessNextU32InString(C, (u8 *)"\n ", 2, Length);
-                    AdvanceToNewline(&C);
-                }
-                else AdvanceToNewline(&C);
-                */
-                
                 MP3FileInfo->Count_++;
                 AdvanceToNewline(&C);
             }
@@ -971,6 +960,64 @@ CreateHash(string_c Name, u64 CreationDate)
 }
 */
 
+enum existing_file_status
+{
+    existingFileStatue_NoExist,
+    existingFileStatue_ExistDifferentCreation,
+    existingFileStatue_ExistAndMatch,
+};
+
+internal existing_file_status
+CheckForCreationTimeSimilarity(game_state *GS, string_c PlaylistPath, u64 CreationTime)
+{
+    existing_file_status Result = existingFileStatue_NoExist;
+    
+    string_w WidePlaylistPath = {};
+    ConvertString8To16(&GS->ScratchArena, &PlaylistPath, &WidePlaylistPath);
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WidePlaylistPath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        u64 NewCreationTime = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
+        if(NewCreationTime == CreationTime)
+        {
+            Result = existingFileStatue_ExistAndMatch;
+        }
+        else Result = existingFileStatue_ExistDifferentCreation;
+    }
+    
+    return Result;
+}
+
+internal u64
+GetFileCreationDate(game_state *GS, string_c PlaylistPath)
+{
+    u64 Result = 0;
+    
+    string_w WidePlaylistPath = {};
+    ConvertString8To16(&GS->ScratchArena, &PlaylistPath, &WidePlaylistPath);
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WidePlaylistPath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        Result = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
+    }
+    
+    return Result;
+}
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Playlist save file definition: ~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1065,22 +1112,33 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
         }
     }
     
+    NewLocalString(Appendix, 5, "0");
+    u32 AppendixCount = 0;
     NewEmptyLocalString(PlaylistPath, 260);
-    if(Playlist->Filename.Pos) AppendStringCompoundToCompound(&PlaylistPath, &Playlist->Filename);
-    else
-    {
-        // TODO:: When we use this now. It is possible that a file already exists with this name and
-        // we just overwrite it. NOTE:: Made a bit more 'save' as I added the count as well.
-        AppendStringCompoundToCompound(&PlaylistPath, &GS->PlaylistPath);
-        I32ToString(&PlaylistPath, PlaylistID);
-        AppendCharToCompound(&PlaylistPath, '_');
-        I32ToString(&PlaylistPath, Playlist->Song.FileIDs.A.Count);
-        AppendStringToCompound(&PlaylistPath, (u8 *)".save");
-        
-        // If we are here and build our own path, we also need to save it for later.
-        Playlist->Filename = NewStringCompound(&GS->FixArena, PlaylistPath.Pos);
-        AppendStringCompoundToCompound(&Playlist->Filename, &PlaylistPath);
-    }
+    existing_file_status FileExist = existingFileStatue_ExistAndMatch;
+    do {
+        if(Playlist->Filename.Pos) AppendStringCompoundToCompound(&PlaylistPath, &Playlist->Filename);
+        else
+        {
+            ResetStringCompound(PlaylistPath);
+            AppendStringCompoundToCompound(&PlaylistPath, &GS->PlaylistPath);
+            I32ToString(&PlaylistPath, PlaylistID);
+            AppendCharToCompound(&PlaylistPath, '_');
+            AppendStringCompoundToCompound(&PlaylistPath, &Appendix);
+            AppendStringToCompound(&PlaylistPath, (u8 *)".save");
+            
+            FileExist = CheckForCreationTimeSimilarity(GS, PlaylistPath, Playlist->FileCreationDate);
+            
+            if(FileExist != existingFileStatue_ExistDifferentCreation)
+            {
+                // If we are here and build our own path, we also need to save it for later.
+                Playlist->Filename = NewStringCompound(&GS->FixArena, PlaylistPath.Pos);
+                AppendStringCompoundToCompound(&Playlist->Filename, &PlaylistPath);
+            }
+            ResetStringCompound(Appendix);
+            I32ToString(&Appendix, ++AppendixCount);
+        }
+    } while(FileExist == existingFileStatue_ExistDifferentCreation);
     
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
     if(!WriteEntireFile(&GS->ScratchArena, PlaylistPath.S, SaveData.Pos, SaveData.S))
@@ -1090,6 +1148,10 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
         AppendCharToCompound(&ErrorMsg, '!');
         PushErrorMessage(GS, ErrorMsg);
         DebugLog(255, "%s\n", ErrorMsg.S);
+    }
+    else
+    {
+        Playlist->FileCreationDate = GetFileCreationDate(GS, PlaylistPath);
     }
     DeleteStringCompound(&GS->ScratchArena, &SaveData);
 }
@@ -1192,7 +1254,7 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
         I32ToString(PlaylistName, PlaylistFileIDs->A.Count);
         AppendCharToCompound(PlaylistName, ')');
         
-        if(PlaylistFileIDs->A.Count == 0)
+        if(PlaylistFileIDs->A.Count == 0 && SongCount > 0)
         {
             NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
             AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
@@ -1279,6 +1341,8 @@ LoadAllPlaylists(game_state *GS)
                                 FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPL, FileIDs);
                                 AddPlaylistToSortingColumn(&GS->MusicInfo, NewPL, PlaylistName);
                                 SyncPlaylists_playlist_column(&GS->MusicInfo);
+                                
+                                NewPL->FileCreationDate = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
                                 
                                 if(LoadResult == loadPlaylistResult_LoadedNeedsReSaving)
                                     SavePlaylist(GS, NewPL);

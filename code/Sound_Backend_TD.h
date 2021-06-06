@@ -22,7 +22,6 @@
 // - still hardcapped at 10k mp3 files - Fixed, TEST?!
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
-// - properly round for song panel time and slider
 
 // - remove all GlobalGameState references from UI.c
 // - redraw only when necessary!
@@ -54,7 +53,6 @@
 // - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
 // - Add drag&drop for sorting playlist slots?
 
-// - SavePlaylist:: When we use this now. It is possible that a file already exists with this name and we just overwrite it. 
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
 
 #include "Sound_UI_TD.h"
@@ -150,6 +148,7 @@ struct playlist_info
         playlist_column Columns[5];
     };
     string_c Filename;
+    u64 FileCreationDate; // Used for checking if we have a name duplicate on saving the PL.
 };
 internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
 void SyncPlaylists_playlist_column(music_info *MusicInfo);

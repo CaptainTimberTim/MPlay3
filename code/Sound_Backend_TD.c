@@ -1353,7 +1353,6 @@ CreateSongDurationForMetadata(mp3_info *MP3Info, i32 MappedFileID, i32 DecodeID)
     mp3_metadata *MD = MP3Info->FileInfo.Metadata+MappedFileID;
     if(~MD->FoundFlags & metadata_Duration)
     {
-        //mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.DecodedData[DecodeID];
         mp3dec_file_info_t *DInfo = &MP3Info->DecodeInfo.PlayingDecoded.Data;
         
         MD->Duration = (u32)DInfo->samples/DInfo->channels/DInfo->hz*1000;
@@ -1456,7 +1455,7 @@ MillisecondsToMinutes(u32 Millis, string_c *Out)
     Assert(RestSeconds < 60.0f);
     char B[10];
     if(Floor(Minutes) < 10) sprintf_s(B, "0%i:", Floor(Minutes));
-    else             sprintf_s(B, "%i:", Floor(Minutes));
+    else                    sprintf_s(B, "%i:", Floor(Minutes));
     char B2[3];
     if(RestSeconds < 10) sprintf_s(B2, "0%i", RestSeconds);
     else                 sprintf_s(B2, "%i", RestSeconds);
@@ -2941,7 +2940,8 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
 {
     Assert(Type != columnType_Playlists);
     Assert(Type != columnType_None);
-    playlist_info *FromPlaylist = GS->MusicInfo.Playlist_;
+    playlist_info     *FromPlaylist = GS->MusicInfo.Playlist_;
+    playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
     array_file_id FileIDs;
     
     if(Type == columnType_Song)
@@ -2956,7 +2956,6 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
         // @SLOW
         FileIDs.A = CreateArray(&GS->ScratchArena, FromPlaylist->Song.FileIDs.A.Length);
         Copy(&FileIDs.A, &FromPlaylist->Song.FileIDs.A);
-        playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
         
         array_playlist_id Songs = PlaylistColumn->Batch.Song[Get(&PlaylistColumn->Displayable, DisplayableID).ID];
         For(Songs.A.Count)
@@ -2971,6 +2970,50 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
     FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, FromPlaylist, FileIDs);
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
+    ClearSelection(PlaylistColumn);
+    UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
+    
+    SavePlaylist(GS, FromPlaylist);
+}
+
+internal void
+RemoveSlotsFromPlaylist(game_state *GS, column_type Type, array_u32 DisplayableIDs)
+{
+    Assert(Type != columnType_Playlists);
+    Assert(Type != columnType_None);
+    playlist_info     *FromPlaylist = GS->MusicInfo.Playlist_;
+    playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
+    
+    array_file_id FileIDs;
+    // As we manipulate the array we also read from, we need to copy it.
+    FileIDs.A = CreateArray(&GS->ScratchArena, FromPlaylist->Song.FileIDs.A.Length);
+    Copy(&FileIDs.A, &FromPlaylist->Song.FileIDs.A);
+    
+    For(DisplayableIDs.Count)
+    {
+        displayable_id DID = NewDisplayableID(Get(&DisplayableIDs, It));
+        if(Type == columnType_Song)
+        {
+            file_id FileID = GetFileID(&GS->MusicInfo, DID);
+            StackFindAndTake(&FileIDs.A, FileID.ID);
+        }
+        else
+        {
+            array_playlist_id Songs = PlaylistColumn->Batch.Song[Get(&PlaylistColumn->Displayable, DID).ID];
+            For(Songs.A.Count)
+            {
+                playlist_id PlaylistID = Get(&Songs, NewDisplayableID(It));
+                file_id FileID = NewFileID(Get(&FromPlaylist->Song.FileIDs.A, PlaylistID.ID));
+                
+                StackFindAndTake(&FileIDs.A, FileID.ID);
+            }
+        }
+    }
+    
+    FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, FromPlaylist, FileIDs);
+    UpdatePlaylistScreenName(GS, FromPlaylist);
+    SyncPlaylists_playlist_column(&GS->MusicInfo);
+    ClearSelection(PlaylistColumn);
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
     SavePlaylist(GS, FromPlaylist);

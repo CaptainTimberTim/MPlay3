@@ -842,7 +842,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 LONGLONG CurrentCycleCount = GetWallClock();
                 GameState->Time.dTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, 
                                                           PrevCycleCount, CurrentCycleCount);
-                PrevCycleCount = CurrentCycleCount;
+                PrevCycleCount            = CurrentCycleCount;
                 GameState->Time.GameTime += GameState->Time.dTime;
                 
 #if DEBUG_TD

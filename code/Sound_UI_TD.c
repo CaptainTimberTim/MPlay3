@@ -28,6 +28,7 @@ internal void UpdatePlayingSong(music_info *MusicInfo);
 internal void InsertSlotIntoPlaylist(game_state *GS, playlist_info *Playlist, column_type Type, displayable_id DisplayableID);
 internal void InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type Type, array_u32 DisplayableIDs);
 internal void RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID);
+internal void RemoveSlotsFromPlaylist(game_state *GS, column_type Type, array_u32 DisplayableIDs);
 internal void OnNewPlaylistClick(void *Data);
 internal void OnNewPlaylistWithSelectionClick(void *Data);
 internal void OnRemovePlaylistClick(void *Data);
@@ -3495,28 +3496,32 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
                                      GS->MusicInfo.DisplayInfo.Playlists.OnScreenIDs[DragDrop->CurHoverID]);
         playlist_info *Playlist = GS->MusicInfo.Playlists.List + PlaylistID.ID;
         
-        if(DragDrop->CurHoverID == 0) // 'All' playlist removes slots from playlists...
+        array_u32 DisplayableIDs = {};
+        if(DragDrop->DragsSelected)
         {
-            if(Playlist != GS->MusicInfo.Playlist_) // Except when were in itself, then nothing happens.
-                RemoveSlotFromPlaylist(GS, DragDrop->Type, DragDrop->Slots[0].SlotID);
-        }
-        else if(!DragDrop->DragsSelected) InsertSlotIntoPlaylist(GS, Playlist, DragDrop->Type, DragDrop->Slots[0].SlotID);
-        else
-        {
-            // If we have a selection drop, we need to insert
+            // If we have a selection-drop, we need to insert
             // everything that was previously selected in this
             // column into the playlist.
             array_playlist_id *Selected = &GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Selected;
-            array_u32 DisplayableIDs = CreateArray(&GS->ScratchArena, Selected->A.Count);
-            
+            DisplayableIDs = CreateArray(&GS->ScratchArena, Selected->A.Count);
             For(Selected->A.Count)
             {
                 displayable_id DID = GetDisplayableID(&GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Displayable, 
                                                       Get(Selected, NewSelectID(It)));
                 Push(&DisplayableIDs, DID.ID);
             }
-            InsertSlotsIntoPlaylist(GS, Playlist, DragDrop->Type, DisplayableIDs);
         }
+        
+        if(DragDrop->CurHoverID == 0) // 'All' playlist removes slots from playlists...
+        {
+            if(Playlist != GS->MusicInfo.Playlist_) // Except when we're in itself, then nothing happens.
+            {
+                if(!DragDrop->DragsSelected) RemoveSlotFromPlaylist (GS, DragDrop->Type, DragDrop->Slots[0].SlotID);
+                else                         RemoveSlotsFromPlaylist(GS, DragDrop->Type, DisplayableIDs);
+            }
+        }
+        else if(!DragDrop->DragsSelected) InsertSlotIntoPlaylist (GS, Playlist, DragDrop->Type, DragDrop->Slots[0].SlotID);
+        else                              InsertSlotsIntoPlaylist(GS, Playlist, DragDrop->Type, DisplayableIDs);
         
         DragDrop->CurHoverID = -1;
     }

@@ -321,3 +321,8 @@
 - Fixed crash when playling song is missing and it gave the user errer, then the user pressed play anyway... Set stuff to NULL 
   after free guys!
 - Now doing automatically a retrace, when we cannot find the file.
+
+06.06.2021
+- Fixed missing drag&drop remove behaviour for playlists.
+- Fixed bug where the timeline unsyncs when the computer was in sleep mode.
+- Added playlist saving savety with checking the creation date of the file before saving.

@@ -103,9 +103,9 @@ struct game_state
     arena_allocator SoundThreadArena;
     sound_thread_interface *SoundThreadInterface;
     
-    arena_allocator JobThreadsArena;
-    HANDLE JobHandles[THREAD_COUNT];
-    job_thread_info JobInfos[THREAD_COUNT];
+    arena_allocator    JobThreadsArena;
+    HANDLE             JobHandles[THREAD_COUNT];
+    job_thread_info    JobInfos  [THREAD_COUNT];
     circular_job_queue JobQueue;
     
     crawl_thread CrawlInfo;

@@ -616,7 +616,9 @@ WinMain(HINSTANCE Instance,
                ConfirmLibraryMusicPathExists(GameState))
             {
                 MP3Info = CreateMP3InfoStruct(&GameState->FixArena, FileInfoCount);
+                StartTimer("Load library file");
                 LoadMP3LibraryFile(GameState, MP3Info);
+                SnapTimer("Load library file");
                 LoadedLibraryFile = true;
             }
             else

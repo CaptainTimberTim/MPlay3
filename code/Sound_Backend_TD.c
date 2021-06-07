@@ -584,10 +584,10 @@ GetPlaylistID(music_info *MusicInfo, displayable_id DisplayableID)
 }
 
 inline file_id
-GetFileID(mp3_file_info *FileInfo, string_c *SubPath, string_c *Filename)
+GetFileID(mp3_file_info *FileInfo, string_c *SubPath, string_c *Filename, file_id StartID = {0})
 {
     file_id Result = NewFileID(-1);
-    For(FileInfo->Count_)
+    for(u32 It = StartID.ID; It < FileInfo->Count_; ++It)
     {
         if(CompareStringCompounds(SubPath, FileInfo->SubPath+It))
         {
@@ -596,6 +596,21 @@ GetFileID(mp3_file_info *FileInfo, string_c *SubPath, string_c *Filename)
                 Result.ID = It;
                 break;
             }
+        }
+    }
+    return Result;
+}
+
+inline file_id
+GetFirstFileID(mp3_file_info *FileInfo, string_c *SubPath)
+{
+    file_id Result = NewFileID(-1);
+    For(FileInfo->Count_)
+    {
+        if(CompareStringCompounds(SubPath, FileInfo->SubPath+It))
+        {
+            Result.ID = It;
+            break;
         }
     }
     return Result;
@@ -2903,6 +2918,7 @@ InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type
     Assert(Type != columnType_Playlists);
     Assert(Type != columnType_None);
     array_file_id FileIDs = IntoPlaylist->Song.FileIDs;
+    RestartTimer("InsertSlots");
     
     For(DisplayableIDs.Count)
     {
@@ -2927,12 +2943,13 @@ InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type
             }
         }
     }
-    
+    SnapTimer("InsertSlots");
     FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, IntoPlaylist, FileIDs);
     UpdatePlaylistScreenName(GS, IntoPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
-    
+    SnapTimer("InsertSlots");
     SavePlaylist(GS, IntoPlaylist);
+    SnapTimer("InsertSlots");
 }
 
 internal void
@@ -3207,14 +3224,14 @@ RemovePlaylist(game_state *GS, playlist_info *Playlist, b32 DeleteSaveFile)
     SyncPlaylists_playlist_column(&GS->MusicInfo, Playlist);
     SwitchPlaylist(GS, GS->MusicInfo.Playlists.List+(PlaylistID%Playlist->Playlists.Batch.BatchCount));
     
-    if(DeleteSaveFile) DeleteFile(&GS->ScratchArena, Playlist->Filename);
+    if(DeleteSaveFile) DeleteFile(&GS->ScratchArena, Playlist->Filename_);
     
     // Needs to be last, as this removes the place where the actual playlist was stored.
     // All accesses need to happen beforehand.
     RemoveItem(GS->MusicInfo.Playlists.List, GS->MusicInfo.Playlists.Count, PlaylistID, playlist_info);
     --GS->MusicInfo.Playlists.Count;
     
-    UpdateSortingInfoChangedVisuals(&GS->Renderer, &GS->MusicInfo, &GS->MusicInfo.DisplayInfo, columnType_Playlists);
+    UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, columnType_Playlists);
 }
 
 internal void

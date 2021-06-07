@@ -96,5 +96,7 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 #define InvalidDefaultCase default: {Assert(!"InvalidDefaultCase");}
 
 
+#define MemoryCopy(dest, source, sizeInBytes) memcpy(dest, source, sizeInBytes)
+#define MemorySet(memory, setTo, sizeInBytes) memcpy(memory, setTo, sizeInBytes)
 
 #endif //_DEFINITIONS__T_D_H

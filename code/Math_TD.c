@@ -420,6 +420,13 @@ Min(u32 A, u32 B)
     return Result;
 }
 
+inline u64
+Min(u64 A, u64 B)
+{
+    u64 Result = min(A, B);
+    return Result;
+}
+
 inline r32
 Min(r32 A, r32 B)
 {
@@ -1352,7 +1359,7 @@ Vector3ToUInt32(v3 Value)
 {
     u32 Result;
     Result = (RoundReal32ToUInt32(Value.x * 255.0f) << 16)|
-        (RoundReal32ToUInt32(Value.y * 255.0f) << 8)|
+    (RoundReal32ToUInt32(Value.y * 255.0f) << 8)|
         RoundReal32ToUInt32(Value.z *255.0f);
     return(Result);
 }

@@ -208,6 +208,7 @@ inline u32 Max(u32 A, u32 B);
 inline u64 Max(u64 A, u64 B);
 inline i32 Min(i32 A, i32 B);
 inline u32 Min(u32 A, u32 B);
+inline u64 Min(u64 A, u64 B);
 inline r32 Min(r32 A, r32 B);
 inline r32 Mod(r32 V, r32 M);
 inline r64 Mod(r64 V, r64 M);

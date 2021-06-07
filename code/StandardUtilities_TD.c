@@ -563,10 +563,8 @@ inline void
 AppendArray(array_u32 *Array1, array_u32 *Array2)
 {
     Assert(Array1->Count + Array2->Count <= Array1->Length);
-    For(Array2->Count)
-    {
-        Push(Array1, Get(Array2, It));
-    }
+    MemoryCopy(Array1->Slot+Array1->Count, Array2->Slot, Array2->Count*sizeof(u32));
+    Array1->Count += Array2->Count;
 }
 
 inline void 
@@ -589,15 +587,21 @@ Switch(void *Array, i32 P1, i32 P2)
     A->Slot[P2] = T;
 }
 
-inline void 
+inline array_u32
+Copy(arena_allocator *Arena, array_u32 From)
+{
+    array_u32 Result = CreateArray(Arena, From.Count);
+    MemoryCopy(Result.Slot, From.Slot, From.Count*sizeof(u32));
+    Result.Count = From.Count;
+    
+    return Result;
+}
+
+inline void
 Copy(array_u32 *To, array_u32 *From)
 {
-    Assert(To->Length <= From->Length);
-    
-    For(From->Count)
-    {
-        To->Slot[It] = From->Slot[It];
-    }
+    Assert(To->Length >= From->Count);
+    MemoryCopy(To->Slot, From->Slot, From->Count*sizeof(u32));
     To->Count = From->Count;
 }
 

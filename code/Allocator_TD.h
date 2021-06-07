@@ -3,6 +3,7 @@
 #define _ALLOCATOR__T_D_H
 
 #if DEBUG_TD // INFO:: Debug data for arenas
+#define MAX_DEBUG_ARENA_COUNT 80
 struct arena_debug_data
 {
     struct arena_allocator *Parent;
@@ -21,8 +22,8 @@ struct arena_debug_data
     u64 LowestAllocationCountInFrame;
     
     u32 MaxArenaCount;
-    r32 MaxFillPercentage[20];
-    r32 CurrentFillP[20];
+    r32 MaxFillPercentage[MAX_DEBUG_ARENA_COUNT];
+    r32 CurrentFillP[MAX_DEBUG_ARENA_COUNT];
     
     u32 ArenaCreationCount;
     u32 ArenaFreeCount;

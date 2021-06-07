@@ -330,3 +330,15 @@
 - Fixed having open search and then removing slots, then closing search, that the visuals get screwed up.
 - Fixed bug where Drag&Drop doesn't like a selection that is not in displayable atm., now it will just ignore those.
 - Added column edge percentages and window dimensions to the layout definition struct.
+
+07.06.2021
+- Developed a new method of getting the drag start visuals selection list. Now _much_ faster (x54 faster in debug).
+- Used the same method for dropping into new playlist, which had the same performance problem.
+- Switched all array_u32 copies to CopyMemory instead of going through in a for loop.
+- Fixed bug where playlist serialization does not use the correct path.
+- Boost performance of loading playlists, by saving the fileID when searching by subpath.
+- Switched for-loop in ReallocateMemory in ArenaAllocator for faster MemoryCopy procedure.
+- Fixed a long standing Heisen-Bug where suddenly the job_thread_info of the first thread is ruined. The problem had nothing to
+  do with threading, rather was the arena_allocator_debub stuff. Which had a hardcoded array size for arenas, which overflowed 
+  and I forgot to insert a view Asserts into the debug code. 
+- Added procedure PrependString.

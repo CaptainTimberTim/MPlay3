@@ -31,6 +31,7 @@ AppendStringToCompound(&Name, (u8 *)String)
 
 inline void AppendCharToCompound(string_compound *Comp, u8 C);
 inline void AppendStringToCompound(string_compound *Comp, u8 *String); 
+inline void PrependString(string_c *PrepandTo, string_c String); 
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 StartPos);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter);
@@ -155,6 +156,19 @@ AppendStringToCompound(string_compound *Comp, u8 *String)
         Assert(Comp->Pos <= Comp->Length);
     }
     Comp->S[Comp->Pos] = '\0';
+}
+
+inline void 
+PrependString(string_c *PrependTo, string_c String)
+{
+    Assert(PrependTo->Length >= PrependTo->Pos+String.Pos);
+    for(u32 It = PrependTo->Pos-1; It >= 0; --It)
+    {
+        u8 Tmp = PrependTo->S[It];
+        PrependTo->S[String.Pos+It] = Tmp;
+    }
+    For(String.Pos) PrependTo->S[It] = String.S[It];
+    PrependTo->Pos += String.Pos;
 }
 
 inline void

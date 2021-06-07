@@ -107,6 +107,7 @@ inline void StackInsert(array_u32 *Array, u32 Pos, u32 Item);
 inline void PushIfNotExist(array_u32 *Array, u32 Item);
 inline void AppendArray(array_u32 *Array1, array_u32 *Array2);
 inline void MergeArrays(array_u32 *Array1, array_u32 *Array2); // Slow
+inline array_u32 Copy(arena_allocator *Arena, array_u32 From);
 inline void Copy(array_u32 *To, array_u32 *From);
 internal void ShuffleStack(array_u32 *Array);
 internal void PrintArray(array_u32 Array);
@@ -114,7 +115,7 @@ internal void PrintArray(array_u32 Array);
 #define CutValueFromArray(Array, ArraySize, ID, type) CutValueFromArray_((void *)Array, ArraySize, ID, sizeof(type));
 inline void CutValueFromArray_(void *Array, u32 *ArraySize, u32 ID, u32 ElementSize);
 
-inline   void QuickSort3(array_u32 Array, b32 SortOnLength_NotCount = false);
+inline void QuickSort3(array_u32 Array, b32 SortOnLength_NotCount = false);
 
 struct sort_info
 {

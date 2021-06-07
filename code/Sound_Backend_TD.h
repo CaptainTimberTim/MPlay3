@@ -49,7 +49,8 @@
 // - Add a on_screen_id for tha visuals, to have typechecking on it! (like displayable_id, etc.).
 // - glScissor is the keyword for cutting of text after column!
 // - Print user error when save files could not be correctly loaded.
-
+// - Replace for-loop copies with MemoryCopy
+// - Album with same name are not divided properly by artists (Greatest Hits).
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?
@@ -57,6 +58,9 @@
 // - Add drag&drop for sorting playlist slots?
 
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
+// - Double clicking on two different song activated the first one anyway.
+// - When somethings weird when having many things selected and then removing slots. look into it more.
+//      - If you have two artists selected and then remove all albums of one of the artists, then the selection messes up.
 
 #include "Sound_UI_TD.h"
 
@@ -150,7 +154,7 @@ struct playlist_info
         };
         playlist_column Columns[5];
     };
-    string_c Filename;
+    string_c Filename_;
     u64 FileCreationDate; // Used for checking if we have a name duplicate on saving the PL.
 };
 internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);

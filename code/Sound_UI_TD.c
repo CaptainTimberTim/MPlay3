@@ -3108,23 +3108,117 @@ GetRandomExitMessage(game_state *GS, string_c *Language)
 // **************************************
 // Drag and Drop ************************
 // **************************************
-struct select_item { select_id SID; displayable_id DID; playlist_id PID; };
+struct select_array 
+{ 
+    select_id      *SID; 
+    displayable_id *DID; 
+    playlist_id    *PID;
+    u32 Count; 
+};
+struct select_pair { displayable_id DID; playlist_id PID; };
 
 inline b32
-CompareDragDrop(i32 T1, i32 T2, void *Data)
+CompareSelectPair(i32 T1, i32 T2, void *Data)
 {
-    select_item *Array = (select_item *)Data;
-    b32 Result = (Array[T2].DID > Array[T1].DID);
+    select_pair *Array = (select_pair *)Data;
+    b32 Result = (Array[T2].PID > Array[T1].PID);
     return Result;
 }
 
 inline void
-SwitchDragDrop(void *Array, i32 IndexA, i32 IndexB)
+SwitchSelectPair(void *Array, i32 IndexA, i32 IndexB)
 {
-    select_item *A = (select_item *)Array;
-    select_item TMP = A[IndexB];
+    select_pair *A = (select_pair *)Array;
+    select_pair TMP = A[IndexB];
     A[IndexB] = A[IndexA];
     A[IndexA] = TMP;
+}
+
+inline b32
+CompareSelectItem(i32 T1, i32 T2, void *Data)
+{
+    select_array *Array = (select_array *)Data;
+    b32 Result = (Array->DID[T2] > Array->DID[T1]);
+    return Result;
+}
+
+inline void
+SwitchSelectItem(void *Array, i32 IndexA, i32 IndexB)
+{
+    select_array *A = (select_array *)Array;
+    i32 TMP = A->SID[IndexB].ID;
+    A->SID[IndexB] = A->SID[IndexA];
+    A->SID[IndexA].ID = TMP;
+    
+    TMP = A->DID[IndexB].ID;
+    A->DID[IndexB] = A->DID[IndexA];
+    A->DID[IndexA].ID = TMP;
+    
+    TMP = A->PID[IndexB].ID;
+    A->PID[IndexB] = A->PID[IndexA];
+    A->PID[IndexA].ID = TMP;
+}
+
+internal select_array
+CreateOrderedSelectArray(arena_allocator *Arena, array_playlist_id *Selected, array_playlist_id *Displayable)
+{
+    // Because just creating the SelectIDOrder array takes a really long time, 
+    // if both Selected and Displayable arrays are large -as we have to search
+    // for each entry in Selected through Displayable and find it there- we 
+    // made a small algorithm which is much quicker. 
+    // (1.) It essentially copies both arrays, sorts them both, and then 
+    // (2.) goes through the selected array in reverse order always checking if the
+    // last entry in displayable is larger or the same and (3.) shrinks the displayable
+    // array by one everytime until it is the seached-for value (4.). The sorting ensures
+    // that everything that does not match (in displayable) is not in the selected 
+    // array. This makes it essentially linear and goes at maximum through each array 
+    // once. 
+    // Additional note: (5.) We need to know the initial location in Displayable, 
+    // thats why we copy a pair into the new copy-displayable-array.
+    select_array Result = {};
+    Result.SID = AllocateArray(Arena, Selected->A.Count, select_id);
+    Result.DID = AllocateArray(Arena, Selected->A.Count, displayable_id);
+    Result.PID = AllocateArray(Arena, Selected->A.Count, playlist_id);
+    
+    // 1. ---
+    array_playlist_id SelectedCpy;
+    SelectedCpy.A = Copy(Arena, Selected->A);
+    QuickSort3(SelectedCpy.A);
+    
+    u32 DisplayableCount         = Displayable->A.Count;
+    select_pair *DisplayablePair = AllocateArray(Arena, DisplayableCount, select_pair);
+    For(DisplayableCount, Fill) // 5. ---
+        DisplayablePair[FillIt] = {NewDisplayableID(FillIt), Get(Displayable, NewDisplayableID(FillIt))};
+    For(DisplayableCount, Shuffle) 
+        SwitchSelectPair(DisplayablePair, ShuffleIt, (i32)(Random01()*DisplayableCount));
+    QuickSort(0, DisplayableCount-1, DisplayablePair, {CompareSelectPair, DisplayablePair, SwitchSelectPair});
+    
+    // 2. ---
+    i32 ReverseCount = Selected->A.Count;
+    for(i32 SelIt = Selected->A.Count-1; SelIt >= 0; --SelIt)
+    {
+        select_id SelectID      = NewSelectID(SelIt);
+        playlist_id SelectPLID  = Get(&SelectedCpy, SelectID);
+        
+        b32 DisplayableEmpty = false;
+        while(!DisplayableEmpty && 
+              DisplayablePair[DisplayableCount-1].PID >= SelectPLID)
+        {
+            // 4. ---
+            if(DisplayablePair[DisplayableCount-1].PID == SelectPLID)
+            {
+                // 6. ---
+                Result.SID[Result.Count]   = SelectID;
+                Result.DID[Result.Count]   = DisplayablePair[DisplayableCount-1].DID;
+                Result.PID[Result.Count++] = SelectPLID;
+            }
+            // 3. ---
+            if(--DisplayableCount == 0) DisplayableEmpty = true;
+        }
+        if(DisplayableEmpty) break;
+    }
+    
+    return Result;
 }
 
 internal b32
@@ -3201,7 +3295,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
             Slot->GrabOffset = (Slot->SlotStartP - DragDrop->StartMouseP);
             
             // If the grabbed slot is a selected slot, then we pull all other selected slots as well.
-            // But we visualize max 5, to keep it reasonable.
+            // But we visualize max 7, to keep it reasonable.
             i32 ArrayP = 0;
             playlist_id PLID = Get(&PlaylistColumn->Displayable, Slot->SlotID);
             if(StackFind(&PlaylistColumn->Selected, PLID, &ArrayP))
@@ -3212,38 +3306,28 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 // the grab information for the slots that are closes to the 
                 // one picked with the mouse.
                 u32 SelectCount = PlaylistColumn->Selected.A.Count;
-                select_item *SelectIDOrder = AllocateArray(&GS->ScratchArena, PlaylistColumn->Selected.A.Count, select_item);
+                
                 RestartTimer("SortDragDrop");
+                select_array SelectIDOrder = CreateOrderedSelectArray(&GS->ScratchArena, 
+                                                                      &PlaylistColumn->Selected, 
+                                                                      &PlaylistColumn->Displayable);
                 
-                u32 SelectIDOderCount = 0;
-                For(SelectCount, Select)
-                {
-                    select_id SelectID      = NewSelectID(SelectIt);
-                    playlist_id SelectPLID  = Get(&PlaylistColumn->Selected, SelectID);
-                    // TODO:: @SLOW:: This GetDisplayableID goes through most of diplayable every time
-                    // this costs .25s in deubg mode... What can we do to reduce this?
-                    displayable_id NewDID   = GetDisplayableID(&PlaylistColumn->Displayable, SelectPLID);
-                    if(NewDID >= 0) SelectIDOrder[SelectIDOderCount++] = {SelectID, NewDID, SelectPLID};
-                }
+                For(SelectIDOrder.Count, Ran) SwitchSelectItem(&SelectIDOrder, RanIt, (i32)(Random01()*SelectIDOrder.Count));
+                QuickSort(0, SelectIDOrder.Count-1, &SelectIDOrder, {CompareSelectItem, &SelectIDOrder, SwitchSelectItem});
                 
-                SnapTimer("SortDragDrop");
-                // @SLOW:: First we shuffle the list because of worst case quicksort aka list
-                // already being sorted. TODO:: Maybe implement a better suited sorting for my case?!
-                For(SelectIDOderCount, Shuffle) SwitchDragDrop(SelectIDOrder, ShuffleIt, (i32)(Random01()*SelectIDOderCount));
-                QuickSort(0, SelectIDOderCount-1, SelectIDOrder, {CompareDragDrop, SelectIDOrder, SwitchDragDrop});
                 
                 SnapTimer("SortDragDrop");
                 i32 StartIt = -1;
                 i32 PickSelectIt = -1;
                 r32 PositionOffsetY = GetSize(Slot->DragSlot).y + GS->Layout.SlotGap;
                 i32 HalfDragSlot = Floor(MAX_DRAG_SLOT_VISUALS/2.0f);
-                For(SelectIDOderCount, S) // Get the one that was mouse picked
+                For(SelectIDOrder.Count, S) // Get the one that was mouse picked
                 {
-                    if(PLID == SelectIDOrder[SIt].PID) 
+                    if(PLID == SelectIDOrder.PID[SIt]) 
                     {
                         PickSelectIt = SIt;
-                        if(SIt+HalfDragSlot > SelectIDOderCount) 
-                            StartIt = Max(0, (i32)SelectIDOderCount-(i32)MAX_DRAG_SLOT_VISUALS);
+                        if(SIt+HalfDragSlot > SelectIDOrder.Count) 
+                            StartIt = Max(0, (i32)SelectIDOrder.Count-(i32)MAX_DRAG_SLOT_VISUALS);
                         else StartIt = Max(0, (i32)SIt-HalfDragSlot);
                         break;
                     }
@@ -3251,13 +3335,15 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                 Assert(PickSelectIt >= 0);
                 Assert(StartIt      >= 0);
                 
-                for(u32 SelectIt = StartIt; SelectIt < Min(SelectIDOderCount, (u32)StartIt+MAX_DRAG_SLOT_VISUALS); ++SelectIt)
+                for(u32 SelectIt = StartIt; 
+                    SelectIt < Min(SelectIDOrder.Count, (u32)StartIt+MAX_DRAG_SLOT_VISUALS); 
+                    ++SelectIt)
                 {
-                    if(SelectIDOrder[SelectIt].PID != PLID)
+                    if(SelectIDOrder.PID[SelectIt] != PLID)
                     {
                         drag_drop_slot *SubSlot = DragDrop->Slots+DragDrop->SlotCount++;
                         SubSlot->DistToBaseSlot = Abs(PickSelectIt-(i32)SelectIt);
-                        SubSlot->SlotID         = SelectIDOrder[SelectIt].DID;
+                        SubSlot->SlotID         = SelectIDOrder.DID[SelectIt];
                         SubSlot->SlotStartP     = V2(0, PositionOffsetY*(PickSelectIt-(i32)SelectIt));
                         
                         i32 OnScreenID = GetOnScreenID(DisplayColumn, SubSlot->SlotID);
@@ -3520,14 +3606,13 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
             // If we have a selection-drop, we need to insert
             // everything that was previously selected in this
             // column into the playlist.
-            array_playlist_id *Selected = &GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Selected;
-            DisplayableIDs = CreateArray(&GS->ScratchArena, Selected->A.Count);
-            For(Selected->A.Count)
-            {
-                displayable_id DID = GetDisplayableID(&GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Displayable, 
-                                                      Get(Selected, NewSelectID(It)));
-                if(DID >= 0) Push(&DisplayableIDs, DID.ID);
-            }
+            
+            array_playlist_id *Selected    = &GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Selected;
+            array_playlist_id *Displayable = &GS->MusicInfo.Playlist_->Columns[DragDrop->Type].Displayable;
+            select_array SelectIDOrder = CreateOrderedSelectArray(&GS->ScratchArena, Selected, Displayable);
+            DisplayableIDs.Slot   = (u32 *)SelectIDOrder.DID;
+            DisplayableIDs.Count  = SelectIDOrder.Count;
+            DisplayableIDs.Length = SelectIDOrder.Count;
         }
         
         if(DragDrop->CurHoverID == 0) // 'All' playlist removes slots from playlists...

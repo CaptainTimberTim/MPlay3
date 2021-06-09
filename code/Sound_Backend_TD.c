@@ -1929,23 +1929,40 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
     if(DoAlbum)  Clear(&Playlist->Album.Displayable, CheckValue);
     if(DoSong)   Clear(&Playlist->Song.Displayable, CheckValue);
     
-    For(Playlist->Genre.Selected.A.Count) // Going through Genres
+    if(Playlist->Genre.Selected.A.Count > 0)
     {
-        batch_id BatchID = Get(&Playlist->Genre.Selected, NewSelectID(It));
-        sort_batch *GenreBatch = &Playlist->Genre.Batch;
-        
-        if(DoArtist) MergeDisplayArrays(&Playlist->Artist.Displayable, GenreBatch->Artist+BatchID.ID, CheckValue);
-        
-        if(Playlist->Artist.Selected.A.Count == 0)
+        For(Playlist->Genre.Selected.A.Count) // Going through Genres
         {
-            if(DoAlbum) MergeDisplayArrays(&Playlist->Album.Displayable, GenreBatch->Album+BatchID.ID, CheckValue);
-            if(Playlist->Album.Selected.A.Count == 0)
+            batch_id BatchID = Get(&Playlist->Genre.Selected, NewSelectID(It));
+            sort_batch *GenreBatch = &Playlist->Genre.Batch;
+            
+            if(DoArtist) MergeDisplayArrays(&Playlist->Artist.Displayable, GenreBatch->Artist+BatchID.ID, CheckValue);
+            
+            if(Playlist->Artist.Selected.A.Count == 0)
             {
-                if(DoSong) MergeDisplayArrays(&Playlist->Song.Displayable, GenreBatch->Song+BatchID.ID, CheckValue);
+                if(DoAlbum) MergeDisplayArrays(&Playlist->Album.Displayable, GenreBatch->Album+BatchID.ID, CheckValue);
+                if(Playlist->Album.Selected.A.Count == 0)
+                {
+                    if(DoSong) MergeDisplayArrays(&Playlist->Song.Displayable, GenreBatch->Song+BatchID.ID, CheckValue);
+                }
+            }
+        }
+        
+        if(Playlist->Artist.Displayable.A.Count > 0) 
+            RemoveCheckValueFromArray(Playlist->Artist.Displayable.A, CheckValue);
+    }
+    else // If we have no genre selected, we can fill the artist column with every artist.
+    {
+        if(DoArtist) 
+        {
+            For(Playlist->Artist.Batch.BatchCount)
+            {
+                Push(&Playlist->Artist.Displayable, NewPlaylistID(It));
             }
         }
     }
     
+    sort_batch  *GenreBatch = &Playlist->Genre.Batch;
     sort_batch *ArtistBatch = &Playlist->Artist.Batch;
     sort_batch  *AlbumBatch = &Playlist->Album.Batch;
     
@@ -1974,74 +1991,106 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
                 {
                     if(DoAlbum) PutAndCheck(&Playlist->Album.Displayable, AlbumBatchID, CheckValue);
                     // If no album is selected, fill song list from the current album and
-                    // check that _only_ songs which are also corresponding to the artist are inserted.
+                    // check that _only_ songs which are also corresponding to the artist _and_
+                    // selected genres are inserted.
                     if(Playlist->Album.Selected.A.Count == 0 && DoSong)
                     {
                         For(AlbumBatch->Song[AlbumBatchID.ID].A.Count, Song)
                         {
                             playlist_id PlaylistID = Get(AlbumBatch->Song+AlbumBatchID.ID, NewSelectID(SongIt));
+                            // Check if song is in artist.
                             if(StackContains(ArtistBatch->Song+ArtistBatchID.ID, PlaylistID))
                             {
-                                PutAndCheck(&Playlist->Song.Displayable, PlaylistID, CheckValue);
+                                if(Playlist->Genre.Selected.A.Count > 0)
+                                {
+                                    // Check if song is in selected genre
+                                    // @SLOW::
+                                    For(Playlist->Genre.Selected.A.Count)
+                                    {
+                                        select_id SelectedGenreID = NewSelectID(It);
+                                        batch_id     GenreBatchID = Get(&Playlist->Genre.Selected, SelectedGenreID);
+                                        
+                                        if(StackContains(GenreBatch->Song+GenreBatchID.ID, PlaylistID))
+                                        {
+                                            PutAndCheck(&Playlist->Song.Displayable, PlaylistID, CheckValue);
+                                        }
+                                    }
+                                }
+                                else PutAndCheck(&Playlist->Song.Displayable, PlaylistID, CheckValue);
                             }
                         }
                     }
-                    break;
+                    // TODO:: Check the 'empty' category if we actually can always break, because every instance 
+                    // of GenreOfAlbumFromSelectedArtist has all songs inside. so it will never be necessary to
+                    // go through the other counts, if we did it once. But then we should check why we even have
+                    // more than one? bzw. why is it that there are all songs, of multiple genres, in every instance
+                    // of album-genre counts.
+                    //break;
                 }
+            }
+        }
+    }
+    if(Playlist->Album.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Album.Displayable.A, CheckValue);
+    if(Playlist->Genre.Selected.A.Count  == 0 && 
+       Playlist->Artist.Selected.A.Count == 0)
+    {
+        if(DoAlbum) 
+        {
+            For(Playlist->Album.Batch.BatchCount)
+            {
+                Push(&Playlist->Album.Displayable, NewPlaylistID(It));
             }
         }
     }
     
     if(DoSong) 
     {
+        RestartTimer("Proper Album select ********");
         For(Playlist->Album.Selected.A.Count) // Going through Albums
         {
-            batch_id BatchID = Get(&Playlist->Album.Selected, NewSelectID(It));
+            // @SLOW::
+            select_id                 SelectedAlbumID = NewSelectID(It);
+            batch_id                     AlbumBatchID = Get(&Playlist->Album.Selected, SelectedAlbumID);
+            array_playlist_id *SongsFromSelectedAlbum = AlbumBatch->Song + AlbumBatchID.ID;
             
-            MergeDisplayArrays(&Playlist->Song.Displayable, Playlist->Album.Batch.Song+BatchID.ID, CheckValue);
-        }
-    }
-    
-#if 0
-    if(Playlist->Artist.Displayable.A.Count > 0) QuickSort3(Playlist->Artist.Displayable.A, true);
-    if(Playlist->Album.Displayable.A.Count > 0) QuickSort3(Playlist->Album.Displayable.A, true);
-    if(Playlist->Song.Displayable.A.Count > 0) QuickSort3(Playlist->Song.Displayable.A, true);
-#else
-    if(Playlist->Artist.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Artist.Displayable.A, CheckValue);
-    if(Playlist->Album.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Album.Displayable.A, CheckValue);
-    if(Playlist->Song.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Song.Displayable.A, CheckValue);
-#endif
-    
-    if(Playlist->Genre.Selected.A.Count == 0)
-    {
-        if(DoArtist) 
-        {
-            For(Playlist->Artist.Batch.BatchCount)
+            For(SongsFromSelectedAlbum->A.Count, Song)
             {
-                Push(&Playlist->Artist.Displayable, NewPlaylistID(It));
-            }
-        }
-        if(Playlist->Artist.Selected.A.Count == 0)
-        {
-            if(DoAlbum) 
-            {
-                For(Playlist->Album.Batch.BatchCount)
+                select_id SongSelectID = NewSelectID(SongIt);
+                playlist_id PlaylistID = Get(SongsFromSelectedAlbum, SongSelectID);
+                
+                // We have to check if the songs of the album are actually from the artists that 
+                // are in the displayable list or selected. This is very slow, as we are three For
+                // loops deep here. And all three arrays which are looped can be pretty large...
+                array_playlist_id *ArtistsToCheck = &Playlist->Artist.Selected;
+                if(ArtistsToCheck->A.Count == 0) ArtistsToCheck = &Playlist->Artist.Displayable;
+                For(ArtistsToCheck->A.Count, ArtistCheck)
                 {
-                    Push(&Playlist->Album.Displayable, NewPlaylistID(It));
-                }
-            }
-            if(Playlist->Album.Selected.A.Count == 0)
-            {
-                if(DoSong) 
-                {
-                    For(Playlist->Song.FileIDs.A.Count)
+                    select_id SelectedArtistID = NewSelectID(ArtistCheckIt);
+                    batch_id     ArtistBatchID = Get(ArtistsToCheck, SelectedArtistID);
+                    
+                    if(StackContains(ArtistBatch->Song+ArtistBatchID.ID, PlaylistID))
                     {
-                        Push(&Playlist->Song.Displayable, NewPlaylistID(It));
+                        PutAndCheck(&Playlist->Song.Displayable, PlaylistID, CheckValue);
                     }
                 }
             }
+            
+            //MergeDisplayArrays(&Playlist->Song.Displayable, SongsFromSelectedAlbum, CheckValue);
+        }
+        SnapTimer("Proper Album select ********");
+        
+        if(Playlist->Song.Displayable.A.Count > 0) RemoveCheckValueFromArray(Playlist->Song.Displayable.A, CheckValue);
+        if(Playlist->Genre.Selected.A.Count  == 0 && 
+           Playlist->Artist.Selected.A.Count == 0 &&
+           Playlist->Album.Selected.A.Count  == 0)
+        {
+            For(Playlist->Song.FileIDs.A.Count)
+            {
+                Push(&Playlist->Song.Displayable, NewPlaylistID(It));
+            }
         }
     }
+    
 }
 
 internal void

@@ -342,3 +342,9 @@
   do with threading, rather was the arena_allocator_debub stuff. Which had a hardcoded array size for arenas, which overflowed 
   and I forgot to insert a view Asserts into the debug code. 
 - Added procedure PrependString.
+
+09.06.2021
+- Fixed long standing bug where filling the song column was wrong when an album was selected. It would ignore which artist is
+  selected/active and put everything from an album in the list (For collab albums with multiple Artist this was an issue).
+- Fixed another bug in FillDisplayables, which was that it was also not looking at selected genres for inserting songs from  
+  albums with mutliple genres.

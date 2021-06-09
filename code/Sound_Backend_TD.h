@@ -50,7 +50,9 @@
 // - glScissor is the keyword for cutting of text after column!
 // - Print user error when save files could not be correctly loaded.
 // - Replace for-loop copies with MemoryCopy
-// - Album with same name are not divided properly by artists (Greatest Hits).
+// - Fill displayables, when album is selected, is very slow. Because we don't know which Artist has the album
+//   which we are looking at. If we would also cache this information in CreateMusicSortingInfo this wouldn't be a problem.
+// - Double clicking on two different song activated the first one anyway.
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?
@@ -58,7 +60,6 @@
 // - Add drag&drop for sorting playlist slots?
 
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// - Double clicking on two different song activated the first one anyway.
 // - When somethings weird when having many things selected and then removing slots. look into it more.
 //      - If you have two artists selected and then remove all albums of one of the artists, then the selection messes up.
 

@@ -392,13 +392,6 @@ Take(array_u32 *Array, u32 Pos)
     return Result;
 }
 
-inline void
-ReplaceAt(array_u32 *Array, u32 Pos, u32 Item)
-{
-    Assert(Pos < Array->Length);
-    Array->Slot[Pos] = Item;
-}
-
 inline void 
 Push(array_u32 *Array, u32 Item)
 {

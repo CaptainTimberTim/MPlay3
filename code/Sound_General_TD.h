@@ -15,6 +15,7 @@ typedef array_playlist_id array_batch_id;
 
 // FileID Array stuff
 inline file_id Get(array_file_id  *A, decode_id ID)               { return {(i32)Get(&A->A, ID.ID)}; }
+inline file_id Get(array_file_id  *A, playlist_id ID)             { return {(i32)Get(&A->A, ID.ID)}; }
 inline void Push(array_file_id *Array, file_id ID)                { Push(&Array->A, ID.ID); }
 inline void Copy(array_file_id *A1, array_file_id *A2)            { Copy(&A1->A, &A2->A); }
 inline b32  Find(array_file_id *Array, file_id Item, u32 *Result) { return Find(&Array->A, Item.ID, Result); }

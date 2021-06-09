@@ -94,7 +94,6 @@ inline u32  Get(array_u32 *Array, u32 Pos);
 inline u32  Take(array_u32 *Array, u32 Pos);
 inline void Push(array_u32 *Array, u32 Item);
 inline u32  Pop(array_u32 *Array);
-inline void ReplaceAt(array_u32 *Array, u32 Pos, u32 Item);
 inline void Reset(array_u32 *Array);
 inline void Clear(array_u32 *Array, u32 Value = 0);
 inline b32  Contains(array_u32 *Array, u32 Item);

@@ -241,10 +241,7 @@ inline void
 CopyIntoCompound(string_c *Into, string_c *Copy)
 {
     Assert(Copy->Pos <= Into->Length);
-    For(Copy->Pos)
-    {
-        Into->S[It] = Copy->S[It];
-    }
+    MemoryCopy(Into->S, Copy->S, Copy->Pos);
     Into->Pos = Copy->Pos;
     Into->S[Into->Pos] = '\0';
 }

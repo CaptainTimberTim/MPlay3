@@ -358,8 +358,25 @@ GetName(playlist_column *PlaylistColumn, displayable_id DID)
 {
     string_c *Result = NULL;
     
+    Assert(PlaylistColumn->Type != columnType_Song);
     Result = PlaylistColumn->Batch.Names + Get(&PlaylistColumn->Displayable, DID).ID;
     
+    return Result;
+}
+
+inline string_c *
+GetName(game_state *GS, playlist_column *PlaylistColumn, playlist_id PLID)
+{
+    string_c *Result = NULL;
+    
+    if(PlaylistColumn->Type == columnType_Song)
+    {
+        Result = &GS->MP3Info->FileInfo.Metadata[Get(&PlaylistColumn->FileIDs, PLID).ID ].Title;
+    }
+    else
+    {
+        Result = PlaylistColumn->Batch.Names + PLID.ID;
+    }
     return Result;
 }
 
@@ -2135,7 +2152,7 @@ UpdateSortingInfoChangedVisuals(renderer *Renderer, music_info *MusicInfo, music
 }
 
 internal void
-UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
+UpdateSortingInfoChangedWithoutVisuals(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
 {
     music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
     playlist_info *Playlist         = MusicInfo->Playlist_;
@@ -2149,7 +2166,14 @@ UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP
     }
     
     UpdatePlayingSong(MusicInfo);
-    UpdateSortingInfoChangedVisuals(Renderer, MusicInfo, DisplayInfo, Type);
+    
+}
+
+internal void
+UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
+{
+    UpdateSortingInfoChangedWithoutVisuals(Renderer, MusicInfo, MP3Info, Type);
+    UpdateSortingInfoChangedVisuals(Renderer, MusicInfo, &MusicInfo->DisplayInfo, Type);
 }
 
 internal void
@@ -3001,6 +3025,79 @@ InsertSlotsIntoPlaylist(game_state *GS, playlist_info *IntoPlaylist, column_type
     SnapTimer("InsertSlots");
 }
 
+struct selection_on_remove
+{
+    string_c **SelectedNames;
+    u32 *SelectedCounts;
+    u32 *DisplayableCounts;
+};
+
+internal void
+CollectSelectedNamesForPrevColumns(game_state *GS, playlist_info *Playlist, column_type Type,
+                                   selection_on_remove *SelectData_out)
+{
+    u32 TypeLength = (Type < columnType_Song) ? Type+1 : Type;
+    selection_on_remove *Result = SelectData_out;
+    // Save information for all prev columns
+    Result->SelectedCounts      = AllocateArray(&GS->ScratchArena, TypeLength, u32);
+    Result->DisplayableCounts   = AllocateArray(&GS->ScratchArena, TypeLength, u32);
+    Result->SelectedNames       = AllocateArray(&GS->ScratchArena, TypeLength, string_c *);
+    For((u32)TypeLength, Type/*It*/)
+    {
+        Assert(TypeIt != columnType_Song);
+        playlist_column *GetNamePLColumn = Playlist->Columns+TypeIt;
+        Result->SelectedCounts[TypeIt]    = GetNamePLColumn->Selected.A.Count;
+        Result->DisplayableCounts[TypeIt] = GetNamePLColumn->Displayable.A.Count;
+        Result->SelectedNames[TypeIt]     = AllocateArray(&GS->ScratchArena, Result->SelectedCounts[TypeIt], string_c);
+        For(Result->SelectedCounts[TypeIt])
+        {
+            string_c            *Name = GetName(GS, GetNamePLColumn, Get(&GetNamePLColumn->Selected, NewSelectID(It)));
+            Result->SelectedNames[TypeIt][It] = NewStringCompound(&GS->ScratchArena, Name->Pos);
+            CopyIntoCompound(Result->SelectedNames[TypeIt]+It, Name);
+        }
+    }
+}
+
+internal void
+RemoveMissingSelected(game_state *GS, playlist_info *Playlist, column_type Type, selection_on_remove *SelectData)
+{
+    // @SLOW:: If we have many things selected, we go through all the things and make string comps for them...
+    u32 TypeLength = (Type < columnType_Song) ? Type+1 : Type;
+    For((u32)TypeLength, Type/*It*/)
+    {
+        Assert(TypeIt != columnType_Song);
+        playlist_column *CheckNamePLColumn = Playlist->Columns+TypeIt;
+        string_c            *SelectedNames = SelectData->SelectedNames[TypeIt];
+        
+        if(SelectData->DisplayableCounts[TypeIt] == CheckNamePLColumn->Displayable.A.Count) continue;
+        
+        for(i32 SelectIt = SelectData->SelectedCounts[TypeIt]-1; SelectIt >= 0; --SelectIt)
+        {
+            b32 Found = false;
+            // This cannot be the song column, as we do not consider the 
+            // 'currently removing from' column, and go backwards from it.
+            For(CheckNamePLColumn->Displayable.A.Count, D)
+            {
+                displayable_id DID = NewDisplayableID(DIt);
+                string_c *Name = GetName(CheckNamePLColumn, DID);
+                if(CompareStringCompounds(Name, SelectedNames+SelectIt))
+                {
+                    Put(&CheckNamePLColumn->Selected.A, SelectIt, GetPlaylistID(CheckNamePLColumn, DID).ID);
+                    Found = true;
+                    break;
+                }
+            }
+            if(!Found)
+            {
+                // We go through the selected backwards to savely remove the
+                // entries from this list and keep it stable, while we still
+                // go through it.
+                Take(&CheckNamePLColumn->Selected.A, SelectIt);
+            }
+        }
+    }
+}
+
 internal void
 RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id DisplayableID)
 {
@@ -3009,6 +3106,11 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
     playlist_info     *FromPlaylist = GS->MusicInfo.Playlist_;
     playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
     array_file_id FileIDs;
+    
+    RestartTimer("RemoveSlotFromPlaylist");
+    selection_on_remove SelectData = {};
+    CollectSelectedNamesForPrevColumns(GS, FromPlaylist, Type, &SelectData);
+    PauseTimer("RemoveSlotFromPlaylist");
     
     if(Type == columnType_Song)
     {
@@ -3036,8 +3138,11 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
     FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, FromPlaylist, FileIDs);
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
-    ClearSelection(PlaylistColumn);
     KillSearch(GS);
+    StartTimer("RemoveSlotFromPlaylist");
+    UpdateSortingInfoChangedWithoutVisuals(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
+    RemoveMissingSelected(GS, FromPlaylist, Type, &SelectData);
+    SnapTimer("RemoveSlotFromPlaylist");
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
     SavePlaylist(GS, FromPlaylist);
@@ -3050,6 +3155,11 @@ RemoveSlotsFromPlaylist(game_state *GS, column_type Type, array_u32 DisplayableI
     Assert(Type != columnType_None);
     playlist_info     *FromPlaylist = GS->MusicInfo.Playlist_;
     playlist_column *PlaylistColumn = FromPlaylist->Columns + Type;
+    
+    RestartTimer("RemoveSlotsFromPlaylist");
+    selection_on_remove SelectData = {};
+    CollectSelectedNamesForPrevColumns(GS, FromPlaylist, Type, &SelectData);
+    PauseTimer("RemoveSlotsFromPlaylist");
     
     array_file_id FileIDs;
     // As we manipulate the array we also read from, we need to copy it.
@@ -3080,8 +3190,11 @@ RemoveSlotsFromPlaylist(game_state *GS, column_type Type, array_u32 DisplayableI
     FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, FromPlaylist, FileIDs);
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
-    ClearSelection(PlaylistColumn);
     KillSearch(GS);
+    StartTimer("RemoveSlotsFromPlaylist");
+    UpdateSortingInfoChangedWithoutVisuals(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
+    RemoveMissingSelected(GS, FromPlaylist, Type, &SelectData);
+    SnapTimer("RemoveSlotsFromPlaylist");
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
     SavePlaylist(GS, FromPlaylist);
@@ -3267,7 +3380,7 @@ RemovePlaylist(game_state *GS, playlist_info *Playlist, b32 DeleteSaveFile)
         u32 ID = Get(&Playlist->Playlists.Displayable.A, It);
         if(ID > (u32)PlaylistID) 
         {
-            ReplaceAt(&Playlist->Playlists.Displayable.A, It, ID-1);
+            Put(&Playlist->Playlists.Displayable.A, It, ID-1);
         }
     }
     SyncPlaylists_playlist_column(&GS->MusicInfo, Playlist);

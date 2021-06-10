@@ -349,3 +349,11 @@
 - Fixed another bug in FillDisplayables, which was that it was also not looking at selected genres for inserting songs from  
   albums with mutliple genres.
 - Fixed wrong selection after removing slots, which in turn remove the whole artist/album/genre.
+
+10.06.2021
+- Fixed bug where removing of slots in playlist would not consider the selection and remove everything that belongs to the
+  slot (i.e. all 'empty' albums of every artist, even though only a specific artist was selected).
+- Fixed crash when removing slots while the column from which you are removing is scrolled down and nothing above is left after
+  removal.
+- Aligned double-click behaviour of song column with the others, as activating the song can long since be done by clicking the 
+  play button on the song itself.

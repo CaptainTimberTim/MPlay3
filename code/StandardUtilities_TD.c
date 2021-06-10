@@ -463,14 +463,17 @@ Find(array_u32 *Array, u32 Item, u32 *Result)
     return Found;
 }
 
-inline void
+inline b32
 FindAndTake(array_u32 *Array, u32 Item)
 {
+    b32 Found = false;
     u32 ID = 0;
     if(Find(Array, Item, &ID))
     {
         Take(Array, ID);
+        Found = true;
     }
+    return Found;
 }
 
 inline b32  
@@ -508,14 +511,17 @@ StackFind(array_u32 *Array, u32 Item, u32 *Result)
     return Found;
 }
 
-inline void
+inline b32
 StackFindAndTake(array_u32 *Array, u32 Item)
 {
+    b32 Found = false;
     u32 ID = 0;
     if(StackFind(Array, Item, &ID))
     {
         Take(Array, ID);
+        Found = true;
     }
+    return Found;
 }
 
 inline void
@@ -567,6 +573,16 @@ MergeArrays(array_u32 *Array1, array_u32 *Array2)
     {
         PushIfNotExist(Array1, Get(Array2, It));
     }
+}
+
+inline void
+Switch(array_u32 Array, i32 P1, i32 P2)
+{
+    Assert((u32)P1 < Array.Length);
+    Assert((u32)P2 < Array.Length);
+    u32 T = Array.Slot[P1];
+    Array.Slot[P1] = Array.Slot[P2];
+    Array.Slot[P2] = T;
 }
 
 inline void

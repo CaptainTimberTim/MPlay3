@@ -52,19 +52,21 @@
 // - Replace for-loop copies with MemoryCopy
 // - Fill displayables, when album is selected, is very slow. Because we don't know which Artist has the album
 //   which we are looking at. If we would also cache this information in CreateMusicSortingInfo this wouldn't be a problem.
-// - Double clicking on two different song activated the first one anyway.
+
 // - Due to the last changes, especially because of the playlist stuff, things start to get slow when we handle
 //   Selected/Displayable arrays. Is it time to think about a bit better solution than just blank ID's? Or should
 //   we do smaller stuff (like switch selected array from playlist_ids to displayable_ids) that help the performance.
 //   Another 'small' thing would be to cache more information in CreateMusicSortingInfo for usage in FillDisplayables.
+//     - IDEAS: On FillDisplayable generate more information, like ???
+
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?
 // - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
 // - Add drag&drop for sorting playlist slots?
+// - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
 
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// - If you remove (empty for instance) it removes more thatn the selection...
 
 #include "Sound_UI_TD.h"
 

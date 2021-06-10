@@ -1049,7 +1049,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if(LeftMouseUpAndNoDragging)
                         {
                             column_type ChangedSelection = CheckColumnsForSelectionChange(DisplayInfo->MouseBtnDownLocation);
-                            if(ChangedSelection != columnType_None)
+                            if(ChangedSelection != columnType_None && ChangedSelection != columnType_Song)
                             {
                                 UpdateSortingInfoChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
                                 AddJobs_LoadOnScreenMP3s(GameState, JobQueue);

@@ -1171,6 +1171,7 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
         else
         {
             string_c *Name  = GetName(PlaylistColumn, NextID);
+            Assert(Name);
             RenderText(&GlobalGameState, font_Small, Name, DisplayColumn->Colors.Text,
                        DisplayColumn->Text+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[It]);
             
@@ -2891,43 +2892,11 @@ CheckColumnsForSelectionChange(v2 MouseBtnDownLocation)
     if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
     {
         if(GlobalGameState.Time.GameTime - DisplayInfo->Song.Base.LastClickTime < DOUBLE_CLICK_TIME)
-        {
-            if(Playlist->Song.Selected.A.Count > 0)
-            {
-                playlist_id PlaylistID = Get(&Playlist->Song.Selected, NewSelectID(0));
-                i32 OnScreenID = -1;
-                if(StackFind(&Playlist->Song.Displayable, PlaylistID, &OnScreenID))
-                {
-                    For(DisplayInfo->Song.Base.Count) 
-                    {
-                        if(DisplayInfo->Song.Base.OnScreenIDs[It].ID == OnScreenID)
-                        {
-                            OnScreenID = It;
-                            break;
-                        }
-                    }
-                    
-                    music_btn BtnInfo = {&GlobalGameState, &GlobalGameState.MusicInfo.PlayingSong};
-                    OnStopSong(&BtnInfo);
-                    song_play_btn BtnInfo2 = {(u32)OnScreenID, &GlobalGameState};
-                    OnSongPlayPressed(&BtnInfo2);
-                }
-                else Assert(false);
-            }
-            else
-            {
-                music_btn BtnInfo = {&GlobalGameState, &GlobalGameState.MusicInfo.PlayingSong};
-                OnPlayPauseSongToggleOff(&BtnInfo);
-            }
-        }
+            Result = SelectAllOrNothing(&DisplayInfo->Song.Base, &Playlist->Song);
         else 
-        {
-            if(UpdateSelectionArray(&Playlist->Song, &DisplayInfo->Song.Base, MouseBtnDownLocation))
-            {
-                UpdateColumnColor(&DisplayInfo->Song.Base, &Playlist->Song);
-            }
-        }
+            Result = UpdateSelectionArray(&Playlist->Song, &DisplayInfo->Song.Base, MouseBtnDownLocation);
         
+        if(Result != columnType_None) UpdateColumnColor(&DisplayInfo->Song.Base, &Playlist->Song);
         DisplayInfo->Song.Base.LastClickTime = GlobalGameState.Time.GameTime;
     }
     else if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))

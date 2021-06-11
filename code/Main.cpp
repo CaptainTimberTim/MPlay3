@@ -1194,6 +1194,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                                 ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album, (r32)Input->WheelAmount);
                                 UpdateColumnVerticalSliderPosition(&DisplayInfo->Album, Playlist->Album.Displayable.A.Count);
                             }
+                            if(IsInRect(DisplayInfo->Playlists.Background, Input->MouseP))
+                            {
+                                ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(&DisplayInfo->Playlists, Playlist->Playlists.Displayable.A.Count);
+                            }
                         }
                         
                         if(!ScrollLoadInfo.LoadFinished) // If user finished scrolling, after WaitTime we load onscreen songs

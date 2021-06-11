@@ -357,3 +357,12 @@
   removal.
 - Aligned double-click behaviour of song column with the others, as activating the song can long since be done by clicking the 
   play button on the song itself.
+
+11.06.2021
+- Increased initial musicPath array size.
+- Fixed crash on auto-selection of newly created playlist when it is offscreen.
+- Added scrolling to playlist column.
+- Added leading zeros to the newly created playlist ID, to make windows sorting more consistent.
+- Removed Assert which checked if max playlist count was larger than the new count right _before_ adjusting the max count...
+- Reintroduced a break in FillDisplayables that I took out previously because I did not really understand its purpose.
+- Fixed missing 'else' and a supposed 'else if' on playlist loading, which issued the user warning twice.

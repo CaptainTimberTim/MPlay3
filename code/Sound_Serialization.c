@@ -1115,6 +1115,10 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
         }
     }
     
+    
+    // When we create a new playlist, we need to make sure that there is not already
+    // a playlist with the exact same name. If so we try again and increment the name
+    // each time. 
     NewLocalString(Appendix, 5, "0");
     u32 AppendixCount = 0;
     NewEmptyLocalString(PlaylistPath, 260);
@@ -1125,6 +1129,8 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
         {
             ResetStringCompound(PlaylistPath);
             AppendStringCompoundToCompound(&PlaylistPath, &GS->PlaylistPath);
+            if(PlaylistID < 100) AppendCharToCompound(&PlaylistPath, '0');
+            if(PlaylistID < 10)  AppendCharToCompound(&PlaylistPath, '0');
             I32ToString(&PlaylistPath, PlaylistID);
             AppendCharToCompound(&PlaylistPath, '_');
             AppendStringCompoundToCompound(&PlaylistPath, &Appendix);
@@ -1253,9 +1259,6 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             
             AdvanceToNewline(&C);
         }
-        AppendStringToCompound(PlaylistName, (u8 *)" (");
-        I32ToString(PlaylistName, PlaylistFileIDs->A.Count);
-        AppendCharToCompound(PlaylistName, ')');
         
         if(PlaylistFileIDs->A.Count == 0 && SongCount > 0)
         {
@@ -1269,9 +1272,11 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             PushErrorMessage(GS, ErrorMsg);
             Result = loadPlaylistResult_LoadedButEmpty;
         }
-        if(PlaylistFileIDs->A.Count != SongCount) 
+        else if(PlaylistFileIDs->A.Count != SongCount) 
         {
-            NewLocalString(ErrorMsg, 150, "WARNING:: Playlist file indicated a song count of ");
+            NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
+            AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
+            AppendStringToCompound(&ErrorMsg, (u8 *)"' indicated a song count of ");
             I32ToString(&ErrorMsg, SongCount);
             AppendStringToCompound(&ErrorMsg, (u8 *)", but we found only ");
             I32ToString(&ErrorMsg, PlaylistFileIDs->A.Count);
@@ -1282,6 +1287,10 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             Result = loadPlaylistResult_LoadedNeedsReSaving;
         }
         else Result = loadPlaylistResult_LoadedSucessfully;
+        
+        AppendStringToCompound(PlaylistName, (u8 *)" (");
+        I32ToString(PlaylistName, PlaylistFileIDs->A.Count);
+        AppendCharToCompound(PlaylistName, ')');
         
         FreeFileMemory(&GS->ScratchArena, Data);
     }

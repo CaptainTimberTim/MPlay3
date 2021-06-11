@@ -938,6 +938,13 @@ SetSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, dis
 }
 
 inline void
+Select(playlist_column *PlaylistColumn, playlist_id PLID)
+{
+    Assert(PLID < PlaylistColumn->Batch.BatchCount);
+    Push(&PlaylistColumn->Selected, PLID);
+}
+
+inline void
 Select(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 OnScreenIDsID)
 {
     Assert(DisplayColumn->Count > OnScreenIDsID && PlaylistColumn->Displayable.A.Count > OnScreenIDsID);
@@ -2329,7 +2336,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 TextFieldHeight = Layout->MusicPathTextFieldHeight;
     MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, 
                                            V2(WWidth-WWidth*0.1f, TextFieldHeight), BtnDepth-0.001f,
-                                           (u8 *)"New Path to music folder...", 0, &Palette->Text, 
+                                           (u8 *)"New path to music folder...", 0, &Palette->Text, 
                                            &Palette->ButtonActive, font_Medium);
     Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
     MusicPath->TextField.DoMouseHover = false;

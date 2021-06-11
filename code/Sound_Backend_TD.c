@@ -1751,6 +1751,13 @@ SwitchSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, 
     Select(DisplayColumn, PlaylistColumn, ColumnDisplayID);
 }
 
+inline void
+SwitchSelection(playlist_column *PlaylistColumn, playlist_id PLID)
+{
+    ClearSelection(PlaylistColumn);
+    Select(PlaylistColumn, PLID);
+}
+
 internal column_type // returns none if not in any rect, and corresponding column if it is
 UpdateSelectionArray(playlist_column *PlaylistColumn, display_column *DisplayColumn, v2 MouseBtnDownLocation)
 {
@@ -2023,7 +2030,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
                                 if(Playlist->Genre.Selected.A.Count > 0)
                                 {
                                     // Check if song is in selected genre
-                                    // @SLOW::
+                                    // @Slow::
                                     For(Playlist->Genre.Selected.A.Count)
                                     {
                                         select_id SelectedGenreID = NewSelectID(It);
@@ -2039,12 +2046,13 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
                             }
                         }
                     }
-                    // TODO:: Check the 'empty' category if we actually can always break, because every instance 
+                    // TODO:: @FixCreateSortingInfo 
+                    // Check the 'empty' category if we actually can always break, because every instance 
                     // of GenreOfAlbumFromSelectedArtist has all songs inside. so it will never be necessary to
                     // go through the other counts, if we did it once. But then we should check why we even have
                     // more than one? bzw. why is it that there are all songs, of multiple genres, in every instance
                     // of album-genre counts.
-                    //break;
+                    break;
                 }
             }
         }
@@ -2067,7 +2075,7 @@ FillDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo, music_displa
         RestartTimer("Proper Album select ********");
         For(Playlist->Album.Selected.A.Count) // Going through Albums
         {
-            // @SLOW::
+            // @Slow::
             select_id                 SelectedAlbumID = NewSelectID(It);
             batch_id                     AlbumBatchID = Get(&Playlist->Album.Selected, SelectedAlbumID);
             array_playlist_id *SongsFromSelectedAlbum = AlbumBatch->Song + AlbumBatchID.ID;
@@ -2586,13 +2594,13 @@ AllocatePlaylist(arena_allocator *Arena, playlist_info *Playlist, i32 SongIDCoun
 internal playlist_info *
 CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount/*default -1*/, i32 GenreBatchCount/*default -1*/, i32 ArtistBatchCount/*default -1*/, i32 AlbumBatchCount/*default -1*/)
 {
-    Assert(MusicInfo->Playlists.Count < MusicInfo->Playlists.MaxCount);
     if(MusicInfo->Playlists.Count >= MusicInfo->Playlists.MaxCount)
     {
         MusicInfo->Playlists.MaxCount = MusicInfo->Playlists.Count*2;
         MusicInfo->Playlists.List = ReallocateArray(Arena, MusicInfo->Playlists.List, MusicInfo->Playlists.Count,
                                                     MusicInfo->Playlists.MaxCount, playlist_info);
     }
+    Assert(MusicInfo->Playlists.Count < MusicInfo->Playlists.MaxCount);
     playlist_info *Playlist = MusicInfo->Playlists.List+MusicInfo->Playlists.Count++;
     
     // First entry in Playlists.List is the 'everything' list.
@@ -3067,7 +3075,7 @@ CollectSelectedNamesForPrevColumns(game_state *GS, playlist_info *Playlist, colu
 internal void
 RemoveMissingSelected(game_state *GS, playlist_info *Playlist, column_type Type, selection_on_remove *SelectData)
 {
-    // @SLOW:: If we have many things selected, we go through all the things and make string comps for them...
+    // @Slow:: If we have many things selected, we go through all the things and make string comps for them...
     u32 TypeLength = (Type < columnType_Song) ? Type+1 : Type;
     For((u32)TypeLength, Type/*It*/)
     {
@@ -3132,7 +3140,7 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
     else
     {
         // As we manipulate the array we also read from, we need to copy it.
-        // @SLOW
+        // @Slow
         FileIDs.A = Copy(&GS->ScratchArena, FromPlaylist->Song.FileIDs.A);
         
         // We can just use Displayable directly, as we refill it later anyway.
@@ -3285,9 +3293,9 @@ SwitchPlaylist(game_state *GS, playlist_info *Playlist)
     
     // MoveDisplayColumn fills the OnScreenIDs array, which is needed for switching visuals...
     MoveDisplayColumn(&GS->Renderer, &GS->MusicInfo, &DisplayInfo->Playlists);
-    i32 PlaylistID = GetPlaylistID(&GS->MusicInfo, Playlist);
-    SwitchSelection(&DisplayInfo->Playlists, &Playlist->Playlists, PlaylistID);
-    SwitchPlaylistFromPlaylistID(&DisplayInfo->Playlists, {PlaylistID});
+    playlist_id PlaylistID = NewPlaylistID(GetPlaylistID(&GS->MusicInfo, Playlist));
+    SwitchSelection(&Playlist->Playlists, PlaylistID);
+    SwitchPlaylistFromPlaylistID(&DisplayInfo->Playlists, PlaylistID);
     SortDisplayables(&GS->MusicInfo, &GS->MP3Info->FileInfo);
     UpdateSortingInfoChangedVisuals(&GS->Renderer, &GS->MusicInfo, DisplayInfo, columnType_Playlists);
 }

@@ -15,7 +15,7 @@
 // List of Tags to search for in the code:
 // - TODO::    , Stuff where I want to go and make something better later/clean it up/make it more save/etc.
 // - @HardLimit, is a label where I set a hard limit, the user could exceed and needs to be dealt with.
-// - @SLOW     , is a label where I think it's unnecessary slow.
+// - @Slow     , is a label where I think it's unnecessary slow.
 // - @Layout   , where the Layout struct should hold the magic values.
 //
 // - generate huge amount of fake mp3 files and test with those!
@@ -58,7 +58,7 @@
 //   we do smaller stuff (like switch selected array from playlist_ids to displayable_ids) that help the performance.
 //   Another 'small' thing would be to cache more information in CreateMusicSortingInfo for usage in FillDisplayables.
 //     - IDEAS: On FillDisplayable generate more information, like ???
-
+//     - @FixCreateSortingInfo, is tag for stuff I can look at as well, which is not working properly.
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?
@@ -67,6 +67,7 @@
 // - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
 
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
+// - add 0 to playlist filename to make windows sorting more consistent
 
 #include "Sound_UI_TD.h"
 
@@ -168,7 +169,8 @@ void SyncPlaylists_playlist_column(music_info *MusicInfo);
 
 struct playlist_array
 {
-    // The ID for this List is the same for Names in sort_batch.
+    // The ID for this List is the same for Names in sort_batch it is also called
+    // playlist ID, because it represents that as well.
     playlist_info *List;
     u32 Count;
     u32 MaxCount;

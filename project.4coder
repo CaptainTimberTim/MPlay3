@@ -22,10 +22,13 @@ load_paths = {
 commands = {
  .build = { .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
    .win = "build.bat", },
+ .buildOptimized = { .out = "*compilation optimized*", .footer_panel = true, .save_dirty_files = true,
+   .win = "buildOptimized.bat", },
  .run = { .out = "*run*", .footer_panel = false, .save_dirty_files = false,
    .win = ".\\build\\MPlay3.exe", }
 };
 fkey_command = {
 .F1 = "build",
-.F2 = "run",
+.F2 = "buildOptimized",
+.F4 = "run",
 };

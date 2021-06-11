@@ -435,10 +435,10 @@ AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath)
         
         if(CheckMusicPath->MP3Info == NULL)
         {
-            CreateFileInfoStruct(&CheckMusicPath->TestInfo, 15);
+            CreateFileInfoStruct(&CheckMusicPath->TestInfo, 150);
             CheckMusicPath->MP3Info        = GlobalGameState.MP3Info;
-            CheckMusicPath->RemoveIDs      = CreateArray(&GlobalGameState.JobThreadsArena, 15);
-            CheckMusicPath->AddTestInfoIDs = CreateArray(&GlobalGameState.JobThreadsArena, 15);
+            CheckMusicPath->RemoveIDs      = CreateArray(&GlobalGameState.JobThreadsArena, 150);
+            CheckMusicPath->AddTestInfoIDs = CreateArray(&GlobalGameState.JobThreadsArena, 150);
         }
         
         AddJobToQueue(&GlobalGameState.JobQueue, JobCheckMusicPathChanged, CheckMusicPath);

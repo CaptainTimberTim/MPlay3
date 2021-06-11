@@ -15,13 +15,13 @@ NewButton(renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
     Result->HoverColor = HoverColor;
     Result->IsToggle = IsToggle;
     
-    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, IconPath);
+    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, IconPath);
     Result->Icon->ID->Color = IconColor;
     
     if(IsToggle)
     {
         Assert(ToggleIconPath);
-        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, ToggleIconPath);
+        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, ToggleIconPath);
         Result->ToggleIcon->ID->Render = false;
         Result->ToggleIcon->ID->Color = IconColor;
     }
@@ -44,13 +44,13 @@ NewButton(renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle,
     Result->HoverColor = HoverColor;
     Result->IsToggle = IsToggle;
     
-    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, IconBitmapID);
+    Result->Icon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, IconBitmapID);
     Result->Icon->ID->Color = IconColor;
     
     if(IsToggle)
     {
         Assert(ToggleIconBitmapID >= 0);
-        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.0000001f, Result->Entry, ToggleIconBitmapID);
+        Result->ToggleIcon = CreateRenderBitmap(Renderer, Rect, Depth-0.000001f, Result->Entry, ToggleIconBitmapID);
         Result->ToggleIcon->ID->Render = false;
         Result->ToggleIcon->ID->Color = IconColor;
     }
@@ -79,6 +79,8 @@ ToggleButtonVisuals(button *Button, b32 ToggleOn)
 internal void
 ButtonTestMouseInteraction(renderer *Renderer, input_info *Input, button *Button)
 {
+    if(Button->IsDisabled) return;
+    
     b32 MouseInsideButton = false;
     MouseInsideButton = IsInRect(Button->Entry, Input->MouseP);
     
@@ -178,7 +180,8 @@ UpdateButtons(renderer *Renderer, input_info *Input)
 {
     For(Renderer->ButtonGroup.Count)
     {
-        if(Renderer->ButtonGroup.Buttons[It].Entry->ID->Render) 
+        if(Renderer->ButtonGroup.Buttons[It].Entry->ID->Render &&
+           !Renderer->ButtonGroup.Buttons[It].IsDisabled) 
             ButtonTestMouseInteraction(Renderer, Input,
                                        Renderer->ButtonGroup.Buttons+It);
     }
@@ -198,11 +201,25 @@ IsOnButton(button *Button, v2 Position)
 }
 
 inline void
+SetDisabled(button *Button, b32 Disable, v3 *Color)
+{
+    SetColor(Button->Icon, Color);
+    Button->IsDisabled = Disable;
+}
+
+inline void
 SetActive(button *Button, b32 SetActive)
 {
     Button->Entry->ID->Render = SetActive;
     Button->Icon->ID->Render = SetActive;
     if(Button->ToggleIcon) Button->ToggleIcon->ID->Render = SetActive;
+}
+
+inline void
+ResetBtnState(button *Button)
+{
+    Button->State            = buttonState_Unpressed;
+    Button->Entry->ID->Color = Button->BaseColor;
 }
 
 inline void
@@ -249,9 +266,10 @@ AddDragable(drag_list *DragList, entry_id *Entry,
     DragList->OnDragEnd[DragList->Count++] = OnDragEnd;
 }
 
-inline void
+inline b32
 OnDraggingStart(drag_list *DragableList, renderer *Renderer, v2 MouseP)
 {
+    b32 Result = false;
     For(DragableList->Count)
     {
         if(!DragableList->Dragables[It]->ID->Render) continue;
@@ -265,8 +283,11 @@ OnDraggingStart(drag_list *DragableList, renderer *Renderer, v2 MouseP)
                 DragableList->OnDragStart[It].Func(Renderer, AdjustedMouseP, DragableList->Dragables[It], 
                                                    DragableList->OnDragStart[It].Data);
             }
+            Result = true;
+            break;
         }
     }
+    return Result;
 }
 
 inline void
@@ -313,7 +334,7 @@ SetActiveAllButGiven(drag_list *DragList, entry_id *ID, b32 Activate)
 // Textfield stuff
 
 internal text_field
-CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor)
+CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor, font_size_id FontSize, u32 MaxStringLength)
 {
     text_field Result = {};
     
@@ -321,6 +342,7 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
     Result.Transparency = 0.25f;
     Result.ZValue    = ZValue;
     Result.NoText    = NewStaticStringCompound(EmptyFieldString);
+    Result.FontSize  = FontSize;
     
     Result.Background = CreateRenderRect(Renderer, Size, Result.ZValue, BGColor, Parent);
     Result.Background->ID->Render = false;
@@ -328,13 +350,29 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
                                         TextColor, Result.Background);
     SetLocalPosition(Result.LeftAlign, V2(-(Size.x-4)/2.0f, 0));
     
-    Result.Cursor = CreateRenderRect(Renderer, V2(2, 35), 
+    // @Layout
+    r32 CursorHeight = 0;
+    switch(FontSize) {
+        case font_Small: {
+            CursorHeight = GlobalGameState.Layout.FontSizeSmall;  
+            Result._FontOffset = V2(10, 4);
+        } break;
+        case font_Medium: {
+            CursorHeight = GlobalGameState.Layout.FontSizeMedium; 
+            Result._FontOffset = V2(12, 10);
+        } break;
+        case font_Big: {
+            CursorHeight = GlobalGameState.Layout.FontSizeBig;    
+            Result._FontOffset = V2(14, 14); // Untested!
+        } break;
+    }
+    Result.Cursor = CreateRenderRect(Renderer, V2(2, CursorHeight), 
                                      Result.ZValue-0.001f, Result.TextColor,
                                      Result.LeftAlign);
     SetLocalPosition(Result.Cursor, V2(4, 0));
     Result.Cursor->ID->Render = false;
     
-    Result.TextString = NewStringCompound(Arena, 255);
+    Result.TextString = NewStringCompound(Arena, MaxStringLength);
     Result.DoMouseHover = true;
     
     return Result;
@@ -355,6 +393,12 @@ SetActive(text_field *TextField, b32 MakeActive)
     SetActive(&TextField->Text, MakeActive);
 }
 
+inline void 
+SetParent(text_field *TextField, entry_id *Parent)
+{
+    SetParent(TextField->Background, Parent);
+}
+
 inline void
 UpdateTextField(renderer *Renderer, text_field *TextField)
 {
@@ -363,18 +407,18 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
     
     RemoveRenderText(Renderer, &TextField->Text);
     
-    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &TextField->TextString, 
+    RenderText(&GlobalGameState, TextField->FontSize, &TextField->TextString, 
                TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
-    Translate(&TextField->Text, V2(12, 10));
-    SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0));
+    Translate(&TextField->Text, TextField->_FontOffset);
+    SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0)); // @Layout
     
     if(TextField->TextString.Pos == 0)
     {
         RemoveRenderText(Renderer, &TextField->Text);
-        RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &TextField->NoText, 
+        RenderText(&GlobalGameState, TextField->FontSize, &TextField->NoText, 
                    TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
         SetTransparency(&TextField->Text, TextField->Transparency);
-        Translate(&TextField->Text, V2(12, 10));
+        Translate(&TextField->Text, TextField->_FontOffset);
     }
 }
 
@@ -629,23 +673,30 @@ CreateSlider(slider *Result, renderer *Renderer, v2 BGSize, v2 GrabSize, r32 Dep
 
 
 // Quit curtain ************************
-
 internal void
-CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime)
+CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, font_size_id FontSize, string_c *BonusText, r32 Depth)
 {
     renderer *Renderer = &GlobalGameState.Renderer;
     music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
     
-    Result->Curtain = CreateRenderRect(Renderer, Size, -0.99f, &DisplayInfo->ColorPalette.SliderGrabThing);
+    Result->Curtain = CreateRenderRect(Renderer, Size, Depth, &DisplayInfo->ColorPalette.SliderGrabThing);
     Translate(Result->Curtain, Size/2.0f);
     SetActive(Result->Curtain, false);
     Result->dAnim = 0;
     Result->Time = AnimationTime;
     
-    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Big, ClosingText, &DisplayInfo->ColorPalette.Text, 
-               &Result->Text, -0.995f, 0);
+    RenderText(&GlobalGameState, FontSize, ClosingText, &DisplayInfo->ColorPalette.Text, 
+               &Result->Text, Depth-0.0001f, 0);
     SetPosition(&Result->Text, Size/2.0f);
     SetActive(&Result->Text, false);
+    
+    if(BonusText)
+    {
+        RenderText(&GlobalGameState, font_Small, BonusText, &DisplayInfo->ColorPalette.Text, 
+                   &Result->BonusText, Depth-0.0001f, 0);
+        SetPosition(&Result->BonusText, V2(0, Size.y - 45));
+        SetActive(&Result->BonusText, false);
+    }
     
     Result->LastEscapePressTime = -10;
 }
@@ -656,6 +707,7 @@ SetActive(quit_animation *Quit, b32 Activate)
     Quit->AnimationStart = Activate;
     SetActive(Quit->Curtain, Activate);
     SetActive(&Quit->Text, Activate);
+    if(Quit->BonusText.MaxCount) SetActive(&Quit->BonusText, Activate);
 }
 
 internal b32
@@ -666,26 +718,38 @@ QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size)
     if(!Quit->AnimationStart) SetActive(Quit, true);
     
     time_management *Time = &GlobalGameState.Time;
-    if(Quit->dAnim >= 1.0f || Quit->dAnim < 0.0f)
+    // We have to check the direction as well, because it can happen
+    // that, for instance, dAnim was decreased and is < 0, therefore
+    // the next frame it would be set back in the 'if'. But before 
+    // that can happen the user start pressing the btn again and the 
+    // direction is changed. When we then trigger the 'if' we wrongfully 
+    // declare a finished animation for the new direction.
+    if((Quit->dAnim >= 1.0f && Dir > 0) || 
+       (Quit->dAnim <  0.0f && Dir < 0))
     {
         SetScale(Quit->Curtain, V2(1, 1));
         SetLocalPositionY(Quit->Curtain, Position.y);
-        Result = true;
         Quit->Activated = Quit->dAnim >= 1.0f;
         Quit->dAnim = 0.0f;
+        
+        Result = true;
     }
     else 
     {
         Quit->dAnim += Time->dTime/Quit->Time * Dir;
-        
-        r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
-        SetSize(Quit->Curtain, V2(Size.x, Size.y*NewYScale));
-        
-        r32 CurrentHeight = GetSize(Quit->Curtain).y/2.0f;
-        SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
-        SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
-        
-        SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
+        if(Quit->dAnim < 1.0f && Quit->dAnim >= 0.0f)
+        {
+            r32 NewYScale = GraphFirstQuickThenSlow(Quit->dAnim);
+            SetSize(Quit->Curtain, V2(Size.x, Size.y*NewYScale));
+            
+            r32 CurrentHeight = GetSize(Quit->Curtain).y/2.0f;
+            SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
+            SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
+            if(Quit->BonusText.MaxCount) 
+                SetPosition(&Quit->BonusText, V2(10, Position.y - CurrentHeight*2 + 20));
+            
+            SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
+        }
     }
     
     return Result;
@@ -756,9 +820,9 @@ CreatePopup(renderer *Renderer, arena_allocator *Arena, popup *Result, string_c 
     Result->Anchor = CreateRenderRect(Renderer, V2(0,0), Depth, 0);
     SetActive(Result->Anchor, false);
     
-    RenderText(&GlobalGameState, Arena, FontSize, &Text, &Renderer->ColorPalette->Text, &Result->Text, Depth-0.00001f, 0);
+    RenderText(&GlobalGameState, FontSize.ID, &Text, &Renderer->ColorPalette->Text, &Result->Text, Depth-0.00001f, 0);
     
-    v2 Size = {Result->Text.CurrentP.x - GetPosition(Result->Text.Base).x, FontSizeToPixel(FontSize)};
+    v2 Size = {Result->Text.CurrentP.x - GetPosition(Result->Text.Base).x, FontSize.Size};
     Result->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth, &Renderer->ColorPalette->SliderGrabThing, Result->Anchor);
     SetLocalPosition(Result->BG, V2(Size.x + 40, -Size.y)/2.0f);
     
@@ -779,10 +843,11 @@ ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c Ne
     b32 TextActive = IsActive(Popup->Text.Base);
     r32 Depth = Popup->Text.Base->ID->Vertice[0].z;
     RemoveRenderText(Renderer, &Popup->Text);
-    RenderText(&GlobalGameState, Arena, FontSize, &NewText, &Renderer->ColorPalette->Text, &Popup->Text, Depth, 0);
+    RenderText(&GlobalGameState, FontSize.ID, &NewText, &Renderer->ColorPalette->Text, &Popup->Text, Depth, 0);
     
-    v2 Size = {Popup->Text.CurrentP.x - GetPosition(Popup->Text.Base).x, FontSizeToPixel(FontSize)};
+    v2 Size = {Popup->Text.CurrentP.x - GetPosition(Popup->Text.Base).x, FontSize.Size};
     RemoveRenderEntry(Renderer, Popup->BG);
+    // @Layout
     Popup->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth+0.00001f, 
                                  &Renderer->ColorPalette->SliderGrabThing, Popup->Anchor);
     SetLocalPosition(Popup->BG, V2(Size.x + 40, -Size.y)/2.0f);

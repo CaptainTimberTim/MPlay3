@@ -22,4 +22,8 @@
 ../data/ButtonsExactSize/Minus_Icon.png
 ../data/ButtonsExactSize/Save_Icon.png
 ../data/ButtonsExactSize/Search_Icon.png
+../data/ButtonsExactSize/Playlist_Add_Icon.png
+../data/ButtonsExactSize/Playlist_AddSelection_Icon.png
+../data/ButtonsExactSize/Playlist_Remove_Icon.png
+../data/ButtonsExactSize/Playlist_Rename_Icon.png
 ../data/Fonts/carmini.ttf

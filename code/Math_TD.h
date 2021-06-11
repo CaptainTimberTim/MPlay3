@@ -17,6 +17,8 @@
 #define MIN_REAL64 -1.7E+308
 #define MAX_REAL64 1.7E+308
 
+#define MAX_UINT64 18446744073709551615
+
 // Struct defines ******************
 
 union v2
@@ -175,7 +177,7 @@ inline void MathPrintln(ray R);
 
 inline i32 Abs(i32 Value);
 inline r32 Abs(r32 Value);
-inline r32 Pow(r32 Base, i32 Exponent);
+inline r32 Pow(r32 Base, r32 Exponent);
 inline void Clamp(i32 *Value, i32 Minimum, i32 Maximum);
 inline void Clamp(r32 *Value, r32 Minimum, r32 Maximum);
 inline r32  Clamp(r32 Value, r32 Minimum, r32 Maximum);
@@ -198,12 +200,15 @@ inline r32 DegToRad(r32 Degree);
 inline r32 RadToDeg(r32 Radian);
 inline r32 Lerp(r32 A, r32 B, r32 T);
 inline r32 Lerp(i32 A, i32 B, r32 T);
+inline r32 Log(r32 x);
+inline r32 GraphFirstQuickThenSlow(r32 x);
 inline i32 Max(i32 A, i32 B);
 inline r32 Max(r32 A, r32 B);
 inline u32 Max(u32 A, u32 B);
 inline u64 Max(u64 A, u64 B);
 inline i32 Min(i32 A, i32 B);
 inline u32 Min(u32 A, u32 B);
+inline u64 Min(u64 A, u64 B);
 inline r32 Min(r32 A, r32 B);
 inline r32 Mod(r32 V, r32 M);
 inline r64 Mod(r64 V, r64 M);
@@ -237,6 +242,7 @@ inline r32 Length(v2 A);
 inline r32 Distance(v2 A, v2 B);
 inline v2 Normalize(v2 A);
 inline v2 HadamardProduct(v2 A, v2 B);
+inline v2 Scale(v2 A, v2 B);
 inline v2 HadamardDivision(v2 A, v2 B);
 
 // 2D integer Vectors

@@ -9,86 +9,85 @@
 // - think about selecting all entries that are visible when pressing enter during search
 // - if song selected, pressing the big play should start it?
 // - Think about if search in song column should work differently, or search through Title/artist/album
+// - loading metadata could be "interactive" and all songs already loaded be available already?
+// - adjust many sizes, text for example is too big imo. Which happened because of the bad rendering, which is now fixed.
 
-// TODO::
+// List of Tags to search for in the code:
+// - TODO::    , Stuff where I want to go and make something better later/clean it up/make it more save/etc.
+// - @HardLimit, is a label where I set a hard limit, the user could exceed and needs to be dealt with.
+// - @Slow     , is a label where I think it's unnecessary slow.
+// - @Layout   , where the Layout struct should hold the magic values.
 //
 // - generate huge amount of fake mp3 files and test with those!
-// - sub-pixel accuracy? 
-// - Solidify playlists
-//      - show current playlist button
-// - if glyphs not existing for font, use a backup font?
-//      - fix all the non-ascii problems...
-// - think about doing more than just a quad for text?
-// - still hardcapped at 10k mp3 files
+// - still hardcapped at 10k mp3 files - Fixed, TEST?!
 // - go through and remove all unnecassary gamestate/renderer/info juggling
 // - Switch openGL to directX?
-// - Add key shortcut button
-// - properly round for song panel time and slider
-// - fix track number alignment for 100th
 
 // - remove all GlobalGameState references from UI.c
 // - redraw only when necessary!
 //      - stop rendering when no user input and no song is playing
 // - stop always jumping the column to the start on i.e. search end
 // - color picker pops into original center. should at least be current center.
-
+// - UpNextList is limited to 200
 
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...
 // - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
-// - maybe have the icons in the exact size we use them...
-// - two color palettes get created when coying one.
 
+// - On large files when preload is not enough, it _seldom_crashes when using the already decoded data...
 // - MP3 V0 crashes?
+// - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
+// - selecting and deselecting stuff (in combination with search) is buggy.
+
+// - If a render text needs to switch fonts insider their own text, it should restart with that new font for consistency?
+//      - Or check beforehand and then start with the other font.
+// - Cleanup all the StringCompound procedures... Their names are sooo stupidly long..
+// - Cleanup of FillDisplayables. Or at least find out what exactly I am doing and comment that!?
+// - Sort out depth everywhere in the application
+// - Fix stutter on first play of song.
+// - Make it possible to close colorpicker with the colorpicker button
+// - Add a on_screen_id for tha visuals, to have typechecking on it! (like displayable_id, etc.).
+// - glScissor is the keyword for cutting of text after column!
+// - Print user error when save files could not be correctly loaded.
+// - Replace for-loop copies with MemoryCopy
+// - Fill displayables, when album is selected, is very slow. Because we don't know which Artist has the album
+//   which we are looking at. If we would also cache this information in CreateMusicSortingInfo this wouldn't be a problem.
+
+// - Due to the last changes, especially because of the playlist stuff, things start to get slow when we handle
+//   Selected/Displayable arrays. Is it time to think about a bit better solution than just blank ID's? Or should
+//   we do smaller stuff (like switch selected array from playlist_ids to displayable_ids) that help the performance.
+//   Another 'small' thing would be to cache more information in CreateMusicSortingInfo for usage in FillDisplayables.
+//     - IDEAS: On FillDisplayable generate more information, like ???
+//     - @FixCreateSortingInfo, is tag for stuff I can look at as well, which is not working properly.
+
+// PLAYLIST:
+// - make dragged song slot small like the other columns, after it is ripped off?
+// - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
+// - Add drag&drop for sorting playlist slots?
+// - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
+
+// - InitialDisplayable count for playlist is capped to 250, should be expandable.
+// - add 0 to playlist filename to make windows sorting more consistent
 
 #include "Sound_UI_TD.h"
 
-global_variable string_c LIBRARY_FILE_NAME = NewStaticStringCompound("MPlay3Library.save");
-global_variable u32 CURRENT_LIBRARY_VERSION = 3;
-
-enum column_type
+struct column_info
 {
-    columnType_None,
-    columnType_Song,
-    columnType_Genre,
+    struct renderer             *Renderer;
+    struct music_display_info   *DisplayInfo;
+    struct music_info           *MusicInfo;
+    struct display_column       *DisplayColumn;
+    struct playlist_column      *PlaylistColumn;
+};
+
+enum column_type // Is used to index arrays!
+{
+    columnType_Genre = 0,
     columnType_Artist,
     columnType_Album,
-};
-
-struct sort_batch
-{
-    // These arrays contain the id for the other columns respectively
-    array_batch_id *Genre; 
-    array_batch_id *Artist;
-    array_batch_id *Album;
-    array_file_id  *Song;
-    
-    string_c       *Names; // ::BATCH_ID
-    u32 BatchCount;
-    u32 MaxBatches;
-}; 
-
-struct column_sorting_info
-{
-    struct music_sorting_info *Base;
-    sort_batch Batch;
-    array_file_id Selected; // stores _FileIDs_ for song column and sortBatchIDs for the rest!
-    array_file_id Displayable; // ::DISPLAYABLE_ID,  stores _FileIDs_ for song column and sortBatchIDs for the rest!
-};
-
-struct music_sorting_info
-{
-    column_sorting_info Genre;
-    column_sorting_info Artist;
-    column_sorting_info Album;
-    column_sorting_info Song;
-};
-
-struct song_sort_info
-{
-    u32 GenreBatchID;
-    u32 ArtistBatchID;
-    u32 AlbumBatchID;
+    columnType_Song,
+    columnType_Playlists,
+    columnType_None,
 };
 
 enum play_loop
@@ -98,20 +97,92 @@ enum play_loop
     playLoop_Repeat
 };
 
+struct song_sort_info
+{
+    u32 GenreBatchID;
+    u32 ArtistBatchID;
+    u32 AlbumBatchID;
+};
+
+#define PLAYLIST_MAX_NAME_LENGTH 100
+struct sort_batch
+{
+    // These arrays of arrays contain the id for the other columns respectively.
+    // Example for ArtistSortBatch: Band AC/DC is the first entry in Names, index 0. 
+    // The genre array with index 0 contains all genres which AC/DC had in their 
+    // metadata (i.e. heavy metal). The Artist array is empty, as the sort_batch
+    // itself is for artists. Album contains all of their albums at index 0 and
+    // finally, Song contains all songs. The entries in these arrays are all indexes
+    // for the corresponding other batch. Genre contains indexes to the "Names" field
+    // in the Genre sort_batch, and so forth.
+    array_batch_id   *Genre; 
+    array_batch_id  *Artist;
+    array_batch_id   *Album;
+    array_playlist_id *Song;
+    
+    string_c         *Names; // ::BATCH_ID
+    u32 BatchCount;
+    u32 MaxBatches;
+}; 
+
+struct playlist_column
+{
+    column_type   Type;
+    array_playlist_id Selected;    // stores playlist for song column and sortBatchIDs for the rest!
+    array_playlist_id Displayable; // ::DISPLAYABLE_ID,  stores _PlaylistIDs_ for song column and sortBatchIDs for the rest!
+    
+    union {
+        sort_batch Batch;      // Used for Genre, Artist, Album, Playlists column_types.
+        array_file_id FileIDs; // ::FILE_ID Used for Song column_type/Acces this with any playlist_id to get to mp3_file_info.
+    };
+};
+
+inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, displayable_id ID);
+inline struct mp3_metadata *GetMetadata(playlist_column *SongColumn, mp3_file_info *FileInfo, playlist_id ID);
+inline string_c *           GetSongFileName(playlist_column *SongColumn, mp3_file_info *FileInfo, playlist_id FileID);
+
+struct playlist_info
+{
+    union {
+        struct {
+            playlist_column Genre;
+            playlist_column Artist;
+            playlist_column Album;
+            playlist_column Song;
+            // That the playlist information is part of playlist_info is hacky, 
+            // but it allows using all the display column stuff, which we want.
+            // The biggest drawback for now is, that each new playlist has a
+            // _copy_ of this Playlists, which needs to be the same for all.
+            // That means we need to keep all playlists in sync. with each other, 
+            // which is only keeping the .Counts updated, as all memory pointers
+            // point to the same location (so it is not as bad).
+            // This is done with the procedure "SyncPlaylists_playlist_column".
+            playlist_column Playlists;
+        };
+        playlist_column Columns[5];
+    };
+    string_c Filename_;
+    u64 FileCreationDate; // Used for checking if we have a name duplicate on saving the PL.
+};
+internal playlist_info *CreateEmptyPlaylist(arena_allocator *Arena, music_info *MusicInfo, i32 SongIDCount = -1, i32 GenreBatchCount = -1, i32 ArtistBatchCount = -1, i32 AlbumBatchCount = -1);
+void SyncPlaylists_playlist_column(music_info *MusicInfo);
+
+struct playlist_array
+{
+    // The ID for this List is the same for Names in sort_batch it is also called
+    // playlist ID, because it represents that as well.
+    playlist_info *List;
+    u32 Count;
+    u32 MaxCount;
+};
+
 struct playing_song
 {
+    displayable_id DisplayableID;
     playlist_id PlaylistID;
-    file_id FileID;
     i32 DecodeID;
     
     b32 PlayUpNext; // should only be set in SetNextSong/and OnSongPlayPressed
-};
-
-struct play_list // TODO::PLAYLIST_DISPLAYABLE -> everywhere were this is used as the same thing
-{
-    array_file_id Songs;
-    array_file_id UpNext;
-    array_file_id Previous;
 };
 
 struct music_info
@@ -120,9 +191,11 @@ struct music_info
     play_loop Looping;
     b32 IsPlaying;
     
-    play_list Playlist;  // ::PLAYLIST_ID
+    array_playlist_id UpNextList;
     
-    music_sorting_info SortingInfo;
+    playlist_info *Playlist_; // Actual playlist. This can be switched out.
+    playlist_array Playlists;
+    
     music_display_info DisplayInfo;
     
     playing_song PlayingSong;
@@ -136,18 +209,19 @@ struct scroll_load_info
     b32 LoadFinished;
 };
 
-#define MAX_MP3_INFO_COUNT 10000
+#define MAX_MP3_INFO_COUNT 1000
+#define MAX_MP3_INFO_STEP 1000
 #define MAX_MP3_DECODE_COUNT 50
 #define DECODE_PRELOAD_SECONDS 5
 
 enum metadata_flags
 {
-    metadata_Title  = 1<<0,
-    metadata_Artist = 1<<1,
-    metadata_Album  = 1<<2,
-    metadata_Genre  = 1<<3,
-    metadata_Track  = 1<<4,
-    metadata_Year   = 1<<5,
+    metadata_Title    = 1<<0,
+    metadata_Artist   = 1<<1,
+    metadata_Album    = 1<<2,
+    metadata_Genre    = 1<<3,
+    metadata_Track    = 1<<4,
+    metadata_Year     = 1<<5,
     metadata_Duration = 1<<6,
 };
 
@@ -162,17 +236,17 @@ struct mp3_metadata
     u32 Year;
     string_compound YearString;
     u32 Duration;
-    string_compound DurationString;
     i32 FoundFlags;
 };
 
-struct mp3_file_info //::FILE_ID
+struct mp3_file_info //::MAPPED FILE_ID
 {
-    string_c     *FileName;
+    string_c     *FileNames_;
     string_c     *SubPath;
     mp3_metadata *Metadata;
-    u32 Count;
-    u32 MaxCount;
+    // NoHash:: u32          *Hashes;  // Hashes for specific file identification.
+    u32 Count_;
+    u32 MaxCount_;
 };
 
 struct playing_decoded
@@ -188,7 +262,7 @@ struct mp3_decode_info
     b32 volatile CancelDecoding; // Exclusively written in main thread.
     
     mp3dec_file_info_t DecodedData[MAX_MP3_DECODE_COUNT];
-    array_file_id FileID; // size: MAX_MP3_DECODE_COUNT
+    array_file_id FileIDs; // size: MAX_MP3_DECODE_COUNT
     u32 Count;
     
     b32 volatile CurrentlyDecoding[MAX_MP3_DECODE_COUNT];
@@ -207,9 +281,10 @@ struct mp3_info
 
 internal void ChangeSong(game_state *GameState, playing_song *Song);
 
-inline displayable_id FileIDToColumnDisplayID(music_display_column *DisplayColumn, file_id FileID);
+inline displayable_id PlaylistIDToColumnDisplayID(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID);
 internal b32  IsHigherInAlphabet(i32 T1, i32 T2, void *Data);
 internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath);
 
-
+internal void CreatePlaylistsSortingInfo(playlist_column *Playlists);
+internal void SwitchPlaylistFromDisplayID(display_column *DisplayColumn, u32 ColumnDisplayID);
 

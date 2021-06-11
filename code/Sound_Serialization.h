@@ -2,10 +2,13 @@
 #ifndef _SOUND__SERIALIZATION_H
 #define _SOUND__SERIALIZATION_H
 
-global_variable string_c SETTINGS_FILE_NAME NewStaticStringCompound("MPlay3Settings.save");
+global_variable string_c SETTINGS_FILE_NAME  = NewStaticStringCompound("MPlay3Settings.save");
+global_variable string_c LIBRARY_FILE_NAME   = NewStaticStringCompound("MPlay3Library.save");
+global_variable string_c PLAYLIST_FILE_NAME  = NewStaticStringCompound("MPlay3Playlist_"); // Gets build in SavePlaylist
 
-#define LIBRARY_CURRENT_VERSION 3
-#define SETTINGS_CURRENT_VERSION 6
+#define SETTINGS_CURRENT_VERSION 7
+#define  LIBRARY_CURRENT_VERSION 3
+#define PLAYLIST_CURRENT_VERSION 0
 struct settings
 {
     string_c FontPath = {0, 0, 0}; // Only for users at this point.
@@ -13,14 +16,16 @@ struct settings
     r32 Volume = 0.5f;
     file_id PlayingSongID = {-1};
     u32 ColorPaletteID = 4;
-    r32 GenreArtistEdgeXPercent = -1.0f;
-    r32 ArtistAlbumEdgeXPercent = -1.0f;
-    r32 AlbumSongEdgeXPercent = -1.0f;
-    i32 WindowDimX = 1416;
-    i32 WindowDimY = 1039;
+    r32 PlaylistsGenreEdgeXPercent = -1.0f;
+    r32 GenreArtistEdgeXPercent    = -1.0f;
+    r32 ArtistAlbumEdgeXPercent    = -1.0f;
+    r32 AlbumSongEdgeXPercent      = -1.0f;
+    i32 WindowDimX = 0;
+    i32 WindowDimY = 0;
     b32 Looping = false;
     b32 Shuffle = false;
     i32 FontHeightOffset = 0;
+    string_c ActivePlaylist;
     
     font_name_list *CachedFontNames;
     

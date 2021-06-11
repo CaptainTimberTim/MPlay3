@@ -55,6 +55,7 @@ inline v2i GetWindowSize();
 #include "GL_TD.c"
 #include "Font_TD.c"
 #include "Renderer_TD.c"
+#include "ErrorHandling_TD.c"
 
 global_variable game_state GlobalGameState;
 global_variable i32 GlobalMinWindowWidth  = 344;
@@ -79,19 +80,19 @@ WindowGotResized(game_state *GameState)
     {
         renderer *Renderer = &GameState->Renderer;
         music_display_info *DisplayInfo = &GameState->MusicInfo.DisplayInfo;
-        music_sorting_info *SortingInfo = &GameState->MusicInfo.SortingInfo;
         
         PerformScreenTransform(Renderer);
         ProcessEdgeDragOnResize(Renderer, DisplayInfo);
         
-        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Genre, &DisplayInfo->Genre);
-        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Artist, &DisplayInfo->Artist);
-        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
-        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &SortingInfo->Song, &DisplayInfo->Song.Base);
+        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Playlists);
+        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Genre);
+        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Artist);
+        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Album);
+        ProcessWindowResizeForDisplayColumn(Renderer, &GlobalGameState.MusicInfo, &DisplayInfo->Song.Base);
         
         SetActive(&DisplayInfo->Quit, false);
         DisplayInfo->Quit.dAnim = 0;
-        AnimateErrorMessage(&DisplayInfo->UserErrorText, 0);
+        AnimateErrorMessage(Renderer, &GameState->UserErrorText, 0);
         
         Renderer->Window.GotResized = false;
     }
@@ -201,7 +202,7 @@ WindowCallback(HWND Window,
             quit_animation *Quit = &GlobalGameState.MusicInfo.DisplayInfo.Quit;
             SetActive(Quit, true);
             Quit->WindowExit = true;
-            Quit->Time /= 2;
+            Quit->Time *= 1.0f/GlobalGameState.Layout.QuitCurtainAnimationMultiplies;
         } break;
         case WM_ACTIVATEAPP: {} break;
         case WM_SYSKEYDOWN:
@@ -436,6 +437,7 @@ RetrieveAndSetDataPaths(game_state *GameState)
             string_c DataPath = NewStringCompound(&GameState->ScratchArena, AppdataPath.Pos+MPlay3Folder.Pos);
             ConcatStringCompounds(3, &DataPath, &AppdataPath, &MPlay3Folder);
             
+            // Settings path
             NewLocalString(SettingsPath, MAX_PATH, DataPath.S);
             AppendStringCompoundToCompound(&SettingsPath, &SETTINGS_FILE_NAME);
             read_file_result R = {};
@@ -445,12 +447,24 @@ RetrieveAndSetDataPaths(game_state *GameState)
                 AppendStringCompoundToCompound(&GameState->SettingsPath, &SettingsPath);
             }
             
+            // Library path
             NewLocalString(LibraryPath, MAX_PATH, DataPath.S);
             AppendStringCompoundToCompound(&LibraryPath, &LIBRARY_FILE_NAME);
+            b32 FoundLibAtAppData = false;
             if(ReadBeginningOfFile(&GameState->ScratchArena, &R, LibraryPath.S, 1))
             {
                 GameState->LibraryPath = NewStringCompound(&GameState->FixArena, LibraryPath.Pos);
                 AppendStringCompoundToCompound(&GameState->LibraryPath, &LibraryPath);
+                FoundLibAtAppData = true;
+            }
+            
+            // PlaylistPath, this will only be to %APPDATA%/MPlay3Data if the library file is also there.
+            if(FoundLibAtAppData)
+            {
+                NewLocalString(PlaylistPath, MAX_PATH, DataPath.S);
+                AppendStringCompoundToCompound(&PlaylistPath, &PLAYLIST_FILE_NAME);
+                GameState->PlaylistPath = NewStringCompound(&GameState->FixArena, PlaylistPath.Pos);
+                AppendStringCompoundToCompound(&GameState->PlaylistPath, &PlaylistPath);
             }
         }
     }
@@ -459,6 +473,7 @@ RetrieveAndSetDataPaths(game_state *GameState)
     // If still 0 length, we put it in the local folder, aka just using the name.
     if(GameState->SettingsPath.Pos == 0) GameState->SettingsPath = SETTINGS_FILE_NAME;
     if(GameState->LibraryPath.Pos == 0)  GameState->LibraryPath  = LIBRARY_FILE_NAME;
+    if(GameState->PlaylistPath.Pos == 0) GameState->PlaylistPath = PLAYLIST_FILE_NAME;
 }
 
 inline b32
@@ -519,7 +534,8 @@ WinMain(HINSTANCE Instance,
         LONGLONG PrevCycleCount = GetWallClock();
         LONGLONG FlipWallClock  = GetWallClock();
         
-        timer StartupTimer = StartTimer();
+        InitTimers();
+        StartTimer("Initialization");
         
         SetRandomSeed(FlipWallClock);
         
@@ -529,11 +545,12 @@ WinMain(HINSTANCE Instance,
         GameState->JobThreadsArena.Flags = arenaFlags_IsThreaded;
         
         // NOTE:: Loading Settings file
+        layout_definition *Layout = &GameState->Layout;
         RetrieveAndSetDataPaths(GameState);
         GameState->Settings = TryLoadSettingsFile(GameState);
         
-        u32 InitialWindowWidth  = GameState->Settings.WindowDimX;//1416;
-        u32 InitialWindowHeight = GameState->Settings.WindowDimY;//1039;
+        u32 InitialWindowWidth  = GameState->Settings.WindowDimX;
+        u32 InitialWindowHeight = GameState->Settings.WindowDimY;
         HWND Window = CreateWindowExW(0, WindowClass.lpszClassName, L"MPlay3", 
                                       WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, 
                                       CW_USEDEFAULT, InitialWindowWidth, -1, 
@@ -548,6 +565,8 @@ WinMain(HINSTANCE Instance,
             AddHotKey(Window, Input, KEY_STOP);
             AddHotKey(Window, Input, KEY_NEXT);
             AddHotKey(Window, Input, KEY_PREVIOUS);
+            
+            
             // ********************************************
             // Threading***********************************
             // ********************************************
@@ -570,30 +589,36 @@ WinMain(HINSTANCE Instance,
             
             InitializeSoundThread(&SoundThreadData, ProcessSound, &SoundThreadInfo);
             
-            // Initializing sound
-            //sound_info SoundInfo = {};
-            
-            
+            // Preparing base structs
+            PrepareGenreTypesList();
             renderer *Renderer = &GameState->Renderer;
             *Renderer = InitializeRenderer(GameState, Window);
             
             ReshapeGLWindow(&GameState->Renderer);
             b32 *ReRender = &Renderer->Rerender;
             
-            // Preparing base structs
-            music_info *MusicInfo = &GameState->MusicInfo;
+            music_info *MusicInfo     = &GameState->MusicInfo;
+            MusicInfo->Playlists      = CreatePlaylistList(&GameState->FixArena, 20);
             playing_song *PlayingSong = &MusicInfo->PlayingSong;
             *PlayingSong = {-1, -1, -1};
             mp3_info *MP3Info = 0;
             
+            
+            // User error text *************************************
+            user_error_text *UserErrorText = &GameState->UserErrorText;
+            UserErrorText->AnimTime        = Layout->ErrorTextAnimationTime;
+            UserErrorText->dAnim           = 1.0f;
+            
             // Preparing arguments for loading files
             b32 LoadedLibraryFile = false;
             u32 FileInfoCount = 0;
-            if(ConfirmLibraryWithCorrectVersionExists(GameState, CURRENT_LIBRARY_VERSION, &FileInfoCount) && 
+            if(ConfirmLibraryWithCorrectVersionExists(GameState, LIBRARY_CURRENT_VERSION, &FileInfoCount) && 
                ConfirmLibraryMusicPathExists(GameState))
             {
                 MP3Info = CreateMP3InfoStruct(&GameState->FixArena, FileInfoCount);
+                StartTimer("Load library file");
                 LoadMP3LibraryFile(GameState, MP3Info);
+                SnapTimer("Load library file");
                 LoadedLibraryFile = true;
             }
             else
@@ -604,26 +629,28 @@ WinMain(HINSTANCE Instance,
             GameState->MP3Info = MP3Info;
             MP3Info->MusicInfo = &GameState->MusicInfo;
             
-            MusicInfo->Playlist.Songs.A  = CreateArray(&GameState->FixArena, MP3Info->FileInfo.Count+200);
-            MusicInfo->Playlist.UpNext.A = CreateArray(&GameState->FixArena, 200);
+            MusicInfo->UpNextList.A = CreateArray(&GameState->FixArena, 200);
             
-            music_sorting_info *SortingInfo = &MusicInfo->SortingInfo;
-            CreateMusicSortingInfo();
-            FillDisplayables(SortingInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
-            if(LoadedLibraryFile) SortDisplayables(SortingInfo, &MP3Info->FileInfo);
-            UseDisplayableAsPlaylist(MusicInfo);
+            
+            CreateMusicSortingInfo(MusicInfo->Playlists.List+0, true);
+            FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
+            if(LoadedLibraryFile) SortDisplayables(MusicInfo, &MP3Info->FileInfo);
+            UpdatePlayingSong(MusicInfo);
+            
+            LoadAllPlaylists(GameState);
             
             // ********************************************
             // FONT stuff *********************************
             // ********************************************
             GetDefaultFontDir(&GameState->FixArena, &GameState->FontPath);
-            r32 FontSizes[] = {
-                FontSizeToPixel(font_Small),
-                FontSizeToPixel(font_Medium),
-                FontSizeToPixel(font_Big),
+            font_sizes FontSizes = {{
+                    {font_Small,  Layout->FontSizeSmall}, 
+                    {font_Medium, Layout->FontSizeMedium}, 
+                    {font_Big,    Layout->FontSizeBig}}, 3
             };
+            
             u32 GroupCodepoints[] = {0x00};//, 0x80};
-            Renderer->FontAtlas = NewFontAtlas(&GameState->Settings, FontSizes, ArrayCount(FontSizes));
+            Renderer->FontAtlas = NewFontAtlas(&GameState->Settings, FontSizes);
             //FindAndPrintFontNameForEveryUnicodeGroup(&GameState->ScratchArena, GameState->FontPath);
             LoadFonts(&GameState->FixArena, &GameState->ScratchArena, &Renderer->FontAtlas,
                       (u8 *)GetUsedFontData(GameState).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
@@ -650,36 +677,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
             
             MusicInfo->DisplayInfo.MusicBtnInfo = {GameState, PlayingSong};
-            InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info);
+            InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info, Layout);
             music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
+            DisplayInfo->DragDrop = {};
             
-            r32 SlotHeight = 30;
-            r32 DisplayColumnStartY = DisplayInfo->EdgeTop->ID->Vertice[0].y;
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Genre, &SortingInfo->Genre,
-                                columnType_Genre, SlotHeight, -0.025f, DisplayInfo->EdgeLeft,
-                                DisplayInfo->GenreArtist.Edge, 28);
-            MoveDisplayColumn(Renderer, &DisplayInfo->Genre);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Genre, &DisplayInfo->Genre);
-            
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Artist, &SortingInfo->Artist,
-                                columnType_Artist, SlotHeight, -0.05f, DisplayInfo->GenreArtist.Edge,
-                                DisplayInfo->ArtistAlbum.Edge, 20);
-            MoveDisplayColumn(Renderer, &DisplayInfo->Artist);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Artist, &DisplayInfo->Artist);
-            
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, &DisplayInfo->Album, &SortingInfo->Album,
-                                columnType_Album, SlotHeight, -0.075f, DisplayInfo->ArtistAlbum.Edge,
-                                DisplayInfo->AlbumSong.Edge, 20);
-            MoveDisplayColumn(Renderer, &DisplayInfo->Album);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Album, &DisplayInfo->Album);
-            
-            CreateDisplayColumn(&GameState->FixArena, Renderer, DisplayInfo, Parent(&DisplayInfo->Song),
-                                &SortingInfo->Song, columnType_Song, 100.0f, -0.1f, DisplayInfo->AlbumSong.Edge,
-                                DisplayInfo->EdgeRight, 35);
-            MoveDisplayColumn(Renderer, &DisplayInfo->Song.Base);
-            ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &SortingInfo->Song, &DisplayInfo->Song.Base);
-            
-            //UpdateAllDisplayColumns(GameState);
             
             // ********************************************
             // Dragging************************************
@@ -688,23 +689,63 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             DragableList->DraggingID = -1;
             
             // Column edges
-            column_edge_drag EdgeGenreArtistDrag = {DisplayInfo->EdgeLeft, 40, DisplayInfo->ArtistAlbum.Edge, 30, 
-                &DisplayInfo->GenreArtist.XPercent, DisplayInfo, SortingInfo};
+            r32 BLeft   = GetExtends(DisplayInfo->EdgeLeft).x  + Layout->DragEdgeWidth/2 + Layout->VerticalSliderWidth;
+            r32 BRight  = GetExtends(DisplayInfo->EdgeRight).x + Layout->DragEdgeWidth/2 + Layout->VerticalSliderWidth;
+            r32 BMiddle = Layout->DragEdgeWidth + Layout->VerticalSliderWidth;
+            
+            column_edge_drag EdgePlaylistsGenreDrag = {};
+            EdgePlaylistsGenreDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {BLeft}, {}, 1};
+            EdgePlaylistsGenreDrag.RightEdgeChain = {
+                {DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
+                {BMiddle, BMiddle, BMiddle, BRight}, 
+                {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 4 
+            };
+            EdgePlaylistsGenreDrag.XPercent     = &DisplayInfo->PlaylistsGenre.XPercent;
+            EdgePlaylistsGenreDrag.MusicInfo    = MusicInfo;
+            AddDragable(DragableList, DisplayInfo->PlaylistsGenre.Edge, {}, 
+                        {OnDisplayColumnEdgeDrag, &EdgePlaylistsGenreDrag}, {});
+            
+            column_edge_drag EdgeGenreArtistDrag = {};
+            EdgeGenreArtistDrag.LeftEdgeChain  = {
+                {DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
+                {BLeft, BMiddle}, {&DisplayInfo->PlaylistsGenre.XPercent}, 2
+            };
+            EdgeGenreArtistDrag.RightEdgeChain = {
+                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
+                {BMiddle, BMiddle, BRight}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3
+            };
+            EdgeGenreArtistDrag.XPercent     = &DisplayInfo->GenreArtist.XPercent;
+            EdgeGenreArtistDrag.MusicInfo    = MusicInfo;
             AddDragable(DragableList, DisplayInfo->GenreArtist.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeGenreArtistDrag}, {});
             
-            column_edge_drag EdgeArtistAlbumDrag = {DisplayInfo->GenreArtist.Edge, 30, DisplayInfo->AlbumSong.Edge, 30, 
-                &DisplayInfo->ArtistAlbum.XPercent, DisplayInfo, SortingInfo};
+            column_edge_drag EdgeArtistAlbumDrag = {};
+            EdgeArtistAlbumDrag.LeftEdgeChain  = {
+                {DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
+                {BMiddle, BMiddle, BLeft}, 
+                {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 3
+            };
+            EdgeArtistAlbumDrag.RightEdgeChain = {
+                {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, {BMiddle, BRight},
+                {&DisplayInfo->AlbumSong.XPercent}, 2};
+            EdgeArtistAlbumDrag.XPercent     = &DisplayInfo->ArtistAlbum.XPercent;
+            EdgeArtistAlbumDrag.MusicInfo    = MusicInfo;
             AddDragable(DragableList, DisplayInfo->ArtistAlbum.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeArtistAlbumDrag}, {});
             
-            column_edge_drag EdgeAlbumSongDrag = {DisplayInfo->ArtistAlbum.Edge, 30, DisplayInfo->EdgeRight, 40, 
-                &DisplayInfo->AlbumSong.XPercent, DisplayInfo, SortingInfo};
+            column_edge_drag EdgeAlbumSongDrag = {};
+            EdgeAlbumSongDrag.LeftEdgeChain  = {
+                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, {BMiddle, BMiddle, BMiddle, BLeft}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 4
+            };
+            EdgeAlbumSongDrag.RightEdgeChain = {{DisplayInfo->EdgeRight}, {BRight}, {}, 1};
+            EdgeAlbumSongDrag.XPercent       = &DisplayInfo->AlbumSong.XPercent;
+            EdgeAlbumSongDrag.MusicInfo      = MusicInfo;
             AddDragable(DragableList, DisplayInfo->AlbumSong.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeAlbumSongDrag}, {});
             
             // Sliders
-            drag_slider_data GenreDrag  = {MusicInfo, &DisplayInfo->Genre, &SortingInfo->Genre};
-            drag_slider_data ArtistDrag = {MusicInfo, &DisplayInfo->Artist, &SortingInfo->Artist};
-            drag_slider_data AlbumDrag  = {MusicInfo, &DisplayInfo->Album, &SortingInfo->Album};
-            drag_slider_data SongDrag   = {MusicInfo, &DisplayInfo->Song.Base, &SortingInfo->Song};
+            drag_slider_data GenreDrag  = {MusicInfo, &DisplayInfo->Genre};
+            drag_slider_data ArtistDrag = {MusicInfo, &DisplayInfo->Artist};
+            drag_slider_data AlbumDrag  = {MusicInfo, &DisplayInfo->Album};
+            drag_slider_data SongDrag   = {MusicInfo, &DisplayInfo->Song.Base};
+            drag_slider_data PlaylistsDrag = {MusicInfo, &DisplayInfo->Playlists};
             
             AddDragable(DragableList, DisplayInfo->Genre.SliderHorizontal.Background,  
                         {OnSliderDragStart, &DisplayInfo->Genre.SliderHorizontal}, {OnHorizontalSliderDrag, &GenreDrag}, {});
@@ -714,6 +755,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {OnSliderDragStart, &DisplayInfo->Album.SliderHorizontal}, {OnHorizontalSliderDrag, &AlbumDrag}, {});
             AddDragable(DragableList, DisplayInfo->Song.Base.SliderHorizontal.Background,
                         {OnSliderDragStart, &DisplayInfo->Song.Base.SliderHorizontal}, {OnHorizontalSliderDrag, &SongDrag},{});
+            AddDragable(DragableList, DisplayInfo->Playlists.SliderHorizontal.Background,
+                        {OnSliderDragStart, &DisplayInfo->Playlists.SliderHorizontal}, {OnHorizontalSliderDrag, &PlaylistsDrag},{});
             
             AddDragable(DragableList, DisplayInfo->Genre.SliderVertical.Background,
                         {OnSliderDragStart, &DisplayInfo->Genre.SliderVertical}, {OnVerticalSliderDrag, &GenreDrag}, {});
@@ -724,6 +767,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             AddDragable(DragableList, DisplayInfo->Song.Base.SliderVertical.Background,
                         {OnSliderDragStart, &DisplayInfo->Song.Base.SliderVertical}, {OnVerticalSliderDrag, &SongDrag},
                         {OnSongDragEnd, &SongDrag});
+            AddDragable(DragableList, DisplayInfo->Playlists.SliderVertical.Background,
+                        {OnSliderDragStart, &DisplayInfo->Playlists.SliderVertical}, {OnVerticalSliderDrag, &PlaylistsDrag}, {});
             
             // Timeline stuff
             AddDragable(DragableList, DisplayInfo->Volume.Background,{},{OnVolumeDrag, GameState},{});
@@ -738,14 +783,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {OnTimelineDrag, &TimelineDragInfo},
                         {OnTimelineDragEnd, &TimelineDragInfo});
             
-            if(!LoadedLibraryFile) OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
-            
-            check_music_path *CheckMusicPath = &GameState->CheckMusicPath;
-            CreateFileInfoStruct(&CheckMusicPath->TestInfo, MAX_MP3_INFO_COUNT);
-            CheckMusicPath->RemoveIDs      = CreateArray(&GameState->FixArena, MAX_MP3_INFO_COUNT);
-            CheckMusicPath->AddTestInfoIDs = CreateArray(&GameState->FixArena, MAX_MP3_INFO_COUNT);
-            
-            AddJob_CheckMusicPathChanged(CheckMusicPath);
+            if(LoadedLibraryFile) AddJob_CheckMusicPathChanged(&GameState->CheckMusicPath);
+            else                  OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
             ApplySettings(GameState, GameState->Settings);
             
             // Color Picker *******************************
@@ -767,6 +806,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             // Test Area **********************************
             // ********************************************
             
+            //NewLocalString(TestError, 100, "Oh no, I have an error... Ok now I have to type until I reach 105!");
+            //PushErrorMessage(GameState, TestError);
+            //PushErrorMessage(GameState, {errorCode_EmptyFile, 27});
             
             
             
@@ -794,6 +836,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             b32 PrevIsPlaying = MusicInfo->IsPlaying;
             scroll_load_info ScrollLoadInfo = {0, 0.5f, true};
             IsRunning = true;
+            SnapTimer("Initialization");
             while(IsRunning)
             {
                 ResetMemoryArena(&GameState->ScratchArena);
@@ -801,7 +844,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 LONGLONG CurrentCycleCount = GetWallClock();
                 GameState->Time.dTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, 
                                                           PrevCycleCount, CurrentCycleCount);
-                PrevCycleCount = CurrentCycleCount;
+                PrevCycleCount            = CurrentCycleCount;
                 GameState->Time.GameTime += GameState->Time.dTime;
                 
 #if DEBUG_TD
@@ -819,7 +862,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         string_c FPSComp = NewStringCompound(&GameState->ScratchArena, 10);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(Renderer, &FPSText);
-                        RenderText(GameState, &GameState->FixArena, font_Small, &FPSComp,
+                        RenderText(GameState, font_Small, &FPSComp,
                                    &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
                         DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }
@@ -827,17 +870,53 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     FPSCount = (FPSCount+1)%100;
                 }
 #endif
-                AnimateErrorMessage(&DisplayInfo->UserErrorText, GameState->Time.dTime);
-                ProcessThreadErrors();
+                AnimateErrorMessage(Renderer, &GameState->UserErrorText, GameState->Time.dTime);
+                ProcessThreadErrors(GameState);
+                
+                // *******************************************
+                // Mode Handling *****************************
+                // *******************************************
+                GameState->ModeFlags = 0;
+                if(DisplayInfo->MusicPath.TextField.IsActive)    GameState->ModeFlags |= mode_MusicPath;
+                if(ColorPicker->IsActive)                        GameState->ModeFlags |= mode_ColorPicker;
+                if(IsSearchOpen(DisplayInfo))                    GameState->ModeFlags |= mode_Search;
+                if(DisplayInfo->PlaylistUI.RenameField.IsActive) GameState->ModeFlags |= mode_PLRename;
+                
+                if(IsActive(GameState, mode_MusicPath))
+                {
+                    if(IsActive(GameState, mode_ColorPicker))
+                    {
+                        OnCancelColorPicker(ColorPicker);
+                        GameState->ModeFlags &= ~mode_ColorPicker;
+                    }
+                }
+                if(IsActive(GameState, mode_MusicPath) ||
+                   IsActive(GameState, mode_ColorPicker))
+                {
+                    if(IsActive(GameState, mode_Search))
+                    {
+                        InterruptSearch(Renderer, MusicInfo);
+                        GameState->ModeFlags &= ~mode_Search;
+                    }
+                }
+                if(IsActive(GameState, mode_MusicPath)   ||
+                   IsActive(GameState, mode_ColorPicker) ||
+                   IsActive(GameState, mode_Search)) 
+                {
+                    if(IsActive(GameState, mode_PLRename))
+                    {
+                        SetPlaylistRenameActive(GameState, false);
+                        GameState->ModeFlags &= ~mode_PLRename;
+                    }
+                }
                 
                 // *******************************************
                 // Thread handling ****************************
                 // *******************************************
                 EmptyJobQueueWhenPossible(JobQueue);
                 
-                if(CheckMusicPath->State == threadState_Finished) 
-                    CheckForMusicPathMP3sChanged_End(CheckMusicPath, &DisplayInfo->MusicPath);
-                
+                if(GameState->CheckMusicPath.State == threadState_Finished) 
+                    CheckForMusicPathMP3sChanged_End(&GameState->CheckMusicPath, &DisplayInfo->MusicPath);
                 
                 // *******************************************
                 // Input handling ****************************
@@ -846,20 +925,23 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 
                 if(Input->KeyChange[KEY_ESCAPE] == KeyDown)
                 {
-                    if(DisplayInfo->MusicPath.TextField.IsActive && 
-                       !CrawlInfoOut.ThreadIsRunning) 
+                    if(IsActive(GameState, mode_MusicPath) && !CrawlInfoOut.ThreadIsRunning) 
                     {
                         // TODO:: Maybe rather kill crawl thread if escape is pressed?
                         // TODO:: Do not save when I directly exit from here
                         OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
                     }
-                    else if(ColorPicker->IsActive)
+                    else if(IsActive(GameState, mode_ColorPicker))
                     {
                         SetActive(ColorPicker, false);
                     }
-                    else if(IsSearchOpen(DisplayInfo))
+                    else if(IsActive(GameState, mode_Search))
                     {
-                        InterruptSearch(Renderer, DisplayInfo, SortingInfo);
+                        InterruptSearch(Renderer, MusicInfo);
+                    }
+                    else if(IsActive(GameState, mode_PLRename))
+                    {
+                        OnRenamePlaylistClick(GameState);
                     }
                     else 
                     {
@@ -867,7 +949,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if((GameState->Time.GameTime - DisplayInfo->Quit.LastEscapePressTime) <= DOUBLE_CLICK_TIME)
                         {
                             DisplayInfo->Quit.WindowExit = true;
-                            DisplayInfo->Quit.Time /= 2;
+                            DisplayInfo->Quit.Time *= 1.0f/Layout->QuitCurtainAnimationMultiplies;
                         }
                         DisplayInfo->Quit.LastEscapePressTime = GameState->Time.GameTime;
                     }
@@ -876,7 +958,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     SetActive(&DisplayInfo->Quit, true);
                     DisplayInfo->Quit.WindowExit = true;
-                    DisplayInfo->Quit.Time /= 2;
+                    DisplayInfo->Quit.Time *= 1.0f/Layout->QuitCurtainAnimationMultiplies;;
                 }
                 
                 if(DisplayInfo->Quit.AnimationStart)
@@ -899,10 +981,30 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     }
                 }
                 
-                if(DisplayInfo->MusicPath.TextField.IsActive)
+                if(Input->KeyChange[KEY_F5] == KeyDown) 
+                {
+                    if(DisplayInfo->Popups.IsActive) OnShortcutHelpOff(&DisplayInfo->Popups);
+                    else OnShortcutHelpOn(&DisplayInfo->Popups);
+                    ToggleButtonVisuals(DisplayInfo->Help, DisplayInfo->Popups.IsActive);
+                }
+                if(Input->KeyChange[KEY_F6] == KeyDown) UpdateColorPalette(DisplayInfo, true);
+                if(Input->KeyChange[KEY_F7] == KeyDown) 
+                {
+                    if(ColorPicker->IsActive) OnCancelColorPicker(ColorPicker);
+                    else OnColorPicker(ColorPicker);
+                }
+                if(Input->KeyChange[KEY_F8] == KeyDown) 
+                {
+                    if(DisplayInfo->MusicPath.TextField.IsActive) 
+                    {
+                        if(!CrawlInfoOut.ThreadIsRunning) OnMusicPathQuitPressed(&DisplayInfo->MusicBtnInfo);
+                    }
+                    else OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
+                }
+                
+                if(IsActive(GameState, mode_MusicPath))
                 {
                     HandleActiveMusicPath(DisplayInfo, Input, &CrawlInfoOut);
-                    if(ColorPicker->IsActive) SetActive(ColorPicker, false);
                 } // This is only reachable if MusicPath stuff is not on screen
                 else 
                 {
@@ -913,45 +1015,66 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     b32 LeftMouseUpAndNoDragging = false;
                     if(Input->KeyChange[KEY_LMB] == KeyDown)
                     {
-                        OnDraggingStart(DragableList, Renderer, Input->MouseP);
+                        DisplayInfo->MouseBtnDownLocation = Input->MouseP;
+                        
+                        if(!OnDraggingStart(DragableList, Renderer, Input->MouseP))
+                        {
+                            if(!IsActive(GameState, mode_ColorPicker)) 
+                                CheckSlotDragDrop(Input, GameState, &DisplayInfo->DragDrop);
+                        }
                     }
-                    if(Input->Pressed[KEY_LMB] && 
-                       DragableList->DraggingID >= 0)
+                    if(Input->Pressed[KEY_LMB])
                     {
-                        OnDragging(DragableList, Renderer, Input->MouseP);
+                        if(DragableList->DraggingID >= 0) OnDragging(DragableList, Renderer, Input->MouseP);
+                        else if(DisplayInfo->DragDrop.Dragging) 
+                        {
+                            DoDragDropAnim(GameState, &DisplayInfo->DragDrop);
+                            EvalDragDropPosition(GameState, &DisplayInfo->DragDrop);
+                        }
                     }
-                    else if(DragableList->DraggingID >= 0) 
+                    if(Input->KeyChange[KEY_LMB] == KeyUp)
                     {
-                        OnDraggingEnd(DragableList, Renderer, Input->MouseP);
-                    }
-                    else if(Input->KeyChange[KEY_LMB] == KeyUp &&
-                            DragableList->DraggingID < 0)
-                    {
-                        LeftMouseUpAndNoDragging = true;
+                        if(DragableList->DraggingID >= 0) OnDraggingEnd(DragableList, Renderer, Input->MouseP);
+                        else 
+                        {
+                            if(DisplayInfo->DragDrop.Dragging) StopDragDrop(GameState, &DisplayInfo->DragDrop);
+                            LeftMouseUpAndNoDragging = true;
+                        }
                     }
                     
-                    // TODO:: Change this to: IsInSubmenu? Then do this for musicPath as well!
-                    if(!ColorPicker->IsActive || !IsInRect(ColorPicker->Background, Input->MouseP))
+                    if(!IsActive(GameState, mode_ColorPicker) || !IsInRect(ColorPicker->Background, Input->MouseP))
                     {
                         UpdateButtons(Renderer, Input);
                         
                         if(LeftMouseUpAndNoDragging)
                         {
-                            column_type ChangedSelection = CheckColumnsForSelectionChange();
-                            if(ChangedSelection != columnType_None)
+                            column_type ChangedSelection = CheckColumnsForSelectionChange(DisplayInfo->MouseBtnDownLocation);
+                            if(ChangedSelection != columnType_None && ChangedSelection != columnType_Song)
                             {
-                                UpdateSelectionChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
+                                UpdateSortingInfoChanged(Renderer, MusicInfo, MP3Info, ChangedSelection);
                                 AddJobs_LoadOnScreenMP3s(GameState, JobQueue);
+                                
+                                if(ChangedSelection == columnType_Playlists && IsActive(GameState, mode_PLRename))
+                                    SetPlaylistRenameActive(GameState, false);
                             }
                         }
                         
                     }
                     
-                    if(Input->KeyChange[KEY_F9] == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
+                    ProcessTextField(Renderer, GameState->Time.dTime, Input, &DisplayInfo->PlaylistUI.RenameField);
+                    if(Input->KeyChange[KEY_ENTER] == KeyDown)
+                    {
+                        if(DisplayInfo->PlaylistUI.RenameField.IsActive)
+                        {
+                            SaveNewPlaylistName(GameState);
+                            OnRenamePlaylistClick(GameState);
+                        }
+                    }
+                    //if(Input->KeyChange[KEY_F9]  == KeyDown)  SaveMP3LibraryFile(GameState, MP3Info);
+                    //if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
-                    if(Input->KeyChange[KEY_F11] == KeyDown) UpdateColorPalette(DisplayInfo, true);
                     
-                    if(ColorPicker->IsActive)
+                    if(IsActive(GameState, mode_ColorPicker))
                     {
                         HandleActiveColorPicker(ColorPicker);
                     }
@@ -965,16 +1088,19 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             if(Input->KeyChange[KEY_F3] == KeyDown) OnSearchPressed(&DisplayInfo->Album.SearchInfo);
                             if(Input->KeyChange[KEY_F4] == KeyDown) OnSearchPressed(&DisplayInfo->Song.Base.SearchInfo);
                         }
-                        if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                         // ******************
                         
                         TestHoveringEdgeDrags(GameState, Input->MouseP, DisplayInfo);
+                        
+                        HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.Add, &DisplayInfo->PlaylistUI.AddCurtain, playlistBtnType_Add);
+                        HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.AddSelection, &DisplayInfo->PlaylistUI.AddSelectionCurtain, playlistBtnType_AddSelection);
+                        HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.Remove, &DisplayInfo->PlaylistUI.RemoveCurtain, playlistBtnType_Remove);
                         
                         // Next/Previous song *******
                         if(Input->KeyChange[KEY_RIGHT] == KeyDown ||
                            Input->KeyChange[KEY_NEXT]  == KeyDown)
                         {
-                            if(PlayingSong->PlaylistID >= 0)
+                            if(PlayingSong->DisplayableID >= 0)
                             {
                                 HandleChangeToNextSong(GameState);
                             }
@@ -982,11 +1108,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         else if(Input->KeyChange[KEY_LEFT]     == KeyDown ||
                                 Input->KeyChange[KEY_PREVIOUS] == KeyDown )
                         {
-                            if(PlayingSong->PlaylistID >= 0)
+                            if(PlayingSong->DisplayableID >= 0)
                             {
                                 if(GetPlayedTime(GameState->SoundThreadInterface) < 5.0f)
                                 {
-                                    SetPreviousSong(&MusicInfo->Playlist, PlayingSong, MusicInfo->Looping);
+                                    SetPreviousSong(MusicInfo);
                                     ChangeSong(GameState, PlayingSong);
                                     KeepPlayingSongOnScreen(Renderer, MusicInfo);
                                 }
@@ -1001,7 +1127,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if(Input->KeyChange[KEY_SPACE] == KeyDown ||
                            Input->KeyChange[KEY_PLAY_PAUSE] == KeyDown)
                         {
-                            if(DisplayInfo->SearchIsActive >= 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
+                            if(GameState->ModeFlags > 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
                             else
                             {
                                 MusicInfo->IsPlaying = !MusicInfo->IsPlaying;
@@ -1020,7 +1146,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                         if(Input->KeyChange[KEY_STOP] == KeyDown)
                         {
-                            if(PlayingSong->PlaylistID >= 0)
+                            if(PlayingSong->DisplayableID >= 0)
                             {
                                 ChangeSong(GameState, PlayingSong);
                                 MusicInfo->IsPlaying = false;
@@ -1043,29 +1169,35 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         // Scrolling ********
                         if(Input->WheelAmount != 0)
                         {
-                            
+                            playlist_info *Playlist = MusicInfo->Playlist_;
                             if(IsInRect(DisplayInfo->Song.Base.Background, Input->MouseP))
                             {
-                                ScrollDisplayColumn(Renderer, &DisplayInfo->Song.Base, (r32)Input->WheelAmount);
-                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Song.Base, &SortingInfo->Song);
+                                ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(&DisplayInfo->Song.Base,
+                                                                   Playlist->Song.Displayable.A.Count);
                                 
                                 ScrollLoadInfo.LoadFinished = false;
                                 ScrollLoadInfo.dTime = 0;
                             }
                             if(IsInRect(DisplayInfo->Genre.Background, Input->MouseP))
                             {
-                                ScrollDisplayColumn(Renderer, &DisplayInfo->Genre, (r32)Input->WheelAmount);
-                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Genre, &SortingInfo->Genre);
+                                ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(&DisplayInfo->Genre, Playlist->Genre.Displayable.A.Count);
                             }
                             if(IsInRect(DisplayInfo->Artist.Background, Input->MouseP))
                             {
-                                ScrollDisplayColumn(Renderer, &DisplayInfo->Artist, (r32)Input->WheelAmount);
-                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Artist, &SortingInfo->Artist);
+                                ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(&DisplayInfo->Artist, Playlist->Artist.Displayable.A.Count);
                             }
                             if(IsInRect(DisplayInfo->Album.Background, Input->MouseP))
                             {
-                                ScrollDisplayColumn(Renderer, &DisplayInfo->Album, (r32)Input->WheelAmount);
-                                UpdateColumnVerticalSliderPosition(Renderer, &DisplayInfo->Album, &SortingInfo->Album);
+                                ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(&DisplayInfo->Album, Playlist->Album.Displayable.A.Count);
+                            }
+                            if(IsInRect(DisplayInfo->Playlists.Background, Input->MouseP))
+                            {
+                                ScrollDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists, (r32)Input->WheelAmount);
+                                UpdateColumnVerticalSliderPosition(&DisplayInfo->Playlists, Playlist->Playlists.Displayable.A.Count);
                             }
                         }
                         
@@ -1080,19 +1212,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             else ScrollLoadInfo.dTime += GameState->Time.dTime/ScrollLoadInfo.WaitTime;
                         }
                         
-                        // Search bar  ******************
-                        ProcessActiveSearch(Renderer, &DisplayInfo->Genre, GameState->Time.dTime, Input,
-                                            &MusicInfo->SortingInfo.Genre);
-                        ProcessActiveSearch(Renderer, &DisplayInfo->Artist, GameState->Time.dTime, Input,
-                                            &MusicInfo->SortingInfo.Artist);
-                        ProcessActiveSearch(Renderer, &DisplayInfo->Album, GameState->Time.dTime, Input,
-                                            &MusicInfo->SortingInfo.Album);
-                        ProcessActiveSearch(Renderer, &DisplayInfo->Song.Base, GameState->Time.dTime, Input,
-                                            &MusicInfo->SortingInfo.Song, &MP3Info->FileInfo);
+                        ProcessAllSearchBars(GameState);
                         
                         if(PrevIsPlaying != MusicInfo->IsPlaying)
                         {
-                            PrevIsPlaying = MusicInfo->IsPlaying;
                             ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
                         }
                     }
@@ -1117,7 +1240,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             SongChangedIsCurrentlyDecoding = false;
                             FinishChangeSong(GameState, PlayingSong);
-                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, MusicInfo);
+                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                         }
                     }
                     else SongChangedIsCurrentlyDecoding = true;
@@ -1130,7 +1253,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             SongChangedIsCurrentlyFullyDecoding = false;
                             FinishChangeEntireSong(PlayingSong);
-                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, MusicInfo);
+                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                             DebugLog(255, "Finished loading entire song, swapping over now!\n");
                         }
                     }
@@ -1140,7 +1263,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 r32 PlayedSeconds = GetPlayedTime(GameState->SoundThreadInterface);
                 if((u32)(DisplayInfo->PlayingSongPanel.CurrentTime/1000.0f) != (u32)PlayedSeconds)
                 {
-                    UpdatePanelTime(Renderer, &DisplayInfo->PlayingSongPanel, PlayedSeconds);
+                    UpdatePanelTime(Renderer, &DisplayInfo->PlayingSongPanel, Layout, PlayedSeconds);
                 }
                 UpdatePanelTimeline(&DisplayInfo->PlayingSongPanel, PlayedSeconds);
                 
@@ -1149,18 +1272,24 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // *******************************************
                 // Sound *************************************
                 // *******************************************
+                b32 SongFinished = false;
                 if(GetIsFinishedPlaying(GameState->SoundThreadInterface))
                 {
+                    SongFinished = true;
                     MusicInfo->IsPlaying = false;
-                    if(PlayingSong->PlaylistID >= 0 || MusicInfo->Playlist.UpNext.A.Count > 0)
+                    if(PlayingSong->DisplayableID >= 0 || MusicInfo->UpNextList.A.Count > 0)
                     {
-                        PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                         HandleChangeToNextSong(GameState);
-                        if(MusicInfo->PlayingSong.PlaylistID >= 0) MusicInfo->IsPlaying = true;
+                        if(MusicInfo->PlayingSong.DisplayableID >= 0) MusicInfo->IsPlaying = true;
                     }
                 }
-                if(!MusicInfo->IsPlaying || !MusicInfo->CurrentlyChangingSong)
+                if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished/* || !MusicInfo->CurrentlyChangingSong*/)
+                {
+                    DebugLog(255, "Changing IsPlaying to: %i\n", MusicInfo->IsPlaying);
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
+                    PrevIsPlaying = MusicInfo->IsPlaying;
+                }
+                
                 
                 // *******************************************
                 // Rendering *********************************
@@ -1196,7 +1325,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     }
                 }
                 
-                if(!Input->Pressed[KEY_F8]) SwapBuffers(DeviceContext);
+                SwapBuffers(DeviceContext);
             }
             
             SaveSettingsFile(GameState, &GameState->Settings);

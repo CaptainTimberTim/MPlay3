@@ -85,6 +85,7 @@ FreeMemory(arena_allocator *Allocator, void *Memory)
 #if DEBUG_TD
                 Allocator->DebugData.FreeCount++;
                 arena *DebugArena = Allocator->Base;
+                Assert(Allocator->ArenaCount <= MAX_DEBUG_ARENA_COUNT);
                 For(Allocator->ArenaCount)
                 {
                     r32 FillP = DebugArena->Position/(r32)DebugArena->Size;
@@ -189,6 +190,7 @@ AllocateMemory_(arena_allocator *Allocator, u64 Size)
     Allocator->DebugData.MaxAllocationSize = Max(Allocator->DebugData.MaxAllocationSize, Size);
     Allocator->DebugData.MaxArenaCount = Max(Allocator->DebugData.MaxArenaCount, Allocator->ArenaCount);
     arena *DebugArena = Allocator->Base;
+    Assert(Allocator->ArenaCount < MAX_DEBUG_ARENA_COUNT);
     For(Allocator->ArenaCount)
     {
         r32 FillP = DebugArena->Position/(r32)DebugArena->Size;
@@ -208,10 +210,7 @@ ReallocateMemory_(arena_allocator *Allocator, void *Memory, u64 OldSize, u64 New
     void *Result = 0;
     
     Result = AllocateMemory_(Allocator, NewSize);
-    for(u32 It = 0; It < OldSize && It < NewSize; It++) 
-    {
-        ((u8 *)Result)[It] = ((u8 *)Memory)[It];
-    }
+    MemoryCopy(Result, Memory, Min(OldSize, NewSize));
     FreeMemory(Allocator, Memory);
     
     return Result;
@@ -281,10 +280,7 @@ ReallocateMemory_Private(arena_allocator *Allocator, void *Memory, u64 OldSize, 
     void *Result = 0;
     
     Result = AllocateMemory_Private(Allocator, NewSize);
-    for(u32 It = 0; It < OldSize && It < NewSize; It++) 
-    {
-        ((u8 *)Result)[It] = ((u8 *)Memory)[It];
-    }
+    MemoryCopy(Result, Memory, Min(OldSize, NewSize));
     FreeMemory(Allocator, Memory);
     
     return Result;

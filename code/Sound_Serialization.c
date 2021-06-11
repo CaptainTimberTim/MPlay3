@@ -1,6 +1,8 @@
 #include "Sound_Serialization.h"
 
-// NOTE:: Settings file specifications
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Settings file specifications ~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 // MPlay3Settings
 // Version 5
@@ -30,6 +32,7 @@
 // Looping: <0/1>
 // Shuffle: <0/1>
 // UsedFontCache: <font name>|<font name>
+// ActivePlaylist: <Name>
 // Palette: <Name>  // Palette with all following color values can occur multiple times
 //     Text: <R255> <G255> <B255>
 //     ForegroundText: <R255> <G255> <B255>
@@ -117,6 +120,8 @@ internal settings
 TryLoadSettingsFile(game_state *GameState)
 {
     settings Result = {};
+    Result.WindowDimX = GameState->Layout.WindowWidth;
+    Result.WindowDimY = GameState->Layout.WindowHeight;
     
     read_file_result Data = {};
     if(ReadEntireFile(&GameState->ScratchArena, &Data, GameState->SettingsPath.S))
@@ -128,32 +133,34 @@ TryLoadSettingsFile(game_state *GameState)
         {
             AdvanceToNewline(&C);
             
-            string_c VersionS                    = NewStaticStringCompound("Version ");
-            string_c FontPathS                   = NewStaticStringCompound("FontPath:");
-            string_c FontHeightS                 = NewStaticStringCompound("FontHeightOffset:");
-            string_c VolumeS                     = NewStaticStringCompound("Volume:");
-            string_c LastPlayingSongS            = NewStaticStringCompound("LastPlayingSong:");
-            string_c ColorPaletteS               = NewStaticStringCompound("ColorPalette:");
-            string_c GenreArtistEdgeXPercentageS = NewStaticStringCompound("GenreArtistEdgeXPercent:");
-            string_c ArtistAlbumEdgeXPercentageS = NewStaticStringCompound("ArtistAlbumEdgeXPercent:");
-            string_c AlbumSongEdgeXPercentageS   = NewStaticStringCompound("AlbumSongEdgeXPercent:");
-            string_c WindowDimXS                 = NewStaticStringCompound("WindowDimensionX:");
-            string_c WindowDimYS                 = NewStaticStringCompound("WindowDimensionY:");
-            string_c LoopingS                    = NewStaticStringCompound("Looping:");
-            string_c ShuffleS                    = NewStaticStringCompound("Shuffle:");
-            string_c CachedFontS                 = NewStaticStringCompound("UsedFontCache:");
+            string_c VersionS                       = NewStaticStringCompound("Version ");
+            string_c FontPathS                      = NewStaticStringCompound("FontPath:");
+            string_c FontHeightS                    = NewStaticStringCompound("FontHeightOffset:");
+            string_c VolumeS                        = NewStaticStringCompound("Volume:");
+            string_c LastPlayingSongS               = NewStaticStringCompound("LastPlayingSong:");
+            string_c ColorPaletteS                  = NewStaticStringCompound("ColorPalette:");
+            string_c PlaylistsGenreEdgeXPercentageS = NewStaticStringCompound("PlaylistsGenreEdgeXPercent:");
+            string_c GenreArtistEdgeXPercentageS    = NewStaticStringCompound("GenreArtistEdgeXPercent:");
+            string_c ArtistAlbumEdgeXPercentageS    = NewStaticStringCompound("ArtistAlbumEdgeXPercent:");
+            string_c AlbumSongEdgeXPercentageS      = NewStaticStringCompound("AlbumSongEdgeXPercent:");
+            string_c WindowDimXS                    = NewStaticStringCompound("WindowDimensionX:");
+            string_c WindowDimYS                    = NewStaticStringCompound("WindowDimensionY:");
+            string_c LoopingS                       = NewStaticStringCompound("Looping:");
+            string_c ShuffleS                       = NewStaticStringCompound("Shuffle:");
+            string_c CachedFontS                    = NewStaticStringCompound("UsedFontCache:");
+            string_c ActivePlaylistS                = NewStaticStringCompound("ActivePlaylist:");
             
-            string_c PaletteS                    = NewStaticStringCompound("Palette:");
-            string_c TextS                       = NewStaticStringCompound("Text:");
-            string_c ForegroundTextS             = NewStaticStringCompound("ForegroundText:");
-            string_c ErrorTextS                  = NewStaticStringCompound("ErrorText:");
-            string_c ForegroundS                 = NewStaticStringCompound("Foreground:");
-            string_c SlotS                       = NewStaticStringCompound("Slot:");
-            string_c SliderBackgroundS           = NewStaticStringCompound("SliderBackground:");
-            string_c SliderGrabThingS            = NewStaticStringCompound("SliderGrabThing:");
-            string_c ButtonActiveS               = NewStaticStringCompound("ButtonActive:");
-            string_c SelectedS                   = NewStaticStringCompound("Selected:");
-            string_c PlayingSongS                = NewStaticStringCompound("PlayingSong:");
+            string_c PaletteS                       = NewStaticStringCompound("Palette:");
+            string_c TextS                          = NewStaticStringCompound("Text:");
+            string_c ForegroundTextS                = NewStaticStringCompound("ForegroundText:");
+            string_c ErrorTextS                     = NewStaticStringCompound("ErrorText:");
+            string_c ForegroundS                    = NewStaticStringCompound("Foreground:");
+            string_c SlotS                          = NewStaticStringCompound("Slot:");
+            string_c SliderBackgroundS              = NewStaticStringCompound("SliderBackground:");
+            string_c SliderGrabThingS               = NewStaticStringCompound("SliderGrabThing:");
+            string_c ButtonActiveS                  = NewStaticStringCompound("ButtonActive:");
+            string_c SelectedS                      = NewStaticStringCompound("Selected:");
+            string_c PlayingSongS                   = NewStaticStringCompound("PlayingSong:");
             
             u8 L; // Not used for anything.
             Result.PaletteMaxCount = 15;
@@ -175,7 +182,7 @@ TryLoadSettingsFile(game_state *GameState)
                     EatLeadingSpaces(&C);
                     u32 PLen = CountToNewlineOrDelimeter(C, ' ');
                     Result.FontPath = NewStringCompound(&GameState->FixArena, PLen);
-                    CopyStringToCompound(&Result.FontPath, C, 0, PLen);
+                    CopyStringToCompound(&Result.FontPath, C, 0u, PLen);
                 }
                 else if(StringCompare(C, FontHeightS.S, 0, FontHeightS.Pos))
                 {
@@ -200,6 +207,12 @@ TryLoadSettingsFile(game_state *GameState)
                     C += ColorPaletteS.Pos;
                     EatLeadingSpaces(&C);
                     Result.ColorPaletteID = ProcessNextU32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, PlaylistsGenreEdgeXPercentageS.S, 0, PlaylistsGenreEdgeXPercentageS.Pos))
+                {
+                    C += PlaylistsGenreEdgeXPercentageS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.PlaylistsGenreEdgeXPercent = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
                 }
                 else if(StringCompare(C, GenreArtistEdgeXPercentageS.S, 0, GenreArtistEdgeXPercentageS.Pos))
                 {
@@ -261,7 +274,7 @@ TryLoadSettingsFile(game_state *GameState)
                         
                         u32 PLen = CountToDelimeters(C, (u8 *)"| \r\n", 4);
                         FontNames[Result.CachedFontNames->Count] = NewStringCompound(&GameState->FixArena, PLen);
-                        CopyStringToCompound(FontNames + Result.CachedFontNames->Count, C, 0, PLen);
+                        CopyStringToCompound(FontNames + Result.CachedFontNames->Count, C, 0u, PLen);
                         ++Result.CachedFontNames->Count;
                         
                         C += PLen;
@@ -308,6 +321,14 @@ TryLoadSettingsFile(game_state *GameState)
                     ++Result.PaletteCount;
                     continue; // We do this, because in ProcessNextPaletteColor we do a AdvancetoNewline.
                 }
+                else if(StringCompare(C, ActivePlaylistS.S, 0, ActivePlaylistS.Pos))
+                {
+                    C += ActivePlaylistS.Pos;
+                    EatLeadingSpaces(&C);
+                    u32 PLen = CountToDelimeters(C, (u8 *)"\r\n", 2);
+                    Result.ActivePlaylist = NewStringCompound(&GameState->FixArena, PLen);
+                    CopyStringToCompound(&Result.ActivePlaylist, C, 0u, PLen);
+                }
                 
                 AdvanceToNewline(&C);
             }
@@ -325,15 +346,18 @@ TryLoadSettingsFile(game_state *GameState)
     }
     
     // If anything is wrong with the saved values, just use the default percentages
-    if(Result.GenreArtistEdgeXPercent < 0.0f || Result.GenreArtistEdgeXPercent > 1.0f || 
-       Result.ArtistAlbumEdgeXPercent < 0.0f || Result.ArtistAlbumEdgeXPercent > 1.0f ||
-       Result.AlbumSongEdgeXPercent   < 0.0f || Result.AlbumSongEdgeXPercent   > 1.0f || 
-       Result.GenreArtistEdgeXPercent >= Result.ArtistAlbumEdgeXPercent ||
-       Result.ArtistAlbumEdgeXPercent >= Result.AlbumSongEdgeXPercent) 
+    if(Result.PlaylistsGenreEdgeXPercent < 0.0f || Result.PlaylistsGenreEdgeXPercent > 1.0f || 
+       Result.GenreArtistEdgeXPercent    < 0.0f || Result.GenreArtistEdgeXPercent    > 1.0f || 
+       Result.ArtistAlbumEdgeXPercent    < 0.0f || Result.ArtistAlbumEdgeXPercent    > 1.0f ||
+       Result.AlbumSongEdgeXPercent      < 0.0f || Result.AlbumSongEdgeXPercent      > 1.0f || 
+       Result.PlaylistsGenreEdgeXPercent >= Result.GenreArtistEdgeXPercent ||
+       Result.GenreArtistEdgeXPercent    >= Result.ArtistAlbumEdgeXPercent ||
+       Result.ArtistAlbumEdgeXPercent    >= Result.AlbumSongEdgeXPercent) 
     {
-        Result.GenreArtistEdgeXPercent = 0.2f;
-        Result.ArtistAlbumEdgeXPercent = 0.4f;
-        Result.AlbumSongEdgeXPercent   = 0.6f;
+        Result.PlaylistsGenreEdgeXPercent = GameState->Layout.PlaylistsGenreXP;
+        Result.GenreArtistEdgeXPercent    = GameState->Layout.GenreArtistXP;
+        Result.ArtistAlbumEdgeXPercent    = GameState->Layout.ArtistAlbumXP;
+        Result.AlbumSongEdgeXPercent      = GameState->Layout.AlbumSongXP;
     }
     
     if(Result.WindowDimX < GlobalMinWindowWidth)  Result.WindowDimX = GlobalMinWindowWidth;
@@ -354,26 +378,32 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! With FontHeightOffset\n# the vertical position of the text can be adjusted\n# (only integers allowed).\n\n");
     
-    NewLocalString(FontPath,        280, "FontPath: ");
-    NewLocalString(FileFontOffset,   50, "FontHeightOffset: ");
-    NewLocalString(FileVolume,       50, "Volume: ");
-    NewLocalString(FileLastSong,     50, "LastPlayingSong: ");
-    NewLocalString(FileColorPalette, 50, "ColorPalette: ");
-    NewLocalString(FileGenreArtist,  50, "GenreArtistEdgeXPercent: ");
-    NewLocalString(FileArtistAlbum,  50, "ArtistAlbumEdgeXPercent: ");
-    NewLocalString(FileAlbumSong,    50, "AlbumSongEdgeXPercent: ");
-    NewLocalString(WindowDimX,       50, "WindowDimensionX: ");
-    NewLocalString(WindowDimY,       50, "WindowDimensionY: ");
-    NewLocalString(Looping,          50, "Looping: ");
-    NewLocalString(Shuffle,          50, "Shuffle: ");
-    NewLocalString(CachedFontNames,  50, "UsedFontCache: ");
+    NewLocalString(FontPath,          280, "FontPath: ");
+    NewLocalString(FileFontOffset,     50, "FontHeightOffset: ");
+    NewLocalString(FileVolume,         50, "Volume: ");
+    NewLocalString(FileLastSong,       50, "LastPlayingSong: ");
+    NewLocalString(FileColorPalette,   50, "ColorPalette: ");
+    NewLocalString(FilePlaylistsGenre, 50, "PlaylistsGenreEdgeXPercent: ");
+    NewLocalString(FileGenreArtist,    50, "GenreArtistEdgeXPercent: ");
+    NewLocalString(FileArtistAlbum,    50, "ArtistAlbumEdgeXPercent: ");
+    NewLocalString(FileAlbumSong,      50, "AlbumSongEdgeXPercent: ");
+    NewLocalString(WindowDimX,         50, "WindowDimensionX: ");
+    NewLocalString(WindowDimY,         50, "WindowDimensionY: ");
+    NewLocalString(Looping,            50, "Looping: ");
+    NewLocalString(Shuffle,            50, "Shuffle: ");
+    NewLocalString(CachedFontNames,   500, "UsedFontCache: ");
+    NewLocalString(ActivePlaylist, PLAYLIST_MAX_NAME_LENGTH+50, "ActivePlaylist: ");
     
     v2i Dim = GetWindowSize();
+    file_id FileID = NewFileID(-1);
+    if(GameState->MusicInfo.PlayingSong.PlaylistID >= 0) 
+        FileID = GetFileID(&GameState->MusicInfo.Playlist_->Song, GameState->MusicInfo.PlayingSong.PlaylistID);
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
     I32ToString(&FileFontOffset, Settings->FontHeightOffset);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
-    I32ToString(&FileLastSong, GameState->MusicInfo.PlayingSong.FileID.ID);
+    I32ToString(&FileLastSong, FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
+    R32ToString(&FilePlaylistsGenre, GameState->MusicInfo.DisplayInfo.PlaylistsGenre.XPercent);
     R32ToString(&FileGenreArtist, GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
     R32ToString(&FileArtistAlbum, GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);
     R32ToString(&FileAlbumSong, GameState->MusicInfo.DisplayInfo.AlbumSong.XPercent);
@@ -382,8 +412,13 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&Looping, GameState->MusicInfo.Looping == playLoop_Loop);
     I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
     
+    AppendStringCompoundToCompound(&ActivePlaylist, GetPlaylistName(&GameState->MusicInfo, GameState->MusicInfo.Playlist_));
+    i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&ActivePlaylist, '(');
+    Assert(NameEndP >= 0);
+    ActivePlaylist.Pos = NameEndP-1;
+    
     string_c LB   = NewStaticStringCompound("\n");
-    ConcatStringCompounds(26, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames);
+    ConcatStringCompounds(30, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames, &LB, &ActivePlaylist);
     
     // Save out used font names
     if(Settings->CachedFontNames)
@@ -439,7 +474,9 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     
     if(!WriteEntireFile(&GameState->ScratchArena, GameState->SettingsPath.S, SaveData.Pos, SaveData.S))
     {
-        DebugLog(255, "ERROR:: Could not write out settings file!\n");
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not write out settings file!");
+        PushErrorMessage(GameState, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
     DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
@@ -450,9 +487,13 @@ ApplySettings(game_state *GameState, settings Settings)
     ChangeVolume(GameState, Settings.Volume);
     music_info *MusicInfo = &GameState->MusicInfo;
     
-    MusicInfo->PlayingSong.PlaylistID = FileIDToPlaylistID(&MusicInfo->Playlist, Settings.PlayingSongID);
-    if(Settings.PlayingSongID >= (i32)GameState->MP3Info->FileInfo.Count) Settings.PlayingSongID.ID = -1;
-    MusicInfo->PlayingSong.FileID = Settings.PlayingSongID;
+    
+    playlist_info *Playlist = GetPlaylist(GameState, Settings.ActivePlaylist);
+    if(Playlist) SwitchPlaylist(GameState, Playlist);
+    else Playlist = GameState->MusicInfo.Playlist_;
+    
+    MusicInfo->PlayingSong.PlaylistID    = GetPlaylistID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
+    MusicInfo->PlayingSong.DisplayableID = GetDisplayableID(MusicInfo, MusicInfo->PlayingSong.PlaylistID);
     
     ChangeSong(GameState, &MusicInfo->PlayingSong); 
     
@@ -460,23 +501,25 @@ ApplySettings(game_state *GameState, settings Settings)
     MusicInfo->DisplayInfo.ColorPaletteID = Settings.ColorPaletteID; 
     UpdateColorPalette(&MusicInfo->DisplayInfo, false);
     
+    MusicInfo->DisplayInfo.PlaylistsGenre.XPercent = Settings.PlaylistsGenreEdgeXPercent;
     MusicInfo->DisplayInfo.GenreArtist.XPercent = Settings.GenreArtistEdgeXPercent;
     MusicInfo->DisplayInfo.ArtistAlbum.XPercent = Settings.ArtistAlbumEdgeXPercent;
     MusicInfo->DisplayInfo.AlbumSong.XPercent = Settings.AlbumSongEdgeXPercent;
     
     ProcessEdgeDragOnResize(&GameState->Renderer, &MusicInfo->DisplayInfo);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Genre, &MusicInfo->SortingInfo.Genre);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Artist, &MusicInfo->SortingInfo.Artist);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Album, &MusicInfo->SortingInfo.Album);
-    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base, &MusicInfo->SortingInfo.Song);
-    UpdateHorizontalSliders(&GameState->Renderer, &MusicInfo->DisplayInfo, &MusicInfo->SortingInfo);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Genre, Playlist->Genre.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Artist, Playlist->Artist.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Album, Playlist->Album.Displayable.A.Count);
+    FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Song.Base, Playlist->Song.Displayable.A.Count);
+    UpdateHorizontalSliders(MusicInfo);
     
-    if(Settings.PlayingSongID >= 0)
+    playlist_id PlaylistID = GetPlaylistID(&MusicInfo->Playlist_->Song, Settings.PlayingSongID);
+    if(PlaylistID >= 0)
     {
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Genre, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Artist, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Album, Settings.PlayingSongID);
-        BringDisplayableEntryOnScreen(&MusicInfo->DisplayInfo.Song.Base, Settings.PlayingSongID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Genre,     PlaylistID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Artist,    PlaylistID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Album,     PlaylistID);
+        BringDisplayableEntryOnScreen(MusicInfo, &MusicInfo->DisplayInfo.Song.Base, PlaylistID);
     }
     
     ApplyWindowResize(GameState->Renderer.Window.WindowHandle, Settings.WindowDimX, Settings.WindowDimY, true);
@@ -493,7 +536,9 @@ ApplySettings(game_state *GameState, settings Settings)
     }
 }
 
-// NOTE:: Library file specification ************************
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Library file specification ~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // 
 // MP3Lib 
 // Version 3
@@ -510,16 +555,19 @@ ApplySettings(game_state *GameState, settings Settings)
 // >FILE_1_TRACK
 // >FILE_1_YEAR
 // >FILE_1_DURATION
+// >FILE_HASH
 // 
 // >FILE_2_NAME
 // ...
 // >FILE_1_DURATION
+// >FILE_HASH
 //
 // P: SUB_PATH_2
 //
 // >FILE_1_NAME
 // ...
 // >FILE_1_DURATION
+// >FILE_HASH
 // 
 
 internal b32
@@ -568,8 +616,9 @@ ConfirmLibraryMusicPathExists(game_state *GameState)
     if(ReadBeginningOfFile(&GameState->ScratchArena, &File, GameState->LibraryPath.S, BegginingCount+256))
     {
         u8 *C = File.Data;
-        C += 7; // MP3Lib
-        AdvanceToNewline(&C);
+        
+        AdvanceToNewline(&C); // MP3Lib
+        AdvanceToNewline(&C); // Version XX
         C += 3; // P:_
         NewEmptyLocalString(FolderPath, 256);
         C += CopyUntilNewline(C, &FolderPath);
@@ -597,8 +646,8 @@ CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare)
         u8 *C = Data.Data;
         if(StringCompare(C, (u8 *)"MP3Lib", 0, 6))
         {
-            C += 7; // MP3Lib
-            C += 10; // Version 3
+            AdvanceToNewline(&C); // MP3Lib
+            AdvanceToNewline(&C); // Version XX
             C += 3; // P:_
             string_c FolderPath = NewStringCompound(&GameState->ScratchArena, 255);
             C += CopyUntilNewline(C, &FolderPath);
@@ -669,8 +718,8 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 
                 MP3FileInfo->SubPath[It] = NewStringCompound(&GameState->JobThreadsArena, CurrentSubPath.Pos);
                 AppendStringCompoundToCompound(MP3FileInfo->SubPath+It, &CurrentSubPath);
-                MP3FileInfo->FileName[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
-                C += CopyUntilNewline(C, MP3FileInfo->FileName+It);
+                MP3FileInfo->FileNames_[It] = NewStringCompound(&GameState->JobThreadsArena, CountToNewline(++C));
+                C += CopyUntilNewline(C, MP3FileInfo->FileNames_+It);
                 
                 u32 Count = CountToNewline(++C);
                 if(Count > 0)
@@ -731,13 +780,12 @@ LoadMP3LibraryFile(game_state *GameState, mp3_info *Info)
                     C += CopyUntilNewline(C, &Duration);
                     u8 Length = 0;
                     MD->Duration = ProcessNextU32InString(Duration.S, '\0', Length);
-                    MillisecondsToMinutes(MD->Duration, &MD->DurationString);
                     DeleteStringCompound(&GameState->ScratchArena, &Duration);
                     MD->FoundFlags |= metadata_Duration;
                 }
                 else AdvanceToNewline(&C);
                 
-                MP3FileInfo->Count++;
+                MP3FileInfo->Count_++;
                 AdvanceToNewline(&C);
             }
             DeleteStringCompound(&GameState->ScratchArena, &CurrentSubPath);
@@ -754,24 +802,26 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     string_c Inset = NewStaticStringCompound(">");
     
     mp3_file_info *MP3FileInfo = &Info->FileInfo;
-    if(MP3FileInfo->Count == 0) return;
-    u32 StringSize = (30+255+5) + 7*255*MP3FileInfo->Count;
+    if(MP3FileInfo->Count_ == 0) return;
+    u32 StringSize = (30+255+5) + 7*255*MP3FileInfo->Count_;
     string_c SaveData = NewStringCompound(&GameState->ScratchArena, StringSize);
     
     AppendStringToCompound(&SaveData, (u8 *)"MP3Lib\n");
-    AppendStringToCompound(&SaveData, (u8 *)"Version 3\n");
+    AppendStringToCompound(&SaveData, (u8 *)"Version ");
+    I32ToString(&SaveData, LIBRARY_CURRENT_VERSION);
+    AppendCharToCompound(&SaveData, '\n');
     ConcatStringCompounds(4, &SaveData, &Colon, &Info->FolderPath, &NL);
     char CountS[25];
-    sprintf_s(CountS, "C: %i\n\n", MP3FileInfo->Count);
+    sprintf_s(CountS, "C: %i\n\n", MP3FileInfo->Count_);
     AppendStringToCompound(&SaveData, (u8 *)CountS);
     
     u32 WrittenDataCount = 0;
-    b32 *Written = AllocateArray(&GameState->ScratchArena, Info->FileInfo.MaxCount, b32);
+    b32 *Written = AllocateArray(&GameState->ScratchArena, Info->FileInfo.MaxCount_, b32);
     string_c CurrentSubPath = NewStringCompound(&GameState->ScratchArena, 255);
-    while(WrittenDataCount < MP3FileInfo->Count)
+    while(WrittenDataCount < MP3FileInfo->Count_)
     {
         AppendStringCompoundToCompound(&SaveData, &Colon);
-        For(MP3FileInfo->Count)
+        For(MP3FileInfo->Count_)
         {
             if(!Written[It])
             {
@@ -780,56 +830,61 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
                 break;
             }
         }
-        For(MP3FileInfo->Count)
+        For(MP3FileInfo->Count_)
         {
             if(!Written[It] && 
                CompareStringCompounds(&CurrentSubPath, MP3FileInfo->SubPath+It))
             {
                 mp3_metadata *MD = MP3FileInfo->Metadata+It;
                 
-                ConcatStringCompounds(4, &SaveData, Inset, MP3FileInfo->FileName[It], NL);
+                ConcatStringCompounds(4, &SaveData, &Inset, MP3FileInfo->FileNames_[It], &NL);
                 if(MD->FoundFlags & metadata_Title)
                 {
-                    ConcatStringCompounds(4, &SaveData, Inset, MD->Title, NL);
+                    ConcatStringCompounds(4, &SaveData, &Inset, MD->Title, &NL);
                 }
-                else ConcatStringCompounds(3, &SaveData, Inset, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 if(MD->FoundFlags & metadata_Artist)
                 {
-                    ConcatStringCompounds(4, &SaveData, Inset, MD->Artist, NL);
+                    ConcatStringCompounds(4, &SaveData, &Inset, MD->Artist, &NL);
                 }
-                else ConcatStringCompounds(3, &SaveData, Inset, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 if(MD->FoundFlags & metadata_Album)
                 {
-                    ConcatStringCompounds(4, &SaveData, Inset, MD->Album, NL);
+                    ConcatStringCompounds(4, &SaveData, &Inset, MD->Album, &NL);
                 }
-                else ConcatStringCompounds(3, &SaveData, Inset, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 if(MD->FoundFlags & metadata_Genre)
                 {
-                    ConcatStringCompounds(4, &SaveData, Inset, MD->Genre, NL);
+                    ConcatStringCompounds(4, &SaveData, &Inset, MD->Genre, &NL);
                 }
-                else ConcatStringCompounds(3, &SaveData, Inset, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 if(MD->FoundFlags & metadata_Track && MD->Track > 0)
                 {
                     char B[25];
                     sprintf_s(B, ">%i\n", MD->Track);
                     AppendStringToCompound(&SaveData, (u8 *)B);
                 }
-                else ConcatStringCompounds(3, &SaveData, Inset, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 if(MD->FoundFlags & metadata_Year && MD->Year > 0)
                 {
                     char B[25];
                     sprintf_s(B, ">%i\n", MD->Year);
                     AppendStringToCompound(&SaveData, (u8 *)B);
                 }
-                else ConcatStringCompounds(3, &SaveData, Inset, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 if(MD->FoundFlags & metadata_Duration && MD->Duration > 0)
                 {
                     char B[25];
-                    sprintf_s(B, ">%i\n\n", MD->Duration);
+                    sprintf_s(B, ">%i\n", MD->Duration);
                     AppendStringToCompound(&SaveData, (u8 *)B);
                 }
-                else ConcatStringCompounds(4, &SaveData, Inset, NL, NL);
+                else ConcatStringCompounds(3, &SaveData, &Inset, &NL);
                 
+                // NoHash:: AppendStringCompoundToCompound(&SaveData, &Inset);
+                // NoHash:: U32ToString(&SaveData, MP3FileInfo->Hashes[It]);
+                // NoHash:: ConcatStringCompounds(3, &SaveData, &NL, &NL);
+                
+                AppendStringCompoundToCompound(&SaveData, &NL);
                 Written[It] = true;
                 WrittenDataCount++;
             }
@@ -843,7 +898,9 @@ SaveMP3LibraryFile(game_state *GameState, mp3_info *Info)
     // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
     if(!WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, SaveData.Pos, SaveData.S))
     {
-        DebugLog(255, "ERROR:: Could not write out library file!\n");
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not write out library file!");
+        PushErrorMessage(GameState, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
     DeleteStringCompound(&GameState->ScratchArena, &SaveData);
 }
@@ -853,7 +910,9 @@ WipeMP3LibraryFile(game_state *GameState)
 {
     if(!WriteEntireFile(&GameState->ScratchArena, GameState->LibraryPath.S, 0, 0))
     {
-        DebugLog(255, "ERROR:: Could not write out library file!\n");
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not access library file!");
+        PushErrorMessage(GameState, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
     }
 }
 
@@ -883,11 +942,441 @@ DecodeIcon(arena_allocator *Arena, u32 Width, u32 Height, u8 *Data, u32 Size)
     return Result;
 }
 
+/* NoHash::
+internal u32
+CreateHash(string_c Name, u64 CreationDate)
+{
+    u64 Result = CreationDate;
+    
+    u32 Prime  = 176544817;
+    u64 Prime2 = 184467439259;
+    
+    For(Name.Pos) 
+    {
+        if(It%2) Result += Name.S[It]*Prime;
+        else     Result += Name.S[It]*Prime2;
+        Result = Result%MAX_UINT32;
+    }
+    
+    return (u32)Result;
+}
+*/
 
+enum existing_file_status
+{
+    existingFileStatue_NoExist,
+    existingFileStatue_ExistDifferentCreation,
+    existingFileStatue_ExistAndMatch,
+};
 
+internal existing_file_status
+CheckForCreationTimeSimilarity(game_state *GS, string_c PlaylistPath, u64 CreationTime)
+{
+    existing_file_status Result = existingFileStatue_NoExist;
+    
+    string_w WidePlaylistPath = {};
+    ConvertString8To16(&GS->ScratchArena, &PlaylistPath, &WidePlaylistPath);
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WidePlaylistPath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        u64 NewCreationTime = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
+        if(NewCreationTime == CreationTime)
+        {
+            Result = existingFileStatue_ExistAndMatch;
+        }
+        else Result = existingFileStatue_ExistDifferentCreation;
+    }
+    
+    return Result;
+}
 
+internal u64
+GetFileCreationDate(game_state *GS, string_c PlaylistPath)
+{
+    u64 Result = 0;
+    
+    string_w WidePlaylistPath = {};
+    ConvertString8To16(&GS->ScratchArena, &PlaylistPath, &WidePlaylistPath);
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WidePlaylistPath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        Result = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
+    }
+    
+    return Result;
+}
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Playlist save file definition: ~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+// MPlay3Playlist
+// Version: <VERSION>
+// Name: <PLAYLIST_NAME>
+// Count: <SONG_COUNT>
+//
+// # NOTE 1:: These playlist files will always 
+// # be placed at the same location as the 
+// # 'MPlay3Library.save' file. For a bit more 
+// # information on what that means, look into
+// # the 'MPlay3Settings.save' file's NOTE 1.
+//
+// # NOTE 2:: The filename of the playlist files
+// # needs to start with the string 'MPlay3Playlist_*'
+// # and end with '.save'. If you want, it is
+// # possible to put anything inbetween these, 
+// # to sort them as you like.
+// 
+// P: <SUB_PATH_1>
+// ><FILENAME_1>
+// ><FILENAME_...>
+// ><FILENAME_N>
+// 
+// P: <SUB_PATH_2>
+// >...
+// 
+// P: <SUB_PATH_N>
+// ><FILENAME_M>
+//
 
+internal void
+SavePlaylist(game_state *GS, playlist_info *Playlist)
+{
+    mp3_file_info *FileInfo = &GS->MP3Info->FileInfo;
+    i32 PlaylistID = GetPlaylistID(&GS->MusicInfo, Playlist);
+    Assert(PlaylistID >= 0);
+    Assert(PlaylistID != 0); // First playlist is always _all_ songs, which does not need to be saved.
+    
+    string_c SaveData = NewStringCompound(&GS->ScratchArena, 1500);
+    
+    AppendStringToCompound(&SaveData, (u8 *)"MPlay3Playlist\nVersion: ");
+    I32ToString(&SaveData, PLAYLIST_CURRENT_VERSION);
+    
+    AppendStringToCompound(&SaveData, (u8 *)"\nName: ");
+    NewLocalString(PLName, PLAYLIST_MAX_NAME_LENGTH, Playlist->Playlists.Batch.Names[PlaylistID].S);
+    i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&PLName, '(');
+    Assert(NameEndP >= 0);
+    PLName.Pos = NameEndP-1;
+    AppendStringCompoundToCompound(&SaveData, &PLName);
+    
+    AppendStringToCompound(&SaveData, (u8 *)"\nCount: ");
+    I32ToString(&SaveData, Playlist->Song.FileIDs.A.Count);
+    AppendStringToCompound(&SaveData, (u8 *)"\n\n");
+    
+    AppendStringToCompound(&SaveData, (u8 *)"# NOTE 1:: These playlist files will always\n# be placed at the same location as the\n# 'MPlay3Library.save' file. For a bit more\n# information on what that means, look into\n# the 'MPlay3Settings.save' file's NOTE 1.\n\n");
+    AppendStringToCompound(&SaveData, (u8 *)"# NOTE 2:: The filename of the playlist files\n# need to start with the string 'MPlay3Playlist_'\n# and end with '.save'. If you want, it is\n# possible to put anything inbetween these,\n# to sort them as you like.\n\n");
+    
+    string_c SMem = NewStaticStringCompound("ThisIsNoSubPathIJustWantToMakeSureThatTheFirstLoopCompareAlwaysFails!");
+    string_c *CurrentSubPath = &SMem;
+    
+    // Because the Playlists can have the FileIDs list in any random order, we sort them
+    // before saving to the file. This bunches up all subpath again, making the file much
+    // more readable and a bit smaller as well.
+    array_u32 SortFileIDs = CreateArray(&GS->ScratchArena, Playlist->Song.FileIDs.A.Count);
+    AppendArray(&SortFileIDs, &Playlist->Song.FileIDs.A);
+    ShuffleStack(&SortFileIDs);
+    QuickSort3(SortFileIDs);
+    
+    For(SortFileIDs.Count)
+    {
+        file_id FileID = NewFileID(Get(&SortFileIDs, It));
+        
+        if(!CompareStringCompounds(CurrentSubPath, FileInfo->SubPath+FileID.ID))
+        {
+            CurrentSubPath = FileInfo->SubPath+FileID.ID;
+            AppendStringToCompound(&SaveData, (u8 *)"\nP: ");
+            AppendStringCompoundToCompound(&SaveData, CurrentSubPath);
+            AppendCharToCompound(&SaveData, '\n');
+        }
+        
+        AppendCharToCompound(&SaveData, '>');
+        AppendStringCompoundToCompound(&SaveData, FileInfo->FileNames_+FileID.ID);
+        AppendCharToCompound(&SaveData, '\n');
+        
+        if(SaveData.Pos + 260 >= SaveData.Length) 
+        {
+            u32 NewLength = SaveData.Length*2;
+            SaveData.S = ReallocateMemory(&GS->ScratchArena, SaveData.S, SaveData.Length, NewLength);
+            SaveData.Length = NewLength;
+        }
+    }
+    
+    
+    // When we create a new playlist, we need to make sure that there is not already
+    // a playlist with the exact same name. If so we try again and increment the name
+    // each time. 
+    NewLocalString(Appendix, 5, "0");
+    u32 AppendixCount = 0;
+    NewEmptyLocalString(PlaylistPath, 260);
+    existing_file_status FileExist = existingFileStatue_ExistAndMatch;
+    do {
+        if(Playlist->Filename_.Pos) AppendStringCompoundToCompound(&PlaylistPath, &Playlist->Filename_);
+        else
+        {
+            ResetStringCompound(PlaylistPath);
+            AppendStringCompoundToCompound(&PlaylistPath, &GS->PlaylistPath);
+            if(PlaylistID < 100) AppendCharToCompound(&PlaylistPath, '0');
+            if(PlaylistID < 10)  AppendCharToCompound(&PlaylistPath, '0');
+            I32ToString(&PlaylistPath, PlaylistID);
+            AppendCharToCompound(&PlaylistPath, '_');
+            AppendStringCompoundToCompound(&PlaylistPath, &Appendix);
+            AppendStringToCompound(&PlaylistPath, (u8 *)".save");
+            
+            FileExist = CheckForCreationTimeSimilarity(GS, PlaylistPath, Playlist->FileCreationDate);
+            
+            if(FileExist != existingFileStatue_ExistDifferentCreation)
+            {
+                // If we are here and build our own path, we also need to save it for later.
+                Playlist->Filename_ = NewStringCompound(&GS->FixArena, PlaylistPath.Pos);
+                AppendStringCompoundToCompound(&Playlist->Filename_, &PlaylistPath);
+            }
+            ResetStringCompound(Appendix);
+            I32ToString(&Appendix, ++AppendixCount);
+        }
+    } while(FileExist == existingFileStatue_ExistDifferentCreation);
+    
+    // TODO:: Rename old save file as backup, before writing and after successful write delete the old one.
+    if(!WriteEntireFile(&GS->ScratchArena, PlaylistPath.S, SaveData.Pos, SaveData.S))
+    {
+        NewLocalString(ErrorMsg, 300, "ERROR:: Could not write out playlist file file nr. ");
+        I32ToString(&ErrorMsg, PlaylistID);
+        AppendCharToCompound(&ErrorMsg, '!');
+        PushErrorMessage(GS, ErrorMsg);
+        DebugLog(255, "%s\n", ErrorMsg.S);
+    }
+    else
+    {
+        Playlist->FileCreationDate = GetFileCreationDate(GS, PlaylistPath);
+    }
+    DeleteStringCompound(&GS->ScratchArena, &SaveData);
+}
+
+enum load_playlist_result
+{
+    loadPlaylistResult_NothingFound         = -4,
+    loadPlaylistResult_WrongIdentifier      = -3,
+    loadPlaylistResult_WrongVersion         = -2,
+    loadPlaylistResult_LoadedButEmpty       = -1,
+    loadPlaylistResult_LoadedSucessfully    =  0,
+    loadPlaylistResult_LoadedNeedsReSaving  =  1,
+};
+
+internal load_playlist_result
+LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileIDs, string_c *PlaylistName)
+{
+    load_playlist_result Result = loadPlaylistResult_NothingFound;
+    
+    mp3_file_info *FileInfo = &GS->MP3Info->FileInfo;
+    Assert(PlaylistFileIDs->A.Slot == NULL);
+    
+    read_file_result Data = {};
+    if(ReadEntireFile(&GS->ScratchArena, &Data, PlaylistPath.S))
+    {
+        u8 *C = Data.Data;
+        u8 L;
+        
+        string_c PlaylistFileID = NewStaticStringCompound("MPlay3Playlist");
+        if(!CompareStringAndCompound(&PlaylistFileID, C, PlaylistFileID.Pos)) 
+        {
+            NewLocalString(ErrorMsg, 300, "ERROR:: Playlist file is not a playlist file. It has to have 'MPlay3Playlist' at the beginning!");
+            PushErrorMessage(GS, ErrorMsg);
+            DebugLog(302, "%s\n", ErrorMsg.S);
+            return loadPlaylistResult_WrongIdentifier;
+        }
+        AdvanceToNewline(&C);
+        
+        NewLocalString(VersionString, 20, "Version: ");
+        I32ToString(&VersionString, PLAYLIST_CURRENT_VERSION);
+        if(!CompareStringAndCompound(&VersionString, C, VersionString.Pos)) 
+        {
+            C += 9; // "Version: "
+            i32 V = ProcessNextI32InString(C, '\n', L);
+            
+            NewLocalString(ErrorMsg, 300, "ERROR:: Playlist file is the wrong Version. Wanted: ");
+            I32ToString(&ErrorMsg, PLAYLIST_CURRENT_VERSION);
+            AppendStringToCompound(&ErrorMsg, (u8 *)", found: ");
+            I32ToString(&ErrorMsg, V);
+            AppendCharToCompound(&ErrorMsg, '.');
+            PushErrorMessage(GS, ErrorMsg);
+            DebugLog(255, "%s\n", ErrorMsg.S);
+            return loadPlaylistResult_WrongVersion;
+        }
+        AdvanceToNewline(&C);
+        
+        C += 6; // "Name: "
+        u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;  // @HardLimit, Limit to 100 chars for now.
+        u32 NameLength = CountToNewline(C);
+        *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit);
+        CopyStringToCompound(PlaylistName, C, 0u, Min(NameLength, HardLimit));
+        AdvanceToNewline(&C);
+        
+        C += 7; // "Count: "
+        u32 SongCount      = ProcessNextI32InString(C, '\n', L);
+        PlaylistFileIDs->A = CreateArray(&GS->ScratchArena, FileInfo->Count_);
+        AdvanceToNewline(&C);
+        
+        NewEmptyLocalString(CurrentSubPath, 260); 
+        NewEmptyLocalString(Filename, 260); 
+        NewLocalString(PathID, 4, "P: ");
+        file_id SubPathStartID = {0};
+        For(SongCount)
+        {
+            if(*C == 0) break;
+            while(*C == '#' || *C == '\r' || *C == '\n') AdvanceToNewline(&C);
+            if(CompareStringAndCompound(&PathID, C, PathID.Pos)) 
+            {
+                C += 3; // "P: "
+                WipeStringCompound(&CurrentSubPath);
+                CopyStringToCompound(&CurrentSubPath, C, (u8 *)"\n\r", 2);
+                AdvanceToNewline(&C);
+                SubPathStartID = GetFirstFileID(FileInfo, &CurrentSubPath);
+            }
+            
+            if(*C == 0)   break;
+            if(*C != '>') AdvanceToNewline(&C);
+            if(*C == 0)   break;
+            
+            C += 1; // '>'
+            WipeStringCompound(&Filename);
+            CopyStringToCompound(&Filename, C, (u8 *)"\n\r", 2);
+            
+            file_id FileID = GetFileID(FileInfo, &CurrentSubPath, &Filename, SubPathStartID);
+            if(FileID >= 0) Push(PlaylistFileIDs, FileID);
+            
+            AdvanceToNewline(&C);
+        }
+        
+        if(PlaylistFileIDs->A.Count == 0 && SongCount > 0)
+        {
+            NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
+            AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
+            AppendStringToCompound(&ErrorMsg, (u8 *)"' had a count of ");
+            I32ToString(&ErrorMsg, SongCount);
+            AppendStringToCompound(&ErrorMsg, (u8 *)", but nothing could be found.");
+            
+            DebugLog(150, "%s\n", ErrorMsg.S);
+            PushErrorMessage(GS, ErrorMsg);
+            Result = loadPlaylistResult_LoadedButEmpty;
+        }
+        else if(PlaylistFileIDs->A.Count != SongCount) 
+        {
+            NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
+            AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
+            AppendStringToCompound(&ErrorMsg, (u8 *)"' indicated a song count of ");
+            I32ToString(&ErrorMsg, SongCount);
+            AppendStringToCompound(&ErrorMsg, (u8 *)", but we found only ");
+            I32ToString(&ErrorMsg, PlaylistFileIDs->A.Count);
+            AppendStringToCompound(&ErrorMsg, (u8 *)" songs in it.");
+            
+            DebugLog(150, "%s\n", ErrorMsg.S);
+            PushErrorMessage(GS, ErrorMsg);
+            Result = loadPlaylistResult_LoadedNeedsReSaving;
+        }
+        else Result = loadPlaylistResult_LoadedSucessfully;
+        
+        AppendStringToCompound(PlaylistName, (u8 *)" (");
+        I32ToString(PlaylistName, PlaylistFileIDs->A.Count);
+        AppendCharToCompound(PlaylistName, ')');
+        
+        FreeFileMemory(&GS->ScratchArena, Data);
+    }
+    return Result;
+}
+
+internal void
+LoadAllPlaylists(game_state *GS)
+{
+    RestartTimer("Load Playlists");
+    NewLocalString(PlaylistPath, 260, GS->PlaylistPath.S);
+    AppendCharToCompound(&PlaylistPath, '*');
+    string_w WidePlaylistPath = {};
+    ConvertString8To16(&GS->ScratchArena, &PlaylistPath, &WidePlaylistPath);
+    
+    NewLocalString(PathWithoutFilePrefix, 260, PlaylistPath.S);
+    i32 L = FindLastOccurrenceOfCharInStringCompound(&PathWithoutFilePrefix, '\\') + 1;
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WidePlaylistPath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        b32 HasNextFile = true;
+        string_compound FileType = NewStringCompound(&GS->ScratchArena, 16);
+        
+        while(HasNextFile)
+        {
+            string_c FileName = {};
+            ConvertString16To8(&GS->ScratchArena, FileData.cFileName, &FileName);
+            
+            if     (CompareStringAndCompound(&FileName, (u8 *)".") ) {}
+            else if(CompareStringAndCompound(&FileName, (u8 *)"..")) {}
+            else
+            {
+                if(FileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {}
+                else
+                {
+                    i32 LastDot = FindLastOccurrenceOfCharInStringCompound(&FileName, '.');
+                    if(LastDot > 0)
+                    {
+                        PasteStringCompoundIntoCompound(&FileType, 0, &FileName, LastDot, FileName.Pos-LastDot);
+                        u8 *FileExtension = (u8 *)".save";
+                        if(CompareStringAndCompound(&FileType, FileExtension))
+                        {
+                            // We found a potential playlist file.
+                            array_file_id FileIDs = {};
+                            string_c PlaylistName = {};
+                            
+                            PathWithoutFilePrefix.Pos = L;
+                            AppendStringCompoundToCompound(&PathWithoutFilePrefix, &FileName);
+                            
+                            load_playlist_result LoadResult = LoadPlaylist(GS, PathWithoutFilePrefix, &FileIDs, &PlaylistName);
+                            
+                            if(LoadResult == loadPlaylistResult_LoadedSucessfully ||
+                               LoadResult == loadPlaylistResult_LoadedNeedsReSaving)
+                            {
+                                playlist_info *NewPL = CreateEmptyPlaylist(&GS->FixArena, &GS->MusicInfo);
+                                NewPL->Filename_ = NewStringCompound(&GS->FixArena, PathWithoutFilePrefix.Pos);
+                                AppendStringCompoundToCompound(&NewPL->Filename_, &PathWithoutFilePrefix);
+                                
+                                FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPL, FileIDs);
+                                AddPlaylistToSortingColumn(&GS->MusicInfo, NewPL, PlaylistName);
+                                SyncPlaylists_playlist_column(&GS->MusicInfo);
+                                
+                                NewPL->FileCreationDate = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
+                                
+                                if(LoadResult == loadPlaylistResult_LoadedNeedsReSaving)
+                                    SavePlaylist(GS, NewPL);
+                            }
+                        }
+                        ResetStringCompound(FileType);
+                    }
+                }
+            }
+            HasNextFile = FindNextFileW(FileHandle, &FileData);
+            DeleteStringCompound(&GS->ScratchArena, &FileName);
+        } 
+        DeleteStringCompound(&GS->ScratchArena, &FileType);
+    }
+    SnapTimer("Load Playlists");
+}
 
 
 

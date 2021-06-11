@@ -5,15 +5,6 @@
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcDuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
-enum load_error_codes
-{
-    loadErrorCode_DecodingCanceled = 1,
-    loadErrorCode_NoError        =  0,
-    loadErrorCode_FileLoadFailed = -1,
-    loadErrorCode_DecodingFailed = -2,
-    loadErrorCode_EmptyFile      = -3,
-};
-
 enum play_state
 {
     playState_Error,

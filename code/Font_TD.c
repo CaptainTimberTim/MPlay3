@@ -1,10 +1,10 @@
 #include "Font_TD.h"
 
 inline font_atlas
-NewFontAtlas(settings *Settings, r32 *FontSizes, u32 SizesCount)
+NewFontAtlas(settings *Settings, font_sizes FontSizes)
 {
     PrepareUnicodeGroupList();
-    font_atlas Result = {FontSizes, SizesCount, Settings->FontHeightOffset, 5, 0, NULL, Settings->CachedFontNames};
+    font_atlas Result = {FontSizes, Settings->FontHeightOffset, 5, 0, NULL, Settings->CachedFontNames};
     return Result;
 }
 
@@ -100,7 +100,7 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         else NewFontGroup->CodepointRange = Group->CodepointRange;
         
         u32 TotalArea = 0;
-        For(Atlas->SizesCount, Size)
+        For(Atlas->FontSizes.Count, Size)
         {
             // Summing all areas of each codepoint we want to load. 
             // For this we assume that the codepoint is a square,
@@ -108,7 +108,7 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
             // few codepoints (like 1) or some special glyphs like 
             // emoticons, thats why we multiply by 2.5. 
             // TODO:: Think of something better that *2.5?
-            TotalArea += Square((i32)(Atlas->FontSizes[SizeIt]*2.5f))*(NewFontGroup->CodepointRange.Count);
+            TotalArea += Square((i32)(Atlas->FontSizes.Sizes[SizeIt].Size*2.5f))*(NewFontGroup->CodepointRange.Count);
         }
         u32 Width  = (u32)Sqrt(TotalArea); // First calc the side for square with correct total area,
         Width      = (Width/8)*8;          // then fit the width to a properly byte aligned length.
@@ -123,16 +123,16 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         stbtt_pack_context PackContext;
         stbtt_PackBegin(&PackContext, AlphaMap, Width, Height, 0, 1, NULL);
         
-        NewFontGroup->FontSizes = AllocateArray(FixArena, Atlas->SizesCount, font_data);
-        NewFontGroup->Count     = Atlas->SizesCount;
-        For(Atlas->SizesCount)
+        NewFontGroup->FontSizes = AllocateArray(FixArena, Atlas->FontSizes.Count, font_data);
+        NewFontGroup->Count     = Atlas->FontSizes.Count;
+        For(Atlas->FontSizes.Count)
         {
-            NewFontGroup->FontSizes[It].Size     = Atlas->FontSizes[It];
+            NewFontGroup->FontSizes[It].Size     = Atlas->FontSizes.Sizes[It].Size;
             NewFontGroup->FontSizes[It].CharData = AllocateArray(FixArena, NewFontGroup->CodepointRange.Count, 
                                                                  stbtt_packedchar);
             
             stbtt_PackSetOversampling(&PackContext, 3, 1);
-            i32 R=stbtt_PackFontRange(&PackContext, RawFontData, 0, Atlas->FontSizes[It], NewFontGroup->CodepointRange.First, NewFontGroup->CodepointRange.Count, NewFontGroup->FontSizes[It].CharData);
+            i32 R=stbtt_PackFontRange(&PackContext, RawFontData, 0, Atlas->FontSizes.Sizes[It].Size, NewFontGroup->CodepointRange.First, NewFontGroup->CodepointRange.Count, NewFontGroup->FontSizes[It].CharData);
             Assert(R != 0); // Most likely the given bitmap is too small.
         }
         stbtt_PackEnd(&PackContext);
@@ -148,12 +148,19 @@ IsCodepointInFont(u8 *Data, u32 Codepoint)
 {
     b32 Result = false;
     
-    stbtt_fontinfo FontInfo;
-    if(stbtt_InitFont(&FontInfo, Data, 0))
+    u32 FCount = stbtt_GetNumberOfFonts(Data);
+    For(FCount)
     {
-        if(stbtt_FindGlyphIndex(&FontInfo, Codepoint))
+        i32 Offset = stbtt_GetFontOffsetForIndex(Data, It);
+        
+        stbtt_fontinfo FontInfo;
+        if(stbtt_InitFont(&FontInfo, Data, Offset))
         {
-            Result = true;
+            if(stbtt_FindGlyphIndex(&FontInfo, Codepoint))
+            {
+                Result = true;
+                break;
+            }
         }
     }
     
@@ -164,7 +171,7 @@ internal b32
 AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
 {
     b32 Result = false;
-    local_persist timer T = StartTimer();
+    RestartTimer("GetFontGroup");
     
     u32 GroupCodepoints[] = { Codepoint };
     unicode_group *Group = GetUnicodeGroup(Codepoint);
@@ -254,8 +261,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
         }
     }
 #endif
-    string_c TT = NewStaticStringCompound("GetFontGroup");
-    SnapTimer(&T, TT);
+    SnapTimer("GetFontGroup");
     
     return Result;
 }
@@ -309,7 +315,7 @@ CreateFontEntry(v2 Extends, r32 Depth, u32 BitmapID, v3 *Color, entry_id *Parent
 }
 
 internal void
-RenderText(game_state *GS, arena_allocator *Arena, font_size FontSize, string_c *Text,
+RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
            v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP)
 {
     // Create memory if this render_text was not used before
@@ -317,11 +323,11 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size FontSize, string_c 
     if(ResultText->MaxCount == 0)
     {
         ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
-        ResultText->RenderEntries    = AllocateArray(Arena, ResultText->MaxCount, render_entry);
+        ResultText->RenderEntries    = AllocateArray(&GS->FixArena, ResultText->MaxCount, render_entry);
     }
     else if (ResultText->MaxCount < Text->Pos)
     {
-        ResultText->RenderEntries = ReallocateArray(Arena, ResultText->RenderEntries, ResultText->MaxCount, 
+        ResultText->RenderEntries = ReallocateArray(&GS->FixArena, ResultText->RenderEntries, ResultText->MaxCount, 
                                                     Text->Pos, render_entry);
         ResultText->MaxCount = Text->Pos;
     }
@@ -380,7 +386,7 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size FontSize, string_c 
         
         if(NextChar == 10) // On '\n' we insert a newline
         {
-            ResultText->CurrentP = V2(0/*StartP.x*/, ResultText->CurrentP.y + (OldBaseline-NewBaseline)*2);
+            ResultText->CurrentP = V2(0/*StartP.x*/, ResultText->CurrentP.y + (OldBaseline-NewBaseline)*1.5f);
             continue;
         }
         u32 CharDataID = NextChar - FontGroupStart; // Map codepoint into array range.
@@ -415,20 +421,47 @@ RenderText(game_state *GS, arena_allocator *Arena, font_size FontSize, string_c 
         
         It += Advance;
     }
-    ResultText->Height = TextHeight;
+    if(ResultText->Count > 0)
+    {
+        entry_id FirstLetterID = {ResultText->RenderEntries+0, 0};
+        entry_id LastLetterID  = {ResultText->RenderEntries+(ResultText->Count-1), 0};
+        ResultText->Extends.x  = ResultText->CurrentP.x + GetSize(&FirstLetterID).x + GetSize(&LastLetterID).x;
+        ResultText->Extends.y  = Abs(TextHeight.E[0]) + Abs(TextHeight.E[1]);
+    }
 }
 
-inline r32 
-FontSizeToPixel(font_size FontSize)
+internal void
+CopyRenderText(game_state *GS, render_text *In, render_text *Out, r32 Depth = -2.0f)
 {
-    switch(FontSize)
+    if(Out->MaxCount == 0)
     {
-        case font_Small:  return 24.0f;
-        case font_Medium: return 50.0f;
-        case font_Big:    return 75.0f;
-        InvalidDefaultCase;
+        Out->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, In->Count);
+        Out->RenderEntries    = AllocateArray(&GS->FixArena, Out->MaxCount, render_entry);
     }
-    return 0.0f;
+    else if (Out->MaxCount < In->Count)
+    {
+        Out->RenderEntries = ReallocateArray(&GS->FixArena, Out->RenderEntries, Out->MaxCount, In->Count, render_entry);
+        Out->MaxCount = In->Count;
+    }
+    r32 DepthOffset = (Depth > -2.0f) ? Depth : GetDepth(In->Base);
+    Out->CurrentP = In->CurrentP;
+    Out->Count    = In->Count;
+    Out->Extends  = In->Extends;
+    Out->Base     = CreateRenderBitmap(&GS->Renderer, V2(0), DepthOffset, GetParent(In->Base), 0); // GLID can be 0, never used!
+    SetPosition(Out->Base, GetPosition(In->Base));
+    Out->Base->ID->Type = renderType_Text;
+    Out->Base->ID->Text = Out;
+    
+    For(Out->Count)
+    {
+        Out->RenderEntries[It] = In->RenderEntries[It];
+        Out->RenderEntries[It].Parent = Out->Base;
+        Out->RenderEntries[It].Vertice[0].z = DepthOffset;
+        Out->RenderEntries[It].Vertice[1].z = DepthOffset;
+        Out->RenderEntries[It].Vertice[2].z = DepthOffset;
+        Out->RenderEntries[It].Vertice[3].z = DepthOffset;
+        DepthOffset -= 0.000001f;
+    }
 }
 
 inline b32
@@ -812,4 +845,11 @@ FindAndPrintFontNameForEveryUnicodeGroup(arena_allocator *Arena, string_c Path)
         PrintAsList2(Arena, Group, FontName);
         ResetMemoryArena(Arena);
     }
+}
+
+inline font_size 
+GetFontSize(struct renderer *Renderer, font_size_id ID)
+{
+    font_size Result = Renderer->FontAtlas.FontSizes.Sizes[ID];
+    return Result;
 }

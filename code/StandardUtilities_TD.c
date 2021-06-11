@@ -340,9 +340,10 @@ DeleteTransientHeap(arena_allocator *Arena, heap *Heap)
 
 // Array operations
 inline array_u32
-CreateArray(arena_allocator *Arena, u32 Length)
+CreateArray(arena_allocator *Arena, i32 Length)
 {
     array_u32 Result = {};
+    Assert(Length >= 0);
     
     Result.Count  = 0;
     Result.Length = Length;
@@ -352,9 +353,12 @@ CreateArray(arena_allocator *Arena, u32 Length)
 }
 
 inline void 
-DestroyArray(arena_allocator *Arena, array_u32 Array)
+DestroyArray(arena_allocator *Arena, array_u32 *Array)
 {
-    FreeMemory(Arena, Array.Slot);
+    FreeMemory(Arena, Array->Slot);
+    Array->Slot   = NULL;
+    Array->Length = 0;
+    Array->Count  = 0;
 }
 
 inline void 
@@ -386,13 +390,6 @@ Take(array_u32 *Array, u32 Pos)
     Array->Count--;
     
     return Result;
-}
-
-inline void
-ReplaceAt(array_u32 *Array, u32 Pos, u32 Item)
-{
-    Assert(Pos < Array->Length);
-    Array->Slot[Pos] = Item;
 }
 
 inline void 
@@ -466,14 +463,17 @@ Find(array_u32 *Array, u32 Item, u32 *Result)
     return Found;
 }
 
-inline void
+inline b32
 FindAndTake(array_u32 *Array, u32 Item)
 {
+    b32 Found = false;
     u32 ID = 0;
     if(Find(Array, Item, &ID))
     {
         Take(Array, ID);
+        Found = true;
     }
+    return Found;
 }
 
 inline b32  
@@ -511,14 +511,17 @@ StackFind(array_u32 *Array, u32 Item, u32 *Result)
     return Found;
 }
 
-inline void
+inline b32
 StackFindAndTake(array_u32 *Array, u32 Item)
 {
+    b32 Found = false;
     u32 ID = 0;
     if(StackFind(Array, Item, &ID))
     {
         Take(Array, ID);
+        Found = true;
     }
+    return Found;
 }
 
 inline void
@@ -559,10 +562,8 @@ inline void
 AppendArray(array_u32 *Array1, array_u32 *Array2)
 {
     Assert(Array1->Count + Array2->Count <= Array1->Length);
-    For(Array2->Count)
-    {
-        Push(Array1, Get(Array2, It));
-    }
+    MemoryCopy(Array1->Slot+Array1->Count, Array2->Slot, Array2->Count*sizeof(u32));
+    Array1->Count += Array2->Count;
 }
 
 inline void 
@@ -575,24 +576,41 @@ MergeArrays(array_u32 *Array1, array_u32 *Array2)
 }
 
 inline void
-Switch(array_u32 *Array, u32 P1, u32 P2)
+Switch(array_u32 Array, i32 P1, i32 P2)
 {
-    Assert(P1 < Array->Length);
-    Assert(P2 < Array->Length);
-    u32 T = Array->Slot[P1];
-    Array->Slot[P1] = Array->Slot[P2];
-    Array->Slot[P2] = T;
+    Assert((u32)P1 < Array.Length);
+    Assert((u32)P2 < Array.Length);
+    u32 T = Array.Slot[P1];
+    Array.Slot[P1] = Array.Slot[P2];
+    Array.Slot[P2] = T;
 }
 
-inline void 
+inline void
+Switch(void *Array, i32 P1, i32 P2)
+{
+    array_u32 *A = (array_u32 *)Array;
+    Assert((u32)P1 < A->Length);
+    Assert((u32)P2 < A->Length);
+    u32 T = A->Slot[P1];
+    A->Slot[P1] = A->Slot[P2];
+    A->Slot[P2] = T;
+}
+
+inline array_u32
+Copy(arena_allocator *Arena, array_u32 From)
+{
+    array_u32 Result = CreateArray(Arena, From.Count);
+    MemoryCopy(Result.Slot, From.Slot, From.Count*sizeof(u32));
+    Result.Count = From.Count;
+    
+    return Result;
+}
+
+inline void
 Copy(array_u32 *To, array_u32 *From)
 {
-    Assert(To->Length <= From->Length);
-    
-    For(From->Count)
-    {
-        To->Slot[It] = From->Slot[It];
-    }
+    Assert(To->Length >= From->Count);
+    MemoryCopy(To->Slot, From->Slot, From->Count*sizeof(u32));
     To->Count = From->Count;
 }
 
@@ -610,7 +628,7 @@ CutValueFromArray_(void *Array, u32 *ArraySize, u32 ID, u32 ElementSize)
 }
 
 internal i32
-QuickSortPartition(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo) 
+QuickSortPartition(i32 Low, i32 High, void *SortArray, sort_info SortInfo) 
 { 
     i32 Pivot   = High;
     i32 SmallID = (Low - 1);
@@ -620,15 +638,15 @@ QuickSortPartition(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo)
         if (SortInfo.CompareFunc(HighID, Pivot, SortInfo.Data)) 
         { 
             SmallID++;
-            Switch(SortArray, SmallID, HighID); 
+            SortInfo.SwapFunc(SortArray, SmallID, HighID); 
         } 
     } 
-    Switch(SortArray, SmallID+1, High); 
+    SortInfo.SwapFunc(SortArray, SmallID+1, High); 
     return (SmallID + 1); 
 } 
 
 internal void 
-QuickSort(i32 Low, i32 High, array_u32 *SortArray, sort_info SortInfo) 
+QuickSort(i32 Low, i32 High, void *SortArray, sort_info SortInfo) 
 { 
     if(Low < High)
     {

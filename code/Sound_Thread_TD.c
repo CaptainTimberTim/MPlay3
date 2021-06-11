@@ -397,7 +397,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
     b32 WaitForMainThread  = false;
     
     r32 PrevVolume = Interface->ToneVolume;
-    r32 CurrentSongPlayltime = 0;
+    r32 CurrentSongPlaytime = 0;
     while(true)
     {
         LONGLONG CurrentCycleCount = GetWallClock();
@@ -414,17 +414,25 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
                 Interface->ChangedTimeToggle = false;
                 SoundInfo->PlayedSampleCount = (u32)(Interface->CurrentPlaytime*
                                                      SoundInfo->SoundInstance.SamplesPerSecond);
-                CurrentSongPlayltime = Interface->CurrentPlaytime;
-                WaitForMainThread = false;
+                CurrentSongPlaytime = Interface->CurrentPlaytime;
+                WaitForMainThread   = false;
             }
             
-            //Interface->CurrentPlaytime = (SoundInfo->PlayedSampleCount/(r32)SoundInfo->SoundInstance.SamplesPerSecond);
-            if(IsPlaying) CurrentSongPlayltime += Time.dTime;
-            r32 MaxSongPlaytime = MP3Decoded.samples/(r32)(MP3Decoded.hz*MP3Decoded.channels);
-            CurrentSongPlayltime = Min(CurrentSongPlayltime, MaxSongPlaytime);
-            Interface->CurrentPlaytime = CurrentSongPlayltime;
+#define DELTA_TIME_BASED 0
+#if DELTA_TIME_BASED 
+            if(IsPlaying) CurrentSongPlaytime += Time.dTime;
+            r32 MaxSongPlaytime        = MP3Decoded.samples/(r32)(MP3Decoded.hz*MP3Decoded.channels);
+            CurrentSongPlaytime        = Min(CurrentSongPlaytime, MaxSongPlaytime);
+            Interface->CurrentPlaytime = CurrentSongPlaytime;
             
             Assert(Interface->CurrentPlaytime <= MaxSongPlaytime);
+#else // Played sample based
+            u32 SongDuration   = (u32)MP3Decoded.samples/MP3Decoded.channels/MP3Decoded.hz*1000;
+            r32 PlayPercentage = SoundInfo->PlayedSampleCount / (r32)(MP3Decoded.samples/MP3Decoded.channels);
+            r32 Playtime       = PlayPercentage*(r32)SongDuration;
+            
+            Interface->CurrentPlaytime = Playtime/1000.0f;
+#endif
         }
         else Interface->CurrentPlaytime = 0;
         
@@ -450,11 +458,11 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
                                  MP3Decoded.hz, MP3Decoded.channels, 60);
             }
             
-            SoundInfo->PlayedTime = 0;
-            CurrentSongPlayltime = 0;
+            SoundInfo->PlayedTime        = 0;
+            CurrentSongPlaytime          = 0;
             SoundInfo->PlayedSampleCount = 0;
             
-            WaitForMainThread = false;
+            WaitForMainThread          = false;
             Interface->PreloadIsActive = true;
         }
         if(Interface->SongFinishedLoadingToggle) // When the song is finished fully loading.

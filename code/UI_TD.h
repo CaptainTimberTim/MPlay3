@@ -37,9 +37,11 @@ struct button
     b32 IsToggle;
     button_state State;
     b32 ClickedInBtn;
+    
+    b32 IsDisabled;
 };
 
-#define MAX_BUTTONS 50
+#define MAX_BUTTONS 80
 struct button_group
 {
     button Buttons[MAX_BUTTONS];
@@ -62,7 +64,9 @@ inline button *NewButton(struct renderer *Renderer, rect Rect, r32 Depth, b32 Is
                          u32 IconBitmapID, v3 *IconColor, entry_id *Parent, i32 ToggleIconBitmapID = -1);
 inline button *NewButton(struct renderer *Renderer, rect Rect, r32 Depth, b32 IsToggle, u32 ButtonBitmapID, u32 IconBitmapID,
                          button_colors Colors, entry_id *Parent, i32 ToggleIconBitmapID = -1);
+inline void SetDisabled(button *Button, b32 Disable, v3 *Color);
 inline void SetActive(button *Button, b32 SetActive);
+inline void ResetBtnState(button *Button);
 inline void Translate(button *Button, v2 Translation);
 inline void SetLocalPosition(button *Button, v2 Translation);
 inline void SetPosition(button *Button, v2 Translation);
@@ -122,6 +126,8 @@ struct text_field
     render_text Text;
     string_c TextString;
     string_c NoText;
+    font_size_id FontSize;
+    v2 _FontOffset; // Internal
     
     r32 dBackspacePress;
     r32 dBackspaceSpeed;
@@ -130,10 +136,10 @@ struct text_field
     b32 IsActive;
 };
 
-internal text_field CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, 
-                                    u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor);
+internal text_field CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor, font_size_id FontSize, u32 MaxStringLength = 255);
 inline void Translate(text_field *TextField, v2 Translation);
 inline void SetActive(text_field *TextField, b32 MakeActive);
+inline void SetParent(text_field *TextField, entry_id *Parent);
 inline void UpdateTextField(renderer *Renderer, text_field *TextField);
 internal text_field_flag_result ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *TextField);
 
@@ -192,9 +198,11 @@ struct quit_animation
     
     r64 LastEscapePressTime;
     b32 Activated;
+    
+    render_text BonusText;
 };
 
-internal void CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime);
+internal void CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 AnimationTime, font_size_id FontSize = font_Big, string_c *BonusText = NULL, r32 Depth = -0.99f);
 inline void SetActive(quit_animation *Quit, b32 Activate);
 internal b32 QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size);
 

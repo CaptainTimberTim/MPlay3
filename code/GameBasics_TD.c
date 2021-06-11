@@ -1,5 +1,12 @@
 #include "GameBasics_TD.h"
 
+inline b32
+IsActive(game_state *GS, mode_flags Mode)
+{
+    b32 Result = (GS->ModeFlags&Mode) == Mode;
+    return Result;
+}
+
 internal loaded_bitmap 
 LoadImage_STB(u8 *Path)
 {
@@ -70,24 +77,93 @@ FreeImage_STB(loaded_bitmap Bitmap)
 
 
 #if DEBUG_TD
-inline timer
-StartTimer()
+
+inline void
+InitTimers()
 {
-    timer Timer = {};
-    Timer.Start = Timer.LastSnap = GetWallClock();
-    return Timer;
+    _debugTimerTable = HashTable(&GlobalGameState.FixArena, TIMER_MAX_COUNT);
 }
 
 inline void
-SnapTimer(timer *Timer, string_c Identification)
+_StartTimer(u8 *Name)
+{
+    timer *Timer = 0;
+    if(AddToHashTable(&_debugTimerTable, Name, _debugTimerCount)) 
+    {
+        Assert(_debugTimerCount < TIMER_MAX_COUNT);
+        
+        Timer = _debugTimers + _debugTimerCount++;
+        Timer->LastSnap = GetWallClock();
+        Timer->Total    = 0;
+    }
+    else 
+    {
+        u32 ID;
+        if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+        Timer = _debugTimers + ID;
+        
+        if(Timer->Paused) 
+        {
+            Timer->LastSnap = GetWallClock();
+        }
+    }
+    Timer->Paused = false;
+}
+
+inline void
+_RestartTimer(u8 *Name)
+{
+    Assert(_debugTimerCount < TIMER_MAX_COUNT);
+    
+    timer *Timer = 0;
+    if(AddToHashTable(&_debugTimerTable, Name, _debugTimerCount))
+    {
+        Timer = _debugTimers + _debugTimerCount++;
+    }
+    else 
+    {
+        u32 ID;
+        if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+        Timer = _debugTimers + ID;
+    }
+    
+    Timer->LastSnap = GetWallClock();
+    Timer->Total    = 0;
+    Timer->Paused   = false;
+    Timer->Count    = 0;
+}
+
+inline void
+_PauseTimer(u8 *Name)
 {
     i64 NewSnap = GetWallClock();
+    
+    u32 ID;
+    if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+    timer *Timer = _debugTimers + ID;
+    
+    Timer->Paused = true;
+    Timer->Total += NewSnap - Timer->LastSnap;
+}
+
+inline void
+_SnapTimer(u8 *Name)
+{
+    i64 NewSnap = GetWallClock();
+    
+    u32 ID;
+    if(!GetFromHashTable(&_debugTimerTable, Name, ID)) Assert(false);
+    timer *Timer = _debugTimers + ID;
+    
+    if(!Timer->Paused) Timer->Total += NewSnap - Timer->LastSnap;
+    else NewSnap = Timer->LastSnap;
     r32 CurrentSnap = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->LastSnap, NewSnap);
-    r32 Total = GetSecondsElapsed(GlobalGameState.Time.PerfCountFrequency, Timer->Start, NewSnap);
-    u8 *Addon = Identification.Pos ? Identification.S : (u8 *)"";
-    DebugLog(255, "%s Timer snap %i: %.8f, total: %.8f\n", Addon, ++Timer->Count, CurrentSnap, Total);
+    r32 Total = ((r32)Timer->Total / (r32)GlobalGameState.Time.PerfCountFrequency);
+    
+    DebugLog(255, "%s Timer snap %i: %.8f, total: %.8f\n", Name, ++Timer->Count, CurrentSnap, Total);
     Timer->LastSnap = NewSnap;
 }
+
 #endif
 
 // Color picker *********************************************
@@ -237,7 +313,7 @@ CreateRenderTextFromColor(color_picker *ColorPicker, v3 NewColor)
     I32ToString(&ColorString, Blue);
     
     RemoveRenderText(Renderer, &ColorPicker->RGBText);
-    RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Medium, &ColorString, &Palette->ForegroundText, 
+    RenderText(&GlobalGameState, font_Medium, &ColorString, &Palette->ForegroundText, 
                &ColorPicker->RGBText, -0.9f, ColorPicker->Background);
     SetLocalPosition(&ColorPicker->RGBText, ColorPicker->_BGOffset+V2(ColorPicker->RGBText.CurrentP.x*-0.5f, 
                                                                       ColorPicker->Bitmap.Height*-0.5f - 20.0f));
@@ -294,8 +370,68 @@ UpdateColorPickerSelectedColor(color_picker *ColorPicker)
     CreateRenderTextFromColor(ColorPicker, NewColor);
 }
 
+inline void
+OnNewPalette(color_picker *ColorPicker)
+{
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    
+    if(ColorPicker->NewAnim.Activated)
+    {
+        AddCustomColorPalette(&DisplayInfo->ColorPalette, &ColorPicker->PaletteName.TextString);
+        
+        // Move to the now saved palette!
+        DisplayInfo->ColorPaletteID = DEFAULT_COLOR_PALETTE_COUNT+GlobalGameState.Settings.PaletteCount-1;
+        UpdateColorPalette(DisplayInfo, false);
+    }
+}
+
+inline void
+OnRemovePalette(color_picker *ColorPicker)
+{
+    quit_animation *Anim = &ColorPicker->RemoveAnim;
+    if(Anim->Activated)
+    {
+        music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+        RemoveCustomColorPalette(DisplayInfo->ColorPaletteID);
+        UpdateColorPalette(DisplayInfo, false);
+    }
+}
+
+inline void
+OnSavePalette(color_picker *ColorPicker)
+{
+    if(ColorPicker->SaveAnim.Activated)
+    {
+        settings *Settings = &GlobalGameState.Settings;
+        music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+        u32 CustomID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
+        Assert(CustomID < Settings->PaletteCount);
+        
+        if(ColorPicker->PaletteName.TextString.Pos >= 100) ColorPicker->PaletteName.TextString.Pos = 100;
+        ResetStringCompound(Settings->PaletteNames[CustomID]);
+        AppendStringCompoundToCompound(Settings->PaletteNames+CustomID, &ColorPicker->PaletteName.TextString);
+        For(PALETTE_COLOR_AMOUNT)
+        {
+            Settings->Palettes[CustomID].Colors[It] = DisplayInfo->ColorPalette.Colors[It]*255.0f;
+        }
+    }
+}
+
+inline void
+OnAnimationDone(void *Data)
+{
+    b32 *Activated = (b32 *)Data;
+    *Activated = false;
+}
+
+inline void
+OnCancelColorPicker(void *Data)
+{
+    SetActive((color_picker *)Data, false);
+}
+
 internal void
-HandleColorPickerButtonAnimation(color_picker *ColorPicker, button *Btn, quit_animation *Anim)
+HandleColorPickerButtonAnimation(color_picker *ColorPicker, button *Btn, color_picker_anim_btn AnimBtn, quit_animation *Anim)
 {
     if(!Anim->Activated)
     {
@@ -306,7 +442,10 @@ HandleColorPickerButtonAnimation(color_picker *ColorPicker, button *Btn, quit_an
             v2 Size = GetSize(ColorPicker->Background)-V2(0, Pushdown);
             if(QuitAnimation(Anim, 1, Position, Size))
             {
-                Btn->OnPressed.Func(Btn->OnPressed.Data);
+                if(AnimBtn == colorPickerAnimBtn_New)         OnNewPalette(ColorPicker);
+                else if(AnimBtn == colorPickerAnimBtn_Save)   OnSavePalette(ColorPicker);
+                else if(AnimBtn == colorPickerAnimBtn_Remove) OnRemovePalette(ColorPicker);
+                
                 SetActive(Anim, false);
             }
         }
@@ -320,7 +459,10 @@ HandleColorPickerButtonAnimation(color_picker *ColorPicker, button *Btn, quit_an
             }
         }
     }
-    if(Btn->State == buttonState_Unpressed) Anim->Activated = false;
+    if(Btn->State == buttonState_Unpressed) 
+    {
+        Anim->Activated = false;
+    }
 }
 
 internal void
@@ -383,7 +525,7 @@ HandleActiveColorPicker(color_picker *ColorPicker)
     
     // Process button presses
     ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->New);
-    if(!IsColorPaletteDefault()) 
+    //if(!IsColorPaletteDefault()) 
     {
         ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Remove);
         ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, ColorPicker->Save);
@@ -403,15 +545,15 @@ HandleActiveColorPicker(color_picker *ColorPicker)
         // Change buttons colors if deactivated
         if(IsColorPaletteDefault()) 
         {
-            SetColor(ColorPicker->Save->Icon, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
-            SetColor(ColorPicker->Remove->Icon, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
+            SetDisabled(ColorPicker->Save,   true, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
+            SetDisabled(ColorPicker->Remove, true, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.ErrorText);
             
             SetActive(ColorPicker->PaletteName.Cursor, false);
         }
         else 
         {
-            SetColor(ColorPicker->Save->Icon, GlobalGameState.Renderer.ButtonColors.IconColor);
-            SetColor(ColorPicker->Remove->Icon, GlobalGameState.Renderer.ButtonColors.IconColor);
+            SetDisabled(ColorPicker->Save,   false, GlobalGameState.Renderer.ButtonColors.IconColor);
+            SetDisabled(ColorPicker->Remove, false, GlobalGameState.Renderer.ButtonColors.IconColor);
         }
         ColorToPickerPosition(ColorPicker, GetColor(ColorPicker->PaletteColors[0].Preview));
         SetColor(ColorPicker->InnerDot, &GlobalGameState.MusicInfo.DisplayInfo.ColorPalette.Colors[0]);
@@ -431,65 +573,9 @@ HandleActiveColorPicker(color_picker *ColorPicker)
     }
     
     // Handle Remove button animation
-    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->New, &ColorPicker->NewAnim);
-    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Save, &ColorPicker->SaveAnim);
-    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Remove, &ColorPicker->RemoveAnim);
-}
-
-inline void
-OnNewPalette(void *Data)
-{
-    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-    color_picker *ColorPicker = (color_picker *)Data;
-    
-    if(ColorPicker->NewAnim.Activated)
-    {
-        AddCustomColorPalette(&DisplayInfo->ColorPalette, &ColorPicker->PaletteName.TextString);
-        
-        // Move to the now saved palette!
-        DisplayInfo->ColorPaletteID = DEFAULT_COLOR_PALETTE_COUNT+GlobalGameState.Settings.PaletteCount-1;
-        UpdateColorPalette(DisplayInfo, false);
-    }
-}
-
-inline void
-OnRemovePalette(void *Data)
-{
-    quit_animation *Anim = (quit_animation *)Data;
-    if(Anim->Activated)
-    {
-        music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-        RemoveCustomColorPalette(DisplayInfo->ColorPaletteID);
-        UpdateColorPalette(DisplayInfo, false);
-    }
-}
-
-inline void
-OnSavePalette(void *Data)
-{
-    color_picker *ColorPicker = (color_picker *)Data;
-    
-    if(ColorPicker->SaveAnim.Activated)
-    {
-        settings *Settings = &GlobalGameState.Settings;
-        music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-        u32 CustomID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
-        Assert(CustomID < Settings->PaletteCount);
-        
-        if(ColorPicker->PaletteName.TextString.Pos >= 100) ColorPicker->PaletteName.TextString.Pos = 100;
-        ResetStringCompound(Settings->PaletteNames[CustomID]);
-        AppendStringCompoundToCompound(Settings->PaletteNames+CustomID, &ColorPicker->PaletteName.TextString);
-        For(PALETTE_COLOR_AMOUNT)
-        {
-            Settings->Palettes[CustomID].Colors[It] = DisplayInfo->ColorPalette.Colors[It]*255.0f;
-        }
-    }
-}
-
-inline void
-OnCancelColorPicker(void *Data)
-{
-    SetActive((color_picker *)Data, false);
+    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->New, colorPickerAnimBtn_New, &ColorPicker->NewAnim);
+    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Save, colorPickerAnimBtn_Save, &ColorPicker->SaveAnim);
+    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Remove, colorPickerAnimBtn_Remove, &ColorPicker->RemoveAnim);
 }
 
 internal void
@@ -574,7 +660,7 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
         SetLocalPosition(C->Outline, StartP + V2(0, YDown));
         C->Preview = CreateRenderRect(Renderer, V2(25,25), Depth-0.002f, 
                                       Palette->Colors+It, C->Outline);
-        RenderText(&GlobalGameState, &GlobalGameState.FixArena, font_Small, GlobalPaletteColorNames+It,
+        RenderText(&GlobalGameState, font_Small, GlobalPaletteColorNames+It,
                    &Palette->ForegroundText, &C->Name, Depth-0.001f, C->Preview, V2(20, 0));
         
         YDown -= 51;
@@ -623,9 +709,9 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     Translate(Result->Save,   BtnBaseOffset + V2(21+10 + (42+ButtonGap)*2, -21-8));
     Translate(Result->Cancel, BtnBaseOffset + V2(21+10 + (42+ButtonGap)*3, -21-8));
     
-    Result->New->OnPressed    = {OnNewPalette, Result};
-    Result->Remove->OnPressed = {OnRemovePalette, &Result->RemoveAnim};
-    Result->Save->OnPressed   = {OnSavePalette, Result};
+    Result->New->OnPressed    = {OnAnimationDone, &Result->NewAnim.Activated};
+    Result->Remove->OnPressed = {OnAnimationDone, &Result->RemoveAnim.Activated};
+    Result->Save->OnPressed   = {OnAnimationDone, &Result->SaveAnim.Activated};
     Result->Cancel->OnPressed = {OnCancelColorPicker, Result};
     
     string_c NewText    = NewStaticStringCompound("New Color Palette.");
@@ -639,7 +725,7 @@ CreateColorPicker(color_picker *Result, v2i BitmapSize)
     // Create Textfield for palette names ****************
     Result->PaletteName = CreateTextField(Renderer, &GlobalGameState.FixArena, V2((r32)BitmapSize.x, 20.0f), 
                                           Depth-0.01f, (u8 *)"Custom Palette", Result->Background, 
-                                          &Palette->ForegroundText, &Palette->Foreground);
+                                          &Palette->ForegroundText, &Palette->Foreground, font_Medium);
     Translate(&Result->PaletteName, BGOffset + V2(-8.0f, BitmapSize.y*0.5f + 10 + 11));
     SetActive(&Result->PaletteName, true);
     AppendStringCompoundToCompound(&Result->PaletteName.TextString, GetCurrentPaletteName());

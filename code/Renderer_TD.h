@@ -72,7 +72,7 @@ struct render_text
     render_entry *RenderEntries;
     u32 Count;
     u32 MaxCount;
-    v2 Height;
+    v2 Extends; // TODO:: Width might not be correct!
 };
 
 enum axis
@@ -230,6 +230,8 @@ internal entry_id *CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, en
 internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path);
 internal void RemoveRenderEntry(renderer *Renderer, entry_id *EntryID);
 
+internal entry_id *Copy(renderer *Renderer, entry_id *Entry);
+
 inline void SetTransparency(entry_id *Entry, r32 T);
 inline void ApplyTransform(render_entry *Entry, v3 *Result);
 
@@ -255,7 +257,13 @@ inline void SetActive(entry_id *Entry, b32 Activate);
 inline b32  IsActive(entry_id *Entry);
 inline void SetColor(entry_id *Entry, v3 *Color);
 inline v3   GetColor(entry_id *Entry);
+inline v3  *GetColorPtr(entry_id *Entry);
 inline void SetParent(entry_id *Entry, entry_id *Parent);
+inline entry_id *GetParent(entry_id *Entry);
+inline r32  GetDepth(entry_id *Entry);
+inline void SetDepth(entry_id *Entry, r32 Depth);
+
+inline r32  GetDistance(entry_id *E1, entry_id *E2);
 
 // Helper for entry relations
 inline rect ExtractScreenRect(entry_id *Entry);
@@ -264,7 +272,9 @@ inline b32 IsInRect(rect_2D Rect, v2 P);
 inline b32 IsInRect(entry_id *Entry, v2 P);
 inline b32 IsInRect(rect Rect1,  rect Rect2);
 inline b32 IsInRect(rect Rect1,  entry_id *Entry);
+inline b32 IsInRect(entry_id *Entry1, entry_id *Entry2);
 
+inline b32 IsIntersectingRect(entry_id *E1, entry_id *E2);
 inline b32 IsLowerThanRect(entry_id *Entry, entry_id *Rect);
 inline b32 IsHigherThanRect(entry_id *Entry, entry_id *Rect);
 inline b32 IsTopShowing(entry_id *Entry, entry_id *Rect);
@@ -295,6 +305,7 @@ inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixT
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff
+inline v2   GetPosition(render_text *Text);
 inline void SetPosition(render_text *Info, v2 P);
 inline void SetPositionX(render_text *Info, r32 X);
 inline void SetPositionY(render_text *Info, r32 Y);
@@ -306,3 +317,5 @@ inline v2   GetPosition(render_text *Info, u32 LetterID);
 inline void RemoveRenderText(renderer *Renderer, render_text *Text);
 inline void SetTransparency(render_text *Text, r32 T);
 inline void CenterText(render_text *Text);
+inline v2 GetSize(render_text *Text);
+inline v2 GetExtends(render_text *Text);

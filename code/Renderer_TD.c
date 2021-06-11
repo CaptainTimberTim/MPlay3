@@ -351,6 +351,24 @@ CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, s
     return Result;
 }
 
+internal entry_id *
+Copy(renderer *Renderer, entry_id *Entry)
+{
+    entry_id *Result = 0;
+    if(Entry->ID->Type == renderType_2DRectangle)
+    {
+        Result = CreateRenderRect(Renderer, GetSize(Entry), Entry->ID->Vertice[0].z, Entry->ID->Color, Entry->ID->Parent);
+    }
+    else if(Entry->ID->Type == renderType_2DBitmap)
+    {
+        Result = CreateRenderBitmap(Renderer, GetSize(Entry), Entry->ID->Vertice[0].z, Entry->ID->Parent, Entry->ID->TexID);
+    }
+    else InvalidCodePath;
+    SetPosition(Result, GetPosition(Entry));
+    
+    return Result;
+}
+
 inline void
 SetTransparency(entry_id *Entry, r32 T)
 {
@@ -499,10 +517,48 @@ GetColor(entry_id *Entry)
     return Result;
 }
 
+inline v3 *
+GetColorPtr(entry_id *Entry)
+{
+    v3 *Result = Entry->ID->Color;
+    return Result;
+}
+
 inline void 
 SetParent(entry_id *Entry, entry_id *Parent)
 {
     Entry->ID->Parent = Parent;
+}
+
+inline entry_id *
+GetParent(entry_id *Entry)
+{
+    entry_id *Result = Entry->ID->Parent;
+    return Result;
+}
+
+inline void 
+SetDepth(entry_id *Entry, r32 Depth)
+{
+    Clamp(&Depth, -1, 1);
+    Entry->ID->Vertice[0].z = Depth;
+    Entry->ID->Vertice[1].z = Depth;
+    Entry->ID->Vertice[2].z = Depth;
+    Entry->ID->Vertice[3].z = Depth;
+}
+
+inline r32
+GetDepth(entry_id *Entry)
+{
+    r32 Result = Entry->ID->Vertice[0].z;
+    return Result;
+}
+
+inline r32 
+GetDistance(entry_id *E1, entry_id *E2)
+{
+    r32 Result = Distance(GetPosition(E1), GetPosition(E2));
+    return Result;
 }
 
 // Entry rect relation helper *********************************************************
@@ -749,6 +805,36 @@ IsInRect(rect Rect1,  entry_id *Entry)
     return Result;
 }
 
+inline b32 
+IsInRect(entry_id *Entry1, entry_id *Entry2)
+{
+    b32 Result = false;
+    
+    rect Rect1 = ExtractScreenRect(Entry1);
+    rect Rect2 = ExtractScreenRect(Entry2);
+    Result = IsInRect(Rect1, Rect2);
+    
+    return Result;
+}
+
+inline b32
+IsIntersectingRect(entry_id *E1, entry_id *E2)
+{
+    b32 Result = false;
+    
+    rect R1 = ExtractScreenRect(E1);
+    rect R2 = ExtractScreenRect(E2);
+    
+    if(!(R1.Min.x > R2.Max.x || R1.Max.x < R2.Min.x || 
+         R1.Min.y > R2.Max.y || R1.Max.y < R2.Min.y))
+    {
+        Result = true;
+        
+    }
+    
+    return Result;
+}
+
 inline rect
 ExtractScreenRect(entry_id *Entry)
 {
@@ -970,6 +1056,13 @@ PerformScreenTransform(renderer *Renderer)
 
 // Render Text********************************************************
 
+inline v2
+GetPosition(render_text *Text)
+{
+    if(Text->Base == 0) return V2(0);
+    return GetPosition(Text->Base);
+}
+
 inline void
 SetPosition(render_text *Text, v2 P)
 {
@@ -1058,10 +1151,24 @@ SetColor(render_text *Text, v3 *Color)
 inline void
 CenterText(render_text *Text)
 {
-    r32 NewY = Abs(Text->Height.E[0]) + Abs(Text->Height.E[1]);
+    r32 NewY = Text->Extends.y;
     NewY /= 2;
     
     Translate(Text, V2(0, CeilingR32(NewY)-7));
+}
+
+inline v2
+GetSize(render_text *Text)
+{
+    v2 Result = Text->Extends*2;
+    return Result;
+}
+
+inline v2
+GetExtends(render_text *Text)
+{
+    v2 Result = Text->Extends;
+    return Result;
 }
 
 // *******************  Sorting algorithms ***********************

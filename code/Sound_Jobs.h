@@ -46,33 +46,10 @@ struct check_music_path
     array_u32 RemoveIDs;
     array_u32 AddTestInfoIDs;
 };
-
-#define MAX_THREAD_ERRORS 20
-struct error_item
-{
-    load_error_codes Code;
-    file_id ID;
-};
-
-struct thread_error_list
-{
-    error_item Errors[MAX_THREAD_ERRORS];
-    u32 Count;
-    
-    b32 RemoveDecode;
-    HANDLE Mutex;
-};
-
 internal b32  AddJob_NextUndecodedInPlaylist();
 internal void AddJob_CheckMusicPathChanged(check_music_path *CheckMusicPath);
-internal i32  AddJob_LoadMP3(circular_job_queue *JobQueue, file_id FileID, array_u32 *IgnoreDecodeIDs = 0, 
+internal i32  AddJob_LoadMP3(circular_job_queue *JobQueue, playlist_id PlaylistID, array_u32 *IgnoreDecodeIDs = 0, 
                              i32 PreloadSeconds = DECODE_PRELOAD_SECONDS);
-internal void PushErrorMessageFromThread(error_item Error);
-
-
-
-
-
 
 
 

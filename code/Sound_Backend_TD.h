@@ -67,7 +67,6 @@
 // - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
 
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
-// - add 0 to playlist filename to make windows sorting more consistent
 
 #include "Sound_UI_TD.h"
 

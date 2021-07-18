@@ -779,7 +779,7 @@ internal void
 SetNextSong(music_info *MusicInfo)
 {
     playing_song *PlayingSong = &MusicInfo->PlayingSong ;
-    play_loop Looping = MusicInfo->Looping;
+    play_loop Looping = MusicInfo->Playlist_->Looping;
     Assert(PlayingSong->DisplayableID >= -1);
     
     if(MusicInfo->UpNextList.A.Count != 0) 
@@ -837,7 +837,7 @@ GetPreviousSong(u32 DisplayableCount, displayable_id DisplayableID)
 inline void
 SetPreviousSong(music_info *MusicInfo)
 {
-    play_loop Looping = MusicInfo->Looping;
+    play_loop Looping = MusicInfo->Playlist_->Looping;
     playing_song *PlayingSong = &MusicInfo->PlayingSong;
     Assert(PlayingSong->DisplayableID >= -1);
     
@@ -2162,7 +2162,7 @@ UpdateSortingInfoChangedVisuals(renderer *Renderer, music_info *MusicInfo, music
 }
 
 internal void
-UpdateSortingInfoChangedWithoutVisuals(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
+UpdateSortingInfoChangedWithoutVisuals(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info)
 {
     music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
     playlist_info *Playlist         = MusicInfo->Playlist_;
@@ -2170,10 +2170,7 @@ UpdateSortingInfoChangedWithoutVisuals(renderer *Renderer, music_info *MusicInfo
     FillDisplayables(MusicInfo, &MP3Info->FileInfo, &MusicInfo->DisplayInfo);
     
     SortDisplayables(MusicInfo, &MP3Info->FileInfo);
-    if(MusicInfo->IsShuffled && Type == columnType_Song) 
-    {
-        ShuffleStack(&Playlist->Song.Displayable);
-    }
+    if(Playlist->IsShuffled) ShufflePlaylist(Playlist, true);
     
     UpdatePlayingSong(MusicInfo);
     
@@ -2182,7 +2179,7 @@ UpdateSortingInfoChangedWithoutVisuals(renderer *Renderer, music_info *MusicInfo
 internal void
 UpdateSortingInfoChanged(renderer *Renderer, music_info *MusicInfo, mp3_info *MP3Info, column_type Type)
 {
-    UpdateSortingInfoChangedWithoutVisuals(Renderer, MusicInfo, MP3Info, Type);
+    UpdateSortingInfoChangedWithoutVisuals(Renderer, MusicInfo, MP3Info);
     UpdateSortingInfoChangedVisuals(Renderer, MusicInfo, &MusicInfo->DisplayInfo, Type);
 }
 
@@ -2307,21 +2304,25 @@ IsHigherInAlphabet(i32 T1, i32 T2, void *Data)
 inline i32
 MetadataCompare(mp3_metadata *A, mp3_metadata *B)
 {
-    b32 Result = -1;
+    i32 Result = -1;
     
     string_compare_result CompArtist = CompareAB(&A->Artist, &B->Artist);
     if(CompArtist == stringCompare_Same || 
        CompArtist == stringCompare_BothEmpty)
     {
-        string_compare_result CompAlbum = CompareAB(&A->Album, &B->Album);
-        if(CompAlbum == stringCompare_Same || 
-           CompAlbum== stringCompare_BothEmpty)
+        if(A->Year == B->Year)
         {
-            if(A->Track == B->Track) ; // Both are exactly the same.
-            else if(CompAlbum == stringCompare_BothEmpty && CompArtist == stringCompare_BothEmpty) ;
-            else Result = (A->Track < B->Track);
+            string_compare_result CompAlbum = CompareAB(&A->Album, &B->Album);
+            if(CompAlbum == stringCompare_Same || 
+               CompAlbum == stringCompare_BothEmpty)
+            {
+                if(A->Track == B->Track) ; // Both are exactly the same.
+                else if(CompAlbum == stringCompare_BothEmpty && CompArtist == stringCompare_BothEmpty) ;
+                else Result = (A->Track < B->Track);
+            }
+            else Result = (CompAlbum == stringCompare_FirstHigher);
         }
-        else Result = (CompAlbum == stringCompare_FirstHigher);
+        else Result = A->Year < B->Year;
     }
     else Result = (CompArtist == stringCompare_FirstHigher);
     
@@ -2398,7 +2399,7 @@ SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
     // TODO:: This is a f*cking stupid hack... Why is it so slow
     // for switching in a playlist, but not when switching to the
     // 'main' playlist...
-    ShuffleStack(&MusicInfo->Playlist_->Song.Displayable);
+    ShuffleStack(&MusicInfo->Playlist_->Song.Displayable.A);
     QuickSortSongColumn(0, MusicInfo->Playlist_->Song.Displayable.A.Count-1, MP3FileInfo, &MusicInfo->Playlist_->Song);
     SnapTimer("SortSongs");
 }
@@ -3162,7 +3163,7 @@ RemoveSlotFromPlaylist(game_state *GS, column_type Type, displayable_id Displaya
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
     KillSearch(GS);
-    UpdateSortingInfoChangedWithoutVisuals(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
+    UpdateSortingInfoChangedWithoutVisuals(&GS->Renderer, &GS->MusicInfo, GS->MP3Info);
     RemoveMissingSelected(GS, FromPlaylist, Type, &SelectData);
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
@@ -3217,7 +3218,7 @@ RemoveSlotsFromPlaylist(game_state *GS, column_type Type, array_u32 DisplayableI
     UpdatePlaylistScreenName(GS, FromPlaylist);
     SyncPlaylists_playlist_column(&GS->MusicInfo);
     KillSearch(GS);
-    UpdateSortingInfoChangedWithoutVisuals(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
+    UpdateSortingInfoChangedWithoutVisuals(&GS->Renderer, &GS->MusicInfo, GS->MP3Info);
     RemoveMissingSelected(GS, FromPlaylist, Type, &SelectData);
     UpdateSortingInfoChanged(&GS->Renderer, &GS->MusicInfo, GS->MP3Info, Type);
     
@@ -3260,6 +3261,9 @@ SwitchPlaylistFromPlaylistID(display_column *DisplayColumn, playlist_id Playlist
     MusicInfo->PlayingSong.PlaylistID.ID    = -1;
     MusicInfo->PlayingSong.DecodeID         = -1;
     
+    ToggleButtonVisuals(MusicInfo->DisplayInfo.ShufflePlaylist, MusicInfo->Playlist_->IsShuffled);
+    ToggleButtonVisuals(MusicInfo->DisplayInfo.LoopPlaylist, MusicInfo->Playlist_->Looping);
+    
     if(PlaylistID == 0) // Playlist All
     {
         SetDisabled(MusicInfo->DisplayInfo.PlaylistUI.Remove, true, &MusicInfo->DisplayInfo.ColorPalette.ForegroundText);
@@ -3297,6 +3301,7 @@ SwitchPlaylist(game_state *GS, playlist_info *Playlist)
     SwitchSelection(&Playlist->Playlists, PlaylistID);
     SwitchPlaylistFromPlaylistID(&DisplayInfo->Playlists, PlaylistID);
     SortDisplayables(&GS->MusicInfo, &GS->MP3Info->FileInfo);
+    if(Playlist->IsShuffled) ShufflePlaylist(GS->MusicInfo.Playlist_, true);
     UpdateSortingInfoChangedVisuals(&GS->Renderer, &GS->MusicInfo, DisplayInfo, columnType_Playlists);
 }
 
@@ -3450,10 +3455,6 @@ OnRenamePlaylistClick(void *Data)
         ResetStringCompound(TextField->TextString);
         UpdateTextField(&GS->Renderer, TextField);
     }
-    else
-    {
-        
-    }
 }
 
 inline void
@@ -3476,4 +3477,20 @@ SaveNewPlaylistName(game_state *GS)
     UpdatePlaylistScreenName(GS, Playlist);
     
     SavePlaylist(GS, Playlist);
+}
+
+internal void
+ShufflePlaylist(playlist_info *Playlist, b32 UsePrevShuffle)
+{
+    u64 Seed = GetCurrentRandomSeed();
+    // If ShuffleSeed is zero, it is the first time being shuffled. Then we
+    // always want to shuffle normally, regardless of UsePrevShuffle.
+    if(UsePrevShuffle && Playlist->ShuffleSeed != 0) 
+        SetRandomSeed(Playlist->ShuffleSeed);
+    else Playlist->ShuffleSeed = Seed;
+    
+    ShuffleStack(&Playlist->Song.Displayable.A);
+    
+    if(UsePrevShuffle && Playlist->ShuffleSeed != 0) 
+        SetRandomSeed(Seed);
 }

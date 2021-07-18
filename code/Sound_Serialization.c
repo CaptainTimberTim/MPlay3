@@ -33,6 +33,7 @@
 // Shuffle: <0/1>
 // UsedFontCache: <font name>|<font name>
 // ActivePlaylist: <Name>
+// 
 // Palette: <Name>  // Palette with all following color values can occur multiple times
 //     Text: <R255> <G255> <B255>
 //     ForegroundText: <R255> <G255> <B255>
@@ -409,8 +410,8 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     R32ToString(&FileAlbumSong, GameState->MusicInfo.DisplayInfo.AlbumSong.XPercent);
     I32ToString(&WindowDimX, Dim.x);
     I32ToString(&WindowDimY, Dim.y);
-    I32ToString(&Looping, GameState->MusicInfo.Looping == playLoop_Loop);
-    I32ToString(&Shuffle, GameState->MusicInfo.IsShuffled);
+    I32ToString(&Looping, GameState->MusicInfo.Playlists.List[0].Looping == playLoop_Loop);
+    I32ToString(&Shuffle, GameState->MusicInfo.Playlists.List[0].IsShuffled);
     
     AppendStringCompoundToCompound(&ActivePlaylist, GetPlaylistName(&GameState->MusicInfo, GameState->MusicInfo.Playlist_));
     i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&ActivePlaylist, '(');
@@ -432,7 +433,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     AppendCharToCompound(&SaveData, '\n');
     
     // Save out user created color palettes
-    string_c Palette           = NewStaticStringCompound("Palette: ");
+    string_c Palette           = NewStaticStringCompound("\nPalette: ");
     string_c P_Text            = NewStaticStringCompound("\nText: ");
     string_c P_ForegroundText  = NewStaticStringCompound("\nForegroundText: ");
     string_c P_ErrorText       = NewStaticStringCompound("\nErrorText: ");
@@ -1028,6 +1029,8 @@ GetFileCreationDate(game_state *GS, string_c PlaylistPath)
 // Version: <VERSION>
 // Name: <PLAYLIST_NAME>
 // Count: <SONG_COUNT>
+// Shuffled: <0 or 1>
+// Looping: <0 or 1>
 //
 // # NOTE 1:: These playlist files will always 
 // # be placed at the same location as the 
@@ -1075,6 +1078,13 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     
     AppendStringToCompound(&SaveData, (u8 *)"\nCount: ");
     I32ToString(&SaveData, Playlist->Song.FileIDs.A.Count);
+    
+    AppendStringToCompound(&SaveData, (u8 *)"\nShuffled: ");
+    I32ToString(&SaveData, Playlist->IsShuffled);
+    
+    AppendStringToCompound(&SaveData, (u8 *)"\nLooping: ");
+    I32ToString(&SaveData, Playlist->Looping);
+    
     AppendStringToCompound(&SaveData, (u8 *)"\n\n");
     
     AppendStringToCompound(&SaveData, (u8 *)"# NOTE 1:: These playlist files will always\n# be placed at the same location as the\n# 'MPlay3Library.save' file. For a bit more\n# information on what that means, look into\n# the 'MPlay3Settings.save' file's NOTE 1.\n\n");
@@ -1165,23 +1175,31 @@ SavePlaylist(game_state *GS, playlist_info *Playlist)
     DeleteStringCompound(&GS->ScratchArena, &SaveData);
 }
 
-enum load_playlist_result
+enum load_playlist_state
 {
-    loadPlaylistResult_NothingFound         = -4,
-    loadPlaylistResult_WrongIdentifier      = -3,
-    loadPlaylistResult_WrongVersion         = -2,
-    loadPlaylistResult_LoadedButEmpty       = -1,
-    loadPlaylistResult_LoadedSucessfully    =  0,
-    loadPlaylistResult_LoadedNeedsReSaving  =  1,
+    loadPlaylistState_NothingFound         = -4,
+    loadPlaylistState_WrongIdentifier      = -3,
+    loadPlaylistState_WrongVersion         = -2,
+    loadPlaylistState_LoadedButEmpty       = -1,
+    loadPlaylistState_LoadedSucessfully    =  0,
+    loadPlaylistState_LoadedNeedsReSaving  =  1,
+};
+
+struct load_playlist_result
+{
+    load_playlist_state LoadState;
+    array_file_id FileIDs;
+    string_c Name;
+    b32 Shuffled;
+    b32 Looping;
 };
 
 internal load_playlist_result
-LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileIDs, string_c *PlaylistName)
+LoadPlaylist(game_state *GS, string_c PlaylistPath)
 {
-    load_playlist_result Result = loadPlaylistResult_NothingFound;
+    load_playlist_result Result = {loadPlaylistState_NothingFound};
     
     mp3_file_info *FileInfo = &GS->MP3Info->FileInfo;
-    Assert(PlaylistFileIDs->A.Slot == NULL);
     
     read_file_result Data = {};
     if(ReadEntireFile(&GS->ScratchArena, &Data, PlaylistPath.S))
@@ -1195,7 +1213,8 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             NewLocalString(ErrorMsg, 300, "ERROR:: Playlist file is not a playlist file. It has to have 'MPlay3Playlist' at the beginning!");
             PushErrorMessage(GS, ErrorMsg);
             DebugLog(302, "%s\n", ErrorMsg.S);
-            return loadPlaylistResult_WrongIdentifier;
+            Result.LoadState = loadPlaylistState_WrongIdentifier;
+            return Result;
         }
         AdvanceToNewline(&C);
         
@@ -1213,20 +1232,29 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             AppendCharToCompound(&ErrorMsg, '.');
             PushErrorMessage(GS, ErrorMsg);
             DebugLog(255, "%s\n", ErrorMsg.S);
-            return loadPlaylistResult_WrongVersion;
+            Result.LoadState = loadPlaylistState_WrongVersion;
+            return Result;
         }
         AdvanceToNewline(&C);
         
         C += 6; // "Name: "
         u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;  // @HardLimit, Limit to 100 chars for now.
         u32 NameLength = CountToNewline(C);
-        *PlaylistName  = NewStringCompound(&GS->ScratchArena, HardLimit);
-        CopyStringToCompound(PlaylistName, C, 0u, Min(NameLength, HardLimit));
+        Result.Name  = NewStringCompound(&GS->ScratchArena, HardLimit);
+        CopyStringToCompound(&Result.Name, C, 0u, Min(NameLength, HardLimit));
         AdvanceToNewline(&C);
         
         C += 7; // "Count: "
         u32 SongCount      = ProcessNextI32InString(C, '\n', L);
-        PlaylistFileIDs->A = CreateArray(&GS->ScratchArena, FileInfo->Count_);
+        Result.FileIDs.A = CreateArray(&GS->ScratchArena, FileInfo->Count_);
+        AdvanceToNewline(&C);
+        
+        C += 10; // "Shuffled: "
+        Result.Shuffled = ProcessNextB32InString(C);
+        AdvanceToNewline(&C);
+        
+        C += 9; // "Looping: "
+        Result.Looping = ProcessNextB32InString(C);
         AdvanceToNewline(&C);
         
         NewEmptyLocalString(CurrentSubPath, 260); 
@@ -1255,42 +1283,42 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath, array_file_id *PlaylistFileI
             CopyStringToCompound(&Filename, C, (u8 *)"\n\r", 2);
             
             file_id FileID = GetFileID(FileInfo, &CurrentSubPath, &Filename, SubPathStartID);
-            if(FileID >= 0) Push(PlaylistFileIDs, FileID);
+            if(FileID >= 0) Push(&Result.FileIDs, FileID);
             
             AdvanceToNewline(&C);
         }
         
-        if(PlaylistFileIDs->A.Count == 0 && SongCount > 0)
+        if(Result.FileIDs.A.Count == 0 && SongCount > 0)
         {
             NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
-            AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
+            AppendStringCompoundToCompound(&ErrorMsg, &Result.Name);
             AppendStringToCompound(&ErrorMsg, (u8 *)"' had a count of ");
             I32ToString(&ErrorMsg, SongCount);
             AppendStringToCompound(&ErrorMsg, (u8 *)", but nothing could be found.");
             
             DebugLog(150, "%s\n", ErrorMsg.S);
             PushErrorMessage(GS, ErrorMsg);
-            Result = loadPlaylistResult_LoadedButEmpty;
+            Result.LoadState = loadPlaylistState_LoadedButEmpty;
         }
-        else if(PlaylistFileIDs->A.Count != SongCount) 
+        else if(Result.FileIDs.A.Count != SongCount) 
         {
             NewLocalString(ErrorMsg, 300, "WARNING:: Playlist '");
-            AppendStringCompoundToCompound(&ErrorMsg, PlaylistName);
+            AppendStringCompoundToCompound(&ErrorMsg, &Result.Name);
             AppendStringToCompound(&ErrorMsg, (u8 *)"' indicated a song count of ");
             I32ToString(&ErrorMsg, SongCount);
             AppendStringToCompound(&ErrorMsg, (u8 *)", but we found only ");
-            I32ToString(&ErrorMsg, PlaylistFileIDs->A.Count);
+            I32ToString(&ErrorMsg, Result.FileIDs.A.Count);
             AppendStringToCompound(&ErrorMsg, (u8 *)" songs in it.");
             
             DebugLog(150, "%s\n", ErrorMsg.S);
             PushErrorMessage(GS, ErrorMsg);
-            Result = loadPlaylistResult_LoadedNeedsReSaving;
+            Result.LoadState = loadPlaylistState_LoadedNeedsReSaving;
         }
-        else Result = loadPlaylistResult_LoadedSucessfully;
+        else Result.LoadState = loadPlaylistState_LoadedSucessfully;
         
-        AppendStringToCompound(PlaylistName, (u8 *)" (");
-        I32ToString(PlaylistName, PlaylistFileIDs->A.Count);
-        AppendCharToCompound(PlaylistName, ')');
+        AppendStringToCompound(&Result.Name, (u8 *)" (");
+        I32ToString(&Result.Name, Result.FileIDs.A.Count);
+        AppendCharToCompound(&Result.Name, ')');
         
         FreeFileMemory(&GS->ScratchArena, Data);
     }
@@ -1341,28 +1369,27 @@ LoadAllPlaylists(game_state *GS)
                         if(CompareStringAndCompound(&FileType, FileExtension))
                         {
                             // We found a potential playlist file.
-                            array_file_id FileIDs = {};
-                            string_c PlaylistName = {};
-                            
                             PathWithoutFilePrefix.Pos = L;
                             AppendStringCompoundToCompound(&PathWithoutFilePrefix, &FileName);
                             
-                            load_playlist_result LoadResult = LoadPlaylist(GS, PathWithoutFilePrefix, &FileIDs, &PlaylistName);
+                            load_playlist_result LoadResult = LoadPlaylist(GS, PathWithoutFilePrefix);
                             
-                            if(LoadResult == loadPlaylistResult_LoadedSucessfully ||
-                               LoadResult == loadPlaylistResult_LoadedNeedsReSaving)
+                            if(LoadResult.LoadState == loadPlaylistState_LoadedSucessfully ||
+                               LoadResult.LoadState == loadPlaylistState_LoadedNeedsReSaving)
                             {
                                 playlist_info *NewPL = CreateEmptyPlaylist(&GS->FixArena, &GS->MusicInfo);
                                 NewPL->Filename_ = NewStringCompound(&GS->FixArena, PathWithoutFilePrefix.Pos);
                                 AppendStringCompoundToCompound(&NewPL->Filename_, &PathWithoutFilePrefix);
                                 
-                                FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPL, FileIDs);
-                                AddPlaylistToSortingColumn(&GS->MusicInfo, NewPL, PlaylistName);
+                                FillPlaylistWithFileIDs(&GS->MusicInfo, &GS->MP3Info->FileInfo, NewPL, LoadResult.FileIDs);
+                                AddPlaylistToSortingColumn(&GS->MusicInfo, NewPL, LoadResult.Name);
                                 SyncPlaylists_playlist_column(&GS->MusicInfo);
                                 
+                                NewPL->IsShuffled = LoadResult.Shuffled;
+                                NewPL->Looping  = LoadResult.Looping ? playLoop_Loop : playLoop_NoLoop;
                                 NewPL->FileCreationDate = (u64)FileData.ftCreationTime.dwHighDateTime << 32 | FileData.ftCreationTime.dwLowDateTime;
                                 
-                                if(LoadResult == loadPlaylistResult_LoadedNeedsReSaving)
+                                if(LoadResult.LoadState == loadPlaylistState_LoadedNeedsReSaving)
                                     SavePlaylist(GS, NewPL);
                             }
                         }
@@ -1378,6 +1405,46 @@ LoadAllPlaylists(game_state *GS)
     SnapTimer("Load Playlists");
 }
 
+internal void
+SaveShuffledState(game_state *GS, playlist_info *Playlist)
+{
+    read_file_result FileData = {};
+    Assert(Playlist->Filename_.Pos > 0);
+    if(ReadBeginningOfFile(&GS->ScratchArena, &FileData, Playlist->Filename_.S, PLAYLIST_MAX_NAME_LENGTH + 80))
+    {
+        string_c Shuffle = NewStaticStringCompound("Shuffled: ");
+        i32 ShufflePos = Find(FileData.Data, Shuffle);
+        if(ShufflePos >= 0)
+        {
+            NewEmptyLocalString(PLShuffle, 2);
+            I32ToString(&PLShuffle, Playlist->IsShuffled);
+            if(!WriteToFile(&GS->ScratchArena, Playlist->Filename_.S, 1, PLShuffle.S, ShufflePos))
+            {
+                DebugLog(250, "Could not save shuffle for playlist %s.", Playlist->Filename_.S);
+            }
+        }
+    }
+}
 
+internal void
+SaveLoopingState(game_state *GS, playlist_info *Playlist)
+{
+    read_file_result FileData = {};
+    Assert(Playlist->Filename_.Pos > 0);
+    if(ReadBeginningOfFile(&GS->ScratchArena, &FileData, Playlist->Filename_.S, PLAYLIST_MAX_NAME_LENGTH + 80))
+    {
+        string_c Looping = NewStaticStringCompound("Looping: ");
+        i32 LoopingPos = Find(FileData.Data, Looping);
+        if(LoopingPos >= 0)
+        {
+            NewEmptyLocalString(PLLooping, 2);
+            I32ToString(&PLLooping, Playlist->Looping == playLoop_Loop);
+            if(!WriteToFile(&GS->ScratchArena, Playlist->Filename_.S, 1, PLLooping.S, LoopingPos))
+            {
+                DebugLog(250, "Could not save shuffle for playlist %s.", Playlist->Filename_.S);
+            }
+        }
+    }
+}
 
 

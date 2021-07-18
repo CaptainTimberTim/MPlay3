@@ -70,7 +70,8 @@ global_variable u64 RandomBaseSeed = 127;
 global_variable u64 PrimeBig  = 10019059;
 global_variable u64 PrimeHuge = 1000000007861;
 
-
+inline void SetRandomSeed(u64 NewSeed);
+inline u64  GetCurrentRandomSeed();
 internal r32 Random01();
 inline   i32 RandomRange(i32 Minimum, i32 Maximum);
 inline   i32 GetWeightedRandom01(u32 XTimesHigherPropabilityFor0);

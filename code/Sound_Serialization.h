@@ -48,4 +48,6 @@ internal void WipeMP3LibraryFile(game_state *GameState);
 internal read_file_result GetUsedFontData(game_state *GameState);
 internal loaded_bitmap DecodeIcon(arena_allocator *Arena, u32 Width, u32 Height, u8 *Data, u32 Size);
 
+internal void SaveShuffledState(game_state *GS, playlist_info *Playlist);
+internal void SaveLoopingState(game_state *GS, playlist_info *Playlist);
 #endif //_SOUND__SERIALIZATION_H

@@ -818,7 +818,7 @@ AddJob_NextUndecodedInPlaylist()
     
     // If we did not find anything, meaning nothing needs to be decoded, then we check if
     // we want to loop and try to find something to decode at the beginning of the playlist.
-    if(!Result && MusicInfo->Looping == playLoop_Loop)
+    if(!Result && MusicInfo->Playlist_->Looping == playLoop_Loop)
     {
         Assert(StartDisplayableID.ID >= 0);
         For((u32)StartDisplayableID.ID)

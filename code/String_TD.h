@@ -46,6 +46,8 @@ inline void CombineStringCompounds(string_compound *Comp1, string_compound *Comp
 inline void CombineStringCompounds(string_compound *Buffer, string_compound *Comp1, string_compound *Comp2);
 inline void ConcatStringCompounds(u32 ConcatCount, string_c *S1, ...);
 
+inline i32 Find(string_c FindIn, string_c FindWhat);
+inline i32 Find(u8 *FindIn, string_c FindWhat);
 inline i32 FindFirstOccurrenceOfCharInStringCompound(string_compound *S, u8 Char);
 inline i32 FindLastOccurrenceOfCharInStringCompound(string_compound *S, u8 Char);
 inline void CutStringCompoundAt(string_compound *Comp, u32 P);
@@ -308,6 +310,62 @@ ConcatStringCompounds(u32 ConcatCount, string_c *S1, ...)
         AppendStringCompoundToCompound(S1, NextArg);
     }
     va_end(Args);
+}
+
+inline i32 
+Find(u8 *FindIn, string_c FindWhat)
+{
+    i32 Result = -1;
+    
+    u32 It = 0;
+    i32 FoundLength = 0;
+    while(FindIn != 0)
+    {
+        if(FindIn[It] == FindWhat.S[FoundLength])
+        {
+            ++FoundLength;
+            if(FindWhat.Pos == (u32)FoundLength) 
+            {
+                Result = It+1;
+                break;
+            }
+        }
+        else 
+        {
+            It -= Max(0, FoundLength-1);
+            FoundLength = 0;
+        }
+        ++It;
+    }
+    
+    return Result;
+}
+
+inline i32 
+Find(string_c FindIn, string_c FindWhat)
+{
+    i32 Result = -1;
+    
+    i32 FoundLength = 0;
+    For(FindIn.Pos)
+    {
+        if(FindIn.S[It] == FindWhat.S[FoundLength])
+        {
+            ++FoundLength;
+            if(FindWhat.Pos == (u32)FoundLength) 
+            {
+                Result = It+1;
+                break;
+            }
+        }
+        else 
+        {
+            It -= Max(0, FoundLength-1);
+            FoundLength = 0;
+        }
+    }
+    
+    return Result;
 }
 
 inline i32

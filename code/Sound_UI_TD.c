@@ -1541,7 +1541,9 @@ OnLoopPlaylistToggleOn(void *Data)
     music_btn *Info = (music_btn *)Data;
     game_state *GameState = Info->GameState;
     
-    GameState->MusicInfo.Looping = playLoop_Loop;
+    GameState->MusicInfo.Playlist_->Looping = playLoop_Loop;
+    
+    SaveLoopingState(GameState, GameState->MusicInfo.Playlist_);
 }
 
 inline void
@@ -1550,7 +1552,9 @@ OnLoopPlaylistToggleOff(void *Data)
     music_btn *Info = (music_btn *)Data;
     game_state *GameState = Info->GameState;
     
-    GameState->MusicInfo.Looping = playLoop_NoLoop;
+    GameState->MusicInfo.Playlist_->Looping = playLoop_NoLoop;
+    
+    SaveLoopingState(GameState, GameState->MusicInfo.Playlist_);
 }
 
 inline void
@@ -1560,11 +1564,13 @@ OnShufflePlaylistToggleOn(void *Data)
     game_state *GameState = Info->GameState;
     music_info *MusicInfo = &GameState->MusicInfo;
     
-    MusicInfo->IsShuffled = true;
+    MusicInfo->Playlist_->IsShuffled = true;
     
-    ShuffleStack(&MusicInfo->Playlist_->Song.Displayable);
+    ShufflePlaylist(MusicInfo->Playlist_, false);
     UpdatePlayingSong(MusicInfo);
     MoveDisplayColumn(&GameState->Renderer, MusicInfo, &MusicInfo->DisplayInfo.Song.Base);
+    
+    SaveShuffledState(GameState, MusicInfo->Playlist_);
 }
 
 inline void
@@ -1574,11 +1580,13 @@ OnShufflePlaylistToggleOff(void *Data)
     game_state *GameState = Info->GameState;
     music_info *MusicInfo = &GameState->MusicInfo;
     
-    MusicInfo->IsShuffled = false;
+    MusicInfo->Playlist_->IsShuffled = false;
     
     SortDisplayables(MusicInfo, &GameState->MP3Info->FileInfo);
     UpdatePlayingSong(MusicInfo);
     MoveDisplayColumn(&GameState->Renderer, MusicInfo, &MusicInfo->DisplayInfo.Song.Base);
+    
+    SaveShuffledState(GameState, MusicInfo->Playlist_);
 }
 
 inline void

@@ -40,6 +40,51 @@ WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory)
     return(Result);
 }
 
+internal b32
+WriteToFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory, u32 WriteOffsetFromStart)
+{
+    b32 Result = false;
+    
+    Assert(Arena->Flags & arenaFlags_IsTransient);
+    string_w FileNameWide = {};
+    ConvertString8To16(Arena, Filename, &FileNameWide);
+    Result = WriteToFile(&FileNameWide, MemorySize, Memory, WriteOffsetFromStart);
+    DeleteStringW(Arena, &FileNameWide);
+    
+    return Result;
+}
+
+internal b32
+WriteToFile(string_w *Filename, u32 MemoryWriteSize, void *Memory, u32 WriteOffsetFromStart)
+{
+    b32 Result = false;
+    HANDLE FileHandle = CreateFileW(Filename->S, GENERIC_WRITE, 0, 0, OPEN_ALWAYS, 0, 0);
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD BytesWritten;
+        
+        LARGE_INTEGER MoveAmount = {WriteOffsetFromStart};
+        if(SetFilePointerEx(FileHandle, MoveAmount, 0, FILE_BEGIN))
+        {
+            if(WriteFile(FileHandle, Memory, MemoryWriteSize, &BytesWritten, 0))
+            {
+                Result = (BytesWritten == MemoryWriteSize);
+                //File write successfully
+            }
+            else
+            {
+                //Could not write the file
+            } 
+        }
+        CloseHandle(FileHandle);
+    }
+    else
+    {
+        //Could not open File
+    }
+    return(Result);
+}
+
 internal void 
 FreeFileMemory(arena_allocator *Arena, read_file_result File)
 {

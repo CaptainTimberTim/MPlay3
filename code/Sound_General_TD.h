@@ -65,7 +65,6 @@ inline playlist_id Take(array_playlist_id *A, displayable_id ID)   { return {(i3
 inline b32  StackFind(array_playlist_id *A, playlist_id Item, i32 *Result) { return StackFind(&A->A, Item.ID, (u32 *)Result); }
 inline void StackFindAndTake(array_playlist_id *A, playlist_id ID) { StackFindAndTake(&A->A, ID.ID); }
 inline b32  StackContains(array_playlist_id *A, playlist_id ID)    { return StackContains(&A->A, ID.ID); }
-inline void ShuffleStack(array_playlist_id *A)                     { ShuffleStack(&A->A); }
 inline void Copy(array_playlist_id *A1, array_playlist_id *A2)     { Copy(&A1->A, &A2->A); }
 inline void Reset(array_playlist_id *A)                            { Reset(&A->A); }
 inline void Clear(array_playlist_id *A, u32 Value = 0)             { Clear(&A->A, Value); }

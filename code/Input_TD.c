@@ -89,10 +89,14 @@ UpdateKeyChange(input_info *Input, u32 WinKey, u64 LParam)
         case VK_RBUTTON: UpdateSingleKey(Input, KEY_RMB, WasDown, IsDown); break;
         case VK_MBUTTON: UpdateSingleKey(Input, KEY_MMB, WasDown, IsDown); break;
         
-        case 176: UpdateSingleKey(Input, KEY_NEXT,       WasDown, IsDown); break;
-        case 177: UpdateSingleKey(Input, KEY_PREVIOUS,   WasDown, IsDown); break;
-        case 178: UpdateSingleKey(Input, KEY_STOP,       WasDown, IsDown); break; 
-        case 179: UpdateSingleKey(Input, KEY_PLAY_PAUSE, WasDown, IsDown); break; 
+        case VK_MEDIA_NEXT_TRACK: UpdateSingleKey(Input, KEY_NEXT,       WasDown, IsDown); break;
+        case VK_MEDIA_PREV_TRACK: UpdateSingleKey(Input, KEY_PREVIOUS,   WasDown, IsDown); break;
+        case VK_MEDIA_STOP:       UpdateSingleKey(Input, KEY_STOP,       WasDown, IsDown); break; 
+        case VK_MEDIA_PLAY_PAUSE: UpdateSingleKey(Input, KEY_PLAY_PAUSE, WasDown, IsDown); break; 
+        
+        case VK_VOLUME_MUTE: UpdateSingleKey(Input, KEY_MUTE,        WasDown, IsDown); break;
+        case VK_VOLUME_UP:   UpdateSingleKey(Input, KEY_VOLUME_UP,   WasDown, IsDown); break;
+        case VK_VOLUME_DOWN: UpdateSingleKey(Input, KEY_VOLUME_DOWN, WasDown, IsDown); break;
         
         case VK_F1:  UpdateSingleKey(Input, KEY_F1, WasDown, IsDown); break;
         case VK_F2:  UpdateSingleKey(Input, KEY_F2, WasDown, IsDown); break;
@@ -296,10 +300,14 @@ KeyCodeToWindowsKey(key_code KeyCode)
         case KEY_F11: Result = VK_F11; break;
         case KEY_F12: Result = VK_F12; break;
         
-        case KEY_NEXT:       Result = 176; break;
-        case KEY_PREVIOUS:   Result = 177; break;
-        case KEY_STOP:       Result = 178; break;
-        case KEY_PLAY_PAUSE: Result = 179; break;
+        case KEY_NEXT:       Result = VK_MEDIA_NEXT_TRACK; break;
+        case KEY_PREVIOUS:   Result = VK_MEDIA_PREV_TRACK; break;
+        case KEY_STOP:       Result = VK_MEDIA_STOP;       break;
+        case KEY_PLAY_PAUSE: Result = VK_MEDIA_PLAY_PAUSE; break;
+        
+        case KEY_MUTE:        Result = VK_VOLUME_MUTE; break;
+        case KEY_VOLUME_UP:   Result = VK_VOLUME_UP;   break;
+        case KEY_VOLUME_DOWN: Result = VK_VOLUME_DOWN; break;
         
         case KEY_ADD:      Result = VK_ADD; break;
         case KEY_SUBTRACT: Result = VK_SUBTRACT; break;

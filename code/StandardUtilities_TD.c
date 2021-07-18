@@ -169,6 +169,12 @@ SetRandomSeed(u64 NewSeed)
 }
 
 inline u64
+GetCurrentRandomSeed()
+{
+    return RandomBaseSeed;
+}
+
+inline u64
 GetNextSeedValue()
 {
     u64 Result = 0;

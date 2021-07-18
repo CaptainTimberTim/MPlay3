@@ -13,6 +13,9 @@ struct read_file_result
 internal b32  WriteEntireFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory);
 internal b32  WriteEntireFile(string_w *Filename, u32 MemorySize, void *Memory);
 
+internal b32 WriteToFile(arena_allocator *Arena, u8 *Filename, u32 MemorySize, void *Memory, u32 WriteOffsetFromStart);
+internal b32 WriteToFile(string_w *Filename, u32 MemoryWriteSize, void *Memory, u32 WriteOffsetFromStart);
+
 internal void FreeFileMemory(arena_allocator *Arena, read_file_result File);
 
 internal b32  DeleteFile(string_w Filename);

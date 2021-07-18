@@ -366,3 +366,15 @@
 - Removed Assert which checked if max playlist count was larger than the new count right _before_ adjusting the max count...
 - Reintroduced a break in FillDisplayables that I took out previously because I did not really understand its purpose.
 - Fixed missing 'else' and a supposed 'else if' on playlist loading, which issued the user warning twice.
+
+08.07.2021
+- Added Album sorting in song column based on release year, not just alphabetically. That now only happens if no year exists or
+  they come out the same year and are from the same author.
+
+17.07.2021
+- Added per-playlist shuffle and looping.
+- Fixed bug where playlist were not shuffled on playlist-switching.
+- Now shuffling is persistent, even on playlist-switch/search/etc. the shuffled list stays the same order. Only pressing the shuffle button again will re-shuffle.
+
+18.07.2021
+- Added Shuffle and looping state for playlist files and they get serialized.

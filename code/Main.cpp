@@ -565,6 +565,9 @@ WinMain(HINSTANCE Instance,
             AddHotKey(Window, Input, KEY_STOP);
             AddHotKey(Window, Input, KEY_NEXT);
             AddHotKey(Window, Input, KEY_PREVIOUS);
+            AddHotKey(Window, Input, KEY_MUTE);
+            //AddHotKey(Window, Input, KEY_VOLUME_UP);
+            //AddHotKey(Window, Input, KEY_VOLUME_DOWN);
             
             
             // ********************************************
@@ -811,11 +814,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             //PushErrorMessage(GameState, {errorCode_EmptyFile, 27});
             
             
-            
-            
-            
-            
-            
             // ********************************************
             // FPS ****************************************
             // ********************************************
@@ -872,6 +870,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
 #endif
                 AnimateErrorMessage(Renderer, &GameState->UserErrorText, GameState->Time.dTime);
                 ProcessThreadErrors(GameState);
+                
+                
+                if(Input->KeyChange[KEY_VOLUME_UP] == KeyDown) DebugLog(10, "UP!\n");
+                if(Input->KeyChange[KEY_VOLUME_DOWN] == KeyDown) DebugLog(10, "DOWN!\n");
+                if(Input->KeyChange[KEY_MUTE] == KeyDown) DebugLog(10, "MUITE!\n");
                 
                 // *******************************************
                 // Mode Handling *****************************

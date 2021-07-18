@@ -52,6 +52,10 @@
 // - Replace for-loop copies with MemoryCopy
 // - Fill displayables, when album is selected, is very slow. Because we don't know which Artist has the album
 //   which we are looking at. If we would also cache this information in CreateMusicSortingInfo this wouldn't be a problem.
+// - Currently playing song is before music path background.
+// - If we have an album selected->then search genre and select it->then album is empty
+// - PlayNext should have reset or remove and maybe be overall more controllable.
+// - sort in song with release year if exists.
 
 // - Due to the last changes, especially because of the playlist stuff, things start to get slow when we handle
 //   Selected/Displayable arrays. Is it time to think about a bit better solution than just blank ID's? Or should
@@ -59,6 +63,9 @@
 //   Another 'small' thing would be to cache more information in CreateMusicSortingInfo for usage in FillDisplayables.
 //     - IDEAS: On FillDisplayable generate more information, like ???
 //     - @FixCreateSortingInfo, is tag for stuff I can look at as well, which is not working properly.
+
+// - Crash when renaming color palette.
+// - Color palette is not in the settings file!?
 
 // PLAYLIST:
 // - make dragged song slot small like the other columns, after it is ripped off?
@@ -160,6 +167,10 @@ struct playlist_info
         };
         playlist_column Columns[5];
     };
+    u64 ShuffleSeed;
+    b32 IsShuffled;
+    play_loop Looping;
+    
     string_c Filename_;
     u64 FileCreationDate; // Used for checking if we have a name duplicate on saving the PL.
 };
@@ -186,8 +197,8 @@ struct playing_song
 
 struct music_info
 {
-    b32 IsShuffled;
-    play_loop Looping;
+    //b32 IsShuffled;
+    //play_loop Looping;
     b32 IsPlaying;
     
     array_playlist_id UpNextList;
@@ -286,4 +297,4 @@ internal u32  ExtractMetadataSize(arena_allocator *Arena, string_c *CompletePath
 
 internal void CreatePlaylistsSortingInfo(playlist_column *Playlists);
 internal void SwitchPlaylistFromDisplayID(display_column *DisplayColumn, u32 ColumnDisplayID);
-
+internal void ShufflePlaylist(playlist_info *Playlist, b32 UsePrevShuffle);

@@ -252,6 +252,15 @@ GetLocalPosition(button *Button)
     return GetLocalPosition(Button->Entry);
 }
 
+inline void 
+SetScissor(button *Button, entry_id *ScissorID)
+{
+    Button->Entry->ID->Scissor = ScissorID;
+    Button->Icon->ID->Scissor = ScissorID;
+    if(Button->IsToggle) 
+        Button->ToggleIcon->ID->Scissor = ScissorID;
+}
+
 // Dragable stuff
 
 internal void

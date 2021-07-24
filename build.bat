@@ -21,7 +21,7 @@ set resources= "..\\data\\resources\\Resources.res"
 REM rc -x -nologo -fo %resources% "..\\data\\resources\\Resource.rc"
 
 cl %flags% %debugFlags% %compilerWarnings% "..\\code\\Main.cpp" %linkerFlags% %libIncludes% %resources%
-REM cl %flags% %optimizeFlags% %compilerWarnings% "..\\code\\Main.cpp" %linkerFlags% %libIncludes% %resources%
+REN cl %flags% %optimizeFlags% %compilerWarnings% "..\\code\\Main.cpp" %linkerFlags% %libIncludes% %resources%
 
 
 

@@ -378,3 +378,8 @@
 
 18.07.2021
 - Added Shuffle and looping state for playlist files and they get serialized.
+
+24.07.2021
+- Added Keyboard-Mute functionality. Turned off for now, as it should only work if, for instance ctrl is pressed or something.
+- Added glScissor to properly cut text and buttons to the column rects.
+- Fixed crash on renaming Color-Palettes.

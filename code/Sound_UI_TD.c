@@ -539,6 +539,45 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     DisplayColumn->Search = CreateSearchBar(ColumnInfo, Arena, DisplayColumn->BetweenSliderRect, Layout);
 }
 
+internal void
+ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
+{
+    layout_definition *Layout = &GlobalGameState.Layout;
+    for(u32 It = 0;
+        It < DisplayColumn->Count &&
+        It < DisplayableCount; 
+        ++It)
+    {
+        
+        //r32 TextX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x/2 + DisplayColumn->TextX;
+        r32 TextX = GetXTextPosition(DisplayColumn->BGRects[It], DisplayColumn->TextX);
+        if(DisplayColumn->Type == columnType_Song)
+        {
+            SetPositionX(ColumnExt(DisplayColumn)->SongTitle+It,  TextX+Layout->SongXOffset);
+            SetPositionX(ColumnExt(DisplayColumn)->SongArtist+It, TextX+Layout->SongXOffset);
+            SetPositionX(ColumnExt(DisplayColumn)->SongAlbum+It,  TextX+Layout->SongAlbumXOffset);
+            SetPositionX(ColumnExt(DisplayColumn)->SongTrack+It,  TextX+Layout->SongTrackXOffset);
+            SetPositionX(ColumnExt(DisplayColumn)->SongYear+It,   TextX+Layout->SongXOffset);
+            
+            SetActive(ColumnExt(DisplayColumn)->SongTitle+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongArtist+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongAlbum+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongGenre+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongTrack+It, true);
+            SetActive(ColumnExt(DisplayColumn)->SongYear+It, true);
+            
+            r32 NewBtnX = GetPosition(DisplayColumn->LeftBorder).x;
+            SetPositionX(ColumnExt(DisplayColumn)->Play[It]->Entry, NewBtnX+Layout->SongPlayButtonXOffset);
+            SetSongButtonsActive(ColumnExt(DisplayColumn), It, true);
+        }
+        else
+        {
+            SetPositionX(DisplayColumn->Text+It, TextX);
+            SetActive(DisplayColumn->Text+It, true);
+        }
+    }
+}
+
 internal r32
 CalcTextOverhang(entry_id *Rect, render_text Text)
 {
@@ -613,45 +652,6 @@ GetXTextPosition(entry_id *Background, r32 XOffset)
 }
 
 internal void
-ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
-{
-    layout_definition *Layout = &GlobalGameState.Layout;
-    for(u32 It = 0;
-        It < DisplayColumn->Count &&
-        It < DisplayableCount; 
-        ++It)
-    {
-        
-        //r32 TextX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x/2 + DisplayColumn->TextX;
-        r32 TextX = GetXTextPosition(DisplayColumn->BGRects[It], DisplayColumn->TextX);
-        if(DisplayColumn->Type == columnType_Song)
-        {
-            SetPositionX(ColumnExt(DisplayColumn)->SongTitle+It,  TextX+Layout->SongXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongArtist+It, TextX+Layout->SongXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongAlbum+It,  TextX+Layout->SongAlbumXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongTrack+It,  TextX+Layout->SongTrackXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongYear+It,   TextX+Layout->SongXOffset);
-            
-            SetActive(ColumnExt(DisplayColumn)->SongTitle+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongArtist+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongAlbum+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongGenre+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongTrack+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongYear+It, true);
-            
-            r32 NewBtnX = GetPosition(DisplayColumn->LeftBorder).x;
-            SetPositionX(ColumnExt(DisplayColumn)->Play[It]->Entry, NewBtnX+Layout->SongPlayButtonXOffset);
-            SetSongButtonsActive(ColumnExt(DisplayColumn), It, true);
-        }
-        else
-        {
-            SetPositionX(DisplayColumn->Text+It, TextX);
-            SetActive(DisplayColumn->Text+It, true);
-        }
-    }
-}
-
-internal void
 UpdateColumnHorizontalSlider(display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider = &DisplayColumn->SliderHorizontal;
@@ -688,7 +688,10 @@ UpdateOnHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, 
                              render_text *Text)
 {
     Translate(&Text[It], {TranslationX, 0});
-    if(Text[It].Count > 0) 
+    /*
+ NOTE:: This is not needed anymore, as we have now glScissor!
+    
+if(Text[It].Count > 0) 
     {
         For(Text[It].Count, Letter)
         {
@@ -701,7 +704,7 @@ UpdateOnHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, 
             else if(!Letter->Render) Letter->Render = true;
             else                     break;
         }
-    }
+    }*/
 }
 
 internal void
@@ -718,14 +721,16 @@ SongHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, r32 
     
     // Update song buttons
     Translate(Song->Play[It], V2(TranslationX, 0));
-    
+    /*
+NOTE:: This is not needed anymore, as we have now glScissor!
+
     r32 Overhang = WidthBetweenRects(DisplayColumn->LeftBorder, Song->Play[It]->Entry);
     b32 RenderButton = Overhang == 0 || (GetPosition(Song->Play[It]->Entry).x < GetPosition(DisplayColumn->LeftBorder).x);
     SetActive(Song->Play[It], !RenderButton);
     
     Overhang = WidthBetweenRects(DisplayColumn->LeftBorder, Song->Add[It]->Entry);
     RenderButton = Overhang == 0 || (GetPosition(Song->Add[It]->Entry).x < GetPosition(DisplayColumn->LeftBorder).x);
-    SetActive(Song->Add[It], !RenderButton);
+    SetActive(Song->Add[It], !RenderButton);*/
 }
 
 internal void
@@ -1109,18 +1114,22 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
     v2 SongP = {Layout->SongXOffset, Layout->SongFirstRowYOffset};
     RenderText(&GlobalGameState, font_Medium, &MD->Title, DisplayColumn->Colors.Text,
                DisplaySong->SongTitle+ID, -0.12001f, DisplayColumn->BGRects[ID], SongP);
+    SetScissor(DisplaySong->SongTitle+ID, DisplayColumn->Background);
     
     v2 AlbumP = {Layout->SongAlbumXOffset, Layout->SongSecondRowYOffset}; 
     RenderText(&GlobalGameState, font_Small, &MD->Album, DisplayColumn->Colors.Text,
                DisplaySong->SongAlbum+ID, -0.12f, DisplayColumn->BGRects[ID], AlbumP);
+    SetScissor(DisplaySong->SongAlbum+ID, DisplayColumn->Background);
     
     v2 ArtistP = {Layout->SongXOffset, Layout->SongThirdRowYOffset};
     RenderText(&GlobalGameState, font_Small, &MD->Artist, DisplayColumn->Colors.Text,
                DisplaySong->SongArtist+ID, -0.12f, DisplayColumn->BGRects[ID], ArtistP);
+    SetScissor(DisplaySong->SongArtist+ID, DisplayColumn->Background);
     
     v2 TrackP = {Layout->SongTrackXOffset, Layout->SongFirstRowYOffset};
     RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, DisplaySong->SongTrack+ID, -0.12f, 
                DisplayColumn->BGRects[ID], TrackP);
+    SetScissor(DisplaySong->SongTrack+ID, DisplayColumn->Background);
     
     string_c YearAddon = NewStringCompound(&GlobalGameState.ScratchArena, 10);
     string_c Addon = NewStaticStringCompound(" |");
@@ -1135,8 +1144,12 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
     v2 YearP = {Layout->SongXOffset, Layout->SongSecondRowYOffset};
     RenderText(&GlobalGameState, font_Small, &YearAddon, DisplayColumn->Colors.Text,
                DisplaySong->SongYear+ID, -0.12f, DisplayColumn->BGRects[ID], YearP);
+    SetScissor(DisplaySong->SongYear+ID, DisplayColumn->Background);
     
     DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
+    
+    SetScissor(DisplaySong->Play[ID], DisplayColumn->Background);
+    SetScissor(DisplaySong->Add[ID], DisplayColumn->Background);
 }
 
 internal void
@@ -1181,6 +1194,7 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
             Assert(Name);
             RenderText(&GlobalGameState, font_Small, Name, DisplayColumn->Colors.Text,
                        DisplayColumn->Text+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[It]);
+            SetScissor(DisplayColumn->Text+It, DisplayColumn->Background);
             
             Translate(DisplayColumn->Text+It, V2(0, GlobalGameState.Layout.SlotTextYOffset));
             //CenterText(DisplayColumn->Text+It); // NOTE:: Use this to align ontext height

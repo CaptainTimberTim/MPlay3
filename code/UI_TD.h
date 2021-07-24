@@ -76,6 +76,7 @@ inline void ToggleButtonVisuals(button *Button, b32 ToggleOn);
 internal void ButtonTestMouseInteraction(renderer *Renderer, input_info *Input, button *Button);
 inline b32 IsButtonHovering(button *Button);
 inline b32 IsOnButton(button *Button, v2 Position);
+inline void SetScissor(button *Button, entry_id *ScissorID);
 
 // Dragable UI stuff
 struct drag_func_pointer

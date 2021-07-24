@@ -9,6 +9,8 @@ global_variable string_c PLAYLIST_FILE_NAME  = NewStaticStringCompound("MPlay3Pl
 #define SETTINGS_CURRENT_VERSION 7
 #define  LIBRARY_CURRENT_VERSION 3
 #define PLAYLIST_CURRENT_VERSION 0
+
+#define COLOR_PALETTE_MAX_NAME_LENGTH 100
 struct settings
 {
     string_c FontPath = {0, 0, 0}; // Only for users at this point.

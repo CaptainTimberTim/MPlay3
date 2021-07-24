@@ -565,7 +565,7 @@ WinMain(HINSTANCE Instance,
             AddHotKey(Window, Input, KEY_STOP);
             AddHotKey(Window, Input, KEY_NEXT);
             AddHotKey(Window, Input, KEY_PREVIOUS);
-            AddHotKey(Window, Input, KEY_MUTE);
+            //AddHotKey(Window, Input, KEY_MUTE);
             //AddHotKey(Window, Input, KEY_VOLUME_UP);
             //AddHotKey(Window, Input, KEY_VOLUME_DOWN);
             
@@ -602,6 +602,7 @@ WinMain(HINSTANCE Instance,
             
             music_info *MusicInfo     = &GameState->MusicInfo;
             MusicInfo->Playlists      = CreatePlaylistList(&GameState->FixArena, 20);
+            MusicInfo->MuteVolume     = -1;
             playing_song *PlayingSong = &MusicInfo->PlayingSong;
             *PlayingSong = {-1, -1, -1};
             mp3_info *MP3Info = 0;
@@ -874,7 +875,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 
                 if(Input->KeyChange[KEY_VOLUME_UP] == KeyDown) DebugLog(10, "UP!\n");
                 if(Input->KeyChange[KEY_VOLUME_DOWN] == KeyDown) DebugLog(10, "DOWN!\n");
-                if(Input->KeyChange[KEY_MUTE] == KeyDown) DebugLog(10, "MUITE!\n");
                 
                 // *******************************************
                 // Mode Handling *****************************
@@ -1124,6 +1124,24 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                                     ChangeSong(GameState, PlayingSong);
                                 }
                             }
+                        }
+                        
+                        // Mute music *******
+                        
+                        if(Input->KeyChange[KEY_MUTE] == KeyDown) 
+                        {
+                            DebugLog(10, "MUTE!\n");
+                            if(MusicInfo->MuteVolume < 0)
+                            {
+                                MusicInfo->MuteVolume = GameState->SoundThreadInterface->ToneVolume;
+                                ChangeVolume(GameState, 0);
+                            }
+                            else
+                            {
+                                ChangeVolume(GameState, MusicInfo->MuteVolume);
+                                MusicInfo->MuteVolume = -1;
+                            }
+                            
                         }
                         
                         // Stop/Start music ***********

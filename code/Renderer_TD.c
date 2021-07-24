@@ -1171,6 +1171,12 @@ GetExtends(render_text *Text)
     return Result;
 }
 
+inline void 
+SetScissor(render_text *Text, entry_id *ScissorID)
+{
+    Text->Base->ID->Scissor = ScissorID;
+}
+
 // *******************  Sorting algorithms ***********************
 // 3-Way Quicksort ***********************************************
 

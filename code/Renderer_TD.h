@@ -52,6 +52,7 @@ struct render_entry
     enum fixed_to FixedTo;
     
     entry_id *Parent; 
+    entry_id *Scissor;
     
     v3 *Color;
     r32 Transparency;
@@ -319,3 +320,4 @@ inline void SetTransparency(render_text *Text, r32 T);
 inline void CenterText(render_text *Text);
 inline v2 GetSize(render_text *Text);
 inline v2 GetExtends(render_text *Text);
+inline void SetScissor(render_text *Text, entry_id *ScissorID);

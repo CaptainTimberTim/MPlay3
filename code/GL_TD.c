@@ -253,8 +253,15 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
     for(u32 EntryID = 0; EntryID < EntryList->EntryCount; EntryID++)
     {
         render_entry *RenderEntry = EntryList->Entries + EntryID;
-        //if(!Render(RenderEntry)) continue;
         if(!RenderEntry->Render) continue;
+        
+        if(RenderEntry->Scissor != NULL)
+        {
+            glEnable(GL_SCISSOR_TEST);
+            v3 V[4];
+            ApplyTransform(RenderEntry->Scissor->ID, V);
+            glScissor((i32)V[0].x, (i32)V[0].y, (i32)(V[2].x - V[0].x), (i32)(V[2].y - V[0].y));
+        }
         
         switch(RenderEntry->Type)
         {
@@ -332,5 +339,7 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             
             InvalidDefaultCase;
         }
+        if(RenderEntry->Scissor != NULL)
+            glDisable(GL_SCISSOR_TEST);
     }
 }

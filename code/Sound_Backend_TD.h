@@ -1,6 +1,5 @@
 #pragma once
 // IDEAS::
-//
 // - think about making song display MDs next to each other (genre in the artist row) an if 
 //   it goes over the edge, drop it into the new line
 // - ability to change slot height with auto text fit?
@@ -18,45 +17,21 @@
 // - @Slow     , is a label where I think it's unnecessary slow.
 // - @Layout   , where the Layout struct should hold the magic values.
 //
+
+// TESTING::
 // - generate huge amount of fake mp3 files and test with those!
 // - still hardcapped at 10k mp3 files - Fixed, TEST?!
+
+// CODE CLEANUPS::
 // - go through and remove all unnecassary gamestate/renderer/info juggling
-// - Switch openGL to directX?
-
-// - remove all GlobalGameState references from UI.c
-// - redraw only when necessary!
-//      - stop rendering when no user input and no song is playing
-// - stop always jumping the column to the start on i.e. search end
-// - color picker pops into original center. should at least be current center.
-// - UpNextList is limited to 200
-
-// - fix issues regarding handmade network comment
-//       - Find issue with drawing order bug. This one I have no clue right now...
-// - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
-
-// - On large files when preload is not enough, it _seldom_crashes when using the already decoded data...
-// - MP3 V0 crashes?
 // - Everywhere where both display_column and sortin_info is given, just give display_column, as it has a pointer to sort.
-// - selecting and deselecting stuff (in combination with search) is buggy.
-
-// - If a render text needs to switch fonts insider their own text, it should restart with that new font for consistency?
-//      - Or check beforehand and then start with the other font.
+// - remove all GlobalGameState references from UI.c
 // - Cleanup all the StringCompound procedures... Their names are sooo stupidly long..
-// - Cleanup of FillDisplayables. Or at least find out what exactly I am doing and comment that!?
 // - Sort out depth everywhere in the application
-// - Fix stutter on first play of song.
-// - Make it possible to close colorpicker with the colorpicker button
 // - Add a on_screen_id for tha visuals, to have typechecking on it! (like displayable_id, etc.).
-// - glScissor is the keyword for cutting of text after column!
-// - Print user error when save files could not be correctly loaded.
 // - Replace for-loop copies with MemoryCopy
 // - Fill displayables, when album is selected, is very slow. Because we don't know which Artist has the album
 //   which we are looking at. If we would also cache this information in CreateMusicSortingInfo this wouldn't be a problem.
-// - Currently playing song is before music path background.
-// - If we have an album selected->then search genre and select it->then album is empty
-// - PlayNext should have reset or remove and maybe be overall more controllable.
-// - sort in song with release year if exists.
-
 // - Due to the last changes, especially because of the playlist stuff, things start to get slow when we handle
 //   Selected/Displayable arrays. Is it time to think about a bit better solution than just blank ID's? Or should
 //   we do smaller stuff (like switch selected array from playlist_ids to displayable_ids) that help the performance.
@@ -64,16 +39,41 @@
 //     - IDEAS: On FillDisplayable generate more information, like ???
 //     - @FixCreateSortingInfo, is tag for stuff I can look at as well, which is not working properly.
 
-// - Crash when renaming color palette.
-// - Color palette is not in the settings file!?
-
-// PLAYLIST:
-// - make dragged song slot small like the other columns, after it is ripped off?
-// - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
-// - Add drag&drop for sorting playlist slots?
-// - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
-
+// NICE TO HAVE TODO'S::
+// - Switch openGL to directX?
+// - stop always jumping the column to the start on i.e. search end
+// - UpNextList is limited to 200
 // - InitialDisplayable count for playlist is capped to 250, should be expandable.
+
+// TODO'S::
+// - redraw only when necessary!
+//      - stop rendering when no user input and no song is playing
+// - If a render text needs to switch fonts insider their own text, it should restart with that new font for consistency?
+//      - Or check beforehand and then start with the other font.
+// - Make it possible to close colorpicker with the colorpicker button
+// - Print user error when save files could not be correctly loaded.
+// - PlayNext should have reset or remove and maybe be overall more controllable.
+// - PLAYLIST:
+//     - make dragged song slot small like the other columns, after it is ripped off?
+//     - Should 'Rename' button still work for 'All' as it isn't really required to be called that.
+//     - Add drag&drop for sorting playlist slots?
+//     - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
+// - Add unregister hotkey and add mute only on ctrl press, or something similar.
+
+// BUGS::
+// - color picker pops into original center. should at least be current center.
+// - fix issues regarding handmade network comment
+//       - Find issue with drawing order bug. This one I have no clue right now...
+// - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
+// - On large files when preload is not enough, it _seldom_crashes when using the already decoded data...
+// - MP3 V0 crashes?
+// - selecting and deselecting stuff (in combination with search) is buggy.
+// - Fix stutter on first play of song.
+// - Currently playing song is before music path background.
+// - If we have an album selected->then search genre and select it->then album is empty
+// - Crash when renaming color palette.
+// - Switching audio sources freezes playing of music entirely. On play 1 sec gets advanced...
+
 
 #include "Sound_UI_TD.h"
 
@@ -197,9 +197,8 @@ struct playing_song
 
 struct music_info
 {
-    //b32 IsShuffled;
-    //play_loop Looping;
     b32 IsPlaying;
+    r32 MuteVolume; // If -1 then not muted.
     
     array_playlist_id UpNextList;
     

@@ -407,7 +407,8 @@ OnSavePalette(color_picker *ColorPicker)
         u32 CustomID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
         Assert(CustomID < Settings->PaletteCount);
         
-        if(ColorPicker->PaletteName.TextString.Pos >= 100) ColorPicker->PaletteName.TextString.Pos = 100;
+        if(ColorPicker->PaletteName.TextString.Pos >= COLOR_PALETTE_MAX_NAME_LENGTH) 
+            ColorPicker->PaletteName.TextString.Pos = COLOR_PALETTE_MAX_NAME_LENGTH;
         ResetStringCompound(Settings->PaletteNames[CustomID]);
         AppendStringCompoundToCompound(Settings->PaletteNames+CustomID, &ColorPicker->PaletteName.TextString);
         For(PALETTE_COLOR_AMOUNT)

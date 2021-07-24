@@ -106,13 +106,13 @@ ProcessNextPaletteColor(u8 **C, u32 NameLength, v3 *Color)
     u8 Length = 0;
     *C += NameLength;
     EatLeadingSpaces(C);
-    Color->r = (r32)ProcessNextI32InString(*C, ' ', Length);
+    Color->r = (r32)Clamp(ProcessNextI32InString(*C, ' ', Length), 0, 255);
     *C += Length;
     EatLeadingSpaces(C);
-    Color->g = (r32)ProcessNextI32InString(*C, ' ', Length);
+    Color->g = (r32)Clamp(ProcessNextI32InString(*C, ' ', Length), 0, 255);
     *C += Length;
     EatLeadingSpaces(C);
-    Color->b = (r32)ProcessNextI32InString(*C, (u8 *)"\n ", 2, Length);
+    Color->b = (r32)Clamp(ProcessNextI32InString(*C, (u8 *)"\n ", 2, Length), 0, 255);
     
     AdvanceToNewline(C);
 }
@@ -302,8 +302,8 @@ TryLoadSettingsFile(game_state *GameState)
                     C += PaletteS.Pos;
                     EatLeadingSpaces(&C);
                     u32 PLen = CountToNewline(C);
-                    PaletteNames[Result.PaletteCount] = NewStringCompound(&GameState->FixArena, PLen);
-                    CopyStringToCompound(PaletteNames+Result.PaletteCount, C, (u8)'\n');
+                    PaletteNames[Result.PaletteCount] = NewStringCompound(&GameState->FixArena, COLOR_PALETTE_MAX_NAME_LENGTH+1);
+                    CopyStringToCompound(PaletteNames+Result.PaletteCount, C, (u8)'\n', true);
                     
                     AdvanceToNewline(&C);
                     color_palette *Palette = Palettes+Result.PaletteCount;

@@ -34,8 +34,8 @@ inline void AppendStringToCompound(string_compound *Comp, u8 *String);
 inline void PrependString(string_c *PrepandTo, string_c String); 
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 StartPos);
 inline void CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To);
-inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter);
-inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 DeliCount);
+inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter, b32 stopIfFull = false);
+inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 DeliCount, b32 stopIfFull = false);
 inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2);
 inline void CopyIntoCompound(string_c *Into, string_c *Copy);
 
@@ -196,20 +196,21 @@ CopyStringToCompound(string_compound *Comp, u8 *String, u32 From, u32 To)
 }
 
 inline void 
-CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter)
+CopyStringToCompound(string_compound *Comp, u8 *String, u8 Delimiter, b32 stopIfFull)
 {
     while(*String != Delimiter && 
           *String != 0)
     {
-        Assert(Comp->Pos < Comp->Length);
         Assert(*String);
         Comp->S[Comp->Pos++] = *String;
         String++;
+        if(stopIfFull && Comp->Pos == Comp->Length) break;
+        Assert(Comp->Pos <= Comp->Length);
     }
 }
 
 inline void 
-CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 DeliCount)
+CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 DeliCount, b32 stopIfFull)
 {
     while(*String != 0)
     {
@@ -221,10 +222,11 @@ CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 Deli
         }
         if(Break) break;
         
-        Assert(Comp->Pos < Comp->Length);
         Assert(*String);
         Comp->S[Comp->Pos++] = *String;
         String++;
+        if(stopIfFull && Comp->Pos == Comp->Length) break;
+        Assert(Comp->Pos <= Comp->Length);
     }
 }
 

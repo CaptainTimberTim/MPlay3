@@ -2405,17 +2405,27 @@ SortDisplayables(music_info *MusicInfo, mp3_file_info *MP3FileInfo)
 }
 
 internal void
-FinishChangeEntireSong(playing_song *Song)
+FinishChangeEntireSong(game_state *GS, playing_song *Song)
 {
-    mp3dec_file_info_t *DInfo = &GlobalGameState.MP3Info->DecodeInfo.PlayingDecoded.Data;
-    PushSongLoadingComplete(GlobalGameState.SoundThreadInterface, DInfo);
+    mp3dec_file_info_t *DInfo = &GS->MP3Info->DecodeInfo.PlayingDecoded.Data;
+    if(DInfo->hz == 0 && DInfo->channels == 0 && DInfo->samples == 0)
+    {
+        //PushErrorMessage(GS, NewStaticStringCompound("ERROR:: Song could not be loaded properly!"));
+        PushSoundBufferClear(GS->SoundThreadInterface);
+        GS->MusicInfo.IsPlaying = false;
+        PushIsPlaying(GS->SoundThreadInterface, false);
+        GS->MusicInfo.PlayingSong.DisplayableID.ID = -1;
+        GS->MusicInfo.PlayingSong.PlaylistID.ID = -1;
+        GS->MusicInfo.PlayingSong.DecodeID = -1;
+        SetTheNewPlayingSong(&GS->Renderer, &GS->MusicInfo.DisplayInfo.PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
+    }
+    else PushSongLoadingComplete(GlobalGameState.SoundThreadInterface, DInfo);
 }
 
 internal void
 FinishChangeSong(game_state *GameState, playing_song *Song)
 {
     music_info *MusicInfo = &GameState->MusicInfo;
-    GameState->MusicInfo.CurrentlyChangingSong = false;
     
     playlist_id PlaylistID = GetNextSong(MusicInfo);
     
@@ -2423,23 +2433,29 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
     Assert(DInfo->layer == 3);
     
     PushSoundBufferClear(GameState->SoundThreadInterface);
-    PushSongChanged(GameState->SoundThreadInterface, DInfo);
     
-    UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song.Base, &MusicInfo->Playlist_->Song, PlaylistID, 
-                           &MusicInfo->DisplayInfo.Song.Base.Base->ColorPalette.PlayingSong);
-    
-    
-    mp3_metadata *MD = GetMetadata(&GameState->MusicInfo.Playlist_->Song, &GameState->MP3Info->FileInfo, PlaylistID);
-    DebugLog(1255, "Nr.%i: %s (%s) by %s \n%i - %s - %i - %i Hz\n", MD->Track, MD->Title.S, MD->Album.S, MD->Artist.S, MD->Year, MD->Genre.S, MD->Duration, DInfo->hz);
-    
-    char WinText[512];
-    Assert(MD->Title.Pos > 0);
-    if(MD->Artist.Pos > 0) sprintf_s(WinText, "%s (%s)\n", MD->Title.S, MD->Artist.S);
-    else                   sprintf_s(WinText, "%s\n", MD->Title.S);
-    
-    string_w WWinText = {};
-    ConvertString8To16(&GameState->ScratchArena, (u8 *)WinText, &WWinText);
-    SetWindowTextW(GameState->Renderer.Window.WindowHandle, WWinText.S);
+    if(DInfo->hz == 0 && DInfo->channels == 0 && DInfo->samples == 0) 
+        PushErrorMessage(GameState, NewStaticStringCompound("ERROR:: Song could not be loaded properly!"));
+    else
+    {
+        PushSongChanged(GameState->SoundThreadInterface, DInfo);
+        
+        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song.Base, &MusicInfo->Playlist_->Song, PlaylistID, 
+                               &MusicInfo->DisplayInfo.Song.Base.Base->ColorPalette.PlayingSong);
+        
+        
+        mp3_metadata *MD = GetMetadata(&GameState->MusicInfo.Playlist_->Song, &GameState->MP3Info->FileInfo, PlaylistID);
+        DebugLog(1255, "Nr.%i: %s (%s) by %s \n%i - %s - %i - %i Hz\n", MD->Track, MD->Title.S, MD->Album.S, MD->Artist.S, MD->Year, MD->Genre.S, MD->Duration, DInfo->hz);
+        
+        char WinText[512];
+        Assert(MD->Title.Pos > 0);
+        if(MD->Artist.Pos > 0) sprintf_s(WinText, "%s (%s)\n", MD->Title.S, MD->Artist.S);
+        else                   sprintf_s(WinText, "%s\n", MD->Title.S);
+        
+        string_w WWinText = {};
+        ConvertString8To16(&GameState->ScratchArena, (u8 *)WinText, &WWinText);
+        SetWindowTextW(GameState->Renderer.Window.WindowHandle, WWinText.S);
+    }
 }
 
 internal void
@@ -2451,8 +2467,6 @@ ChangeSong(game_state *GameState, playing_song *Song)
     
     if(PlaylistID >= 0)
     {
-        GameState->MusicInfo.CurrentlyChangingSong = true;
-        
         Song->DecodeID = AddJob_LoadNewPlayingSong(&GameState->JobQueue, PlaylistID);
         
         Assert(Song->DecodeID >= 0);
@@ -2467,6 +2481,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
         GameState->MusicInfo.IsPlaying = false;
         PushNewPlayedTime(GameState->SoundThreadInterface, 0);
         PushSoundBufferClear(GameState->SoundThreadInterface);
+        DebugLog(60, "#RandomStop: ChangeSong, PlaylistID is < 0\n");
     }
     
     SetTheNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);

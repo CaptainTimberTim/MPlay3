@@ -1100,34 +1100,16 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.Remove, &DisplayInfo->PlaylistUI.RemoveCurtain, playlistBtnType_Remove);
                         
                         // Next/Previous song *******
-                        if(Input->KeyChange[KEY_RIGHT] == KeyDown ||
-                           Input->KeyChange[KEY_NEXT]  == KeyDown)
+                        if(Input->KeyChange[KEY_RIGHT] == KeyDown || Input->KeyChange[KEY_NEXT]  == KeyDown)
                         {
-                            if(PlayingSong->DisplayableID >= 0)
-                            {
-                                HandleChangeToNextSong(GameState);
-                            }
+                            OnNextSong(&DisplayInfo->MusicBtnInfo);
                         }
-                        else if(Input->KeyChange[KEY_LEFT]     == KeyDown ||
-                                Input->KeyChange[KEY_PREVIOUS] == KeyDown )
+                        else if(Input->KeyChange[KEY_LEFT]     == KeyDown || Input->KeyChange[KEY_PREVIOUS] == KeyDown )
                         {
-                            if(PlayingSong->DisplayableID >= 0)
-                            {
-                                if(GetPlayedTime(GameState->SoundThreadInterface) < 5.0f)
-                                {
-                                    SetPreviousSong(MusicInfo);
-                                    ChangeSong(GameState, PlayingSong);
-                                    KeepPlayingSongOnScreen(Renderer, MusicInfo);
-                                }
-                                else
-                                {
-                                    ChangeSong(GameState, PlayingSong);
-                                }
-                            }
+                            OnPreviousSong(&DisplayInfo->MusicBtnInfo);
                         }
                         
                         // Mute music *******
-                        
                         if(Input->KeyChange[KEY_MUTE] == KeyDown) 
                         {
                             DebugLog(10, "MUTE!\n");
@@ -1151,28 +1133,15 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             if(GameState->ModeFlags > 0 && Input->KeyChange[KEY_SPACE] == KeyDown) ;
                             else
                             {
-                                MusicInfo->IsPlaying = !MusicInfo->IsPlaying;
-                                if(!MusicInfo->IsPlaying) 
-                                {
-                                    PushSoundBufferClear(GameState->SoundThreadInterface);
-                                    DisplayInfo->PlayPause->State = buttonState_Unpressed;
-                                    DisplayInfo->PlayPause->Entry->ID->Color = DisplayInfo->PlayPause->BaseColor;
-                                }
+                                if(MusicInfo->IsPlaying) 
+                                    OnPlayPauseSongToggleOff(&DisplayInfo->MusicBtnInfo);
                                 else
-                                {
-                                    DisplayInfo->PlayPause->State = buttonState_Pressed;
-                                    DisplayInfo->PlayPause->Entry->ID->Color = DisplayInfo->PlayPause->DownColor;
-                                }
+                                    OnPlayPauseSongToggleOn(&DisplayInfo->MusicBtnInfo);
                             }
                         }
                         if(Input->KeyChange[KEY_STOP] == KeyDown)
                         {
-                            if(PlayingSong->DisplayableID >= 0)
-                            {
-                                ChangeSong(GameState, PlayingSong);
-                                MusicInfo->IsPlaying = false;
-                                PushSoundBufferClear(GameState->SoundThreadInterface);
-                            }
+                            OnStopSong(&DisplayInfo->MusicBtnInfo);
                         }
                         
                         // Change volume ******
@@ -1262,9 +1231,15 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             SongChangedIsCurrentlyDecoding = false;
                             FinishChangeSong(GameState, PlayingSong);
                             SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
+                            
+                            DebugLog(50, "#RandomStop: Finished decoding pre loaded.\n");
                         }
                     }
-                    else SongChangedIsCurrentlyDecoding = true;
+                    else 
+                    {
+                        SongChangedIsCurrentlyDecoding = true;
+                        DebugLog(50, "#RandomStop: SongChangedIsCurrentlyDecoding\n");
+                    }
                     
                     
                     // For loading the entire song
@@ -1273,7 +1248,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         if(MP3Info->DecodeInfo.PlayingDecoded.CurrentlyDecoding != SongChangedIsCurrentlyFullyDecoding)
                         {
                             SongChangedIsCurrentlyFullyDecoding = false;
-                            FinishChangeEntireSong(PlayingSong);
+                            FinishChangeEntireSong(GameState, PlayingSong);
                             SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                             DebugLog(255, "Finished loading entire song, swapping over now!\n");
                         }
@@ -1298,15 +1273,19 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     SongFinished = true;
                     MusicInfo->IsPlaying = false;
+                    DebugLog(120, "#RandomStop: (Time: %.4f) Song finished, IsPlayig == false\n", GameState->Time.GameTime);
+                    DebugLog(120, "#RandomStop: ...DisplayableID >= 0? (%i), or UpNextList.Count > 0? (%i)\n", PlayingSong->DisplayableID.ID, MusicInfo->UpNextList.A.Count);
                     if(PlayingSong->DisplayableID >= 0 || MusicInfo->UpNextList.A.Count > 0)
                     {
                         HandleChangeToNextSong(GameState);
-                        if(MusicInfo->PlayingSong.DisplayableID >= 0) MusicInfo->IsPlaying = true;
+                        DebugLog(120, "#RandomStop: Found next song!\n");
+                        if(MusicInfo->PlayingSong.DisplayableID >= 0) 
+                            MusicInfo->IsPlaying = true;
                     }
                 }
-                if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished/* || !MusicInfo->CurrentlyChangingSong*/)
+                if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished)
                 {
-                    DebugLog(255, "Changing IsPlaying to: %i\n", MusicInfo->IsPlaying);
+                    DebugLog(255, "#RandomStop: Changing IsPlaying to: %i\n", MusicInfo->IsPlaying);
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                     PrevIsPlaying = MusicInfo->IsPlaying;
                 }

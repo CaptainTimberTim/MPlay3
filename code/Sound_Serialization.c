@@ -124,6 +124,13 @@ TryLoadSettingsFile(game_state *GameState)
     Result.WindowDimX = GameState->Layout.WindowWidth;
     Result.WindowDimY = GameState->Layout.WindowHeight;
     
+    Result.CachedFontNames = AllocateStruct(&GameState->FixArena, font_name_list);
+    *Result.CachedFontNames = {};
+    
+    Result.PaletteMaxCount = 15; // @HardLimit
+    string_c *PaletteNames  = AllocateArray(&GameState->ScratchArena, Result.PaletteMaxCount, string_c);
+    color_palette *Palettes = AllocateArray(&GameState->ScratchArena, Result.PaletteMaxCount, color_palette);
+    
     read_file_result Data = {};
     if(ReadEntireFile(&GameState->ScratchArena, &Data, GameState->SettingsPath.S))
     {
@@ -164,12 +171,7 @@ TryLoadSettingsFile(game_state *GameState)
             string_c PlayingSongS                   = NewStaticStringCompound("PlayingSong:");
             
             u8 L; // Not used for anything.
-            Result.PaletteMaxCount = 15;
-            string_c *PaletteNames  = AllocateArray(&GameState->ScratchArena, Result.PaletteMaxCount, string_c);
-            color_palette *Palettes = AllocateArray(&GameState->ScratchArena, Result.PaletteMaxCount, color_palette);
             
-            Result.CachedFontNames = AllocateStruct(&GameState->FixArena, font_name_list);
-            *Result.CachedFontNames = {};
             while(*C)
             {
                 if(*C == ' ') EatLeadingSpaces(&C);

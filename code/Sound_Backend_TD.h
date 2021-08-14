@@ -73,7 +73,7 @@
 // - If we have an album selected->then search genre and select it->then album is empty
 // - Crash when renaming color palette.
 // - Switching audio sources freezes playing of music entirely. On play 1 sec gets advanced...
-
+// - Still sometimes stops playing randomly...
 
 #include "Sound_UI_TD.h"
 
@@ -134,7 +134,7 @@ struct sort_batch
 struct playlist_column
 {
     column_type   Type;
-    array_playlist_id Selected;    // stores playlist for song column and sortBatchIDs for the rest!
+    array_playlist_id Selected;    // stores playlistIds for song column and sortBatchIDs for the rest!
     array_playlist_id Displayable; // ::DISPLAYABLE_ID,  stores _PlaylistIDs_ for song column and sortBatchIDs for the rest!
     
     union {
@@ -208,7 +208,6 @@ struct music_info
     music_display_info DisplayInfo;
     
     playing_song PlayingSong;
-    b32 CurrentlyChangingSong;
 };
 
 struct scroll_load_info

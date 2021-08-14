@@ -252,14 +252,41 @@ AddJob_LoadMetadata(game_state *GameState)
 // *******************************************************
 
 internal void
-RemoveFileFromInfo(mp3_file_info *FileInfo, u32 RemoveID)
+RemoveFileFromInfo(music_info *MusicInfo, mp3_file_info *FileInfo, u32 RemoveID)
 {
     Assert(FileInfo->Count_ > 0 && RemoveID >= 0);
     Assert(RemoveID < FileInfo->Count_);
+    playlist_id PLID = GetPlaylistID(&MusicInfo->Playlist_->Song, NewFileID(RemoveID));
     RemoveItem(FileInfo->FileNames_, FileInfo->Count_, RemoveID, string_c);
     RemoveItem(FileInfo->SubPath, FileInfo->Count_, RemoveID, string_c);
     RemoveItem(FileInfo->Metadata, FileInfo->Count_, RemoveID, mp3_metadata);
     FileInfo->Count_--;
+    
+    // Reducing the fileIDs for all playlists.
+    For(MusicInfo->Playlists.Count)
+    {
+        playlist_column *PlaylistCol = &MusicInfo->Playlists.List[It].Song;
+        For(PlaylistCol->FileIDs.A.Count, File)
+        {
+            // If it points to a fileId after the removed id, we
+            // need to decrease it by one, so that it still points to
+            // the same file.
+            if(PlaylistCol->FileIDs.A.Slot[FileIt] > RemoveID)
+            {
+                PlaylistCol->FileIDs.A.Slot[FileIt] -= 1;
+            }
+        }
+    }
+    
+    // Reducing the playlistIDs for upNext.
+    StackFindAndTake(&MusicInfo->UpNextList, PLID);
+    For(MusicInfo->UpNextList.A.Count)
+    {
+        if(MusicInfo->UpNextList.A.Slot[It] > (u32)PLID.ID)
+        {
+            MusicInfo->UpNextList.A.Slot[It] -= 1;
+        }
+    }
 }
 
 internal b32 
@@ -288,12 +315,14 @@ AddFileToInfo(mp3_file_info *FileInfo, string_c *SubPath, string_c *FileName)
 internal void // Only callded from Main thread
 CheckForMusicPathMP3sChanged_End(check_music_path *CheckMusicPath, music_path_ui *MusicPath)
 {
+    music_info *MusicInfo = &GlobalGameState.MusicInfo;
     mp3_file_info *FileInfo = &GlobalGameState.MP3Info->FileInfo;
     mp3_file_info *TestInfo = &CheckMusicPath->TestInfo;
     
     For(CheckMusicPath->RemoveIDs.Count)
     {
-        RemoveFileFromInfo(FileInfo, Get(&CheckMusicPath->RemoveIDs, It));
+        u32 RemoveID = Get(&CheckMusicPath->RemoveIDs, It);
+        RemoveFileFromInfo(MusicInfo, FileInfo, RemoveID);
     }
     
     if(CheckMusicPath->AddTestInfoIDs.Count > 0)
@@ -386,35 +415,32 @@ CheckForMusicPathMP3sChanged_Thread(arena_allocator *ScratchArena, check_music_p
     }
     QuickSort(0, CheckMusicPath->RemoveIDs.Count-1, &CheckMusicPath->RemoveIDs, {IsHigher, &CheckMusicPath->RemoveIDs, Switch});
     
-    if(TestInfo->Count_ != FileInfo->Count_)
+    // Find which files are new and add them to library
+    For(TestInfo->Count_, New)
     {
-        // Find which files are new and add them to library
-        For(TestInfo->Count_, New)
+        b32 FileFound = false;
+        For(FileInfo->Count_)
         {
-            b32 FileFound = false;
-            For(FileInfo->Count_)
+            if(CompareStringCompounds(FileInfo->SubPath+It, TestInfo->SubPath+NewIt))
             {
-                if(CompareStringCompounds(FileInfo->SubPath+It, TestInfo->SubPath+NewIt))
+                if(CompareStringCompounds(FileInfo->FileNames_+It, TestInfo->FileNames_+NewIt))
                 {
-                    if(CompareStringCompounds(FileInfo->FileNames_+It, TestInfo->FileNames_+NewIt))
-                    {
-                        FileFound = true;
-                        break;
-                    }
+                    FileFound = true;
+                    break;
                 }
             }
-            
-            if(!FileFound) 
+        }
+        
+        if(!FileFound) 
+        {
+            if(AddArray->Count >= AddArray->Length)
             {
-                if(AddArray->Count >= AddArray->Length)
-                {
-                    u32 NewCount   = AddArray->Length*2;
-                    AddArray->Slot = ReallocateArray(&GlobalGameState.JobThreadsArena, AddArray->Slot, 
-                                                     AddArray->Length, NewCount, u32);
-                    AddArray->Length = NewCount;
-                }
-                Push(AddArray, NewIt);
+                u32 NewCount   = AddArray->Length*2;
+                AddArray->Slot = ReallocateArray(&GlobalGameState.JobThreadsArena, AddArray->Slot, 
+                                                 AddArray->Length, NewCount, u32);
+                AddArray->Length = NewCount;
             }
+            Push(AddArray, NewIt);
         }
     }
     CheckMusicPath->State = threadState_Finished;

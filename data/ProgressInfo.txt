@@ -383,3 +383,13 @@
 - Added Keyboard-Mute functionality. Turned off for now, as it should only work if, for instance ctrl is pressed or something.
 - Added glScissor to properly cut text and buttons to the column rects.
 - Fixed crash on renaming Color-Palettes.
+
+25.07.2021
+- Fixed duplicate and wrong code for handling keyboard control. It now uses the procedures of the ui buttons.
+
+14.08.2021
+- Fixed crash when there was no settings file and a new font group needed creation, using an uninitialized array.
+- Added catch for trying to push a loaded song to sound thread that is empty.
+- Added adjustment of fileIDs and displayIDs, so that they still point to the right song.
+- Fixed setting empty decode data for full song, when decoding failed.
+- Fixed rescan only adding files if the count of previous and new files are different. Which can happen if a file is renamed.

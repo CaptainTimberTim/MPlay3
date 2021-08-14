@@ -231,7 +231,7 @@ CreateRenderEntry(renderer *Renderer, v2 Size, r32 Depth, v2 Position = {}, entr
     }
     Assert(Result);
     Assert(Depth <= 1.0f && Depth >= -1.0f);
-    Assert(EntryList->EntryCount < EntryList->MaxCount);
+    Assert(EntryList->EntryCount < EntryList->MaxCount); // TODO:: Triggered after running app in the background for quite some time.
     
     render_entry *Entry = EntryList->Entries + EntryList->EntryCount;
     Entry->ID = Result;

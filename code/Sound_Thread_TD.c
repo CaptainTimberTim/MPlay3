@@ -151,6 +151,7 @@ FillSamplesFromPlayingFile(time_management *Time, sound_info *SoundInfo, game_so
 {
     Assert(MP3Decoded);
     Assert(MP3Decoded->buffer);
+    Assert(MP3Decoded->channels > 0);
     
     SoundInfo->PlayedTime += Time->dTime;
     
@@ -230,6 +231,7 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             
             if(!SoundInfo->SoundIsValid)
             {
+				Assert(SoundInstance->BytesPerSample > 0);
                 SoundInfo->RunningSampleIndex = WriteCursor / SoundInstance->BytesPerSample;
                 SoundInfo->SoundIsValid = true;
                 SoundInfo->SongEndByte = -1;
@@ -264,6 +266,9 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             
             // This handles that the song is finished, but the PlayCursor needs to have played
             // the last samples of the song, before I can give the playState_Done response.
+            
+            // TODO:: This is where it fails, when it sometimes just stopps playing! The SongEndByte is 
+            // only a few hundret bytes while PrevPlayCursor is > 70k. 
             if(SoundInfo->SongEndByte >= 0 &&
                (i32)PlayCursor >= SoundInfo->SongEndByte && 
                (i32)SoundInfo->PrevPlayCursor < SoundInfo->SongEndByte) 
@@ -418,26 +423,17 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
                 WaitForMainThread   = false;
             }
             
-#define DELTA_TIME_BASED 0
-#if DELTA_TIME_BASED 
-            if(IsPlaying) CurrentSongPlaytime += Time.dTime;
-            r32 MaxSongPlaytime        = MP3Decoded.samples/(r32)(MP3Decoded.hz*MP3Decoded.channels);
-            CurrentSongPlaytime        = Min(CurrentSongPlaytime, MaxSongPlaytime);
-            Interface->CurrentPlaytime = CurrentSongPlaytime;
-            
-            Assert(Interface->CurrentPlaytime <= MaxSongPlaytime);
-#else // Played sample based
             u32 SongDuration   = (u32)MP3Decoded.samples/MP3Decoded.channels/MP3Decoded.hz*1000;
             r32 PlayPercentage = SoundInfo->PlayedSampleCount / (r32)(MP3Decoded.samples/MP3Decoded.channels);
             r32 Playtime       = PlayPercentage*(r32)SongDuration;
             
             Interface->CurrentPlaytime = Playtime/1000.0f;
-#endif
         }
         else Interface->CurrentPlaytime = 0;
         
         if(PlayState == playState_Done) 
         {
+            DebugLog(120, "#RandomStop: Done playling, now setting IsFinishedPLaylingToggle\n");
             Interface->IsFinishedPlayingToggle = true;
             PlayState = playState_Waiting;
         }
@@ -524,8 +520,10 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
                     ClearSoundBuffer(&SoundInfo->SoundInstance);
                     SoundInfo->SoundIsValid = false;
                     WaitForMainThread = true;
+                    
+                    DebugLog(120, "#RandomStop: SimpleCalcuateAndPlaySound said playstate_Done\n");
                 }
-                else if(PlayState == playState_Error) IsPlaying = false;
+                else if(PlayState == playState_Error) IsPlaying = false; // TODO:: This does not make sense. Something else should happen...
             }
         }
         PrevVolume = SoundInfo->ToneVolume;

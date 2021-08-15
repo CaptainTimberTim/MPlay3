@@ -1235,14 +1235,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             SongChangedIsCurrentlyDecoding = false;
                             FinishChangeSong(GameState, PlayingSong);
                             SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
-                            
-                            DebugLog(50, "#RandomStop: Finished decoding pre loaded.\n");
                         }
                     }
                     else 
                     {
                         SongChangedIsCurrentlyDecoding = true;
-                        DebugLog(50, "#RandomStop: SongChangedIsCurrentlyDecoding\n");
                     }
                     
                     
@@ -1254,7 +1251,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                             SongChangedIsCurrentlyFullyDecoding = false;
                             FinishChangeEntireSong(GameState, PlayingSong);
                             SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
-                            DebugLog(255, "Finished loading entire song, swapping over now!\n");
                         }
                     }
                     else SongChangedIsCurrentlyFullyDecoding = true;
@@ -1277,19 +1273,15 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     SongFinished = true;
                     MusicInfo->IsPlaying = false;
-                    DebugLog(120, "#RandomStop: (Time: %.4f) Song finished, IsPlayig == false\n", GameState->Time.GameTime);
-                    DebugLog(120, "#RandomStop: ...DisplayableID >= 0? (%i), or UpNextList.Count > 0? (%i)\n", PlayingSong->DisplayableID.ID, MusicInfo->UpNextList.A.Count);
                     if(PlayingSong->DisplayableID >= 0 || MusicInfo->UpNextList.A.Count > 0)
                     {
                         HandleChangeToNextSong(GameState);
-                        DebugLog(120, "#RandomStop: Found next song!\n");
                         if(MusicInfo->PlayingSong.DisplayableID >= 0) 
                             MusicInfo->IsPlaying = true;
                     }
                 }
                 if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished)
                 {
-                    DebugLog(255, "#RandomStop: Changing IsPlaying to: %i\n", MusicInfo->IsPlaying);
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                     PrevIsPlaying = MusicInfo->IsPlaying;
                 }

@@ -2481,7 +2481,6 @@ ChangeSong(game_state *GameState, playing_song *Song)
         GameState->MusicInfo.IsPlaying = false;
         PushNewPlayedTime(GameState->SoundThreadInterface, 0);
         PushSoundBufferClear(GameState->SoundThreadInterface);
-        DebugLog(60, "#RandomStop: ChangeSong, PlaylistID is < 0\n");
     }
     
     SetTheNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);

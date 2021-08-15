@@ -166,7 +166,7 @@ FillSamplesFromPlayingFile(time_management *Time, sound_info *SoundInfo, game_so
                 *SampleOut++ = (i16)(*SampleIn++ * SoundInfo->ToneVolume);
             else // When file ends, fill the rest of the frame with silence
             {
-                if(LastSample<0) LastSample = SampleIndex;
+                if(LastSample < 0) LastSample = SampleIndex;
                 *SampleOut++ = 0;
             }
         }
@@ -199,6 +199,21 @@ CircleDistance(i32 From, i32 To, i32 CircleBufferSize)
     else Result = To-From;
     
     return Result;
+}
+
+inline b32
+IsGivenBetweenForCircularBuffer(i32 Given, i32 Left, i32 Right)
+{
+    b32 IsLeftSmaller = Left < Right;
+    
+    // Normal case, not at the edge of the circular buffer
+    b32 Case_InMiddle =               IsLeftSmaller && (Given > Left) && (Given <= Right);
+    // Case where both Given and Right are over the edge.
+    b32 Case_LeftPrevCycle =         !IsLeftSmaller && (Given < Left) && (Given <= Right);
+    // Case where only Right is over the edge.
+    b32 Case_LeftAndGivenPrevCycle = !IsLeftSmaller && (Given > Left) && (Given >  Right);
+    
+    return Case_InMiddle || Case_LeftPrevCycle || Case_LeftAndGivenPrevCycle;
 }
 
 inline LONGLONG GetWallClock();
@@ -266,15 +281,13 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             
             // This handles that the song is finished, but the PlayCursor needs to have played
             // the last samples of the song, before I can give the playState_Done response.
-            
-            // TODO:: This is where it fails, when it sometimes just stopps playing! The SongEndByte is 
-            // only a few hundret bytes while PrevPlayCursor is > 70k. 
-            if(SoundInfo->SongEndByte >= 0 &&
-               (i32)PlayCursor >= SoundInfo->SongEndByte && 
-               (i32)SoundInfo->PrevPlayCursor < SoundInfo->SongEndByte) 
+            if(SoundInfo->SongEndByte >= 0) 
             {
-                Result = playState_Done;
-                DebugLog(12, "Done.\n");
+                if(IsGivenBetweenForCircularBuffer(SoundInfo->SongEndByte, SoundInfo->PrevPlayCursor, PlayCursor));
+                {
+                    Result = playState_Done;
+                    DebugLog(12, "Done.\n");
+                }
             }
             else Result = playState_Playing;
             SoundInfo->PrevPlayCursor = PlayCursor;
@@ -433,7 +446,6 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
         
         if(PlayState == playState_Done) 
         {
-            DebugLog(120, "#RandomStop: Done playling, now setting IsFinishedPLaylingToggle\n");
             Interface->IsFinishedPlayingToggle = true;
             PlayState = playState_Waiting;
         }
@@ -520,8 +532,6 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
                     ClearSoundBuffer(&SoundInfo->SoundInstance);
                     SoundInfo->SoundIsValid = false;
                     WaitForMainThread = true;
-                    
-                    DebugLog(120, "#RandomStop: SimpleCalcuateAndPlaySound said playstate_Done\n");
                 }
                 else if(PlayState == playState_Error) IsPlaying = false; // TODO:: This does not make sense. Something else should happen...
             }

@@ -970,6 +970,13 @@ ChangeFixToPosition(screen_transform_list *List, u32 ID, v2 NewFixToPosition)
     List->FixToPosition[ID] = NewFixToPosition;
 }
 
+inline void
+ChangeOriginalPosition(screen_transform_list *List, u32 ID, v2 NewOriginalPosition)
+{
+    Assert(ID < List->Count);
+    List->OriginalPosition[ID] = NewOriginalPosition;
+}
+
 internal void
 PerformScreenTransform(renderer *Renderer)
 {
@@ -1023,11 +1030,11 @@ PerformScreenTransform(renderer *Renderer)
             Entry->ID->Transform.Translation = Result;
             switch(List->DoTranslation[It])
             {
-                case fixedTo_Bottom: 
-                case fixedTo_MiddleY: 
+                case fixedTo_Bottom:  // Through
+                case fixedTo_MiddleY: // Through
                 case fixedTo_Top: Entry->ID->Transform.Translation.x = OriginalT.x; break;
-                case fixedTo_Left: 
-                case fixedTo_CenterX: 
+                case fixedTo_Left:    // Through
+                case fixedTo_CenterX: // Through
                 case fixedTo_Right: Entry->ID->Transform.Translation.y = OriginalT.y; break;
             }
         }

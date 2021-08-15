@@ -236,9 +236,9 @@ internal entry_id *Copy(renderer *Renderer, entry_id *Entry);
 inline void SetTransparency(entry_id *Entry, r32 T);
 inline void ApplyTransform(render_entry *Entry, v3 *Result);
 
-inline v2   GetSize(entry_id *Entry); // Get Raw + Transform
+inline v2   GetSize(entry_id *Entry); // Get size in pixel
 inline void SetSize(entry_id *Entry, v2 SizeInPixel); // Set Transform
-inline v2   GetScale(entry_id *Entry); // Get Transform
+inline v2   GetScale(entry_id *Entry); // Get Transform scale (multiplier, normally 1)
 inline void SetScale(entry_id *Entry, v2 Scale); // Set Transform
 inline v2   GetExtends(v3 *RenderRectVertice); // Get Raw
 inline v2   GetExtends(entry_id *Entry); // Get Raw
@@ -303,6 +303,7 @@ inline u32 TransformWithScreen(screen_transform_list *List, entry_id *Entry,
                                fixed_to FixedTo, scale_axis ScaleAxis, v2 FixToPosition);
 inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, r32 NewFixToPosition);
 inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixToPosition);
+inline void ChangeOriginalPosition(screen_transform_list *List, u32 ID, v2 NewOriginalPosition);
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff

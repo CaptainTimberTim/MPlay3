@@ -829,7 +829,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             render_text FPSText = {};
             r32 dUpdateRate = 0.0f;
 #endif
-            
+            b32 SongSlotHeightToggle = false;
             b32 SongChangedIsCurrentlyDecoding      = true;
             b32 SongChangedIsCurrentlyFullyDecoding = true;
             b32 PrevIsPlaying = MusicInfo->IsPlaying;
@@ -872,7 +872,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 AnimateErrorMessage(Renderer, &GameState->UserErrorText, GameState->Time.dTime);
                 ProcessThreadErrors(GameState);
                 
-                
+                if(Input->KeyChange[KEY_F9] == KeyDown) 
+                {
+                    SongSlotHeightToggle = !SongSlotHeightToggle;
+                    SetSongSlotHeightMode(GameState, SongSlotHeightToggle);
+                }
                 if(Input->KeyChange[KEY_VOLUME_UP] == KeyDown) DebugLog(10, "UP!\n");
                 if(Input->KeyChange[KEY_VOLUME_DOWN] == KeyDown) DebugLog(10, "DOWN!\n");
                 

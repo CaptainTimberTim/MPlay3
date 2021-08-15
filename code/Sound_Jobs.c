@@ -809,7 +809,7 @@ AddJobs_LoadOnScreenMP3s(game_state *GameState, circular_job_queue *JobQueue, ar
         It < MAX_MP3_DECODE_COUNT - IgnoreCount;
         It++)
     {
-        playlist_id PlaylistID = GetPlaylistID(&GameState->MusicInfo, DisplayColumn->OnScreenIDs[It]);
+        playlist_id PlaylistID = GetPlaylistID(&GameState->MusicInfo, DisplayColumn->SlotIDs[It]);
         AddJob_LoadMP3(JobQueue, PlaylistID, IgnoreDecodeIDs);
     }
 }

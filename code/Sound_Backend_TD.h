@@ -79,11 +79,11 @@
 
 struct column_info
 {
-    struct renderer             *Renderer;
-    struct music_display_info   *DisplayInfo;
-    struct music_info           *MusicInfo;
-    struct display_column       *DisplayColumn;
-    struct playlist_column      *PlaylistColumn;
+    struct renderer           *Renderer;
+    struct music_display_info *DisplayInfo;
+    struct music_info         *MusicInfo;
+    struct display_column     *DisplayColumn;
+    struct playlist_column    *PlaylistColumn;
 };
 
 enum column_type // Is used to index arrays!

@@ -294,13 +294,13 @@ GetFileID(playlist_column *SongColumn, playlist_id PlaylistID)
 }
 
 inline i32
-GetOnScreenID(display_column *DisplayColumn, displayable_id DisplayableID)
+GetSlotID(display_column *DisplayColumn, displayable_id DisplayableID)
 {
     i32 Result = -1;
     
     For(DisplayColumn->Count)
     {
-        if(DisplayColumn->OnScreenIDs[It] == DisplayableID)
+        if(DisplayColumn->SlotIDs[It] == DisplayableID)
         {
             Result = It;
             break;
@@ -311,7 +311,7 @@ GetOnScreenID(display_column *DisplayColumn, displayable_id DisplayableID)
 }
 
 internal i32
-GetOnScreenID(game_state *GS, column_type Type, displayable_id DisplayableID)
+GetSlotID(game_state *GS, column_type Type, displayable_id DisplayableID)
 {
     i32 Result = -1;
     
@@ -343,7 +343,7 @@ GetOnScreenID(game_state *GS, column_type Type, displayable_id DisplayableID)
     
     For(DisplayColumn->Count)
     {
-        if(DisplayColumn->OnScreenIDs[It] == DisplayableID)
+        if(DisplayColumn->SlotIDs[It] == DisplayableID)
         {
             Result = It;
             break;
@@ -647,10 +647,10 @@ GetFileID(music_info *MusicInfo, displayable_id DisplayableID)
 }
 
 inline displayable_id
-GetDisplayableID(music_info *MusicInfo, u32 OnScreenID, playlist_id *PlaylistID)
+GetDisplayableID(music_info *MusicInfo, u32 SlotID, playlist_id *PlaylistID)
 {
     displayable_id DisplayableID = NewDisplayableID(-1);
-    playlist_id ID = Get(&MusicInfo->Playlist_->Song.Displayable, MusicInfo->DisplayInfo.Song.Base.OnScreenIDs[OnScreenID]);
+    playlist_id ID = Get(&MusicInfo->Playlist_->Song.Displayable, MusicInfo->DisplayInfo.Song.Base.SlotIDs[SlotID]);
     StackFind(&MusicInfo->Playlist_->Song.Displayable, ID, &DisplayableID.ID);
     
     if(PlaylistID) *PlaylistID = ID;
@@ -1713,7 +1713,7 @@ SetSelectionArray(display_column *DisplayColumn, playlist_column *PlaylistColumn
         // If shift is pressed, we do the standard thing of selecting every slot inbetween the new selected and the 
         // previous selected.
         
-        displayable_id NewSelectedDisplayableID = DisplayColumn->OnScreenIDs[ColumnDisplayID];
+        displayable_id NewSelectedDisplayableID = DisplayColumn->SlotIDs[ColumnDisplayID];
         displayable_id LastSelectedDisplayableID;
         // If nothing was selected previously, just use the same ID for both and just select the one.
         if(PlaylistColumn->Selected.A.Count > 0)
@@ -1768,8 +1768,8 @@ UpdateSelectionArray(playlist_column *PlaylistColumn, display_column *DisplayCol
         It < DisplayColumn->Count;
         ++It)
     {
-        if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP) && 
-           IsInRect(DisplayColumn->BGRects[It], MouseBtnDownLocation))
+        if(IsInRect(DisplayColumn->SlotBGs[It], GlobalGameState.Input.MouseP) && 
+           IsInRect(DisplayColumn->SlotBGs[It], MouseBtnDownLocation))
         {
             Result = DisplayColumn->Type;
             DisplayColumn->LastClickSlotID = It;
@@ -1796,7 +1796,7 @@ SelectAllOrNothing(display_column *DisplayColumn, playlist_column *PlaylistColum
         It < DisplayColumn->Count;
         ++It)
     {
-        if(IsInRect(DisplayColumn->BGRects[It], GlobalGameState.Input.MouseP))
+        if(IsInRect(DisplayColumn->SlotBGs[It], GlobalGameState.Input.MouseP))
         {
             if((i32)It == DisplayColumn->LastClickSlotID) // Clicked on same slot == is a proper double click
             {
@@ -2136,18 +2136,18 @@ UpdateSortingInfoChangedVisuals(renderer *Renderer, music_info *MusicInfo, music
     {
         case columnType_Album:
         {
-            AlbumDisplayID    = DisplayInfo->Album.OnScreenIDs[0];
-            SelectAlbumStart  = GetLocalPosition(DisplayInfo->Album.BGRects[0]).y;
+            AlbumDisplayID    = DisplayInfo->Album.SlotIDs[0];
+            SelectAlbumStart  = GetLocalPosition(DisplayInfo->Album.SlotBGs[0]).y;
         } // #Through
         case columnType_Artist:
         {
-            ArtistDisplayID   = DisplayInfo->Artist.OnScreenIDs[0];
-            SelectArtistStart = GetLocalPosition(DisplayInfo->Artist.BGRects[0]).y; 
+            ArtistDisplayID   = DisplayInfo->Artist.SlotIDs[0];
+            SelectArtistStart = GetLocalPosition(DisplayInfo->Artist.SlotBGs[0]).y; 
         } // #Through
         case columnType_Genre:
         {
-            GenreDisplayID    = DisplayInfo->Genre.OnScreenIDs[0];
-            SelectGenreStart  = GetLocalPosition(DisplayInfo->Genre.BGRects[0]).y;
+            GenreDisplayID    = DisplayInfo->Genre.SlotIDs[0];
+            SelectGenreStart  = GetLocalPosition(DisplayInfo->Genre.SlotBGs[0]).y;
         } break;
     }
     
@@ -2898,7 +2898,7 @@ GetPlaylistID(music_info *MusicInfo, playlist_info *Playlist)
 }
 
 internal i32
-GetOnScreenID(game_state *GS, playlist_info *Playlist)
+GetSlotID(game_state *GS, playlist_info *Playlist)
 {
     i32 Result = -1;
     
@@ -2907,7 +2907,7 @@ GetOnScreenID(game_state *GS, playlist_info *Playlist)
     
     For(DisplayColumn->Count)
     {
-        playlist_id  PlaylistID      = Get(&PlaylistsColumn->Displayable, DisplayColumn->OnScreenIDs[It]);
+        playlist_id  PlaylistID      = Get(&PlaylistsColumn->Displayable, DisplayColumn->SlotIDs[It]);
         playlist_info *CheckPlaylist = GS->MusicInfo.Playlists.List + PlaylistID.ID;
         if(Playlist == CheckPlaylist) 
         {
@@ -2957,10 +2957,10 @@ internal void
 UpdatePlaylistScreenName(game_state *GS, playlist_info *Playlist)
 {
     display_column *DisplayColumn = &GS->MusicInfo.DisplayInfo.Playlists;
-    i32 OnScreenID = GetOnScreenID(GS, Playlist);
+    i32 SlotID = GetSlotID(GS, Playlist);
     i32 PlaylistID = GetPlaylistID(&GS->MusicInfo, Playlist);
     
-    RemoveRenderText(&GS->Renderer, DisplayColumn->Text + OnScreenID);
+    RemoveRenderText(&GS->Renderer, DisplayColumn->SlotText + SlotID);
     NewLocalString(ScreenName, PLAYLIST_MAX_NAME_LENGTH + 10, Playlist->Playlists.Batch.Names[PlaylistID].S);
     i32 Pos = FindLastOccurrenceOfCharInStringCompound(&ScreenName, '(');
     if(Pos >= 0) ScreenName.Pos = Pos+1;
@@ -2972,8 +2972,8 @@ UpdatePlaylistScreenName(game_state *GS, playlist_info *Playlist)
     AppendStringCompoundToCompound(Playlist->Playlists.Batch.Names+PlaylistID, &ScreenName);
     
     RenderText(GS, font_Small, &ScreenName, DisplayColumn->Colors.Text,
-               DisplayColumn->Text+OnScreenID,  DisplayColumn->ZValue-0.01f, DisplayColumn->BGRects[OnScreenID]);
-    Translate(DisplayColumn->Text+OnScreenID, V2(0, 3));
+               DisplayColumn->SlotText+SlotID,  DisplayColumn->ZValue-0.01f, DisplayColumn->SlotBGs[SlotID]);
+    Translate(DisplayColumn->SlotText+SlotID, V2(0, 3));
     ResetColumnText(DisplayColumn, Playlist->Playlists.Displayable.A.Count);
 }
 
@@ -3127,10 +3127,10 @@ RemoveMissingSelected(game_state *GS, playlist_info *Playlist, column_type Type,
         }
         
         // Additionally, for each columnthat changes the Displayable Count, we need to 
-        // update the saved OnScreenIDs.
+        // update the saved SlotIDs.
         display_column *DColumn = GS->MusicInfo.DisplayInfo.Columns[TypeIt];
-        For(DColumn->Count) DColumn->OnScreenIDs[It] = NewDisplayableID(0);
-        SetLocalPositionY(DColumn->BGRects[0], 0.0f);
+        For(DColumn->Count) DColumn->SlotIDs[It] = NewDisplayableID(0);
+        SetLocalPositionY(DColumn->SlotBGs[0], 0.0f);
     }
 }
 
@@ -3299,7 +3299,7 @@ SwitchPlaylistFromDisplayID(display_column *DisplayColumn, u32 ColumnDisplayID)
     InterruptSearch(&GlobalGameState.Renderer, &GlobalGameState.MusicInfo);
     
     playlist_id PlaylistID = Get(&GlobalGameState.MusicInfo.Playlist_->Playlists.Displayable, 
-                                 DisplayColumn->OnScreenIDs[ColumnDisplayID]);
+                                 DisplayColumn->SlotIDs[ColumnDisplayID]);
     SwitchPlaylistFromPlaylistID(DisplayColumn, PlaylistID);
 }
 
@@ -3310,7 +3310,7 @@ SwitchPlaylist(game_state *GS, playlist_info *Playlist)
     
     InterruptSearch(&GS->Renderer, &GS->MusicInfo);
     
-    // MoveDisplayColumn fills the OnScreenIDs array, which is needed for switching visuals...
+    // MoveDisplayColumn fills the SlotIDs array, which is needed for switching visuals...
     MoveDisplayColumn(&GS->Renderer, &GS->MusicInfo, &DisplayInfo->Playlists);
     playlist_id PlaylistID = NewPlaylistID(GetPlaylistID(&GS->MusicInfo, Playlist));
     SwitchSelection(&Playlist->Playlists, PlaylistID);
@@ -3456,15 +3456,15 @@ OnRenamePlaylistClick(void *Data)
     text_field   *TextField = &GS->MusicInfo.DisplayInfo.PlaylistUI.RenameField;
     playlist_info *Playlist = GS->MusicInfo.Playlist_;
     display_column *DColumn = &GS->MusicInfo.DisplayInfo.Playlists;
-    i32          OnScreenID = GetOnScreenID(GS, Playlist);
+    i32          SlotID = GetSlotID(GS, Playlist);
     
     b32 ActivateTextfield = !TextField->IsActive;
     SetActive(TextField, ActivateTextfield);
-    // SetActive(DColumn->Text+OnScreenID, !ActivateTextfield); // Actually nice to hover and see original name.
+    // SetActive(DColumn->Text+SlotID, !ActivateTextfield); // Actually nice to hover and see original name.
     
     if(ActivateTextfield)
     {
-        SetParent(TextField, DColumn->BGRects[OnScreenID]);
+        SetParent(TextField, DColumn->SlotBGs[SlotID]);
         SetSize(TextField->Background, V2(DColumn->SlotWidth, GetSize(TextField->Background).y));
         SetLocalPosition(TextField->LeftAlign, V2(DColumn->SlotWidth*-0.5f, 0));
         ResetStringCompound(TextField->TextString);

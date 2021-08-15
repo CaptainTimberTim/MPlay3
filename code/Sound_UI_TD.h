@@ -91,13 +91,14 @@ struct display_column
     r32 SlotWidth;
     r32 ColumnHeight;
     u32 Count;
-    displayable_id OnScreenIDs [MAX_DISPLAY_COUNT];
-    render_text Text    [MAX_DISPLAY_COUNT];
-    entry_id *BGRects   [MAX_DISPLAY_COUNT];
+    displayable_id SlotIDs[MAX_DISPLAY_COUNT];
+    render_text   SlotText[MAX_DISPLAY_COUNT];
+    entry_id      *SlotBGs[MAX_DISPLAY_COUNT];
     entry_id *Background;
     r32 TextX;
     r32 DisplayCursor; // Y position in the total displayables
-    entry_id *BGRectAnchor; // Is only moved on resize, to be at the exact pos for the first BGRect.
+    entry_id *SlotBGAnchor; // Is only moved on resize, to be at the exact pos for the first BGRect.
+    u32 SlotBGAnchorScreenID; // Id for MoveWithScreen stuff.
     r32 ZValue;
     
     column_colors Colors;
@@ -124,7 +125,7 @@ struct song_play_btn
     struct game_state *GameState;
 };
 
-struct display_column_song_extension
+struct display_column_song
 {
     display_column Base;
     
@@ -141,10 +142,14 @@ struct display_column_song_extension
     u32 PlayPauseGLID;
     u32 AddGLID;
     
+    b32 IsSmallMode;
+    r32 CachedBtnOffset;
+    r32 CachedRowOffset;
+    
     struct mp3_file_info *FileInfo;
 };
 #define Parent(name) &(name)->Base
-#define ColumnExt(name)  ((display_column_song_extension *)(name))
+#define ColumnExt(name)  ((display_column_song *)(name))
 
 struct playing_song_panel
 {
@@ -341,7 +346,7 @@ struct music_display_info
     display_column Genre;
     display_column Artist;
     display_column Album;
-    display_column_song_extension Song;
+    display_column_song Song;
     display_column *Columns[5]; // Easy acces through column_type.
     
     display_column Playlists;

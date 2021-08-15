@@ -393,3 +393,7 @@
 - Added adjustment of fileIDs and displayIDs, so that they still point to the right song.
 - Fixed setting empty decode data for full song, when decoding failed.
 - Fixed rescan only adding files if the count of previous and new files are different. Which can happen if a file is renamed.
+
+15.08.2021
+- Unified naming convention for slot variables in display column.
+- Added first version of song slot height toggle. Which changes the song slots to half-height and back.

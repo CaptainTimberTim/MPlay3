@@ -397,3 +397,7 @@
 15.08.2021
 - Unified naming convention for slot variables in display column.
 - Added first version of song slot height toggle. Which changes the song slots to half-height and back.
+- Most likely fixed the longstanding bug where it just stops playing at the end of a song.
+
+17.08.2021
+- Fixed not updating the version of playlist save-files and the crash when loading the old version.

@@ -1220,13 +1220,16 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath)
         }
         AdvanceToNewline(&C);
         
+        C += 9; // "Version: "
+        i32 Version = ProcessNextI32InString(C, '\n', L);
+        
+        /*
         NewLocalString(VersionString, 20, "Version: ");
         I32ToString(&VersionString, PLAYLIST_CURRENT_VERSION);
-        if(!CompareStringAndCompound(&VersionString, C, VersionString.Pos)) 
+if(!CompareStringAndCompound(&VersionString, C, VersionString.Pos)) 
         {
             C += 9; // "Version: "
             i32 V = ProcessNextI32InString(C, '\n', L);
-            
             NewLocalString(ErrorMsg, 300, "ERROR:: Playlist file is the wrong Version. Wanted: ");
             I32ToString(&ErrorMsg, PLAYLIST_CURRENT_VERSION);
             AppendStringToCompound(&ErrorMsg, (u8 *)", found: ");
@@ -1236,28 +1239,31 @@ LoadPlaylist(game_state *GS, string_c PlaylistPath)
             DebugLog(255, "%s\n", ErrorMsg.S);
             Result.LoadState = loadPlaylistState_WrongVersion;
             return Result;
-        }
+        }*/
         AdvanceToNewline(&C);
         
         C += 6; // "Name: "
-        u32 HardLimit = PLAYLIST_MAX_NAME_LENGTH + 10;  // @HardLimit, Limit to 100 chars for now.
+        u32 HardLimit  = PLAYLIST_MAX_NAME_LENGTH + 10;  // @HardLimit, Limit to 100 chars for now.
         u32 NameLength = CountToNewline(C);
-        Result.Name  = NewStringCompound(&GS->ScratchArena, HardLimit);
+        Result.Name    = NewStringCompound(&GS->ScratchArena, HardLimit);
         CopyStringToCompound(&Result.Name, C, 0u, Min(NameLength, HardLimit));
         AdvanceToNewline(&C);
         
         C += 7; // "Count: "
-        u32 SongCount      = ProcessNextI32InString(C, '\n', L);
+        u32 SongCount    = ProcessNextI32InString(C, '\n', L);
         Result.FileIDs.A = CreateArray(&GS->ScratchArena, FileInfo->Count_);
         AdvanceToNewline(&C);
         
-        C += 10; // "Shuffled: "
-        Result.Shuffled = ProcessNextB32InString(C);
-        AdvanceToNewline(&C);
-        
-        C += 9; // "Looping: "
-        Result.Looping = ProcessNextB32InString(C);
-        AdvanceToNewline(&C);
+        if(Version > 0) // TODO:: Can be removed at some point. Is only for backwards comp.
+        {
+            C += 10; // "Shuffled: "
+            Result.Shuffled = ProcessNextB32InString(C);
+            AdvanceToNewline(&C);
+            
+            C += 9; // "Looping: "
+            Result.Looping = ProcessNextB32InString(C);
+            AdvanceToNewline(&C);
+        }
         
         NewEmptyLocalString(CurrentSubPath, 260); 
         NewEmptyLocalString(Filename, 260); 
@@ -1414,16 +1420,34 @@ SaveShuffledState(game_state *GS, playlist_info *Playlist)
     Assert(Playlist->Filename_.Pos > 0);
     if(ReadBeginningOfFile(&GS->ScratchArena, &FileData, Playlist->Filename_.S, PLAYLIST_MAX_NAME_LENGTH + 80))
     {
-        string_c Shuffle = NewStaticStringCompound("Shuffled: ");
-        i32 ShufflePos = Find(FileData.Data, Shuffle);
-        if(ShufflePos >= 0)
+        u8 *S = FileData.Data;
+        string_c FileID = NewStaticStringCompound("MPlay3Playlist");
+        if(!CompareStringAndCompound(&FileID, S, FileID.Pos))
         {
-            NewEmptyLocalString(PLShuffle, 2);
-            I32ToString(&PLShuffle, Playlist->IsShuffled);
-            if(!WriteToFile(&GS->ScratchArena, Playlist->Filename_.S, 1, PLShuffle.S, ShufflePos))
+            // TODO:: Log error to user.
+            DebugLog(250, "Error:: Playlist file was malformed! Expected '%s' at the beginning.\n", FileID.S);
+            return;
+        }
+        AdvanceToNewline(&S);
+        NewLocalString(Version, 15, "Version: ");
+        I32ToString(&Version, PLAYLIST_CURRENT_VERSION);
+        if(CompareStringAndCompound(&Version, S))
+        {
+            string_c Shuffle = NewStaticStringCompound("Shuffled: ");
+            i32 ShufflePos = Find(FileData.Data, Shuffle);
+            if(ShufflePos >= 0)
             {
-                DebugLog(250, "Could not save shuffle for playlist %s.", Playlist->Filename_.S);
+                NewEmptyLocalString(PLShuffle, 2);
+                I32ToString(&PLShuffle, Playlist->IsShuffled);
+                if(!WriteToFile(&GS->ScratchArena, Playlist->Filename_.S, 1, PLShuffle.S, ShufflePos))
+                {
+                    DebugLog(250, "Could not save shuffle for playlist %s.", Playlist->Filename_.S);
+                }
             }
+        }
+        else
+        {
+            SavePlaylist(GS, Playlist);
         }
     }
 }
@@ -1435,16 +1459,34 @@ SaveLoopingState(game_state *GS, playlist_info *Playlist)
     Assert(Playlist->Filename_.Pos > 0);
     if(ReadBeginningOfFile(&GS->ScratchArena, &FileData, Playlist->Filename_.S, PLAYLIST_MAX_NAME_LENGTH + 80))
     {
-        string_c Looping = NewStaticStringCompound("Looping: ");
-        i32 LoopingPos = Find(FileData.Data, Looping);
-        if(LoopingPos >= 0)
+        u8 *S = FileData.Data;
+        string_c FileID = NewStaticStringCompound("MPlay3Playlist");
+        if(!CompareStringAndCompound(&FileID, S, FileID.Pos))
         {
-            NewEmptyLocalString(PLLooping, 2);
-            I32ToString(&PLLooping, Playlist->Looping == playLoop_Loop);
-            if(!WriteToFile(&GS->ScratchArena, Playlist->Filename_.S, 1, PLLooping.S, LoopingPos))
+            // TODO:: Log error to user.
+            DebugLog(250, "Error:: Playlist file was malformed! Expected '%s' at the beginning.\n", FileID.S);
+            return;
+        }
+        AdvanceToNewline(&S);
+        NewLocalString(Version, 15, "Version: ");
+        I32ToString(&Version, PLAYLIST_CURRENT_VERSION);
+        if(CompareStringAndCompound(&Version, S))
+        {
+            string_c Looping = NewStaticStringCompound("Looping: ");
+            i32 LoopingPos = Find(FileData.Data, Looping);
+            if(LoopingPos >= 0)
             {
-                DebugLog(250, "Could not save shuffle for playlist %s.", Playlist->Filename_.S);
+                NewEmptyLocalString(PLLooping, 2);
+                I32ToString(&PLLooping, Playlist->Looping == playLoop_Loop);
+                if(!WriteToFile(&GS->ScratchArena, Playlist->Filename_.S, 1, PLLooping.S, LoopingPos))
+                {
+                    DebugLog(250, "Could not save shuffle for playlist %s.", Playlist->Filename_.S);
+                }
             }
+        }
+        else
+        {
+            SavePlaylist(GS, Playlist);
         }
     }
 }

@@ -60,6 +60,14 @@
 //     - Add drag&drop for sorting playlist slots?
 //     - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
 // - Add unregister hotkey and add mute only on ctrl press, or something similar.
+// - Font Resizing
+//     - Font settings window, where the three size types are adjustable individually.
+//          - Add textfield for adding custom font, that is still only possible through setting file rn.
+//     - SlotHeights need to resize with the font.
+//     - Maybe split font into more sizes/separate sizes for slots and song slots -> that you could just adjust those, without
+//       changing all other text in the app.
+//          - Maybe not, and have the bottom panel scale up with the font size.
+//          - Then you would maybe need one smaller version of the buttons in the panel, so that the panel can get smaller.
 
 // BUGS::
 // - color picker pops into original center. should at least be current center.
@@ -72,9 +80,7 @@
 // - Fix stutter on first play of song.
 // - Currently playing song is before music path background.
 // - If we have an album selected->then search genre and select it->then album is empty
-// - Crash when renaming color palette.
 // - Switching audio sources freezes playing of music entirely. On play 1 sec gets advanced...
-// - Still sometimes stops playing randomly...
 
 #include "Sound_UI_TD.h"
 

@@ -209,6 +209,13 @@ UpdateGLTexture(loaded_bitmap Bitmap, GLuint TexID)
 }
 
 inline void
+DeleteGLTexture(u32 GLID)
+{
+    GLID -= 1;
+    glDeleteTextures(1, &GLID);
+}
+
+inline void
 ConvertToGLSpace(renderer *Renderer, render_entry *Entry, v3 *Result)
 {
     v2 CurD = V2(Renderer->Window.CurrentDim.Dim);
@@ -222,20 +229,6 @@ ConvertToGLSpace(renderer *Renderer, render_entry *Entry, v3 *Result)
         Result[It].y = Result[It].y/CurD.y;
         Result[It].y = (Result[It].y*2) - 1;
     }
-}
-
-inline b32
-Render(render_entry *Entry)
-{
-    b32 Result = Entry->Render;
-    
-    while(Entry->Parent && Result)
-    {
-        Entry = Entry->Parent->ID;
-        Result = Entry->Render;
-    }
-    
-    return Result;
 }
 
 internal void

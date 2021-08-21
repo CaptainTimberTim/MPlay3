@@ -60,7 +60,6 @@ struct render_entry
     // render type specific stuff
     u32 TexID;
     struct render_text *Text; // NOTE:: Having the text not in the list is propably not the best for the cache...
-    u32 TextCodepoint; // TEMP:: Only for debugging. This is render_text specific
     
     // TODO:: Cache the GLSpace data and us it in (isIn.. functions)
 };
@@ -70,10 +69,13 @@ struct render_text
 {
     v2 CurrentP;
     entry_id *Base; // StartP is the position of base parent
-    render_entry *RenderEntries;
+    render_entry *RenderEntries; // These are not in the render list, only the base entry is.
     u32 Count;
     u32 MaxCount;
     v2 Extends; // TODO:: Width might not be correct!
+    
+    string_c Text;
+    enum font_size_id FontSize;
 };
 
 enum axis

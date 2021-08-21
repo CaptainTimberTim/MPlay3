@@ -1,4 +1,5 @@
 #include "Font_TD.h"
+inline b32 GetDefaultFontDir(arena_allocator *Arena, string_c *Path);
 
 inline font_atlas
 NewFontAtlas(settings *Settings, font_sizes FontSizes)
@@ -23,6 +24,153 @@ GetUsedFontData(game_state *GameState)
     }
     
     return Result;
+}
+
+internal font_atlas
+InitializeFont(game_state *GS)
+{
+    GetDefaultFontDir(&GS->FixArena, &GS->FontPath);
+    font_sizes FontSizes = {{
+            {font_Small,  GS->Layout.FontSizeSmall}, 
+            {font_Medium, GS->Layout.FontSizeMedium}, 
+            {font_Big,    GS->Layout.FontSizeBig}}, 3
+    };
+    
+    u32 GroupCodepoints[] = {0x00};//, 0x80};
+    font_atlas FontAtlas = NewFontAtlas(&GS->Settings, FontSizes);
+    //FindAndPrintFontNameForEveryUnicodeGroup(&GS->ScratchArena, GS->FontPath);
+    LoadFonts(&GS->FixArena, &GS->ScratchArena, &FontAtlas,
+              (u8 *)GetUsedFontData(GS).Data, {}, GroupCodepoints, ArrayCount(GroupCodepoints));
+    
+    return FontAtlas;
+}
+
+internal void
+CreateAndWriteFontGroupTexture(arena_allocator *FixArena, arena_allocator *ScratchArena, 
+                               font_group *FontGroup, font_sizes FontSizes, u8 *RawFontData)
+{
+    // First allocate the charData we will need.
+    // then try to pack it. If that fails, try packing with a
+    // larger bitmap, until it fits.
+    For(FontSizes.Count)
+    {
+        FontGroup->FontDataForEachSize[It].Size     = FontSizes.Sizes[It].Size;
+        FontGroup->FontDataForEachSize[It].CharData = AllocateArray(FixArena, FontGroup->CodepointRange.Count, 
+                                                                    stbtt_packedchar);
+    }
+    
+    r32 SizeMultiplier = 2.5f;
+    loaded_bitmap Bitmap = {};
+    while(true)
+    {
+        u32 TotalArea = 0;
+        For(FontSizes.Count, Size)
+        {
+            // Summing all areas of each codepoint we want to load. 
+            // For this we assume that the codepoint is a square,
+            // which seems to work. The only exception is for very
+            // few codepoints (like 1) or some special glyphs like 
+            // emoticons, thats why we multiply by 2.5. 
+            // TODO:: Think of something better that *2.5?
+            TotalArea += Square((i32)(FontSizes.Sizes[SizeIt].Size*SizeMultiplier))*(FontGroup->CodepointRange.Count);
+        }
+        u32 Width  = (u32)Sqrt(TotalArea); // First calc the side for square with correct total area,
+        Width      = (Width/8)*8;          // then fit the width to a properly byte aligned length.
+        u32 Height = TotalArea/Width;      // Finally, calc the length of the height.
+        //DebugLog(250, "The claculated bitmap area for is %i, the sides are %i/%i\n", TotalArea, Width, Height);
+        
+        FontGroup->BitmapWidth  = Width;
+        FontGroup->BitmapHeight = Height;
+        
+        u8 *AlphaMap = AllocateMemory(ScratchArena, Width*Height);
+        Bitmap = {true, Width, Height, (u32 *)AlphaMap, colorFormat_Alpha, Width};
+        
+        stbtt_pack_context PackContext;
+        stbtt_PackBegin(&PackContext, AlphaMap, Width, Height, 0, 1, NULL);
+        
+        i32 PackResult = 0;
+        For(FontSizes.Count)
+        {
+            stbtt_PackSetOversampling(&PackContext, 3, 1);
+            PackResult = stbtt_PackFontRange(&PackContext, RawFontData, 0, FontSizes.Sizes[It].Size, 
+                                             FontGroup->CodepointRange.First, FontGroup->CodepointRange.Count, FontGroup->FontDataForEachSize[It].CharData);
+            if(PackResult == 0) break; // Most likely the given bitmap is too small.
+        }
+        stbtt_PackEnd(&PackContext);
+        if(PackResult == 0) 
+        {
+            FreeMemory(ScratchArena, AlphaMap);
+            SizeMultiplier += 0.5f;
+        }
+        else break; // If we have a PackResult, everything worked out and we can stop.
+    }
+    
+    FontGroup->GLID = CreateGLTexture(Bitmap, true); // After stbtt_PackEnd as it is written before that.
+    FreeMemory(ScratchArena, Bitmap.Pixels);
+}
+
+internal void
+ChangeFontSizes(game_state *GS, font_sizes NewSizes)
+{
+    font_atlas *Atlas = &GS->Renderer.FontAtlas;
+    
+    // First change the existing font groups and their data.
+    Atlas->FontSizes = NewSizes;
+    For(Atlas->Count, Group)
+    {
+        font_group *FontGroup = Atlas->FontGroups + GroupIt;
+        
+        DeleteGLTexture(FontGroup->GLID);
+        For(ArrayCount(FontGroup->FontDataForEachSize))
+        {
+            FreeMemory(&GS->FixArena, FontGroup->FontDataForEachSize[It].CharData);
+            FontGroup->FontDataForEachSize[It].CharData = NULL;
+        }
+        
+        read_file_result Font = {};
+        b32 FontLoaded = false;
+        if(FontGroup->UsedFontPath.Pos == 0) Font = GetUsedFontData(GS);
+        else
+        {
+            if(!ReadEntireFile(&GS->ScratchArena, &Font, FontGroup->UsedFontPath.S))
+            {
+                // TODO:: What should happen if previously used font is not accessible anymore?
+                Assert(false);
+            }
+            FontLoaded = true;
+        }
+        CreateAndWriteFontGroupTexture(&GS->FixArena, &GS->ScratchArena, FontGroup, NewSizes, Font.Data);
+        
+        if(FontLoaded) FreeFileMemory(&GS->ScratchArena, Font);
+    }
+    
+    
+    // Secondly, recreate all existing render entries of type renderType_Text
+    render_entry_list *RenderList = &GS->Renderer.RenderEntryList;
+    
+    u32 EntryCount = RenderList->EntryCount;
+    For(EntryCount, Entry)
+    {
+        render_entry *RenderEntry = RenderList->Entries + EntryIt;
+        if(RenderEntry->Type == renderType_Text && RenderEntry->Vertice[0].z > -2.0f)
+        {
+            render_text *TextEntry = RenderEntry->Text;
+            
+            string_c FontText = NewStringCompound(&GS->ScratchArena, TextEntry->Text.Pos);
+            CopyIntoCompound(&FontText, &TextEntry->Text);
+            
+            font_size_id FontSize = TextEntry->FontSize;
+            r32 Depth             = RenderEntry->Vertice[0].z;
+            v3 *Color             = TextEntry->RenderEntries[0].Color;
+            entry_id *Parent      = RenderEntry->Parent;
+            v2 StartP             = GetLocalPosition(RenderEntry->ID);
+            b32 Rendering         = RenderEntry->Render;
+            
+            RemoveRenderText(&GS->Renderer, TextEntry);
+            RenderText(GS, FontSize, &FontText, Color, TextEntry, Depth, Parent, StartP);
+            SetActive(TextEntry, Rendering);
+        }
+    }
 }
 
 internal unicode_group *
@@ -57,7 +205,7 @@ ExpandFontGroupArrayIfNeeded(arena_allocator *Arena, font_atlas *Atlas)
 }
 
 internal void
-LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, u8 *RawFontData, u32 *CodepointsFromGroup, u32 CodepointCount)
+LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, u8 *RawFontData, string_c FontPath, u32 *CodepointsFromGroup, u32 CodepointCount)
 {
     For(CodepointCount, Point)
     {
@@ -99,47 +247,9 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         }
         else NewFontGroup->CodepointRange = Group->CodepointRange;
         
-        u32 TotalArea = 0;
-        For(Atlas->FontSizes.Count, Size)
-        {
-            // Summing all areas of each codepoint we want to load. 
-            // For this we assume that the codepoint is a square,
-            // which seems to work. The only exception is for very
-            // few codepoints (like 1) or some special glyphs like 
-            // emoticons, thats why we multiply by 2.5. 
-            // TODO:: Think of something better that *2.5?
-            TotalArea += Square((i32)(Atlas->FontSizes.Sizes[SizeIt].Size*2.5f))*(NewFontGroup->CodepointRange.Count);
-        }
-        u32 Width  = (u32)Sqrt(TotalArea); // First calc the side for square with correct total area,
-        Width      = (Width/8)*8;          // then fit the width to a properly byte aligned length.
-        u32 Height = TotalArea/Width;      // Finally, calc the length of the height.
-        NewFontGroup->BitmapWidth  = Width;
-        NewFontGroup->BitmapHeight = Height;
-        //DebugLog(250, "The claculated bitmap area for is %i, the sides are %i/%i\n", TotalArea, Width, Height);
-        
-        u8 *AlphaMap         = AllocateMemory(ScratchArena, Width*Height);
-        loaded_bitmap Bitmap = {true, Width, Height, (u32 *)AlphaMap, colorFormat_Alpha, Width};
-        
-        stbtt_pack_context PackContext;
-        stbtt_PackBegin(&PackContext, AlphaMap, Width, Height, 0, 1, NULL);
-        
-        NewFontGroup->FontSizes = AllocateArray(FixArena, Atlas->FontSizes.Count, font_data);
-        NewFontGroup->Count     = Atlas->FontSizes.Count;
-        For(Atlas->FontSizes.Count)
-        {
-            NewFontGroup->FontSizes[It].Size     = Atlas->FontSizes.Sizes[It].Size;
-            NewFontGroup->FontSizes[It].CharData = AllocateArray(FixArena, NewFontGroup->CodepointRange.Count, 
-                                                                 stbtt_packedchar);
-            
-            stbtt_PackSetOversampling(&PackContext, 3, 1);
-            i32 R=stbtt_PackFontRange(&PackContext, RawFontData, 0, Atlas->FontSizes.Sizes[It].Size, NewFontGroup->CodepointRange.First, NewFontGroup->CodepointRange.Count, NewFontGroup->FontSizes[It].CharData);
-            Assert(R != 0); // Most likely the given bitmap is too small.
-        }
-        stbtt_PackEnd(&PackContext);
-        
-        NewFontGroup->GLID = CreateGLTexture(Bitmap, true);
-        
-        FreeMemory(ScratchArena, AlphaMap);
+        NewFontGroup->UsedFontPath = NewStringCompound(FixArena, 260);
+        CopyIntoCompound(&NewFontGroup->UsedFontPath, &FontPath);
+        CreateAndWriteFontGroupTexture(FixArena, ScratchArena, NewFontGroup, Atlas->FontSizes, RawFontData);
     }
 }
 
@@ -179,7 +289,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
     read_file_result DefaultFont = GetUsedFontData(GS);
     if(IsCodepointInFont(DefaultFont.Data, Codepoint))
     {
-        LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, DefaultFont.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
+        LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, DefaultFont.Data, {}, GroupCodepoints, ArrayCount(GroupCodepoints));
         Result = true;
     }
     else if(Group->BackupFont.Pos > 0)
@@ -193,26 +303,27 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
         {
             if(IsCodepointInFont(Font.Data, Codepoint))
             {
-                LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
+                LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, FontPath, 
+                          GroupCodepoints, ArrayCount(GroupCodepoints));
                 Result = true;
             }
             FreeFileMemory(&GS->ScratchArena, Font);
         }
     }
-    if(!Result && Atlas->UsedFontNames->Count > 0)
+    if(!Result && Atlas->CachedFontNames->Count > 0)
     {
-        For(Atlas->UsedFontNames->Count)
+        For(Atlas->CachedFontNames->Count)
         {
             NewEmptyLocalString(FontPath, 260);
             NewLocalString(Slash, 2, "\\");
-            ConcatStringCompounds(4, &FontPath, &GS->FontPath, &Slash, Atlas->UsedFontNames->Names+It);
+            ConcatStringCompounds(4, &FontPath, &GS->FontPath, &Slash, Atlas->CachedFontNames->Names+It);
             
             read_file_result Font = {};
             if(ReadEntireFile(&GS->ScratchArena, &Font, FontPath.S))
             {
                 if(IsCodepointInFont(Font.Data, Codepoint))
                 {
-                    LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
+                    LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, FontPath, GroupCodepoints, ArrayCount(GroupCodepoints));
                     Result = true;
                 }
                 FreeFileMemory(&GS->ScratchArena, Font);
@@ -227,21 +338,22 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
     {
         DebugLog(50, "Search far and wide for %i\n", Codepoint);
         raw_font RawFont = {Codepoint, &GS->FontPath, /*Will be filled in procedure*/};
-        if(FindAndLoadFontWithUnicodeCodepoint(&GS->ScratchArena, &RawFont))
+        NewEmptyLocalString(UsedFontPath, 260);
+        if(FindAndLoadFontWithUnicodeCodepoint(&GS->ScratchArena, &RawFont, &UsedFontPath))
         {
-            LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, RawFont.Data.Data, 
+            LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, RawFont.Data.Data, UsedFontPath,
                       GroupCodepoints, ArrayCount(GroupCodepoints));
             
-            if(Atlas->UsedFontNames->Count >= Atlas->UsedFontNames->MaxCount)
+            if(Atlas->CachedFontNames->Count >= Atlas->CachedFontNames->MaxCount)
             {
-                Atlas->UsedFontNames->MaxCount += 10;
-                Atlas->UsedFontNames->Names = ReallocateArray(&GS->FixArena, Atlas->UsedFontNames->Names, 
-                                                              Atlas->UsedFontNames->Count,
-                                                              Atlas->UsedFontNames->MaxCount, string_c);
+                Atlas->CachedFontNames->MaxCount += 10;
+                Atlas->CachedFontNames->Names = ReallocateArray(&GS->FixArena, Atlas->CachedFontNames->Names, 
+                                                                Atlas->CachedFontNames->Count,
+                                                                Atlas->CachedFontNames->MaxCount, string_c);
             }
-            Atlas->UsedFontNames->Names[Atlas->UsedFontNames->Count] = NewStringCompound(&GS->FixArena, RawFont.Name.Pos);
-            AppendStringCompoundToCompound(Atlas->UsedFontNames->Names+Atlas->UsedFontNames->Count, &RawFont.Name);
-            ++Atlas->UsedFontNames->Count;
+            Atlas->CachedFontNames->Names[Atlas->CachedFontNames->Count] = NewStringCompound(&GS->FixArena, RawFont.Name.Pos);
+            AppendStringCompoundToCompound(Atlas->CachedFontNames->Names+Atlas->CachedFontNames->Count, &RawFont.Name);
+            ++Atlas->CachedFontNames->Count;
             
             Result = true;
         }
@@ -324,22 +436,27 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     {
         ResultText->MaxCount         = Max(CHARACTERS_PER_TEXT_INFO, Text->Pos+1);
         ResultText->RenderEntries    = AllocateArray(&GS->FixArena, ResultText->MaxCount, render_entry);
+        ResultText->Text             = NewStringCompound(&GS->FixArena, ResultText->MaxCount);
     }
     else if (ResultText->MaxCount < Text->Pos)
     {
+        DeleteStringCompound(&GS->FixArena, &ResultText->Text);
         ResultText->RenderEntries = ReallocateArray(&GS->FixArena, ResultText->RenderEntries, ResultText->MaxCount, 
                                                     Text->Pos, render_entry);
-        ResultText->MaxCount = Text->Pos;
+        ResultText->MaxCount      = Text->Pos;
+        ResultText->Text          = NewStringCompound(&GS->FixArena, ResultText->MaxCount);
     }
     Assert(Text->Pos < ResultText->MaxCount); 
     
+    CopyIntoCompound(&ResultText->Text, Text);
+    ResultText->FontSize = FontSize;
     
     renderer *Renderer = &GS->Renderer;
     font_atlas *Atlas = &Renderer->FontAtlas;
     
     ResultText->Count = 0;
     if(Parent) StartP += GetPosition(Parent);
-    ResultText->CurrentP = {};//StartP;
+    ResultText->CurrentP = {};
     r32 DepthOffset = ZValue;
     
     ResultText->Base = CreateRenderBitmap(Renderer, V2(0), DepthOffset, Parent, 0); // GLID can be 0, never used!
@@ -355,7 +472,7 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     
     v2 TP = StartP;
     stbtt_aligned_quad TestQ;
-    stbtt_GetPackedQuad(FontGroup->FontSizes[FontSize].CharData, FontGroup->BitmapWidth, FontGroup->BitmapHeight, 0, &TP.x, &TP.y, &TestQ, 0);
+    stbtt_GetPackedQuad(FontGroup->FontDataForEachSize[FontSize].CharData, FontGroup->BitmapWidth, FontGroup->BitmapHeight, 0, &TP.x, &TP.y, &TestQ, 0);
     r32 NewBaseline = TestQ.y0;
     r32 OldBaseline = TestQ.y1;
     
@@ -392,7 +509,7 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
         u32 CharDataID = NextChar - FontGroupStart; // Map codepoint into array range.
         
         stbtt_aligned_quad A;
-        stbtt_GetPackedQuad(FontGroup->FontSizes[FontSize].CharData, FontGroup->BitmapWidth, FontGroup->BitmapHeight, 
+        stbtt_GetPackedQuad(FontGroup->FontDataForEachSize[FontSize].CharData, FontGroup->BitmapWidth, FontGroup->BitmapHeight, 
                             CharDataID, &ResultText->CurrentP.x, &ResultText->CurrentP.y, &A, 0);
         
         rect Rect = {{A.x0, A.y0}, {A.x1, A.y1}};
@@ -403,7 +520,6 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
         entry_id EntryID = {Entry};
         // Also adding user controlled height offset
         SetLocalPosition(&EntryID, GetCenter(Rect) - V2(0, (r32)Atlas->HeightOffset*(FontSize+1)));
-        Entry->TextCodepoint = NextChar;
         
         r32 DistToBaseline = GetRect(&EntryID).Max.y - OldBaseline;
         r32 BaselineOffset = GetRect(&EntryID).Min.y - NewBaseline;
@@ -551,7 +667,7 @@ GetUTF8Decimal(u8 *S, u32 *Utf8Value)
 }
 
 internal b32
-FindAndLoadFontWithUnicodeCodepoint(arena_allocator *ScratchArena, raw_font *SearchFont)
+FindAndLoadFontWithUnicodeCodepoint(arena_allocator *ScratchArena, raw_font *SearchFont, string_c *FoundFontPath_out)
 {
     string_c FolderPathStar = NewStringCompound(ScratchArena, 255);
     AppendStringCompoundToCompound(&FolderPathStar, SearchFont->FolderPath);
@@ -559,6 +675,10 @@ FindAndLoadFontWithUnicodeCodepoint(arena_allocator *ScratchArena, raw_font *Sea
     
     string_w WideFolderPath = {};
     ConvertString8To16(ScratchArena, &FolderPathStar, &WideFolderPath);
+    
+    FoundFontPath_out->S = NULL;
+    FoundFontPath_out->Length = 0;
+    FoundFontPath_out->Pos = 0;
     
     WIN32_FIND_DATAW FileData = {};
     HANDLE FileHandle = FindFirstFileExW(WideFolderPath.S, 
@@ -610,6 +730,7 @@ FindAndLoadFontWithUnicodeCodepoint(arena_allocator *ScratchArena, raw_font *Sea
                                 AppendStringCompoundToCompound(&SearchFont->Name, &FileName);
                                 
                                 SearchFont->Data = FontData;
+                                CopyIntoCompound(FoundFontPath_out, &FontPath);
                             }
                             else
                             {

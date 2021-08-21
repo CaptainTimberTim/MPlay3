@@ -37,9 +37,9 @@ typedef double r64;
 // NOTE:: Meta-Macro, converts a macro back to a 'one-line' statement, which requires a semicolon at the end.
 #define ToStatement(E) do{E}while(0)
 
-#ifndef __CD // Combine both params to a single name
+#ifndef _Combine // Combine both params to a single name
 #define __CD2(X, Y) X##Y
-#define __CD(X, Y) __CD2(X, Y)
+#define _Combine(X, Y) __CD2(X, Y)
 #endif
 
 // NOTE:: General macro for removing an entry/item from an arbitrary array. Moving all following items one up.
@@ -60,11 +60,11 @@ inline i32 LastOccurrenceOfCharacterInString(u8 CharToFind, u8 *String, u8 Delim
 #define DEBUG_LOG_INFO
 #ifdef DEBUG_LOG_INFO
 #define DebugLog(Count, Text, ...) { \
-char B[Count]; \
-sprintf_s(B, Text, __VA_ARGS__);\
-char C##__LINE__[Count+260]; \
-sprintf_s(C##__LINE__, "%s(%i): %s", __FILENAME__, __LINE__, B);\
-OutputDebugStringA(C##__LINE__); \
+char _LogMemory1[Count]; \
+sprintf_s(_LogMemory1, Text, __VA_ARGS__);\
+char _LogMemory2[Count+260]; \
+sprintf_s(_LogMemory2, "%s(%i): %s", __FILENAME__, __LINE__, _LogMemory1);\
+OutputDebugStringA(_LogMemory2); \
 }
 #else
 #define DebugLog(Count, Text, ...) { \

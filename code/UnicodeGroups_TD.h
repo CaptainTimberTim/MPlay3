@@ -26,7 +26,6 @@ global_variable unicode_group_list UnicodeGroupList;
 internal void
 PrepareUnicodeGroupList()
 {
-#define NewSSC NewStaticStringCompound
     const unicode_group UnicodeGroups[] = {
         /*Name,                                                    First, Last, Length,       Font  */
         { {(u8 *)"Basic Latin", 11, 11},                           {0x0, 0x7F, 128},          {(u8 *)"Segoesc.ttf", 11, 11} },
@@ -239,7 +238,6 @@ PrepareUnicodeGroupList()
         { {(u8 *)"Supplementary Private Use Area-A", 32, 32},      {0xF0000, 0xFFFFD, 65534}, {(u8 *)"", 0, 0} },
         { {(u8 *)"Supplementary Private Use Area-B", 32, 32},      {0x100000, 0x10FFFD, 65534}, {(u8 *)"", 0, 0} },
     };
-#undef NewSSC
     
     For(ArrayCount(UnicodeGroups))
     {

@@ -401,3 +401,9 @@
 
 17.08.2021
 - Fixed not updating the version of playlist save-files and the crash when loading the old version.
+
+21.08.2021
+- Added the possibillity to change font sizes.
+    - All old font data gets deleted as well as the glTextures
+    - New font atlas' get generated.
+    - All currently drawn render_text's get recreated with new sizes.

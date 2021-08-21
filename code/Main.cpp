@@ -646,19 +646,7 @@ WinMain(HINSTANCE Instance,
             // ********************************************
             // FONT stuff *********************************
             // ********************************************
-            GetDefaultFontDir(&GameState->FixArena, &GameState->FontPath);
-            font_sizes FontSizes = {{
-                    {font_Small,  Layout->FontSizeSmall}, 
-                    {font_Medium, Layout->FontSizeMedium}, 
-                    {font_Big,    Layout->FontSizeBig}}, 3
-            };
-            
-            u32 GroupCodepoints[] = {0x00};//, 0x80};
-            Renderer->FontAtlas = NewFontAtlas(&GameState->Settings, FontSizes);
-            //FindAndPrintFontNameForEveryUnicodeGroup(&GameState->ScratchArena, GameState->FontPath);
-            LoadFonts(&GameState->FixArena, &GameState->ScratchArena, &Renderer->FontAtlas,
-                      (u8 *)GetUsedFontData(GameState).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
-            
+            Renderer->FontAtlas = InitializeFont(GameState);
             
             /*
 GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
@@ -813,6 +801,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             //NewLocalString(TestError, 100, "Oh no, I have an error... Ok now I have to type until I reach 105!");
             //PushErrorMessage(GameState, TestError);
             //PushErrorMessage(GameState, {errorCode_EmptyFile, 27});
+            font_sizes FontSizes = {{
+                    {font_Small,  GameState->Layout.FontSizeSmall}, 
+                    {font_Medium, GameState->Layout.FontSizeMedium}, 
+                    {font_Big,    GameState->Layout.FontSizeBig}}, 3
+            };
             
             
             // ********************************************
@@ -929,6 +922,29 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // Input handling ****************************
                 // *******************************************
                 ProcessPendingMessages(Input, Window);
+                
+                
+                if(Input->Pressed[KEY_CONTROL_LEFT] || Input->Pressed[KEY_CONTROL_RIGHT])
+                {
+                    if(Input->Pressed[KEY_UP])
+                    {
+                        FontSizes.Sizes[font_Small].Size  += 1;
+                        FontSizes.Sizes[font_Medium].Size += 1;
+                        FontSizes.Sizes[font_Big].Size    += 1;
+                        ChangeFontSizes(GameState, FontSizes);
+                    }
+                    if(Input->Pressed[KEY_DOWN])
+                    {
+                        if(FontSizes.Sizes[font_Small].Size > 1)
+                        {
+                            FontSizes.Sizes[font_Small].Size  -= 1;
+                            FontSizes.Sizes[font_Medium].Size -= 1;
+                            FontSizes.Sizes[font_Big].Size    -= 1;
+                            ChangeFontSizes(GameState, FontSizes);
+                        }
+                    }
+                }
+                
                 
                 if(Input->KeyChange[KEY_ESCAPE] == KeyDown)
                 {
@@ -1149,15 +1165,18 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                         
                         // Change volume ******
-                        if(Input->Pressed[KEY_UP] || Input->Pressed[KEY_ADD] ||
-                           (Input->Pressed[KEY_PLUS] && DisplayInfo->SearchIsActive < 0)) // Plus only when no search is open
+                        if(!Input->Pressed[KEY_CONTROL_LEFT] && !Input->Pressed[KEY_CONTROL_RIGHT])
                         {
-                            ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume+0.01f);
-                        }
-                        else if(Input->Pressed[KEY_DOWN] || Input->Pressed[KEY_SUBTRACT] || 
-                                (Input->Pressed[KEY_MINUS] && DisplayInfo->SearchIsActive < 0))
-                        {
-                            ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume-0.01f);
+                            if(Input->Pressed[KEY_UP] || Input->Pressed[KEY_ADD] ||
+                               (Input->Pressed[KEY_PLUS] && DisplayInfo->SearchIsActive < 0)) // Plus only when no search is open
+                            {
+                                ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume+0.01f);
+                            }
+                            else if(Input->Pressed[KEY_DOWN] || Input->Pressed[KEY_SUBTRACT] || 
+                                    (Input->Pressed[KEY_MINUS] && DisplayInfo->SearchIsActive < 0))
+                            {
+                                ChangeVolume(GameState, GameState->SoundThreadInterface->ToneVolume-0.01f);
+                            }
                         }
                         
                         // Scrolling ********

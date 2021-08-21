@@ -39,6 +39,7 @@
 //   Another 'small' thing would be to cache more information in CreateMusicSortingInfo for usage in FillDisplayables.
 //     - IDEAS: On FillDisplayable generate more information, like ???
 //     - @FixCreateSortingInfo, is tag for stuff I can look at as well, which is not working properly.
+// - Introduce explicit casting macro like cast(type)
 
 // NICE TO HAVE TODO'S::
 // - Switch openGL to directX?

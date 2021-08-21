@@ -21,13 +21,14 @@ inline string_c NewStringCompound(arena_allocator *Arena, u32 Size);
 inline void DeleteStringCompound(arena_allocator *Arena, string_compound *S);
 #define ResetStringCompound(SC) {(SC).Pos = 0; (SC).S[0] = '\0';}
 
+// Creates an empty string_c on the stack. No allocation needed.
 #define NewEmptyLocalString(Name, Count)  \
 u8 CombineDefine(StringStorage, __LINE__)[Count]; \
 string_c Name = {CombineDefine(StringStorage, __LINE__), 0, Count}
 
+// Creates a string_c on the stack with the given string. No allocation needed.
 #define NewLocalString(Name, Count, String)  NewEmptyLocalString(Name, Count);\
 AppendStringToCompound(&Name, (u8 *)String)
-
 
 inline void AppendCharToCompound(string_compound *Comp, u8 C);
 inline void AppendStringToCompound(string_compound *Comp, u8 *String); 

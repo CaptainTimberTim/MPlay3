@@ -1,4 +1,6 @@
 #include "Font_TD.h"
+inline r32 SlotHeight(display_column *DisplayColumn);
+internal void ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn);
 inline b32 GetDefaultFontDir(arena_allocator *Arena, string_c *Path);
 
 inline font_atlas
@@ -70,8 +72,7 @@ CreateAndWriteFontGroupTexture(arena_allocator *FixArena, arena_allocator *Scrat
             // For this we assume that the codepoint is a square,
             // which seems to work. The only exception is for very
             // few codepoints (like 1) or some special glyphs like 
-            // emoticons, thats why we multiply by 2.5. 
-            // TODO:: Think of something better that *2.5?
+            // emoticons, thats why we multiply by SizeMultiplier. 
             TotalArea += Square((i32)(FontSizes.Sizes[SizeIt].Size*SizeMultiplier))*(FontGroup->CodepointRange.Count);
         }
         u32 Width  = (u32)Sqrt(TotalArea); // First calc the side for square with correct total area,
@@ -145,7 +146,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     }
     
     
-    // Secondly, recreate all existing render entries of type renderType_Text
+    // Secondly, recreate all existing render entries of type renderType_Text.
     render_entry_list *RenderList = &GS->Renderer.RenderEntryList;
     
     u32 EntryCount = RenderList->EntryCount;
@@ -170,6 +171,30 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
             RenderText(GS, FontSize, &FontText, Color, TextEntry, Depth, Parent, StartP);
             SetActive(TextEntry, Rendering);
         }
+    }
+    
+    // Thirdly, change the heights of all slots.
+    display_column **Columns = GS->MusicInfo.DisplayInfo.Columns;
+    For(5, Column)
+    {
+        display_column *DisplayColumn = Columns[ColumnIt];
+        
+        RemoveFromTransformList(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor);
+        r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y - 
+            GetSize(DisplayColumn->TopBorder).y/2.0f - SlotHeight(DisplayColumn)/2.0f;
+        SetPosition(DisplayColumn->SlotBGAnchor, V2(0, AnchorY));
+        DisplayColumn->SlotBGAnchorScreenID = TranslateWithScreen(&GS->Renderer.TransformList, 
+                                                                  DisplayColumn->SlotBGAnchor, fixedTo_Top);
+        
+        v2 Dim = V2(DisplayColumn->SlotWidth, SlotHeight(DisplayColumn)-GS->Layout.SlotGap);
+        For(DisplayColumn->Count)
+        {
+            r32 YDown = (It > 0) ? -SlotHeight(DisplayColumn) : 0;
+            SetLocalPosition(DisplayColumn->SlotBGs[It], V2(0, YDown));
+            SetSize(DisplayColumn->SlotBGs[It], Dim);
+        }
+        
+        ProcessWindowResizeForDisplayColumn(&GS->Renderer, &GS->MusicInfo, DisplayColumn);
     }
 }
 

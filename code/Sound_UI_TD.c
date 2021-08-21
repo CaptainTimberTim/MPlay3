@@ -47,12 +47,20 @@ internal i32          GetSlotID(game_state *GS, playlist_info *Playlist);
 inline string_c *     GetName(playlist_column *PlaylistColumn, displayable_id DID);
 inline void OnAnimationDone(void *Data);
 
+inline r32
+SlotHeight(display_column *DisplayColumn)
+{
+    //return DisplayColumn->SlotHeight_ + GlobalGameState.Layout.FontSizeSmall;
+    r32 AdditionalHeight = (DisplayColumn->Type == columnType_Song) ? GlobalGameState.Layout.SongSlotHeight : GlobalGameState.Layout.SlotHeight;
+    return GlobalGameState.Renderer.FontAtlas.FontSizes.Sizes[font_Small].Size + AdditionalHeight;
+}
+
 inline u32 
 CountPossibleDisplayedSlots(renderer *Renderer, display_column *DisplayColumn)
 {
     u32 Result = 0;
     r32 Height = HeightBetweenRects(DisplayColumn->TopBorder, DisplayColumn->BottomBorder);
-    Result = Ceiling(Height/DisplayColumn->SlotHeight)+1;
+    Result = Ceiling(Height/SlotHeight(DisplayColumn))+1;
     return Result;
 }
 
@@ -60,8 +68,8 @@ inline void
 CreateDisplayBackgroundRect(renderer *Renderer, display_column *DisplayColumn, u32 ID, r32 ZValue, entry_id *Parent)
 {
     r32 SlotGap = GlobalGameState.Layout.SlotGap;
-    v2 HalfDim  = V2(DisplayColumn->SlotWidth, DisplayColumn->SlotHeight-SlotGap)/2;
-    r32 YDown   = (ID > 0) ? -DisplayColumn->SlotHeight : 0;
+    v2 HalfDim  = V2(DisplayColumn->SlotWidth, SlotHeight(DisplayColumn)-SlotGap)/2;
+    r32 YDown   = (ID > 0) ? -SlotHeight(DisplayColumn) : 0;
     DisplayColumn->SlotBGs[ID] = CreateRenderRect(Renderer, {-HalfDim, HalfDim}, ZValue, Parent, DisplayColumn->Colors.Slot);
     SetLocalPosition(DisplayColumn->SlotBGs[ID], V2(0, YDown));
 }
@@ -75,11 +83,11 @@ SetSongSlotHeightMode(game_state *GS, b32 MakeSmall)
     // As the anchor is TranslatingWithScreen, we _need_ to preserve the original position and only want
     // to change the slotHeight offset. 
     v2 OriAnchorP = GS->Renderer.TransformList.OriginalPosition[SongColumn->Base.SlotBGAnchorScreenID];
-    OriAnchorP.y += SongColumn->Base.SlotHeight*0.5f;
-    r32 YAnchor   = GetPosition(SongColumn->Base.SlotBGAnchor).y + SongColumn->Base.SlotHeight*0.5f;
+    OriAnchorP.y += SlotHeight(&SongColumn->Base)*0.5f;
+    r32 YAnchor   = GetPosition(SongColumn->Base.SlotBGAnchor).y + SlotHeight(&SongColumn->Base)*0.5f;
     if(MakeSmall)
     {
-        SongColumn->Base.SlotHeight = GS->Layout.SongSlotHeight*0.5f + GS->Layout.SlotGap;
+        SongColumn->Base.SlotHeight_ = GS->Layout.SongSlotHeight*0.5f + GS->Layout.SlotGap;
         SongColumn->CachedBtnOffset = GS->Layout.SongPlayButtonYOffset;
         SongColumn->CachedRowOffset = GS->Layout.SongFirstRowYOffset;
         GS->Layout.SongPlayButtonYOffset = 0; // If this is not 0 anymore, change the #ButtonYOffset if as well!
@@ -87,15 +95,15 @@ SetSongSlotHeightMode(game_state *GS, b32 MakeSmall)
     }
     else
     {
-        SongColumn->Base.SlotHeight = GS->Layout.SongSlotHeight;
+        SongColumn->Base.SlotHeight_ = GS->Layout.SongSlotHeight;
         if(GS->Layout.SongPlayButtonYOffset == 0) // #ButtonYOffset
         {
             GS->Layout.SongPlayButtonYOffset = SongColumn->CachedBtnOffset;
             GS->Layout.SongFirstRowYOffset   = SongColumn->CachedRowOffset;
         }
     }
-    YAnchor      -= SongColumn->Base.SlotHeight*0.5f;
-    OriAnchorP.y -= SongColumn->Base.SlotHeight*0.5f;
+    YAnchor      -= SlotHeight(&SongColumn->Base)*0.5f;
+    OriAnchorP.y -= SlotHeight(&SongColumn->Base)*0.5f;
     SetPosition(SongColumn->Base.SlotBGAnchor, V2(0, YAnchor));
     
     ChangeOriginalPosition(&GS->Renderer.TransformList, SongColumn->Base.SlotBGAnchorScreenID, OriAnchorP);
@@ -107,12 +115,12 @@ SetSongSlotHeightMode(game_state *GS, b32 MakeSmall)
     {
         if(SongColumn->Base.SlotBGs[It])
         {
-            SetSize(SongColumn->Base.SlotBGs[It], V2(SongColumn->Base.SlotWidth, SongColumn->Base.SlotHeight-GS->Layout.SlotGap));
+            SetSize(SongColumn->Base.SlotBGs[It], V2(SongColumn->Base.SlotWidth, SlotHeight(&SongColumn->Base)-GS->Layout.SlotGap));
             SetLocalPosition(SongColumn->Base.SlotBGs[It], V2(0, YDown));
             
             SetLocalPosition(SongColumn->Play[It], V2(GetLocalPosition(SongColumn->Play[It]).x, 
                                                       GS->Layout.SongPlayButtonYOffset));
-            YDown = -SongColumn->Base.SlotHeight; // First iteration 0, after that, the actual YDown we want.
+            YDown = -SlotHeight(&SongColumn->Base); // First iteration 0, after that, the actual YDown we want.
         }
     }
 }
@@ -123,7 +131,7 @@ GetInitialYForDisplayColumnSlot(display_column *DisplayColumn)
     r32 Result = 0;
     Result  = GetLocalPosition(DisplayColumn->TopBorder).y;
     Result -= GetSize(DisplayColumn->TopBorder).y/2;
-    Result -= DisplayColumn->SlotHeight/2;
+    Result -= SlotHeight(DisplayColumn)/2;
     return Result;
 }
 
@@ -499,12 +507,12 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     
     if(Type == columnType_Song) 
     {
-        DisplayColumn->SlotHeight = Layout->SongSlotHeight;
-        DisplayColumn->TextX      = Layout->BigTextLeftBorder;
+        DisplayColumn->SlotHeight_ = Layout->SongSlotHeight;
+        DisplayColumn->TextX       = Layout->BigTextLeftBorder;
     }
     else
     {
-        DisplayColumn->SlotHeight  = Layout->SlotHeight;
+        DisplayColumn->SlotHeight_ = Layout->SlotHeight;
         DisplayColumn->TextX       = Layout->SmallTextLeftBorder;
     }
     
@@ -553,7 +561,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     
     DisplayColumn->SlotBGAnchor = CreateRenderRect(Renderer, V2(0), 0, ColumnColors.Background, 0);
     r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y-GetSize(DisplayColumn->TopBorder).y/2.0f-
-        DisplayColumn->SlotHeight/2.0f;
+        SlotHeight(DisplayColumn)/2.0f;
     SetPosition(DisplayColumn->SlotBGAnchor, V2(0, AnchorY));
     DisplayColumn->SlotBGAnchorScreenID = TranslateWithScreen(&Renderer->TransformList, DisplayColumn->SlotBGAnchor, fixedTo_Top);
     
@@ -827,7 +835,7 @@ UpdateColumnVerticalSliderPosition(display_column *DisplayColumn, u32 Displayabl
 {
     slider *Slider       = &DisplayColumn->SliderVertical;
     r32 TotalSliderScale = GetScale(Slider->Background).y;
-    r32 TotalHeight      = GetDisplayableHeight(DisplayableCount, DisplayColumn->SlotHeight);
+    r32 TotalHeight      = GetDisplayableHeight(DisplayableCount, SlotHeight(DisplayColumn));
     TotalHeight          = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
     r32 CursorHeightPercentage = SafeDiv(DisplayColumn->DisplayCursor,(r32)TotalHeight);
@@ -843,7 +851,7 @@ UpdateColumnVerticalSlider(display_column *DisplayColumn, u32 DisplayableCount)
 {
     slider *Slider = &DisplayColumn->SliderVertical;
     
-    r32 TotalDisplayableSize = GetDisplayableHeight(DisplayableCount, DisplayColumn->SlotHeight);
+    r32 TotalDisplayableSize = GetDisplayableHeight(DisplayableCount, SlotHeight(DisplayColumn));
     v2 TotalScale            = GetSize(Slider->Background);
     Slider->OverhangP = Clamp(TotalScale.y/TotalDisplayableSize, 0.01f, 1.0f);
     
@@ -888,7 +896,7 @@ OnVerticalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, 
     
     r32 TranslationPercentage = SafeDiv(TopPositionY-NewY,Slider->MaxSlidePix*2);
     if(TranslationPercentage > 0.999f) TranslationPercentage = 1;
-    r32 TotalHeight = GetDisplayableHeight(DisplayableCount, DisplayColumn->SlotHeight);
+    r32 TotalHeight = GetDisplayableHeight(DisplayableCount, SlotHeight(DisplayColumn));
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
     i32 ScrollAmount = (i32)(DisplayColumn->DisplayCursor - TotalHeight*TranslationPercentage);
@@ -1214,7 +1222,7 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
     sort_batch      *SortBatch      = &PlaylistColumn->Batch;
     // FileOrDisplayableStartID is either a fileID when the colum is the song column, 
     // or a displayID when it is another.
-    DisplayColumn->DisplayCursor = DisplayableStartID.ID*DisplayColumn->SlotHeight + StartY;
+    DisplayColumn->DisplayCursor = DisplayableStartID.ID*SlotHeight(DisplayColumn) + StartY;
     
     For(DisplayColumn->Count)
     {
@@ -1268,16 +1276,16 @@ internal void
 ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn, r32 ScrollAmount)
 {
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
-    r32 SlotHeight = DisplayColumn->SlotHeight;
-    r32 TotalHeight   = GetDisplayableHeight(PlaylistColumn->Displayable.A.Count, SlotHeight);
+    r32 CurrentSlotHeight = SlotHeight(DisplayColumn);
+    r32 TotalHeight   = GetDisplayableHeight(PlaylistColumn->Displayable.A.Count, CurrentSlotHeight);
     // DisplayCursor is the very top position. Therefore MaxHeight needs to be reduced by VisibleHeight
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
-    i32 PrevCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
+    i32 PrevCursorID = Floor(DisplayColumn->DisplayCursor/CurrentSlotHeight);
     DisplayColumn->DisplayCursor = Clamp(DisplayColumn->DisplayCursor+ScrollAmount, 0.0f, TotalHeight);
     
-    r32 NewY = Mod(DisplayColumn->DisplayCursor, SlotHeight);
-    i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/SlotHeight);
+    r32 NewY = Mod(DisplayColumn->DisplayCursor, CurrentSlotHeight);
+    i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/CurrentSlotHeight);
     NewCursorID     = Min(NewCursorID, Max(0, (i32)PlaylistColumn->Displayable.A.Count-1));
     i32 CursorDiff  = NewCursorID - PrevCursorID;
     
@@ -1338,11 +1346,11 @@ KeepPlayingSongOnScreen(renderer *Renderer, music_info *MusicInfo)
     {
         if(IsIntersectingRectButTopShowing(DisplayColumn->SlotBGs[OnScreenID], DisplayColumn->BottomBorder))
         {
-            ScrollDisplayColumn(Renderer, MusicInfo, DisplayColumn, DisplayColumn->SlotHeight);
+            ScrollDisplayColumn(Renderer, MusicInfo, DisplayColumn, SlotHeight(DisplayColumn));
         }
         else if(IsIntersectingRectButBottomShowing(DisplayColumn->SlotBGs[OnScreenID], DisplayColumn->TopBorder))
         {
-            ScrollDisplayColumn(Renderer, MusicInfo, DisplayColumn, -DisplayColumn->SlotHeight);
+            ScrollDisplayColumn(Renderer, MusicInfo, DisplayColumn, -SlotHeight(DisplayColumn));
         }
     }
 }

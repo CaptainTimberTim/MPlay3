@@ -3,8 +3,8 @@
 
 #include "Sound_General_TD.h"
 
-#define MAX_DISPLAY_SONG_COUNT   24
-#define MAX_DISPLAY_COUNT  80
+#define MAX_DISPLAY_SONG_COUNT 24*3
+#define MAX_DISPLAY_COUNT      200 // TODO:: @HardLimit
 
 #define DOUBLE_CLICK_TIME 0.5f
 
@@ -87,7 +87,7 @@ struct display_column
     struct music_display_info *Base;
     enum column_type Type;
     
-    r32 SlotHeight;
+    r32 SlotHeight_;
     r32 SlotWidth;
     r32 ColumnHeight;
     u32 Count;
@@ -421,8 +421,8 @@ struct layout_definition
     r32 VerticalSliderGrabThingBorder   =  2;
     
     // Slot
-    r32 SlotHeight     = 30;
-    r32 SongSlotHeight = 100;
+    r32 SlotHeight     = 6;//30;
+    r32 SongSlotHeight = 76;//100;
     r32 SlotGap        = 3;
     
     r32 SmallTextLeftBorder = 12;

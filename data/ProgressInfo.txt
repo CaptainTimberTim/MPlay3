@@ -407,3 +407,5 @@
     - All old font data gets deleted as well as the glTextures
     - New font atlas' get generated.
     - All currently drawn render_text's get recreated with new sizes.
+    - Added Slot height based on font size.
+    - Added resizing and positioning of slots when resizing font.

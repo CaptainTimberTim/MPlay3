@@ -1,5 +1,7 @@
 #include "Font_TD.h"
 inline r32 SlotHeight(display_column *DisplayColumn);
+inline r32 GetSongButtonYOffset(layout_definition *Layout);
+inline r32 GetBottomPanelHeight(layout_definition *Layout);
 internal void ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn);
 inline b32 GetDefaultFontDir(arena_allocator *Arena, string_c *Path);
 
@@ -42,7 +44,7 @@ InitializeFont(game_state *GS)
     font_atlas FontAtlas = NewFontAtlas(&GS->Settings, FontSizes);
     //FindAndPrintFontNameForEveryUnicodeGroup(&GS->ScratchArena, GS->FontPath);
     LoadFonts(&GS->FixArena, &GS->ScratchArena, &FontAtlas,
-              (u8 *)GetUsedFontData(GS).Data, {}, GroupCodepoints, ArrayCount(GroupCodepoints));
+              (u8 *)GetUsedFontData(GS).Data, GroupCodepoints, ArrayCount(GroupCodepoints));
     
     return FontAtlas;
 }
@@ -117,7 +119,8 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     // First change the existing font groups and their data.
     Atlas->FontSizes = NewSizes;
-    For(Atlas->Count, Group)
+    u32 GroupCount   = Atlas->Count;
+    For(GroupCount, Group)
     {
         font_group *FontGroup = Atlas->FontGroups + GroupIt;
         
@@ -126,8 +129,23 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
         {
             FreeMemory(&GS->FixArena, FontGroup->FontDataForEachSize[It].CharData);
             FontGroup->FontDataForEachSize[It].CharData = NULL;
+            FontGroup->FontDataForEachSize[It].Size = 0;
         }
         
+#if 1
+        FontGroup->GLID           = 0;
+        FontGroup->BitmapWidth    = 0;
+        FontGroup->BitmapHeight   = 0;
+        FontGroup-> UnicodeGroup  = NULL;
+        FontGroup->CodepointRange = {};
+        Atlas->Count              = 0;
+#else
+        // This recreates all font groups that already existed. The big
+        // disadvantage is that when there are many existing font groups
+        // already, it has to do a lot of work. Even though these groups
+        // may not be used at this moment. Much cleaner to just delete
+        // all groups and let the 'normal' path recreate them only when 
+        // needed. Which is the code right above this.
         read_file_result Font = {};
         b32 FontLoaded = false;
         if(FontGroup->UsedFontPath.Pos == 0) Font = GetUsedFontData(GS);
@@ -143,8 +161,9 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
         CreateAndWriteFontGroupTexture(&GS->FixArena, &GS->ScratchArena, FontGroup, NewSizes, Font.Data);
         
         if(FontLoaded) FreeFileMemory(&GS->ScratchArena, Font);
+#endif
+        
     }
-    
     
     // Secondly, recreate all existing render entries of type renderType_Text.
     render_entry_list *RenderList = &GS->Renderer.RenderEntryList;
@@ -173,29 +192,55 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
         }
     }
     
-    // Thirdly, change the heights of all slots.
-    display_column **Columns = GS->MusicInfo.DisplayInfo.Columns;
+    music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    // Thirdly, the bottom panel and everything that depends on it.
+    r32 BottomPanelHeight = GetBottomPanelHeight(&GS->Layout);
+    
+    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayInfo->EdgeBottom);
+    SetSize(DisplayInfo->EdgeBottom, V2(GetSize(DisplayInfo->EdgeBottom).x, BottomPanelHeight));
+    SetPosition(DisplayInfo->EdgeBottom, V2(GetPosition(DisplayInfo->EdgeBottom).x, BottomPanelHeight*0.5f));
+    TransformWithScreen(&GS->Renderer.TransformList, DisplayInfo->EdgeBottom, fixedTo_BottomCenter, scaleAxis_X);
+    
+    r32 SidePanelHeight = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
+    r32 SidePanelY      = CenterYBetweenRects(DisplayInfo->EdgeBottom, DisplayInfo->EdgeTop);
+    
+    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayInfo->EdgeLeft);
+    SetSize(DisplayInfo->EdgeLeft, V2(GetSize(DisplayInfo->EdgeLeft).x, SidePanelHeight));
+    SetPosition(DisplayInfo->EdgeLeft, V2(GetPosition(DisplayInfo->EdgeLeft).x, SidePanelY));
+    TransformWithScreen(&GS->Renderer.TransformList, DisplayInfo->EdgeLeft, fixedTo_MiddleLeft, scaleAxis_Y);
+    
+    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayInfo->EdgeRight);
+    SetSize(DisplayInfo->EdgeRight, V2(GetSize(DisplayInfo->EdgeRight).x, SidePanelHeight));
+    SetPosition(DisplayInfo->EdgeRight, V2(GetPosition(DisplayInfo->EdgeRight).x, SidePanelY));
+    TransformWithScreen(&GS->Renderer.TransformList, DisplayInfo->EdgeRight, fixedTo_MiddleRight, scaleAxis_Y);
+    
+    ProcessEdgeDragOnResize(&GS->Renderer, DisplayInfo);
+    
+    // Fourth, change the heights of all slots.
     For(5, Column)
     {
-        display_column *DisplayColumn = Columns[ColumnIt];
+        display_column *Column = DisplayInfo->Columns[ColumnIt];
         
-        RemoveFromTransformList(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor);
-        r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y - 
-            GetSize(DisplayColumn->TopBorder).y/2.0f - SlotHeight(DisplayColumn)/2.0f;
-        SetPosition(DisplayColumn->SlotBGAnchor, V2(0, AnchorY));
-        DisplayColumn->SlotBGAnchorScreenID = TranslateWithScreen(&GS->Renderer.TransformList, 
-                                                                  DisplayColumn->SlotBGAnchor, fixedTo_Top);
+        RemoveFromTransformList(&GS->Renderer.TransformList, Column->SlotBGAnchor);
+        r32 AnchorY = GetPosition(Column->TopBorder).y - 
+            GetSize(Column->TopBorder).y/2.0f - SlotHeight(Column)/2.0f;
+        SetPosition(Column->SlotBGAnchor, V2(0, AnchorY));
+        TranslateWithScreen(&GS->Renderer.TransformList, Column->SlotBGAnchor, fixedTo_Top);
+        UpdateSlots(GS, Column);
         
-        v2 Dim = V2(DisplayColumn->SlotWidth, SlotHeight(DisplayColumn)-GS->Layout.SlotGap);
-        For(DisplayColumn->Count)
-        {
-            r32 YDown = (It > 0) ? -SlotHeight(DisplayColumn) : 0;
-            SetLocalPosition(DisplayColumn->SlotBGs[It], V2(0, YDown));
-            SetSize(DisplayColumn->SlotBGs[It], Dim);
-        }
+        r32 HoriSliderY = BottomPanelHeight + GetSize(Column->SliderHorizontal.Background).y*0.5f;
+        SetLocalPosition(&Column->SliderHorizontal, V2(GetLocalPosition(&Column->SliderHorizontal).x, HoriSliderY));
         
-        ProcessWindowResizeForDisplayColumn(&GS->Renderer, &GS->MusicInfo, DisplayColumn);
+        entry_id *SearchRect = Column->BetweenSliderRect;
+        r32 SearchRectY = BottomPanelHeight + GetSize(SearchRect).y*0.5f;
+        SetPosition(SearchRect, V2(GetPosition(SearchRect).x, SearchRectY));
+        
+        ProcessWindowResizeForDisplayColumn(&GS->Renderer, &GS->MusicInfo, Column);
     }
+    
+    PerformScreenTransform(&GS->Renderer);
+    
+    SetTheNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
 }
 
 internal unicode_group *
@@ -230,7 +275,7 @@ ExpandFontGroupArrayIfNeeded(arena_allocator *Arena, font_atlas *Atlas)
 }
 
 internal void
-LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, u8 *RawFontData, string_c FontPath, u32 *CodepointsFromGroup, u32 CodepointCount)
+LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, u8 *RawFontData, /*string_c FontPath,*/ u32 *CodepointsFromGroup, u32 CodepointCount)
 {
     For(CodepointCount, Point)
     {
@@ -272,8 +317,8 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         }
         else NewFontGroup->CodepointRange = Group->CodepointRange;
         
-        NewFontGroup->UsedFontPath = NewStringCompound(FixArena, 260);
-        CopyIntoCompound(&NewFontGroup->UsedFontPath, &FontPath);
+        //NewFontGroup->UsedFontPath = NewStringCompound(FixArena, 260);
+        //CopyIntoCompound(&NewFontGroup->UsedFontPath, &FontPath);
         CreateAndWriteFontGroupTexture(FixArena, ScratchArena, NewFontGroup, Atlas->FontSizes, RawFontData);
     }
 }
@@ -306,7 +351,6 @@ internal b32
 AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
 {
     b32 Result = false;
-    RestartTimer("GetFontGroup");
     
     u32 GroupCodepoints[] = { Codepoint };
     unicode_group *Group = GetUnicodeGroup(Codepoint);
@@ -314,7 +358,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
     read_file_result DefaultFont = GetUsedFontData(GS);
     if(IsCodepointInFont(DefaultFont.Data, Codepoint))
     {
-        LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, DefaultFont.Data, {}, GroupCodepoints, ArrayCount(GroupCodepoints));
+        LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, DefaultFont.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
         Result = true;
     }
     else if(Group->BackupFont.Pos > 0)
@@ -328,8 +372,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
         {
             if(IsCodepointInFont(Font.Data, Codepoint))
             {
-                LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, FontPath, 
-                          GroupCodepoints, ArrayCount(GroupCodepoints));
+                LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
                 Result = true;
             }
             FreeFileMemory(&GS->ScratchArena, Font);
@@ -348,7 +391,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
             {
                 if(IsCodepointInFont(Font.Data, Codepoint))
                 {
-                    LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, FontPath, GroupCodepoints, ArrayCount(GroupCodepoints));
+                    LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, Font.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
                     Result = true;
                 }
                 FreeFileMemory(&GS->ScratchArena, Font);
@@ -366,8 +409,7 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
         NewEmptyLocalString(UsedFontPath, 260);
         if(FindAndLoadFontWithUnicodeCodepoint(&GS->ScratchArena, &RawFont, &UsedFontPath))
         {
-            LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, RawFont.Data.Data, UsedFontPath,
-                      GroupCodepoints, ArrayCount(GroupCodepoints));
+            LoadFonts(&GS->FixArena, &GS->ScratchArena, Atlas, RawFont.Data.Data, GroupCodepoints, ArrayCount(GroupCodepoints));
             
             if(Atlas->CachedFontNames->Count >= Atlas->CachedFontNames->MaxCount)
             {
@@ -398,7 +440,6 @@ AddMissingFontGroup(game_state *GS, font_atlas *Atlas, u32 Codepoint)
         }
     }
 #endif
-    SnapTimer("GetFontGroup");
     
     return Result;
 }
@@ -775,6 +816,15 @@ FindAndLoadFontWithUnicodeCodepoint(arena_allocator *ScratchArena, raw_font *Sea
     return FoundMatchingFont;
 }
 
+
+inline font_size 
+GetFontSize(struct renderer *Renderer, font_size_id ID)
+{
+    font_size Result = Renderer->FontAtlas.FontSizes.Sizes[ID];
+    return Result;
+}
+
+
 // *****************************
 // Not used during runtime: ****
 // *****************************
@@ -991,11 +1041,4 @@ FindAndPrintFontNameForEveryUnicodeGroup(arena_allocator *Arena, string_c Path)
         PrintAsList2(Arena, Group, FontName);
         ResetMemoryArena(Arena);
     }
-}
-
-inline font_size 
-GetFontSize(struct renderer *Renderer, font_size_id ID)
-{
-    font_size Result = Renderer->FontAtlas.FontSizes.Sizes[ID];
-    return Result;
 }

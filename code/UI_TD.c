@@ -600,7 +600,16 @@ Translate(slider *Slider, v2 T)
 inline void
 SetLocalPosition(slider *Slider, v2 T)
 {
+    v2 OldPBackground = GetLocalPosition(Slider->Background);
+    v2 OldPGrabThing  = GetLocalPosition(Slider->GrabThing);
     SetLocalPosition(Slider->Background, T);
+    SetLocalPosition(Slider->GrabThing, T + (OldPBackground - OldPGrabThing));
+}
+
+inline v2
+GetLocalPosition(slider *Slider)
+{
+    return GetLocalPosition(Slider->Background);
 }
 
 inline void

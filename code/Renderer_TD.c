@@ -19,7 +19,7 @@ InitializeRenderer(game_state *GameState, HWND WindowHandle)
     Result.BackgroundColor = {0.5f, 0.5f, 0.5f, 1.0f};//{3.0f/255, 17.0f/255, 3.0f/255, 1};
     Result.DefaultEntryColor = {1, 1, 1};
     
-    Result.TransformList  = CreateScreenTransformList(&GameState->FixArena);
+    Result.TransformList  = CreateScreenTransformList(&GameState->Renderer, &GameState->FixArena);
     
     Result.RenderEntryList.Entries = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, render_entry);
     Result.RenderEntryList.IDs     = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, entry_id);
@@ -872,16 +872,19 @@ DistanceToRectEdge(entry_id *Entry, v2 Point)
 // Auto Screen transform *************************************************
 
 inline screen_transform_list
-CreateScreenTransformList(arena_allocator *Arena, u32 Size)
+CreateScreenTransformList(renderer *Renderer, arena_allocator *Arena, u32 Size)
 {
     screen_transform_list Result = {};
     Result.Entries       = AllocateArray(Arena, Size, entry_id *);
     Result.FixToPosition = AllocateArray(Arena, Size, v2);
     Result.OriginalPosition = AllocateArray(Arena, Size, v2);
+    Result.OriginalScale = AllocateArray(Arena, Size, v2);
+    Result.OriginalDim   = AllocateArray(Arena, Size, v2i);
     Result.DoTranslation = AllocateArray(Arena, Size, fixed_to);
     Result.DoScale       = AllocateArray(Arena, Size, scale_axis);
     Result.OpenSlots     = AllocateArray(Arena, Size, b32);
     Result.MaxCount      = Size;
+    Result.Renderer      = Renderer;
     
     return Result;
 }
@@ -926,6 +929,8 @@ TransformWithScreen(screen_transform_list *List, entry_id *Entry, fixed_to Fixed
     List->Entries[ID]          = Entry;
     List->FixToPosition[ID]    = FixToPosition;
     List->OriginalPosition[ID] = GetPosition(Entry);
+    List->OriginalScale[ID]    = GetScale(Entry);
+    List->OriginalDim[ID]      = List->Renderer->Window.CurrentDim.Dim;
     List->DoTranslation[ID]    = FixedTo;
     List->DoScale[ID]          = ScaleAxis;
     return ID;
@@ -980,7 +985,7 @@ ChangeOriginalPosition(screen_transform_list *List, u32 ID, v2 NewOriginalPositi
 internal void
 PerformScreenTransform(renderer *Renderer)
 {
-    v2 FixedDim   = V2(Renderer->Window.FixedDim.Dim);
+    //v2 FixedDim   = V2(Renderer->Window.FixedDim.Dim);
     v2 CurrentDim = V2(Renderer->Window.CurrentDim.Dim);
     
     screen_transform_list *List = &Renderer->TransformList;
@@ -990,6 +995,9 @@ PerformScreenTransform(renderer *Renderer)
         if(List->OpenSlots[It]) continue;
         Assert(List->DoScale[It] != scaleAxis_None || List->DoTranslation[It] != fixedTo_None);
         entry_id *Entry = List->Entries[It];
+        
+        v2 FixedDim = V2(List->OriginalDim[It]);
+        
         if(List->DoTranslation[It] != fixedTo_None)
         {
             Entry->ID->FixedTo = List->DoTranslation[It];
@@ -1041,20 +1049,14 @@ PerformScreenTransform(renderer *Renderer)
         
         if(List->DoScale[It] != scaleAxis_None)
         {
-            v2 NewSize = GetExtends(Entry)*2;
-            if(List->DoScale[It] == scaleAxis_X ||
-               List->DoScale[It] == scaleAxis_XY)
+            v2 NewSize = HadamardProduct(GetExtends(Entry)*2, List->OriginalScale[It]);
+            if(List->DoScale[It] == scaleAxis_X || List->DoScale[It] == scaleAxis_XY)
             {
-                r32 LeftDist  = Entry->ID->Vertice[0].x;
-                r32 RightDist = FixedDim.x - Entry->ID->Vertice[2].x;
-                NewSize.x = Max(0.0f, CurrentDim.x - (LeftDist + RightDist));
+                NewSize.x = Max(0.0f, CurrentDim.x - (FixedDim.x - NewSize.x));
             }
-            if(List->DoScale[It] == scaleAxis_Y ||
-               List->DoScale[It] == scaleAxis_XY)
+            if(List->DoScale[It] == scaleAxis_Y || List->DoScale[It] == scaleAxis_XY)
             {
-                r32 DownDist  = Entry->ID->Vertice[0].y;
-                r32 UpDist    = FixedDim.y - Entry->ID->Vertice[2].y;
-                NewSize.y = Max(0.0f, CurrentDim.y - (DownDist + UpDist));
+                NewSize.y = Max(0.0f, CurrentDim.y - (FixedDim.y - NewSize.y));
             }
             SetSize(Entry, NewSize);
         }

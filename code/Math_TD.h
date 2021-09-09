@@ -149,30 +149,6 @@ struct plane
     v3 Normal;
 };
 
-// General *********************
-
-inline void MathPrint(i32 A);
-inline void MathPrint(r32 A);
-inline void MathPrint(v2 A);
-inline void MathPrint(v3 A);
-inline void MathPrint(v2i A);
-inline void MathPrint(v3i A);
-inline void MathPrint(v4 A);
-inline void MathPrint(quaternion A);
-inline void MathPrint(matrix M);
-inline void MathPrint(ray R);
-
-inline void MathPrintln(i32 A);
-inline void MathPrintln(r32 A);
-inline void MathPrintln(v2 A);
-inline void MathPrintln(v3 A);
-inline void MathPrintln(v2i A);
-inline void MathPrintln(v3i A);
-inline void MathPrintln(v4 A);
-inline void MathPrintln(quaternion A);
-inline void MathPrintln(matrix M);
-inline void MathPrintln(ray R);
-
 // General math ****************
 
 inline i32 Abs(i32 Value);

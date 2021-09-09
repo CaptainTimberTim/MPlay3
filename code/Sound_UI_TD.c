@@ -46,13 +46,73 @@ internal i32          GetSlotID(game_state *GS, column_type Type, displayable_id
 internal i32          GetSlotID(game_state *GS, playlist_info *Playlist);
 inline string_c *     GetName(playlist_column *PlaylistColumn, displayable_id DID);
 inline void OnAnimationDone(void *Data);
+internal void ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount);
 
 inline r32
 SlotHeight(display_column *DisplayColumn)
 {
-    //return DisplayColumn->SlotHeight_ + GlobalGameState.Layout.FontSizeSmall;
-    r32 AdditionalHeight = (DisplayColumn->Type == columnType_Song) ? GlobalGameState.Layout.SongSlotHeight : GlobalGameState.Layout.SlotHeight;
-    return GlobalGameState.Renderer.FontAtlas.FontSizes.Sizes[font_Small].Size + AdditionalHeight;
+    font_sizes FontSizes =  GlobalGameState.Renderer.FontAtlas.FontSizes;
+    r32 SmallFont = FontSizes.Sizes[font_Small].Size;
+    if(DisplayColumn->Type != columnType_Song)
+    {
+        return SmallFont + GlobalGameState.Layout.SlotHeight;
+    }
+    else
+    {
+        r32 MediumFont = FontSizes.Sizes[font_Medium].Size;
+        if(ColumnExt(DisplayColumn)->IsSmallMode)
+        {
+            r32 BtnMin = GlobalGameState.Layout.AddButtonExtents*2 + GlobalGameState.Layout.SongPlayYOffset;
+            return Max(MediumFont, BtnMin) + GlobalGameState.Layout.SlotGap + GlobalGameState.Layout.SongPlayYOffset;
+        }
+        else
+        {
+            r32 Height = SmallFont*2 + MediumFont + GlobalGameState.Layout.SongSlotHeight;
+            return Max(Height, GlobalGameState.Layout.AddButtonExtents*2 + GlobalGameState.Layout.SlotGap*2 + MediumFont);
+        }
+    }
+}
+
+inline r32
+GetSongButtonYOffset(layout_definition *Layout)
+{
+    r32 CurSlotHeight = SlotHeight(&GlobalGameState.MusicInfo.DisplayInfo.Song.Base);
+    return -CurSlotHeight*0.5f + Layout->AddButtonExtents + Layout->SongPlayYOffset + Layout->SlotGap*0.5f;
+}
+
+inline r32
+GetSongRow1YOffset(layout_definition *Layout)
+{
+    r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Medium).Size;
+    r32 CurSlotHeight = SlotHeight(&GlobalGameState.MusicInfo.DisplayInfo.Song.Base);
+    r32 FontYOff = FontHeight*Layout->SlotTextYOffPercent;
+    return CurSlotHeight*0.5f - Layout->SlotGap*0.5f + FontYOff - FontHeight*0.5f;
+}
+
+inline r32
+GetSongRow2YOffset(layout_definition *Layout)
+{
+    r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Small).Size;
+    r32 FontHeightMedium = GetFontSize(&GlobalGameState.Renderer, font_Medium).Size;
+    r32 FontYOff = FontHeight*Layout->SlotTextYOffPercent;
+    return GetSongRow1YOffset(Layout) - FontHeightMedium*0.5f - FontYOff - FontHeight*0.5f;
+}
+
+inline r32
+GetSongRow3YOffset(layout_definition *Layout)
+{
+    r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Small).Size;
+    r32 FontYOff = FontHeight*Layout->SlotTextYOffPercent;
+    return GetSongRow2YOffset(Layout) - FontHeight + FontYOff;
+}
+
+inline r32
+GetBottomPanelHeight(layout_definition *Layout)
+{
+    r32 FontSmall  = GetFontSize(&GlobalGameState.Renderer, font_Small).Size;
+    r32 FontMedium = GetFontSize(&GlobalGameState.Renderer, font_Medium).Size;
+    
+    return Max(Layout->BottomBorder, FontSmall*3 + FontMedium);
 }
 
 inline u32 
@@ -78,51 +138,32 @@ internal void
 SetSongSlotHeightMode(game_state *GS, b32 MakeSmall)
 {
     display_column_song *SongColumn = &GS->MusicInfo.DisplayInfo.Song;
+    display_column *DisplayColumn = &SongColumn->Base;
     SongColumn->IsSmallMode = MakeSmall;
     
-    // As the anchor is TranslatingWithScreen, we _need_ to preserve the original position and only want
-    // to change the slotHeight offset. 
-    v2 OriAnchorP = GS->Renderer.TransformList.OriginalPosition[SongColumn->Base.SlotBGAnchorScreenID];
-    OriAnchorP.y += SlotHeight(&SongColumn->Base)*0.5f;
-    r32 YAnchor   = GetPosition(SongColumn->Base.SlotBGAnchor).y + SlotHeight(&SongColumn->Base)*0.5f;
-    if(MakeSmall)
-    {
-        SongColumn->Base.SlotHeight_ = GS->Layout.SongSlotHeight*0.5f + GS->Layout.SlotGap;
-        SongColumn->CachedBtnOffset = GS->Layout.SongPlayButtonYOffset;
-        SongColumn->CachedRowOffset = GS->Layout.SongFirstRowYOffset;
-        GS->Layout.SongPlayButtonYOffset = 0; // If this is not 0 anymore, change the #ButtonYOffset if as well!
-        GS->Layout.SongFirstRowYOffset   = 9;
-    }
-    else
-    {
-        SongColumn->Base.SlotHeight_ = GS->Layout.SongSlotHeight;
-        if(GS->Layout.SongPlayButtonYOffset == 0) // #ButtonYOffset
-        {
-            GS->Layout.SongPlayButtonYOffset = SongColumn->CachedBtnOffset;
-            GS->Layout.SongFirstRowYOffset   = SongColumn->CachedRowOffset;
-        }
-    }
-    YAnchor      -= SlotHeight(&SongColumn->Base)*0.5f;
-    OriAnchorP.y -= SlotHeight(&SongColumn->Base)*0.5f;
-    SetPosition(SongColumn->Base.SlotBGAnchor, V2(0, YAnchor));
-    
-    ChangeOriginalPosition(&GS->Renderer.TransformList, SongColumn->Base.SlotBGAnchorScreenID, OriAnchorP);
-    
-    ProcessWindowResizeForDisplayColumn(&GS->Renderer, &GS->MusicInfo, &SongColumn->Base);
+    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor);
+    r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y - 
+        GetSize(DisplayColumn->TopBorder).y/2.0f - SlotHeight(DisplayColumn)/2.0f;
+    SetPosition(DisplayColumn->SlotBGAnchor, V2(0, AnchorY));
+    TranslateWithScreen(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor, fixedTo_Top);
     
     r32 YDown = 0;
+    r32 CurSlotHeight = SlotHeight(&SongColumn->Base);
     For(MAX_DISPLAY_COUNT)
     {
         if(SongColumn->Base.SlotBGs[It])
         {
-            SetSize(SongColumn->Base.SlotBGs[It], V2(SongColumn->Base.SlotWidth, SlotHeight(&SongColumn->Base)-GS->Layout.SlotGap));
+            SetSize(SongColumn->Base.SlotBGs[It], V2(SongColumn->Base.SlotWidth, CurSlotHeight-GS->Layout.SlotGap));
             SetLocalPosition(SongColumn->Base.SlotBGs[It], V2(0, YDown));
             
-            SetLocalPosition(SongColumn->Play[It], V2(GetLocalPosition(SongColumn->Play[It]).x, 
-                                                      GS->Layout.SongPlayButtonYOffset));
-            YDown = -SlotHeight(&SongColumn->Base); // First iteration 0, after that, the actual YDown we want.
+            r32 YOff = GetSongButtonYOffset(&GS->Layout);
+            SetLocalPosition(SongColumn->Play[It], V2(GetLocalPosition(SongColumn->Play[It]).x, YOff));
+            YDown = -CurSlotHeight; // First iteration 0, after that, the actual YDown we want.
         }
     }
+    
+    ProcessWindowResizeForDisplayColumn(&GS->Renderer, &GS->MusicInfo, &SongColumn->Base);
+    
 }
 
 inline r32
@@ -193,23 +234,22 @@ OnSongAddPressed(void *Data)
 inline void
 CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
 {
+    layout_definition *Layout = &GlobalGameState.Layout;
     u32 ButtonID = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
-    
     color_palette *Palette = &SongColumn->Base.Base->ColorPalette;
-    
     r32 Z = SongColumn->Base.ZValue - 0.01f;
     
-    r32 HalfSize = GlobalGameState.Layout.AddButtonExtents;
+    r32 HalfSize = Layout->AddButtonExtents;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
     SongColumn->Play[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
                                      SongColumn->Base.SlotBGs[ID]);
-    Translate(SongColumn->Play[ID], V2(0, GlobalGameState.Layout.SongPlayButtonYOffset));
+    Translate(SongColumn->Play[ID], V2(0, GetSongButtonYOffset(Layout)));
     SongColumn->PlayBtnData[ID] = {ID, &GlobalGameState};
     SongColumn->Play[ID]->OnPressed = {OnSongPlayPressed, &SongColumn->PlayBtnData[ID]};
     
     SongColumn->Add[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, SongColumn->AddGLID, 
                                     Renderer->ButtonColors, SongColumn->Play[ID]->Entry);
-    Translate(SongColumn->Add[ID], V2(HalfSize*2+GlobalGameState.Layout.TopLeftButtonGroupGap, 0));
+    Translate(SongColumn->Add[ID], V2(HalfSize*2 + Layout->TopLeftButtonGroupGap, 0));
     
     SongColumn->Add[ID]->OnPressed = {OnSongAddPressed, &SongColumn->PlayBtnData[ID]};
 }
@@ -505,16 +545,9 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     else DisplayColumn->TopBorder = DisplayInfo->EdgeTop;
     // NOTE:: Right and bottom border is a slider, therefore set later in procedure
     
+    DisplayColumn->TextX = Layout->SmallTextLeftBorder;
     if(Type == columnType_Song) 
-    {
-        DisplayColumn->SlotHeight_ = Layout->SongSlotHeight;
-        DisplayColumn->TextX       = Layout->BigTextLeftBorder;
-    }
-    else
-    {
-        DisplayColumn->SlotHeight_ = Layout->SlotHeight;
-        DisplayColumn->TextX       = Layout->SmallTextLeftBorder;
-    }
+        DisplayColumn->TextX = Layout->BigTextLeftBorder;
     
     // Creating horizontal slider 
     r32 SliderHoriHeight = Layout->HorizontalSliderHeight;
@@ -527,10 +560,8 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
         CreateRenderRect(Renderer, {BottomLeft, BottomLeft+V2(DisplayColumn->SlotWidth, SliderHoriHeight)},
                          DisplayColumn->ZValue-0.03f, 0, ColumnColors.SliderBG);
     
-    DisplayColumn->SliderHorizontal.GrabThing  = 
-        CreateRenderRect(Renderer, { BottomLeft+V2(0, InsetHori), 
-                             BottomLeft+V2(DisplayColumn->SlotWidth, SliderHoriHeight-InsetHori)
-                         }, DisplayColumn->ZValue-0.031f, 0, ColumnColors.SliderGrabThing);
+    rect GrabThingRect = {BottomLeft+V2(0, InsetHori), BottomLeft+V2(DisplayColumn->SlotWidth, SliderHoriHeight-InsetHori)};
+    DisplayColumn->SliderHorizontal.GrabThing  = CreateRenderRect(Renderer, GrabThingRect, DisplayColumn->ZValue-0.031f, 0, ColumnColors.SliderGrabThing);
     
     
     DisplayColumn->BottomBorder = DisplayColumn->SliderHorizontal.Background;
@@ -563,7 +594,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y-GetSize(DisplayColumn->TopBorder).y/2.0f-
         SlotHeight(DisplayColumn)/2.0f;
     SetPosition(DisplayColumn->SlotBGAnchor, V2(0, AnchorY));
-    DisplayColumn->SlotBGAnchorScreenID = TranslateWithScreen(&Renderer->TransformList, DisplayColumn->SlotBGAnchor, fixedTo_Top);
+    TranslateWithScreen(&Renderer->TransformList, DisplayColumn->SlotBGAnchor, fixedTo_Top);
     
     entry_id *Parent = DisplayColumn->SlotBGAnchor;
     For(DisplayColumn->Count)
@@ -597,45 +628,6 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
                                                         &DisplayColumn->Base->ColorPalette.Foreground);
     
     DisplayColumn->Search = CreateSearchBar(ColumnInfo, Arena, DisplayColumn->BetweenSliderRect, Layout);
-}
-
-internal void
-ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
-{
-    layout_definition *Layout = &GlobalGameState.Layout;
-    for(u32 It = 0;
-        It < DisplayColumn->Count &&
-        It < DisplayableCount; 
-        ++It)
-    {
-        
-        //r32 TextX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x/2 + DisplayColumn->TextX;
-        r32 TextX = GetXTextPosition(DisplayColumn->SlotBGs[It], DisplayColumn->TextX);
-        if(DisplayColumn->Type == columnType_Song)
-        {
-            SetPositionX(ColumnExt(DisplayColumn)->SongTitle+It,  TextX+Layout->SongXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongArtist+It, TextX+Layout->SongXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongAlbum+It,  TextX+Layout->SongAlbumXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongTrack+It,  TextX+Layout->SongTrackXOffset);
-            SetPositionX(ColumnExt(DisplayColumn)->SongYear+It,   TextX+Layout->SongXOffset);
-            
-            SetActive(ColumnExt(DisplayColumn)->SongTitle+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongArtist+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongAlbum+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongGenre+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongTrack+It, true);
-            SetActive(ColumnExt(DisplayColumn)->SongYear+It, true);
-            
-            r32 NewBtnX = GetPosition(DisplayColumn->LeftBorder).x;
-            SetPositionX(ColumnExt(DisplayColumn)->Play[It]->Entry, NewBtnX+Layout->SongPlayButtonXOffset);
-            SetSongButtonsActive(ColumnExt(DisplayColumn), It, true);
-        }
-        else
-        {
-            SetPositionX(DisplayColumn->SlotText+It, TextX);
-            SetActive(DisplayColumn->SlotText+It, true);
-        }
-    }
 }
 
 internal r32
@@ -748,23 +740,6 @@ UpdateOnHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, 
                              render_text *Text)
 {
     Translate(&Text[It], {TranslationX, 0});
-    /*
- NOTE:: This is not needed anymore, as we have now glScissor!
-    
-if(Text[It].Count > 0) 
-    {
-        For(Text[It].Count, Letter)
-        {
-            v2 TextT = GetPosition(&Text[It], LetterIt);
-            v2 TextP = TextT-V2(3,0);
-            r32 Overhang = DistanceToRectEdge(DisplayColumn->SlotBGs[It], TextP);
-            
-            render_entry *Letter = Text[It].RenderEntries+LetterIt;
-            if(Overhang > 0)         Letter->Render = false;
-            else if(!Letter->Render) Letter->Render = true;
-            else                     break;
-        }
-    }*/
 }
 
 internal void
@@ -781,16 +756,6 @@ SongHorizontalSliderDrag(renderer *Renderer, display_column *DisplayColumn, r32 
     
     // Update song buttons
     Translate(Song->Play[It], V2(TranslationX, 0));
-    /*
-NOTE:: This is not needed anymore, as we have now glScissor!
-
-    r32 Overhang = WidthBetweenRects(DisplayColumn->LeftBorder, Song->Play[It]->Entry);
-    b32 RenderButton = Overhang == 0 || (GetPosition(Song->Play[It]->Entry).x < GetPosition(DisplayColumn->LeftBorder).x);
-    SetActive(Song->Play[It], !RenderButton);
-    
-    Overhang = WidthBetweenRects(DisplayColumn->LeftBorder, Song->Add[It]->Entry);
-    RenderButton = Overhang == 0 || (GetPosition(Song->Add[It]->Entry).x < GetPosition(DisplayColumn->LeftBorder).x);
-    SetActive(Song->Add[It], !RenderButton);*/
 }
 
 internal void
@@ -812,7 +777,6 @@ OnHorizontalSliderDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable
     
     r32 TranslationPercent = SafeDiv(1.0f, Slider->MaxSlidePix*2)*(OldX-NewX);
     r32 TranslationPix = TranslationPercent*DisplayColumn->SlotWidth*(Slider->OverhangP-1);
-    // TODO:: The first visible letter needs to be squashed according to its overhang!
     for(u32 It = 0;
         It < DisplayColumn->Count && 
         It < DisplayableCount;
@@ -1151,6 +1115,66 @@ ChangeDisplayColumnCount(renderer *Renderer, display_column *DisplayColumn, u32 
     DisplayColumn->Count = NewCount;
 }
 
+inline r32
+GetYearWidth(display_column_song *SongColumn)
+{
+    r32 Result = 0;
+    For(SongColumn->Base.Count)
+    {
+        if(SongColumn->SongYear[It].Count == 6) // "2006 |" -> 6 Characters
+        {
+            Result = SongColumn->SongYear[It].Extends.x;
+            break;
+        }
+    }
+    
+    return Result;
+}
+
+internal void
+ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
+{
+    layout_definition *Layout = &GlobalGameState.Layout;
+    r32 YearX = (DisplayColumn->Type == columnType_Song) ? GetYearWidth(ColumnExt(DisplayColumn)) : -1;
+    
+    for(u32 It = 0;
+        It < DisplayColumn->Count &&
+        It < DisplayableCount; 
+        ++It)
+    {
+        
+        //r32 TextX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x/2 + DisplayColumn->TextX;
+        r32 TextX = GetXTextPosition(DisplayColumn->SlotBGs[It], DisplayColumn->TextX);
+        if(DisplayColumn->Type == columnType_Song)
+        {
+            display_column_song *SongColumn = ColumnExt(DisplayColumn);
+            
+            SetPositionX(SongColumn->SongTitle+It,  TextX+Layout->SongXOffset);
+            SetPositionX(SongColumn->SongArtist+It, TextX+Layout->SongXOffset);
+            SetPositionX(SongColumn->SongTrack+It,  TextX+Layout->SongTrackXOffset);
+            SetPositionX(SongColumn->SongYear+It,   TextX+Layout->SongXOffset);
+            r32 YearRightX = GetPosition(SongColumn->SongYear[It].Base).x + YearX*Layout->SongAlbumXOffPercent;
+            SetPositionX(SongColumn->SongAlbum+It,  YearRightX);
+            
+            SetActive(SongColumn->SongTitle+It, true);
+            SetActive(SongColumn->SongArtist+It, true);
+            SetActive(SongColumn->SongAlbum+It, true);
+            SetActive(SongColumn->SongGenre+It, true);
+            SetActive(SongColumn->SongTrack+It, true);
+            SetActive(SongColumn->SongYear+It, true);
+            
+            r32 NewBtnX = GetPosition(DisplayColumn->LeftBorder).x;
+            SetPositionX(SongColumn->Play[It]->Entry, NewBtnX+Layout->SongPlayButtonXOffset);
+            SetSongButtonsActive(SongColumn, It, true);
+        }
+        else
+        {
+            SetPositionX(DisplayColumn->SlotText+It, TextX);
+            SetActive(DisplayColumn->SlotText+It, true);
+        }
+    }
+}
+
 inline void
 RemoveSongText(display_column *DisplayColumn, u32 ID)
 {
@@ -1171,42 +1195,42 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
     display_column_song *SongColumn = ColumnExt(DisplayColumn);
     mp3_metadata *MD   = GetMetadata(PlaylistColumn, SongColumn->FileInfo, NextID);
     
-    v2 SongP = {Layout->SongXOffset, Layout->SongFirstRowYOffset};
+    v2 SongP = {Layout->SongXOffset, GetSongRow1YOffset(Layout)};
     RenderText(&GlobalGameState, font_Medium, &MD->Title, DisplayColumn->Colors.Text,
                SongColumn->SongTitle+ID, -0.12001f, DisplayColumn->SlotBGs[ID], SongP);
     SetScissor(SongColumn->SongTitle+ID, DisplayColumn->Background);
     
     if(!SongColumn->IsSmallMode)
     {
-        v2 AlbumP = {Layout->SongAlbumXOffset, Layout->SongSecondRowYOffset}; 
-        RenderText(&GlobalGameState, font_Small, &MD->Album, DisplayColumn->Colors.Text,
-                   SongColumn->SongAlbum+ID, -0.12f, DisplayColumn->SlotBGs[ID], AlbumP);
-        SetScissor(SongColumn->SongAlbum+ID, DisplayColumn->Background);
-        
-        v2 ArtistP = {Layout->SongXOffset, Layout->SongThirdRowYOffset};
-        RenderText(&GlobalGameState, font_Small, &MD->Artist, DisplayColumn->Colors.Text,
-                   SongColumn->SongArtist+ID, -0.12f, DisplayColumn->SlotBGs[ID], ArtistP);
-        SetScissor(SongColumn->SongArtist+ID, DisplayColumn->Background);
-        
-        v2 TrackP = {Layout->SongTrackXOffset, Layout->SongFirstRowYOffset};
-        RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, SongColumn->SongTrack+ID, -0.12f, 
-                   DisplayColumn->SlotBGs[ID], TrackP);
-        SetScissor(SongColumn->SongTrack+ID, DisplayColumn->Background);
-        
         string_c YearAddon = NewStringCompound(&GlobalGameState.ScratchArena, 10);
         string_c Addon = NewStaticStringCompound(" |");
         if(MD->YearString.Pos < 4) 
         {
-            string_c FakeYear = NewStaticStringCompound("   --  ");
-            ConcatStringCompounds(3, &YearAddon, &FakeYear, &Addon);
+            string_c FakeYear = NewStaticStringCompound(" ");
+            //ConcatStringCompounds(3, &YearAddon, &FakeYear, &Addon);
+            CopyIntoCompound(&YearAddon, &FakeYear);
         }
         else if(MD->YearString.Pos > 4);
         else ConcatStringCompounds(3, &YearAddon, &MD->YearString, &Addon);
-        
-        v2 YearP = {Layout->SongXOffset, Layout->SongSecondRowYOffset};
+        v2 YearP = {Layout->SongXOffset, GetSongRow2YOffset(Layout)};
         RenderText(&GlobalGameState, font_Small, &YearAddon, DisplayColumn->Colors.Text,
                    SongColumn->SongYear+ID, -0.12f, DisplayColumn->SlotBGs[ID], YearP);
         SetScissor(SongColumn->SongYear+ID, DisplayColumn->Background);
+        
+        v2 AlbumP = {0, YearP.y}; 
+        RenderText(&GlobalGameState, font_Small, &MD->Album, DisplayColumn->Colors.Text,
+                   SongColumn->SongAlbum+ID, -0.12f, DisplayColumn->SlotBGs[ID], AlbumP);
+        SetScissor(SongColumn->SongAlbum+ID, DisplayColumn->Background);
+        
+        v2 ArtistP = {Layout->SongXOffset, GetSongRow3YOffset(Layout)};
+        RenderText(&GlobalGameState, font_Small, &MD->Artist, DisplayColumn->Colors.Text,
+                   SongColumn->SongArtist+ID, -0.12f, DisplayColumn->SlotBGs[ID], ArtistP);
+        SetScissor(SongColumn->SongArtist+ID, DisplayColumn->Background);
+        
+        v2 TrackP = {Layout->SongTrackXOffset, SongP.y};
+        RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, SongColumn->SongTrack+ID, -0.12f, 
+                   DisplayColumn->SlotBGs[ID], TrackP);
+        SetScissor(SongColumn->SongTrack+ID, DisplayColumn->Background);
         
         DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
     }
@@ -1258,7 +1282,8 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
                        DisplayColumn->SlotText+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->SlotBGs[It]);
             SetScissor(DisplayColumn->SlotText+It, DisplayColumn->Background);
             
-            Translate(DisplayColumn->SlotText+It, V2(0, GlobalGameState.Layout.SlotTextYOffset));
+            r32 CurrentOffsetY = GlobalGameState.Layout.SlotTextYOffPercent*GetFontSize(Renderer, font_Small).Size;
+            Translate(DisplayColumn->SlotText+It, V2(0, CurrentOffsetY));
             //CenterText(DisplayColumn->Text+It); // NOTE:: Use this to align ontext height
         }
         DisplayColumn->SlotIDs[It] = NextID;
@@ -1356,39 +1381,84 @@ KeepPlayingSongOnScreen(renderer *Renderer, music_info *MusicInfo)
 }
 
 internal void
+UpdateSlots(game_state *GS, display_column *DisplayColumn)
+{
+    v2 Dim = V2(DisplayColumn->SlotWidth, SlotHeight(DisplayColumn) - GS->Layout.SlotGap);
+    For(DisplayColumn->Count)
+    {
+        r32 YDown = (It > 0) ? -SlotHeight(DisplayColumn) : 0;
+        SetLocalPosition(DisplayColumn->SlotBGs[It], V2(0, YDown));
+        SetSize(DisplayColumn->SlotBGs[It], Dim);
+        if(DisplayColumn->Type == columnType_Song) 
+        {
+            display_column_song *SongColumn = ColumnExt(DisplayColumn);
+            r32 YOff = GetSongButtonYOffset(&GS->Layout);
+            SetLocalPosition(SongColumn->Play[It], V2(GetLocalPosition(SongColumn->Play[It]).x, YOff));
+        }
+    }
+}
+
+internal void
+ProcessEdgeDragOnResize(renderer *Renderer, music_display_info *DisplayInfo)
+{
+    r32 CWidth    = (r32)Renderer->Window.CurrentDim.Width;
+    r32 NewY      = CenterYBetweenRects(DisplayInfo->EdgeBottom, DisplayInfo->EdgeTop);
+    r32 NewHeight = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
+    
+    r32 NewXGenreArtist = CWidth*DisplayInfo->GenreArtist.XPercent;
+    SetPosition(DisplayInfo->GenreArtist.Edge, V2(NewXGenreArtist, NewY));
+    SetSize(DisplayInfo->GenreArtist.Edge, V2(GetSize(DisplayInfo->GenreArtist.Edge).x, NewHeight));
+    
+    r32 NewXArtistAlbum = CWidth*DisplayInfo->ArtistAlbum.XPercent;
+    SetPosition(DisplayInfo->ArtistAlbum.Edge, V2(NewXArtistAlbum, NewY));
+    SetSize(DisplayInfo->ArtistAlbum.Edge, V2(GetSize(DisplayInfo->ArtistAlbum.Edge).x, NewHeight));
+    
+    r32 NewXAlbumSong = CWidth*DisplayInfo->AlbumSong.XPercent;
+    SetPosition(DisplayInfo->AlbumSong.Edge, V2(NewXAlbumSong, NewY));
+    SetSize(DisplayInfo->AlbumSong.Edge, V2(GetSize(DisplayInfo->AlbumSong.Edge).x, NewHeight));
+    
+    r32 NewXPlaylistGenre = CWidth*DisplayInfo->PlaylistsGenre.XPercent;
+    SetPosition(DisplayInfo->PlaylistsGenre.Edge, V2(NewXPlaylistGenre, NewY));
+    SetSize(DisplayInfo->PlaylistsGenre.Edge, V2(GetSize(DisplayInfo->PlaylistsGenre.Edge).x, NewHeight));
+}
+
+internal void
 FitDisplayColumnIntoSlot(renderer *Renderer, display_column *DisplayColumn, u32 DisplayableCount)
 {
-    // Calc new column scale
+    // Calc new column scale.
     DisplayColumn->ColumnHeight = HeightBetweenRects(DisplayColumn->TopBorder, DisplayColumn->BottomBorder);
     DisplayColumn->SlotWidth    = /*4+*/WidthBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->RightBorder);
     
-    // Calc new column translation
+    // Calc new column translation.
     r32 CenterX = CenterXBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->RightBorder);
     r32 CenterY = CenterYBetweenRects(DisplayColumn->BottomBorder, DisplayColumn->TopBorder);
     
     SetSize(DisplayColumn->Background, V2(DisplayColumn->SlotWidth, DisplayColumn->ColumnHeight));
     SetLocalPosition(DisplayColumn->Background, V2(CenterX, CenterY));
     
-    // Calc slot and text positions
+    // Calc slot and text positions.
     SetPosition(DisplayColumn->SlotBGAnchor, V2(CenterX, GetPosition(DisplayColumn->SlotBGAnchor).y));
-    For(DisplayColumn->Count)
-    {
-        SetSize(DisplayColumn->SlotBGs[It], V2(DisplayColumn->SlotWidth, GetSize(DisplayColumn->SlotBGs[It]).y));
-    }
+    UpdateSlots(&GlobalGameState, DisplayColumn);
     ResetColumnText(DisplayColumn, DisplayableCount);
     
-    // Calc slider fit
+    // Calc slider fit.
     r32 BGSizeY = GetSize(DisplayColumn->SliderHorizontal.Background).y;
     r32 BGPosY  = GetLocalPosition(DisplayColumn->SliderHorizontal.Background).y;
     SetSize(DisplayColumn->SliderHorizontal.Background, V2(DisplayColumn->SlotWidth, BGSizeY));
     SetPosition(DisplayColumn->SliderHorizontal.Background, V2(CenterX, BGPosY));
     
     slider *VSlider = &DisplayColumn->SliderVertical;
-    r32 BGSizeX = GetSize(VSlider->Background).x;
-    SetSize(VSlider->Background, V2(BGSizeX, DisplayColumn->ColumnHeight));
+    SetSize(VSlider->Background, V2(GetSize(VSlider->Background).x, DisplayColumn->ColumnHeight));
     UpdateColumnVerticalSlider(DisplayColumn, DisplayableCount);
     
-    // Search bar
+    // Calc new position for search button rects.
+    v2 BetweenParentSize = GetSize(GetParent(DisplayColumn->BetweenSliderRect));
+    v2 BetweenSize       = GetSize(DisplayColumn->BetweenSliderRect);
+    r32 BetweenWidth  = BetweenParentSize.x*0.5f + BetweenSize.x*0.5f;
+    r32 BetweenHeight = BetweenParentSize.y*0.5f - BetweenSize.y*0.5f;
+    SetLocalPosition(DisplayColumn->BetweenSliderRect, V2(-BetweenWidth, -BetweenHeight));
+    
+    // Search bar.
     SetSize(DisplayColumn->Search.TextField.Background,
             V2(DisplayColumn->SlotWidth, GetSize(DisplayColumn->Search.TextField.Background).y)); // @Layout
     SetLocalPosition(DisplayColumn->Search.TextField.LeftAlign, V2(DisplayColumn->SlotWidth*-0.5f, 0));
@@ -1429,7 +1499,7 @@ ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info *MusicInfo, d
     // I do this to fix that if the column is at the bottom and the window gets bigger, the
     // slots will be stopped at the edge. Without this, the new visible slots will be the same
     // ID. See: #LastSlotOverflow in MoveDisplayColumn
-    drag_slider_data Data = { MusicInfo, DisplayColumn};
+    drag_slider_data Data = { MusicInfo, DisplayColumn };
     OnVerticalSliderDrag(Renderer, GetPosition(DisplayColumn->SliderVertical.GrabThing), 0, &Data);
 }
 
@@ -1499,42 +1569,6 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
     FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Album,     Playlist->Album.Displayable.A.Count);
     FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Song.Base, Playlist->Song.Displayable.A.Count);
     UpdateHorizontalSliders(Info->MusicInfo);
-}
-
-inline void
-SetBetweenSliderRectPosition(entry_id *BetweenRect, entry_id *EdgeDragEntry)
-{
-    v2 Pos0 = GetPosition(EdgeDragEntry) - GetSize(EdgeDragEntry)*0.5f;
-    Pos0 += HadamardProduct(GetSize(BetweenRect)*0.5f, V2(-1, 1));
-    SetPosition(BetweenRect, Pos0);
-}
-
-internal void
-ProcessEdgeDragOnResize(renderer *Renderer, music_display_info *DisplayInfo)
-{
-    r32 CWidth   = (r32)Renderer->Window.CurrentDim.Width;
-    r32 CurrentY = (r32)Renderer->Window.CurrentDim.Height*0.5f;
-    r32 FixedY   = (r32)Renderer->Window.FixedDim.Height*0.5f;
-    r32 NewYTranslation = CurrentY - FixedY;
-    
-    r32 NewXGenreArtist = CWidth*DisplayInfo->GenreArtist.XPercent;
-    SetPosition(DisplayInfo->GenreArtist.Edge, V2(NewXGenreArtist, DisplayInfo->GenreArtist.OriginalYHeight+NewYTranslation));
-    
-    r32 NewXArtistAlbum = CWidth*DisplayInfo->ArtistAlbum.XPercent;
-    SetPosition(DisplayInfo->ArtistAlbum.Edge, V2(NewXArtistAlbum, DisplayInfo->ArtistAlbum.OriginalYHeight+NewYTranslation));
-    
-    r32 NewXAlbumSong = CWidth*DisplayInfo->AlbumSong.XPercent;
-    SetPosition(DisplayInfo->AlbumSong.Edge, V2(NewXAlbumSong, DisplayInfo->AlbumSong.OriginalYHeight+NewYTranslation));
-    
-    r32 NewXPlaylistGenre = CWidth*DisplayInfo->PlaylistsGenre.XPercent;
-    SetPosition(DisplayInfo->PlaylistsGenre.Edge, V2(NewXPlaylistGenre, 
-                                                     DisplayInfo->PlaylistsGenre.OriginalYHeight+NewYTranslation));
-    
-    SetBetweenSliderRectPosition(DisplayInfo->Genre.BetweenSliderRect,     DisplayInfo->GenreArtist.Edge);
-    SetBetweenSliderRectPosition(DisplayInfo->Artist.BetweenSliderRect,    DisplayInfo->ArtistAlbum.Edge);
-    SetBetweenSliderRectPosition(DisplayInfo->Album.BetweenSliderRect,     DisplayInfo->AlbumSong.Edge);
-    SetBetweenSliderRectPosition(DisplayInfo->Song.Base.BetweenSliderRect, DisplayInfo->EdgeRight);
-    SetBetweenSliderRectPosition(DisplayInfo->Playlists.BetweenSliderRect, DisplayInfo->PlaylistsGenre.Edge);
 }
 
 inline void
@@ -1994,7 +2028,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     CreateBasicColorPalette(&DisplayInfo->ColorPalette);
     
     r32 TopBorder    = Layout->TopBorder;
-    r32 BottomBorder = Layout->BottomBorder;
+    r32 BottomBorder = GetBottomPanelHeight(Layout);
     r32 LeftBorder   = Layout->LeftBorder;
     r32 RightBorder  = Layout->RightBorder;
     
@@ -2206,16 +2240,14 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
         CreateRenderRect(Renderer, {{PlaylistsGenreX,BottomBorder},{PlaylistsGenreX+EdgeWidth,WHeight-TopBorder}},
                          -0.5f, 0, &Palette->Foreground);
     DisplayInfo->PlaylistsGenre.XPercent        = GetPosition(DisplayInfo->PlaylistsGenre.Edge).x/WWidth;
-    DisplayInfo->PlaylistsGenre.OriginalYHeight = GetPosition(DisplayInfo->PlaylistsGenre.Edge).y;
-    ScaleWithScreen(&Renderer->TransformList, DisplayInfo->PlaylistsGenre.Edge, scaleAxis_Y);
+    //ScaleWithScreen(&Renderer->TransformList, DisplayInfo->PlaylistsGenre.Edge, scaleAxis_Y);
     
     r32 GenreArtistX = Layout->GenreArtistXP*WWidth;
     DisplayInfo->GenreArtist.Edge = CreateRenderRect(Renderer, 
                                                      {{GenreArtistX,BottomBorder},{GenreArtistX+EdgeWidth,WHeight-TopBorder}},
                                                      -0.5f, 0, &Palette->Foreground);
     DisplayInfo->GenreArtist.XPercent        = GetPosition(DisplayInfo->GenreArtist.Edge).x/WWidth;
-    DisplayInfo->GenreArtist.OriginalYHeight = GetPosition(DisplayInfo->GenreArtist.Edge).y;
-    ScaleWithScreen(&Renderer->TransformList, DisplayInfo->GenreArtist.Edge, scaleAxis_Y);
+    //ScaleWithScreen(&Renderer->TransformList, DisplayInfo->GenreArtist.Edge, scaleAxis_Y);
     
     
     
@@ -2224,8 +2256,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
                                                      {{ArtistAlbumX,BottomBorder},{ArtistAlbumX+EdgeWidth,WHeight-TopBorder}}, 
                                                      -0.5f, 0, &Palette->Foreground);
     DisplayInfo->ArtistAlbum.XPercent        = GetPosition(DisplayInfo->ArtistAlbum.Edge).x/WWidth;
-    DisplayInfo->ArtistAlbum.OriginalYHeight = GetPosition(DisplayInfo->ArtistAlbum.Edge).y;
-    ScaleWithScreen(&Renderer->TransformList, DisplayInfo->ArtistAlbum.Edge, scaleAxis_Y);
+    //ScaleWithScreen(&Renderer->TransformList, DisplayInfo->ArtistAlbum.Edge, scaleAxis_Y);
     
     
     
@@ -2234,8 +2265,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
                                                      {{AlbumSongX,BottomBorder},{AlbumSongX+EdgeWidth,WHeight-TopBorder}},
                                                      -0.5f, 0, &Palette->Foreground);
     DisplayInfo->AlbumSong.XPercent        = GetPosition(DisplayInfo->AlbumSong.Edge).x/WWidth;
-    DisplayInfo->AlbumSong.OriginalYHeight = GetPosition(DisplayInfo->AlbumSong.Edge).y;
-    ScaleWithScreen(&Renderer->TransformList, DisplayInfo->AlbumSong.Edge, scaleAxis_Y);
+    //ScaleWithScreen(&Renderer->TransformList, DisplayInfo->AlbumSong.Edge, scaleAxis_Y);
     
     // PlaylistsUI extra stuff ****
     playlist_ui *PlaylistUI = &DisplayInfo->PlaylistUI;
@@ -2253,7 +2283,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 PanelYMin  = PanelYMax - Layout->PlaylistPanelHeight;
     PlaylistUI->Panel = CreateRenderRect(Renderer, {{LeftBorder,PanelYMin},{PlaylistsGenreX,PanelYMax}}, 
                                          PanelDepth, 0, &Palette->Slot);
-    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->Panel, fixedTo_TopLeft);
+    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->Panel, fixedTo_Top);
     
     PlaylistUI->PanelRightEdge = CreateRenderRect(Renderer, 
                                                   {{PlaylistsGenreX - Layout->VerticalSliderWidth,PanelYMin}, {PlaylistsGenreX,PanelYMax}}, 
@@ -2785,6 +2815,8 @@ internal void
 SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo)
 {
     game_state *GS = &GlobalGameState;
+    r32 SmallFontHeight  = GetFontSize(Renderer, font_Small).Size;
+    r32 MediumFontHeight = GetFontSize(Renderer, font_Medium).Size;
     
     RemoveRenderText(Renderer, &Panel->DurationText);
     RemoveRenderText(Renderer, &Panel->CurrentTimeText);
@@ -2795,8 +2827,8 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     RemoveRenderText(Renderer, &Panel->Year);
     RemoveRenderText(Renderer, &Panel->Track);
     
-    string_c MissingData = NewStaticStringCompound(" -- ");
-    string_c NoTime      = NewStaticStringCompound("00:00");
+    string_c Empty  = {};
+    string_c NoTime = NewStaticStringCompound("00:00");
     
     string_c DurationString = NewStringCompound(&GS->ScratchArena, 14);
     string_c *TitleString  = 0;
@@ -2818,18 +2850,19 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
         if(Metadata->Title.Pos == 0)  
             TitleString = GetSongFileName(&MusicInfo->Playlist_->Song, &Panel->MP3Info->FileInfo, PlaylistID);
         else                          TitleString  = &Metadata->Title;
-        if(Metadata->Artist.Pos == 0) ArtistString = &MissingData;
+        if(Metadata->Artist.Pos == 0) ArtistString = &Empty;
         else                          ArtistString = &Metadata->Artist;
-        if(Metadata->Album.Pos == 0)  AlbumString  = &MissingData;
+        if(Metadata->Album.Pos == 0)  AlbumString  = &Empty;
         else                          AlbumString  = &Metadata->Album;
-        if(Metadata->YearString.Pos == 0) YearString = &MissingData;
+        if(Metadata->YearString.Pos == 0 || Metadata->YearString.Pos > 4) // Larger 4 means garbage data.
+            YearString = &Empty;
         else                              YearString = &Metadata->YearString;
-        if(Metadata->Genre.Pos == 0)  GenreString  = &MissingData;
+        if(Metadata->Genre.Pos == 0)  GenreString  = &Empty;
         else                          GenreString  = &Metadata->Genre;
     }
     else
     {
-        TitleString = TrackString = ArtistString = AlbumString = YearString = GenreString = &MissingData;
+        TitleString = TrackString = ArtistString = AlbumString = YearString = GenreString = &Empty;
         CopyIntoCompound(&DurationString, &NoTime);
         Panel->SongDuration = 0;
     }
@@ -2837,43 +2870,56 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     v3 *TextColor = &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText;
     Panel->CurrentTime = 0;
     
+    r32 Depth = Layout->PanelTextDepth;
     r32 BaseTimeX = Layout->PlayPauseButtonX + Layout->PlayPauseButtonExtents + 
         Layout->LargeButtonExtents*2*3 + Layout->ButtonGap*4;
-    r32 BaseX = BaseTimeX + Layout->PlayingSongPanelXOffset;
-    r32 BaseY = Layout->PlayPauseButtonY + Layout->PlayingSongPanelBaseY;
+    r32 BaseX = BaseTimeX + Layout->PanelXOffset + Layout->PanelBaseX;
     
+    r32 TimeY = Layout->PanelBaseY + Layout->PlayPauseButtonY + SmallFontHeight*0.5f + Layout->DurationTimeTextYOffset;
     string_c CurrentTime = NewStaticStringCompound("00:00 |");
-    RenderText(GS, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, -0.6f, 0);
-    SetPosition(&Panel->CurrentTimeText, V2(BaseTimeX+Layout->CurrentTimeTextXOffset, 
-                                            BaseY+Layout->CurrentTimeTextYOffset));
+    RenderText(GS, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, Depth+0.01f, 0);
+    SetPosition(&Panel->CurrentTimeText, V2(BaseTimeX+Layout->CurrentTimeTextXOffset, TimeY));
     
-    RenderText(GS, font_Small, &DurationString, TextColor, &Panel->DurationText, -0.6f, 0);
-    SetPosition(&Panel->DurationText, V2(BaseTimeX + Layout->CurrentTimeTextXOffset + Layout->DurationTimeTextYOffset, 
-                                         BaseY + Layout->CurrentTimeTextYOffset));
+    r32 TimeX = GetPosition(Panel->CurrentTimeText.Base).x + Panel->CurrentTimeText.Extends.x + 
+        Layout->DurationTimeTextXOffset;
     
-    RenderText(GS, font_Medium, TitleString, TextColor, &Panel->Title, -0.61f, 0);
-    SetPosition(&Panel->Title, V2(BaseX + Layout->PlayingSongTextXOffset + Layout->PlayingSongTextTitleXOffset, 
-                                  BaseY + Layout->PlayingSongTextTitleYOffset));
+    RenderText(GS, font_Small, &DurationString, TextColor, &Panel->DurationText, Depth+0.01f, 0);
+    SetPosition(&Panel->DurationText, V2(TimeX, TimeY));
     
-    RenderText(GS, font_Small, TrackString, TextColor, &Panel->Track, -0.6f, 0);
-    SetPosition(&Panel->Track, V2(BaseX + Layout->PlayingSongTextXOffset, 
-                                  BaseY + Layout->PlayingSongTextTrackYOffset));
+    r32 RowY = Layout->PanelBaseY + SmallFontHeight*0.5f;
     
-    RenderText(GS, font_Small, ArtistString, TextColor, &Panel->Artist, -0.6f, 0);
-    SetPosition(&Panel->Artist, V2(BaseX + Layout->PlayingSongTextXOffset, 
-                                   BaseY + Layout->PlayingSongTextArtistYOffset));
+    RenderText(GS, font_Small, GenreString, TextColor, &Panel->Genre, Depth, 0);
+    SetPosition(&Panel->Genre, V2(BaseX, RowY));
     
-    RenderText(GS, font_Small, AlbumString, TextColor, &Panel->Album, -0.6f, 0);
-    SetPosition(&Panel->Album, V2(BaseX + Layout->PlayingSongTextXOffset + Layout->PlayingSongTextAlbumXOffset, 
-                                  BaseY + Layout->PlayingSongTextAlbumYOffset));
+    RowY += SmallFontHeight + Layout->PanelTextYOffset;
     
-    RenderText(GS, font_Small, YearString, TextColor, &Panel->Year, -0.6f, 0);
-    SetPosition(&Panel->Year, V2(BaseX + Layout->PlayingSongTextXOffset, 
-                                 BaseY + Layout->PlayingSongTextAlbumYOffset));
+    // #OffsetNullify To offset Layout->PanelTextAlbumXOffset on AlbumX if Panel->Year does not get set.
+    Panel->Year.Extends.x = Layout->PanelTextXOffset*-1;
+    RenderText(GS, font_Small, YearString, TextColor, &Panel->Year, Depth, 0);
+    SetPosition(&Panel->Year, V2(BaseX, RowY));
     
-    RenderText(GS, font_Small, GenreString, TextColor, &Panel->Genre, -0.6f, 0);
-    SetPosition(&Panel->Genre, V2(BaseX + Layout->PlayingSongTextXOffset, 
-                                  BaseY + Layout->PlayingSongTextGenreYOffset));
+    r32 AlbumX = GetPosition(Panel->Year.Base).x + Panel->Year.Extends.x + Layout->PanelTextXOffset;
+    
+    RenderText(GS, font_Small, AlbumString, TextColor, &Panel->Album, Depth, 0);
+    SetPosition(&Panel->Album, V2(AlbumX, RowY));
+    
+    RowY += SmallFontHeight + Layout->PanelTextYOffset;
+    
+    RenderText(GS, font_Small, ArtistString, TextColor, &Panel->Artist, Depth, 0);
+    SetPosition(&Panel->Artist, V2(BaseX, RowY));
+    
+    r32 RowSongY = RowY + SmallFontHeight*0.5f + MediumFontHeight*0.5f + Layout->PanelTextYOffset;
+    RowY += SmallFontHeight;
+    
+    // See #OffsetNullify.
+    Panel->Track.Extends.x = Layout->PanelTextXOffset*-1;
+    RenderText(GS, font_Small, TrackString, TextColor, &Panel->Track, Depth, 0);
+    SetPosition(&Panel->Track, V2(BaseX, RowY));
+    
+    r32 TitleX = GetPosition(Panel->Track.Base).x + Panel->Track.Extends.x + Layout->PanelTextXOffset;
+    
+    RenderText(GS, font_Medium, TitleString, TextColor, &Panel->Title, Depth-0.01f, 0);
+    SetPosition(&Panel->Title, V2(TitleX, RowSongY));
 }
 
 internal void
@@ -2885,12 +2931,12 @@ UpdatePanelTime(renderer *Renderer, playing_song_panel *Panel, layout_definition
     AppendStringToCompound(&Panel->CurrentTimeString, (u8 *)" |");
     
     RemoveRenderText(Renderer, &Panel->CurrentTimeText);
-    RenderText(&GlobalGameState, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, -0.6f, 0);
+    RenderText(&GlobalGameState, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, Layout->PanelTextDepth+0.01f, 0);
     
     r32 BaseX = Layout->PlayPauseButtonX+Layout->PlayPauseButtonExtents+Layout->LargeButtonExtents*2*3+Layout->ButtonGap*4;
-    r32 BaseY = Layout->PlayPauseButtonY + Layout->PlayingSongPanelBaseY;
-    SetPosition(&Panel->CurrentTimeText, V2(BaseX + Layout->CurrentTimeTextXOffset, 
-                                            BaseY + Layout->CurrentTimeTextYOffset));
+    r32 BaseY = Layout->PanelBaseY + Layout->PlayPauseButtonY;
+    r32 TimeY = BaseY + GetFontSize(Renderer, font_Small).Size*0.5f + Layout->DurationTimeTextYOffset;
+    SetPosition(&Panel->CurrentTimeText, V2(BaseX + Layout->CurrentTimeTextXOffset, TimeY));
 }
 
 internal void
@@ -3424,13 +3470,13 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                             if(DisplayColumn->Type != columnType_Song)
                             {
                                 Text = GetName(PlaylistColumn, SubSlot->SlotID);
-                                TextYOffset = GS->Layout.SlotTextYOffset;
+                                TextYOffset = GS->Layout.SlotTextYOffPercent*GetFontSize(&GS->Renderer, font_Small).Size;
                             }
                             else 
                             {
                                 FontSize = font_Medium;
                                 Text = &GetMetadata(PlaylistColumn, &GS->MP3Info->FileInfo, SubSlot->SlotID)->Title;
-                                TextYOffset = GS->Layout.SongFirstRowYOffset;
+                                TextYOffset = GetSongRow1YOffset(&GS->Layout);
                             }
                             RenderText(GS, FontSize, Text, DisplayColumn->Colors.Text, &SubSlot->SlotText, -0.9999f);
                             

@@ -57,7 +57,6 @@ struct font_group
     struct unicode_group *UnicodeGroup;
     codepoint_range CodepointRange;
     
-    string_c UsedFontPath;
     font_data FontDataForEachSize[font_size_id_Size];
 };
 
@@ -77,7 +76,7 @@ struct font_atlas
 
 inline font_atlas NewFontAtlas(struct settings *Settings, font_sizes FontSizes);
 internal void LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, 
-                        u8 *RawFontData, string_c FontPath, u32 *CodepointsFromGroup, u32 CodepointCount);
+                        u8 *RawFontData, /*string_c FontPath, */u32 *CodepointsFromGroup, u32 CodepointCount);
 internal void RenderText(struct game_state *GS, font_size_id FontSizeID, string_c *Text, 
                          v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent = 0, v2 StartP = {});
 internal u8 GetUTF8Decimal(u8 *S, u32 *Utf8Value);

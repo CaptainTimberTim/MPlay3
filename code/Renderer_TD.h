@@ -163,6 +163,8 @@ struct screen_transform_list
     entry_id   **Entries;
     v2         *FixToPosition; // Between 0-1
     v2         *OriginalPosition;
+    v2         *OriginalScale;
+    v2i        *OriginalDim;
     fixed_to   *DoTranslation;
     scale_axis *DoScale;
     u32 MaxCount;
@@ -170,6 +172,8 @@ struct screen_transform_list
     
     u32 OpenSlotCount;
     b32 *OpenSlots;
+    
+    struct renderer *Renderer;
 };
 
 #define START_RENDER_ENTRIES 12000
@@ -294,7 +298,7 @@ inline v2 ClampToRect(v2 Pos, entry_id *Entry);
 inline v2 ClampToRect(v2 Pos, rect_2D Rect);
 
 // Auto screen transform stuff
-inline screen_transform_list CreateScreenTransformList(arena_allocator *Arena, u32 Size = 128);
+inline screen_transform_list CreateScreenTransformList(renderer *Renderer, arena_allocator *Arena, u32 Size = 128);
 inline void RemoveFromTransformList(screen_transform_list *List, entry_id *Entry);
 inline u32 TranslateWithScreen(screen_transform_list *List, entry_id *Entry, fixed_to FixedTo, r32 FixToPosition = 0);
 inline u32 TranslateWithScreen(screen_transform_list *List, entry_id *Entry, fixed_to FixedTo, v2  FixToPosition);

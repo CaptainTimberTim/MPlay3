@@ -185,7 +185,11 @@ struct slider
 };
 
 inline void SetTransparency(slider *Slider, r32 Alpha);
+inline void Translate(slider *Slider, v2 T);
+inline void SetLocalPosition(slider *Slider, v2 T);
+inline v2 GetLocalPosition(slider *Slider);
 
+inline void SetActive(slider *Slider, b32 Activate);
 // quit curtain
 
 struct quit_animation

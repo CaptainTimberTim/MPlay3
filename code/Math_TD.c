@@ -1,5 +1,5 @@
 #include "Math_TD.h"
-// General
+/*// General
 
 inline void 
 MathPrintln(i32 A)
@@ -128,7 +128,7 @@ MathPrint(ray R)
     printf("Origin: %f, %f, %f, Direction: %f, %f, %f", 
            R.Origin.x, R.Origin.y, R.Origin.z, R.Direction.x, R.Direction.y, R.Direction.z);
 }
-
+*/
 // General Math
 
 inline i32 

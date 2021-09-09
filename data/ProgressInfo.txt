@@ -409,3 +409,26 @@
     - All currently drawn render_text's get recreated with new sizes.
     - Added Slot height based on font size.
     - Added resizing and positioning of slots when resizing font.
+
+22.08.2021
+- Fixed a bunch of scaling-alignment errors when resizing font. Now many things are based on font size.
+
+09.09.2021
+- Fixed BottomEdge resize. Now all things align properly when font resizing.
+- Fixed playing song panel text resizing.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

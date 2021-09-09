@@ -87,7 +87,6 @@ struct display_column
     struct music_display_info *Base;
     enum column_type Type;
     
-    r32 SlotHeight_;
     r32 SlotWidth;
     r32 ColumnHeight;
     u32 Count;
@@ -98,7 +97,6 @@ struct display_column
     r32 TextX;
     r32 DisplayCursor; // Y position in the total displayables
     entry_id *SlotBGAnchor; // Is only moved on resize, to be at the exact pos for the first BGRect.
-    u32 SlotBGAnchorScreenID; // Id for MoveWithScreen stuff.
     r32 ZValue;
     
     column_colors Colors;
@@ -143,13 +141,11 @@ struct display_column_song
     u32 AddGLID;
     
     b32 IsSmallMode;
-    r32 CachedBtnOffset;
-    r32 CachedRowOffset;
     
     struct mp3_file_info *FileInfo;
 };
-#define Parent(name) &(name)->Base
-#define ColumnExt(name)  ((display_column_song *)(name))
+#define Parent(name)    &(name)->Base
+#define ColumnExt(name) ((display_column_song *)(name))
 
 struct playing_song_panel
 {
@@ -175,7 +171,6 @@ struct drag_edge
 {
     entry_id *Edge;
     r32 XPercent;
-    r32 OriginalYHeight;
 };
 
 struct music_btn
@@ -402,7 +397,7 @@ struct layout_definition
     
     // Foreground Edges
     r32 TopBorder     = 50;
-    r32 BottomBorder  = 120;
+    r32 BottomBorder  = 122;
     r32 LeftBorder    = 24;
     r32 RightBorder   = 24;
     
@@ -421,8 +416,8 @@ struct layout_definition
     r32 VerticalSliderGrabThingBorder   =  2;
     
     // Slot
-    r32 SlotHeight     = 6;//30;
-    r32 SongSlotHeight = 76;//100;
+    r32 SlotHeight     = 6; //30;
+    r32 SongSlotHeight = 2; //100;
     r32 SlotGap        = 3;
     
     r32 SmallTextLeftBorder = 12;
@@ -434,16 +429,13 @@ struct layout_definition
     r32 FontSizeBig    = 75;
     
     // Column Text
-    r32 SongXOffset           =  92;
-    r32 SongAlbumXOffset      = (SongXOffset+70);
+    r32 SongXOffset           = 92;
+    r32 SongPlayButtonXOffset = 40;
     r32 SongTrackXOffset      = -18;
-    r32 SongPlayButtonXOffset =  40;
-    r32 SongPlayButtonYOffset = -22;
-    r32 SongFirstRowYOffset   =  32;
-    r32 SongSecondRowYOffset  = -8;
-    r32 SongThirdRowYOffset   = -33;
+    r32 SongAlbumXOffPercent  = 0.9f; // Percentage of Year extends.
     
-    r32 SlotTextYOffset       = 3;
+    r32 SongPlayYOffset       = 5;
+    r32 SlotTextYOffPercent   = 0.125f;
     
     // Search
     r32 SearchFieldHeight   = 50;
@@ -494,20 +486,15 @@ struct layout_definition
     r32 RescanButtonYOffset       = 55;
     
     // PlayingSongPanel
-    r32 PlayingSongPanelXOffset = -10;
-    r32 PlayingSongPanelBaseY   = 20;
+    r32 PanelXOffset = -10;
+    r32 PanelBaseY   = 10;
+    r32 PanelBaseX   = 440;
     r32 CurrentTimeTextXOffset  = 10;
-    r32 CurrentTimeTextYOffset  = 19;
-    r32 DurationTimeTextYOffset = 72;
-    
-    r32 PlayingSongTextXOffset       = 440;
-    r32 PlayingSongTextTitleYOffset  = 15;
-    r32 PlayingSongTextTitleXOffset  = 40;
-    r32 PlayingSongTextTrackYOffset  = 8;
-    r32 PlayingSongTextArtistYOffset = -20;
-    r32 PlayingSongTextAlbumYOffset  = -40;
-    r32 PlayingSongTextAlbumXOffset  = 60;
-    r32 PlayingSongTextGenreYOffset  = -60;
+    r32 DurationTimeTextYOffset = 15;
+    r32 DurationTimeTextXOffset = -8;
+    r32 PanelTextXOffset  = -8;
+    r32 PanelTextYOffset  = -4;
+    r32 PanelTextDepth    = -0.6f;
     
     // QuitCurtain
     r32 QuitCurtainAnimationTime       = 1;
@@ -536,8 +523,8 @@ internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *Playli
 internal void UpdateColumnVerticalSlider(display_column *DisplayColumn, u32 DisplayableCount);
 
 inline string_c GetRandomExitMessage(game_state *GS, string_c *Language = NULL);
-
-
+internal void ProcessEdgeDragOnResize(renderer *Renderer, music_display_info *DisplayInfo);
+internal void UpdateSlots(game_state *GS, display_column *DisplayColumn);
 
 
 

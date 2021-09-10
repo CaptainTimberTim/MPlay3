@@ -706,13 +706,15 @@ CreateQuitAnimation(quit_animation *Result, v2 Size, string_c *ClosingText, r32 
     RenderText(&GlobalGameState, FontSize, ClosingText, &DisplayInfo->ColorPalette.Text, 
                &Result->Text, Depth-0.0001f, 0);
     SetPosition(&Result->Text, Size/2.0f);
+    SetScissor(&Result->Text, Result->Curtain);
     SetActive(&Result->Text, false);
     
     if(BonusText)
     {
+        r32 FontHeight = GetFontSize(Renderer, font_Small).Size;
         RenderText(&GlobalGameState, font_Small, BonusText, &DisplayInfo->ColorPalette.Text, 
                    &Result->BonusText, Depth-0.0001f, 0);
-        SetPosition(&Result->BonusText, V2(0, Size.y - 45));
+        SetPosition(&Result->BonusText, V2(0, Size.y - FontHeight));
         SetActive(&Result->BonusText, false);
     }
     
@@ -764,8 +766,10 @@ QuitAnimation(quit_animation *Quit, r32 Dir, v2 Position, v2 Size)
             SetLocalPosition(Quit->Curtain, V2(Position.x, Position.y - CurrentHeight));
             SetPosition(&Quit->Text, V2(Position.x - Quit->Text.CurrentP.x/2.0f, Position.y - CurrentHeight));
             if(Quit->BonusText.MaxCount) 
-                SetPosition(&Quit->BonusText, V2(10, Position.y - CurrentHeight*2 + 20));
-            
+            {
+                r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Small).Size;
+                SetPosition(&Quit->BonusText, V2(10, Position.y - CurrentHeight*2 + FontHeight));
+            }
             SetTransparency(Quit->Curtain, Quit->dAnim/4.0f + 0.75f);
         }
     }

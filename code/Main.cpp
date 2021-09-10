@@ -68,6 +68,7 @@ global_variable i32 GlobalMinWindowHeight = 190;
 #include "Sound_Serialization.c"
 #include "UI_TD.c"
 #include "GameBasics_TD.c"
+#include "Sound_Settings.c"
 
 global_variable b32 IsRunning;
 HCURSOR ArrowCursor = 0;
@@ -779,10 +780,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             else                  OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
             ApplySettings(GameState, GameState->Settings);
             
-            // Color Picker *******************************
-            color_picker *ColorPicker = &GameState->ColorPicker;
-            CreateColorPicker(ColorPicker, V2i(500, 500));
-            SetActive(ColorPicker, false);
+            // Style settings and Color Picker *******************************
+            CreateStyleSettings(GameState, &GameState->StyleSettings);
+            SetActive(&GameState->StyleSettings, false);
             
             CreateShortcutPopups(DisplayInfo);
             // ********************************************
@@ -878,20 +878,20 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // *******************************************
                 GameState->ModeFlags = 0;
                 if(DisplayInfo->MusicPath.TextField.IsActive)    GameState->ModeFlags |= mode_MusicPath;
-                if(ColorPicker->IsActive)                        GameState->ModeFlags |= mode_ColorPicker;
+                if(GameState->StyleSettings.IsActive)            GameState->ModeFlags |= mode_StyleSettings;
                 if(IsSearchOpen(DisplayInfo))                    GameState->ModeFlags |= mode_Search;
                 if(DisplayInfo->PlaylistUI.RenameField.IsActive) GameState->ModeFlags |= mode_PLRename;
                 
                 if(IsActive(GameState, mode_MusicPath))
                 {
-                    if(IsActive(GameState, mode_ColorPicker))
+                    if(IsActive(GameState, mode_StyleSettings))
                     {
-                        OnCancelColorPicker(ColorPicker);
-                        GameState->ModeFlags &= ~mode_ColorPicker;
+                        OnCancelStyleSettings(&GameState->StyleSettings);
+                        GameState->ModeFlags &= ~mode_StyleSettings;
                     }
                 }
                 if(IsActive(GameState, mode_MusicPath) ||
-                   IsActive(GameState, mode_ColorPicker))
+                   IsActive(GameState, mode_StyleSettings))
                 {
                     if(IsActive(GameState, mode_Search))
                     {
@@ -900,7 +900,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     }
                 }
                 if(IsActive(GameState, mode_MusicPath)   ||
-                   IsActive(GameState, mode_ColorPicker) ||
+                   IsActive(GameState, mode_StyleSettings) ||
                    IsActive(GameState, mode_Search)) 
                 {
                     if(IsActive(GameState, mode_PLRename))
@@ -954,9 +954,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         // TODO:: Do not save when I directly exit from here
                         OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
                     }
-                    else if(IsActive(GameState, mode_ColorPicker))
+                    else if(IsActive(GameState, mode_StyleSettings))
                     {
-                        SetActive(ColorPicker, false);
+                        SetActive(&GameState->StyleSettings, false);
                     }
                     else if(IsActive(GameState, mode_Search))
                     {
@@ -1013,8 +1013,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 if(Input->KeyChange[KEY_F6] == KeyDown) UpdateColorPalette(DisplayInfo, true);
                 if(Input->KeyChange[KEY_F7] == KeyDown) 
                 {
-                    if(ColorPicker->IsActive) OnCancelColorPicker(ColorPicker);
-                    else OnColorPicker(ColorPicker);
+                    SetActive(&GameState->StyleSettings, !GameState->StyleSettings.IsActive);
                 }
                 if(Input->KeyChange[KEY_F8] == KeyDown) 
                 {
@@ -1042,7 +1041,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                         if(!OnDraggingStart(DragableList, Renderer, Input->MouseP))
                         {
-                            if(!IsActive(GameState, mode_ColorPicker)) 
+                            if(!IsActive(GameState, mode_StyleSettings)) 
                                 CheckSlotDragDrop(Input, GameState, &DisplayInfo->DragDrop);
                         }
                     }
@@ -1065,7 +1064,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                     }
                     
-                    if(!IsActive(GameState, mode_ColorPicker) || !IsInRect(ColorPicker->Background, Input->MouseP))
+                    if(!IsActive(GameState, mode_StyleSettings) || !IsInRect(GameState->StyleSettings.Background, Input->MouseP))
                     {
                         UpdateButtons(Renderer, Input);
                         
@@ -1097,9 +1096,9 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     //if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
                     
-                    if(IsActive(GameState, mode_ColorPicker))
+                    if(IsActive(GameState, mode_StyleSettings))
                     {
-                        HandleActiveColorPicker(ColorPicker);
+                        HandleActiveStyleSettings(&GameState->StyleSettings, Input);
                     }
                     else
                     {

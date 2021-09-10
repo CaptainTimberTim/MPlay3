@@ -85,6 +85,8 @@
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it!
+// - If we get closed while being very small, next start has no slots, and no way to create them!
+// - Rename visuals for playlist are broken.
 
 #include "Sound_UI_TD.h"
 

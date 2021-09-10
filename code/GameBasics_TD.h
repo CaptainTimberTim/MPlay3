@@ -5,71 +5,20 @@
 #include "Sound_Backend_TD.h"
 #include "Sound_Jobs.h"
 #include "Sound_Serialization.h"
+#include "Sound_Settings.h"
 
 enum mode_flags
 {
-    mode_MusicPath   = 1<<0,
-    mode_ColorPicker = 1<<1,
-    mode_Search      = 1<<2,
-    mode_PLRename    = 1<<3,
+    mode_MusicPath     = 1<<0,
+    mode_StyleSettings = 1<<1,
+    mode_Search        = 1<<2,
+    mode_PLRename      = 1<<3,
 };
 
 enum cursor_state
 {
     cursorState_Arrow,
     cursorState_Drag,
-};
-
-struct palette_color
-{
-    entry_id *Outline;
-    entry_id *Preview;
-    render_text Name;
-};
-
-struct color_picker
-{
-    b32 IsActive;
-    
-    loaded_bitmap Bitmap;
-    u32 GLID; 
-    entry_id *TextureEntry;
-    b32 IsPickingColor;
-    
-    slider ColorSpectrum;
-    render_text RGBText;
-    
-    entry_id *PickDot;
-    entry_id *InnerDot;
-    entry_id *InnerInnerDot;
-    v3 SelectedColor;
-    
-    entry_id *MoveNob;
-    b32 IsMoving;
-    v2 MoveOffset;
-    entry_id *Background;
-    v2 _BGOffset;
-    
-    palette_color PaletteColors[PALETTE_COLOR_AMOUNT];
-    u32 ActiveColor;
-    entry_id *ActiveColorBG;
-    u32 CurrentColorPaletteID;
-    text_field PaletteName;
-    
-    button *Cancel;
-    button *New;
-    button *Save;
-    button *Remove;
-    quit_animation NewAnim;
-    quit_animation SaveAnim;
-    quit_animation RemoveAnim;
-};
-
-enum color_picker_anim_btn
-{
-    colorPickerAnimBtn_New,
-    colorPickerAnimBtn_Save,
-    colorPickerAnimBtn_Remove
 };
 
 struct game_state
@@ -111,7 +60,7 @@ struct game_state
     crawl_thread CrawlInfo;
     check_music_path CheckMusicPath;
     
-    color_picker ColorPicker;
+    style_settings_window StyleSettings;
     
     user_error_text    UserErrorText;
     thread_error_list ThreadErrorList;
@@ -152,6 +101,3 @@ inline void _SnapTimer(u8 *Name);
 #define PauseTimer(n)
 #define SnapTimer(n)
 #endif
-
-// Color Picker
-inline void SetActive(color_picker *ColorPicker, b32 Activate);

@@ -185,10 +185,12 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
             entry_id *Parent      = RenderEntry->Parent;
             v2 StartP             = GetLocalPosition(RenderEntry->ID);
             b32 Rendering         = RenderEntry->Render;
+            entry_id *Scissor     = RenderEntry->Scissor;
             
             RemoveRenderText(&GS->Renderer, TextEntry);
             RenderText(GS, FontSize, &FontText, Color, TextEntry, Depth, Parent, StartP);
             SetActive(TextEntry, Rendering);
+            SetScissor(TextEntry, Scissor);
         }
     }
     

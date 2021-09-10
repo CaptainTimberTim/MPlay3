@@ -373,7 +373,7 @@ struct music_display_info
     button *Previous;
     button *Next;
     button *PaletteSwap;
-    button *ColorPicker;
+    button *StyleSettings;
     button *Help;
     shortcut_popups Popups;
     slider Volume;
@@ -505,7 +505,25 @@ struct layout_definition
     r32 ErrorMessageSmallTextY  = 12;
     r32 ErrorMessageMediumTextY = 13;
     r32 ErrorTextAnimationTime  = 2.5f;
+    
+    // Style settings window
+    r32 SettingsWindowDepth = -0.9f;
+    r32 SettingsWindowWidth  = 800;
+    r32 SettingsWindowHeight = 600;
+    r32 ColorPickerSpectrumWidth = 50;
+    r32 ColorPickerColorFieldSide = 500;
 };
+
+// For turning the raw data from EmbeddedResources into
+// a loaded_bitmap struct.
+#define NewBitmapData(name, colorFormat) \
+{1, \
+_Combine(name, _Width), \
+_Combine(name, _Height), \
+(u32 *)_Combine(name, _Data), \
+colorFormat, \
+ArrayCount(_Combine(name, _Data))\
+}
 
 inline void UpdateColumnColor(display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
 internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID);

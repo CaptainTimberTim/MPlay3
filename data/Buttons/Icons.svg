@@ -98,8 +98,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="16"
-     inkscape:cx="336.42513"
-     inkscape:cy="757.81663"
+     inkscape:cx="270.93601"
+     inkscape:cy="751.62072"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1539,5 +1539,57 @@
          d="m 87.449305,90.208235 v 5.463739 h -1.728818 v -5.463739 z"
          style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
     </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-1-8-5"
+       width="10.22306"
+       height="10.22306"
+       x="68.975586"
+       y="98.76619"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png" />
+    <g
+       id="g1116-7"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="matrix(0.6363359,-1.29252,-1.29252,-0.6363359,218.89488,256.57489)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png">
+      <path
+         sodipodi:nodetypes="cccccc"
+         inkscape:connector-curvature="0"
+         id="path1026-2"
+         d="m 49.925689,135.80839 1.074166,4.00884 0.6129,0.60298 0.24629,-0.8332 -1.074167,-4.00884 z"
+         style="fill:none;fill-opacity:1;stroke:#fefefe;stroke-width:0.34597173;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <rect
+         transform="rotate(-15)"
+         y="143.46341"
+         x="12.423921"
+         height="0.77977782"
+         width="2.1910808"
+         id="rect1028-6"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.36531347;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+      <rect
+         transform="rotate(-15)"
+         y="142.57944"
+         x="12.889329"
+         height="0.91275793"
+         width="1.260267"
+         id="rect1030-1"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.53602028;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.7434659px;line-height:1.25;font-family:'Great Vibes';-inkscape-font-specification:'Great Vibes';letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.14358665"
+       x="75.371429"
+       y="-100.22666"
+       id="text1030"
+       transform="scale(1,-1)"><tspan
+         sodipodi:role="line"
+         id="tspan1028"
+         x="75.371429"
+         y="-100.22666"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Adobe Arabic';-inkscape-font-specification:'Adobe Arabic';fill:#ffffff;fill-opacity:1;stroke-width:0.14358665">T</tspan></text>
   </g>
 </svg>

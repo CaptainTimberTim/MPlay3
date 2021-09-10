@@ -417,6 +417,9 @@
 - Fixed BottomEdge resize. Now all things align properly when font resizing.
 - Fixed playing song panel text resizing.
 
+10.09.2021
+- Fixed quit curtain language text alignment on resize.
+- Added scissoring for the quit curtain goodbye text.
 
 
 

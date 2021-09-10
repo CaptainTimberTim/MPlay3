@@ -190,7 +190,7 @@ internal void
 RemoveRenderEntry(renderer *Renderer, entry_id *EntryID)
 {
     render_entry_list *EntryList = &Renderer->RenderEntryList;
-    Assert(EntryID->ID >= 0);
+    Assert(EntryID->ID != 0);
     i32 EntryID_ID = GetEntryID_ID(Renderer, EntryID);
     if(!EntryList->OpenSlots[EntryID_ID])
     {
@@ -234,6 +234,7 @@ CreateRenderEntry(renderer *Renderer, v2 Size, r32 Depth, v2 Position = {}, entr
     Assert(EntryList->EntryCount < EntryList->MaxCount); // TODO:: Triggered after running app in the background for quite some time.
     
     render_entry *Entry = EntryList->Entries + EntryList->EntryCount;
+    *Entry = {};
     Entry->ID = Result;
     Result->ID = Entry;
     Result->UID = ++Renderer->UIDCounter;

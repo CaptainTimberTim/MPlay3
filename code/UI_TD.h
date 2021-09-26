@@ -187,9 +187,12 @@ struct slider
 inline void SetTransparency(slider *Slider, r32 Alpha);
 inline void Translate(slider *Slider, v2 T);
 inline void SetLocalPosition(slider *Slider, v2 T);
-inline v2 GetLocalPosition(slider *Slider);
-
+inline v2   GetLocalPosition(slider *Slider);
 inline void SetActive(slider *Slider, b32 Activate);
+
+internal void CreateSlider(game_state *GS, slider *Result, slider_axis Axis, rect BGRect, rect GrabRect, r32 Depth, b32 ShouldAutoDrag, entry_id *Parent = 0);
+internal void CreateSlider(game_state *GS, slider *Result, slider_axis Axis, v2 BGSize, v2 GrabSize, r32 Depth, loaded_bitmap BGBitmap, v3 *GrabColor, entry_id *Parent = 0);
+
 // quit curtain
 
 struct quit_animation

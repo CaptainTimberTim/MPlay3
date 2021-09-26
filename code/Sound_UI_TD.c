@@ -2331,18 +2331,20 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     Panel->MP3Info = MP3Info;
     Panel->CurrentTimeString = NewStringCompound(&GameState->FixArena, 10);
     
-    r32 TimelineX   = VolumeXEnd + Layout->TimelineXGap;
+    r32 TimelineX   = VolumeXEnd  + Layout->TimelineXGap;
     r32 TimelineGTY = (PlayPauseP.y - PlayPauseS);
-    Panel->Timeline.GrabThing  = 
-        CreateRenderRect(Renderer, {{TimelineX, TimelineGTY}, {TimelineX+Layout->TimelineGrapThingWidth, TimelineGTY+Layout->TimelineGrapThingHeight}}, BtnDepth - 0.0000001f, 0, &Palette->SliderGrabThing);
+    r32 TimelineY   = TimelineGTY + Layout->TimelineGrapThingHeight*0.5f;
     
-    r32 TimelineY = TimelineGTY + Layout->TimelineGrapThingHeight*0.5f;
-    Panel->Timeline.Background = 
-        CreateRenderRect(Renderer, {{TimelineX, TimelineY - Layout->TimelineHeight*0.5f}, 
-                             {TimelineX+Layout->TimelineWidth, TimelineY+Layout->TimelineHeight*0.5f}
-                         }, BtnDepth, 0, &Palette->SliderBackground);
+    rect TimelineBG = {
+        {TimelineX,                       TimelineY - Layout->TimelineHeight*0.5f}, 
+        {TimelineX+Layout->TimelineWidth, TimelineY + Layout->TimelineHeight*0.5f}
+    };
+    rect TimelineGrab = {
+        {TimelineX, TimelineGTY}, 
+        {TimelineX+Layout->TimelineGrapThingWidth, TimelineGTY+Layout->TimelineGrapThingHeight}
+    };
+    CreateSlider(GameState, &Panel->Timeline, sliderAxis_X, TimelineBG, TimelineGrab, BtnDepth, false);
     
-    Panel->Timeline.MaxSlidePix = GetExtends(Panel->Timeline.Background).x - GetExtends(Panel->Timeline.GrabThing).x;
     SetTheNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
     
     DisplayInfo->SearchIsActive = -1;
@@ -2527,7 +2529,7 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
                 Popups->IsHovering = true;
             }
             else 
-                if(IsOnButton(GS->StyleSettings.ColorPicker.Cancel, MouseP))
+                if(IsOnButton(GS->StyleSettings.Cancel, MouseP))
             {
                 if(Popups->ActiveText != 26) 
                     ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->CancelPicker, FontSize);

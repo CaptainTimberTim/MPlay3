@@ -507,11 +507,31 @@ struct layout_definition
     r32 ErrorTextAnimationTime  = 2.5f;
     
     // Style settings window
-    r32 SettingsWindowDepth = -0.9f;
-    r32 SettingsWindowWidth  = 800;
-    r32 SettingsWindowHeight = 600;
-    r32 ColorPickerSpectrumWidth = 50;
-    r32 ColorPickerColorFieldSide = 500;
+    r32 SettingsWindowDepth   = -0.9f;
+    r32 SettingsWindowWidth   = 900;
+    r32 SettingsWindowHeight  = 450;
+    r32 SettingsWindowMoveNob = 25;
+    
+    r32 ColorPickerOffsetX = -200;
+    r32 ColorPickerOffsetY = -25;
+    r32 ColorPickerSpectrumWidth = 30;
+    r32 ColorPickerColorFieldSide = 300;
+    r32 ColorPickerPaletteColorsGap = 6;
+    r32 ColorPickerColorOutline = 2;//29;
+    r32 ColorPickerButtonGapY = 4;
+    
+    r32 SmallFontMin = 10;
+    r32 SmallFontMax = 50;
+    r32 MediumFontMin = 10;
+    r32 MediumFontMax = 100;
+    
+    r32 FontSettingsOffsetX = 75;
+    r32 FontSettingsOffsetY = 150;
+    r32 FontSliderExtendsX  = 100;
+    r32 FontSliderExtendsY  = 12.5f;
+    r32 FontSliderGrabX     = 5;
+    r32 FontSliderGrabY     = 15;
+    r32 FontSizeSliderGap = 25;
 };
 
 // For turning the raw data from EmbeddedResources into

@@ -268,10 +268,10 @@ AddDragable(drag_list *DragList, entry_id *Entry,
             drag_func_pointer OnDragStart, drag_func_pointer OnDragging, drag_func_pointer OnDragEnd)
 {
     Assert(DragList->Count < DRAGABLE_MAX_COUNT);
-    DragList->IsActive[DragList->Count] = true;
-    DragList->Dragables[DragList->Count] = Entry;
+    DragList->IsActive[DragList->Count]    = true;
+    DragList->Dragables[DragList->Count]   = Entry;
     DragList->OnDragStart[DragList->Count] = OnDragStart;
-    DragList->OnDragging[DragList->Count] = OnDragging;
+    DragList->OnDragging[DragList->Count]  = OnDragging;
     DragList->OnDragEnd[DragList->Count++] = OnDragEnd;
 }
 
@@ -337,6 +337,15 @@ SetActiveAllButGiven(drag_list *DragList, entry_id *ID, b32 Activate)
     {
         if(ID->ID == DragList->Dragables[It]->ID) DragList->IsActive[It] = !Activate;
         else DragList->IsActive[It] = Activate;
+    }
+}
+
+inline void
+SetActive(drag_list *DragList, entry_id *ID, b32 Activate)
+{
+    For(DragList->Count) 
+    {
+        if(ID->ID == DragList->Dragables[It]->ID) DragList->IsActive[It] = Activate;
     }
 }
 
@@ -420,6 +429,7 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
                TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
     Translate(&TextField->Text, TextField->_FontOffset);
     SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0)); // @Layout
+    SetScissor(&TextField->Text, TextField->Background);
     
     if(TextField->TextString.Pos == 0)
     {
@@ -675,18 +685,38 @@ SetSliderPosition(slider *Slider, r32 Percentage)
 }
 
 internal void
-CreateSlider(slider *Result, renderer *Renderer, v2 BGSize, v2 GrabSize, r32 Depth, loaded_bitmap BGBitmap, 
-             v3 *GrabColor, slider_axis Axis, entry_id *Parent = 0)
+CreateSlider(game_state *GS, slider *Result, slider_axis Axis, v2 BGSize, v2 GrabSize, r32 Depth, loaded_bitmap BGBitmap, 
+             v3 *GrabColor, entry_id *Parent)
 {
     Result->Axis = Axis;
-    Result->Background = CreateRenderBitmap(Renderer, BGSize, Depth, Parent, CreateGLTexture(BGBitmap));
-    Result->GrabThing  = CreateRenderRect(Renderer, GrabSize, Depth-0.00001f, GrabColor, Result->Background);
+    Result->Background = CreateRenderBitmap(&GS->Renderer, BGSize, Depth, Parent, CreateGLTexture(BGBitmap));
+    Result->GrabThing  = CreateRenderRect(&GS->Renderer, GrabSize, Depth-0.00001f, GrabColor, Result->Background);
     Result->SlidePercentage = 0.5f;
     
     if(Axis == sliderAxis_Y) Result->MaxSlidePix = (BGSize.y-GrabSize.y)*0.5f;
     else Result->MaxSlidePix = (BGSize.x-GrabSize.x)*0.5f;
     
-    AddDragable(&GlobalGameState.DragableList, Result->Background, {OnSliderDragStart, Result}, {OnSliderDrag, Result}, {});
+    AddDragable(&GS->DragableList, Result->Background, {OnSliderDragStart, Result}, {OnSliderDrag, Result}, {});
+}
+
+internal void
+CreateSlider(game_state *GS, slider *Result, slider_axis Axis, rect BGRect, rect GrabRect, r32 Depth, b32 ShouldAutoDrag, entry_id *Parent)
+{
+    color_palette *Palette = &GS->MusicInfo.DisplayInfo.ColorPalette;
+    
+    Result->Axis = Axis;
+    Result->Background  = CreateRenderRect(&GS->Renderer, BGRect, Depth, Parent, &Palette->SliderBackground);
+    Result->GrabThing   = CreateRenderRect(&GS->Renderer, GrabRect, Depth - 0.0000001f, 
+                                           Parent ? Result->Background : NULL, // If we got parent, BG is GrabThingParent.
+                                           &Palette->SliderGrabThing);
+    
+    if(Axis == sliderAxis_Y) 
+        Result->MaxSlidePix = GetExtends(Result->Background).y - GetExtends(Result->GrabThing).y;
+    else                     
+        Result->MaxSlidePix = GetExtends(Result->Background).x - GetExtends(Result->GrabThing).x;
+    
+    if(ShouldAutoDrag) 
+        AddDragable(&GS->DragableList, Result->Background, {OnSliderDragStart, Result}, {OnSliderDrag, Result}, {});
 }
 
 

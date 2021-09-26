@@ -647,6 +647,11 @@ WinMain(HINSTANCE Instance,
             // ********************************************
             // FONT stuff *********************************
             // ********************************************
+            Renderer->FontSizes = {{
+                    {font_Small,  GameState->Layout.FontSizeSmall}, 
+                    {font_Medium, GameState->Layout.FontSizeMedium}, 
+                    {font_Big,    GameState->Layout.FontSizeBig}}, 3
+            };
             Renderer->FontAtlas = InitializeFont(GameState);
             
             /*
@@ -782,7 +787,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             
             // Style settings and Color Picker *******************************
             CreateStyleSettings(GameState, &GameState->StyleSettings);
-            SetActive(&GameState->StyleSettings, false);
+            SetActive(&GameState->StyleSettings, true);
             
             CreateShortcutPopups(DisplayInfo);
             // ********************************************
@@ -801,11 +806,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             //NewLocalString(TestError, 100, "Oh no, I have an error... Ok now I have to type until I reach 105!");
             //PushErrorMessage(GameState, TestError);
             //PushErrorMessage(GameState, {errorCode_EmptyFile, 27});
-            font_sizes FontSizes = {{
-                    {font_Small,  GameState->Layout.FontSizeSmall}, 
-                    {font_Medium, GameState->Layout.FontSizeMedium}, 
-                    {font_Big,    GameState->Layout.FontSizeBig}}, 3
-            };
             
             
             // ********************************************
@@ -928,19 +928,19 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     if(Input->Pressed[KEY_UP])
                     {
-                        FontSizes.Sizes[font_Small].Size  += 1;
-                        FontSizes.Sizes[font_Medium].Size += 1;
-                        FontSizes.Sizes[font_Big].Size    += 1;
-                        ChangeFontSizes(GameState, FontSizes);
+                        Renderer->FontSizes.Sizes[font_Small].Size  += 1;
+                        Renderer->FontSizes.Sizes[font_Medium].Size += 1;
+                        Renderer->FontSizes.Sizes[font_Big].Size    += 1;
+                        ChangeFontSizes(GameState, Renderer->FontSizes);
                     }
                     if(Input->Pressed[KEY_DOWN])
                     {
-                        if(FontSizes.Sizes[font_Small].Size > 1)
+                        if(Renderer->FontSizes.Sizes[font_Small].Size > 1)
                         {
-                            FontSizes.Sizes[font_Small].Size  -= 1;
-                            FontSizes.Sizes[font_Medium].Size -= 1;
-                            FontSizes.Sizes[font_Big].Size    -= 1;
-                            ChangeFontSizes(GameState, FontSizes);
+                            Renderer->FontSizes.Sizes[font_Small].Size  -= 1;
+                            Renderer->FontSizes.Sizes[font_Medium].Size -= 1;
+                            Renderer->FontSizes.Sizes[font_Big].Size    -= 1;
+                            ChangeFontSizes(GameState, Renderer->FontSizes);
                         }
                     }
                 }
@@ -1031,7 +1031,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 else 
                 {
                     Assert(!CrawlInfoOut.ThreadIsRunning);
-                    Assert(!DisplayInfo->MusicPath.TextField.IsActive);
                     
                     // Dragging stuff ******
                     b32 LeftMouseUpAndNoDragging = false;
@@ -1098,7 +1097,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     
                     if(IsActive(GameState, mode_StyleSettings))
                     {
-                        HandleActiveStyleSettings(&GameState->StyleSettings, Input);
+                        HandleActiveStyleSettings(GameState, &GameState->StyleSettings, Input);
                     }
                     else
                     {

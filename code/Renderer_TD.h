@@ -205,6 +205,7 @@ struct renderer
     
     window_info Window;
     
+    font_sizes FontSizes;
     font_atlas FontAtlas;
     button_group ButtonGroup;
     

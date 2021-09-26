@@ -420,9 +420,14 @@
 10.09.2021
 - Fixed quit curtain language text alignment on resize.
 - Added scissoring for the quit curtain goodbye text.
+- Added StyleSettings and embedded colorPicker in it.
 
+25.09.2021
+- Added sliders for changing small and medium fonts.
 
-
+26.09.2021
+- Cleanup of font slider, added slider text.
+- Added Active Font Textfield and activation button.
 
 
 

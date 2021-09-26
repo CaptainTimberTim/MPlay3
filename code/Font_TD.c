@@ -167,7 +167,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     // Secondly, recreate all existing render entries of type renderType_Text.
     render_entry_list *RenderList = &GS->Renderer.RenderEntryList;
-    
+#if 1
     u32 EntryCount = RenderList->EntryCount;
     For(EntryCount, Entry)
     {
@@ -193,7 +193,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
             SetScissor(TextEntry, Scissor);
         }
     }
-    
+#endif
     music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
     // Thirdly, the bottom panel and everything that depends on it.
     r32 BottomPanelHeight = GetBottomPanelHeight(&GS->Layout);
@@ -243,6 +243,8 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     PerformScreenTransform(&GS->Renderer);
     
     SetTheNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
+    
+    CreateColorPickerPaletteList(GS, &GS->StyleSettings.ColorPicker);
 }
 
 internal unicode_group *

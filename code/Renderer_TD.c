@@ -37,6 +37,15 @@ Rect(v2 Min, v2 Max)
     return Result;
 }
 
+inline rect
+Rect(rect_pe RectPE)
+{
+    rect Result;
+    Result.Min = RectPE.Pos - RectPE.Extends;
+    Result.Max = RectPE.Pos + RectPE.Extends;
+    return Result;
+}
+
 inline v2
 GetCenter(rect_2D Rect)
 {

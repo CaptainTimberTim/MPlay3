@@ -11,6 +11,7 @@
 // - loading metadata could be "interactive" and all songs already loaded be available already?
 // - adjust many sizes, text for example is too big imo. Which happened because of the bad rendering, which is now fixed.
 // - add some form of highlighting on the other columns, based on what songs are visible rn. 
+// - During metadata loading -> just show everything that is already crawled, live.
 
 // List of Tags to search for in the code:
 // - TODO::    , Stuff where I want to go and make something better later/clean it up/make it more save/etc.

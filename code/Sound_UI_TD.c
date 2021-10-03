@@ -1142,8 +1142,6 @@ ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
         It < DisplayableCount; 
         ++It)
     {
-        
-        //r32 TextX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x/2 + DisplayColumn->TextX;
         r32 TextX = GetXTextPosition(DisplayColumn->SlotBGs[It], DisplayColumn->TextX);
         if(DisplayColumn->Type == columnType_Song)
         {
@@ -1153,7 +1151,7 @@ ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
             SetPositionX(SongColumn->SongArtist+It, TextX+Layout->SongXOffset);
             SetPositionX(SongColumn->SongTrack+It,  TextX+Layout->SongTrackXOffset);
             SetPositionX(SongColumn->SongYear+It,   TextX+Layout->SongXOffset);
-            r32 YearRightX = GetPosition(SongColumn->SongYear[It].Base).x + YearX*Layout->SongAlbumXOffPercent;
+            r32 YearRightX = GetPosition(SongColumn->SongYear[It].Base).x + YearX + Layout->SongAlbumXOffset;
             SetPositionX(SongColumn->SongAlbum+It,  YearRightX);
             
             SetActive(SongColumn->SongTitle+It, true);

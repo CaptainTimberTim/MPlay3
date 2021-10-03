@@ -70,6 +70,7 @@
 //       changing all other text in the app.
 //          - Maybe not, and have the bottom panel scale up with the font size.
 //          - Then you would maybe need one smaller version of the buttons in the panel, so that the panel can get smaller.
+// - Add path vilidity to MusicPath stuff!
 
 // BUGS::
 // - color picker pops into original center. should at least be current center.

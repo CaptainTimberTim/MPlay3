@@ -56,6 +56,9 @@ inline b32 CompareStringCompounds(string_compound *S1, string_compound *S2);
 inline b32 CompareStringAndCompound(string_compound *Comp, u8 *S);
 inline b32 CompareStringAndCompound(string_compound *Comp, u8 *S, u32 StringCompareLength);
 
+inline b32 StringEndsWith(string_c S, string_c StringEnd);
+inline b32 StringStartsWith(string_c S, string_c StringEnd);
+
 inline void EatTrailingSpaces(string_c *S);
 inline void EatLeadingSpaces(string_c *S);
 inline void EatTrailingSpaces(u8 *S);
@@ -471,6 +474,40 @@ CompareStringAndCompound(string_compound *Comp, u8 *S, u32 StringCompareLength)
         S++;
     }
     
+    return Result;
+}
+
+inline b32 
+StringEndsWith(string_c S, string_c StringEnd)
+{
+    if(S.Pos < StringEnd.Pos) return false;
+    b32 Result = true;
+    
+    For(StringEnd.Pos)
+    {
+        if(S.S[S.Pos-StringEnd.Pos+It] != StringEnd.S[It])
+        {
+            Result = false;
+            break;
+        }
+    }
+    return Result;
+}
+
+inline b32 
+StringStartsWith(string_c S, string_c StringEnd)
+{
+    if(S.Pos < StringEnd.Pos) return false;
+    b32 Result = true;
+    
+    For(StringEnd.Pos)
+    {
+        if(S.S[It] != StringEnd.S[It])
+        {
+            Result = false;
+            break;
+        }
+    }
     return Result;
 }
 

@@ -432,7 +432,7 @@ struct layout_definition
     r32 SongXOffset           = 92;
     r32 SongPlayButtonXOffset = 40;
     r32 SongTrackXOffset      = -18;
-    r32 SongAlbumXOffPercent  = 0.9f; // Percentage of Year extends.
+    r32 SongAlbumXOffset      = 8;
     
     r32 SongPlayYOffset       = 5;
     r32 SlotTextYOffPercent   = 0.125f;
@@ -491,8 +491,8 @@ struct layout_definition
     r32 PanelBaseX   = 440;
     r32 CurrentTimeTextXOffset  = 10;
     r32 DurationTimeTextYOffset = 15;
-    r32 DurationTimeTextXOffset = -8;
-    r32 PanelTextXOffset  = -8;
+    r32 DurationTimeTextXOffset = 8;
+    r32 PanelTextXOffset  = 8;
     r32 PanelTextYOffset  = -4;
     r32 PanelTextDepth    = -0.6f;
     
@@ -509,8 +509,9 @@ struct layout_definition
     // Style settings window
     r32 SettingsWindowDepth   = -0.9f;
     r32 SettingsWindowWidth   = 900;
-    r32 SettingsWindowHeight  = 450;
-    r32 SettingsWindowMoveNob = 25;
+    r32 SettingsWindowHeight  = 475;
+    r32 SettingsWindowBorder  = 4;
+    r32 SettingsWindowBorderTop = 25;
     
     r32 ColorPickerOffsetX = -200;
     r32 ColorPickerOffsetY = -25;
@@ -519,6 +520,9 @@ struct layout_definition
     r32 ColorPickerPaletteColorsGap = 6;
     r32 ColorPickerColorOutline = 2;//29;
     r32 ColorPickerButtonGapY = 4;
+    
+    r32 PaletteNameFieldX = 500;
+    r32 PaletteNameFieldIndent = 10;
     
     r32 SmallFontMin = 10;
     r32 SmallFontMax = 50;

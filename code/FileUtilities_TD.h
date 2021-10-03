@@ -32,6 +32,10 @@ internal b32  ReadEndOfFile(arena_allocator *Arena, read_file_result *FileData, 
 
 internal b32  AppendToFile(arena_allocator *Arena, char *FileName, u32 MemorySize, void *Memory);
 
+internal b32 CheckPathValidity(arena_allocator *ScratchArena, string_c Path);
+internal b32 CheckPathValidity(arena_allocator *ScratchArena, string_c Path, i32 *FirstWrongCharPos);
+internal b32 CheckFileExists(arena_allocator *ScratchArena, string_c FilePath);
+
 // .obj loader methods
 
 

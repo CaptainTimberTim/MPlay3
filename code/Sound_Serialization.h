@@ -39,7 +39,7 @@ struct settings
 
 internal settings TryLoadSettingsFile(game_state *GameState);
 internal void SaveSettingsFile(game_state *GameState, settings *Settings);
-inline void   ApplySettings(game_state *GameState, settings Settings);
+inline   void ApplySettings(game_state *GameState, settings Settings);
 
 internal b32  ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheckFor, u32 *FileInfoCount);
 internal b32  CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare);

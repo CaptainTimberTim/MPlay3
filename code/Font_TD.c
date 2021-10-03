@@ -186,11 +186,13 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
             v2 StartP             = GetLocalPosition(RenderEntry->ID);
             b32 Rendering         = RenderEntry->Render;
             entry_id *Scissor     = RenderEntry->Scissor;
+            r32 Transparency      = TextEntry->RenderEntries[0].Transparency;
             
             RemoveRenderText(&GS->Renderer, TextEntry);
             RenderText(GS, FontSize, &FontText, Color, TextEntry, Depth, Parent, StartP);
             SetActive(TextEntry, Rendering);
             SetScissor(TextEntry, Scissor);
+            SetTransparency(TextEntry, Transparency);
         }
     }
 #endif
@@ -529,6 +531,9 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     ResultText->CurrentP = {};
     r32 DepthOffset = ZValue;
     
+    // entry_id *TestBase = CreateRenderRect(Renderer, V2(5,5), DepthOffset-0.00001f, Color, Parent);
+    // SetPosition(TestBase, StartP);
+    
     ResultText->Base = CreateRenderBitmap(Renderer, V2(0), DepthOffset, Parent, 0); // GLID can be 0, never used!
     SetPosition(ResultText->Base, StartP);
     ResultText->Base->ID->Type = renderType_Text;
@@ -611,8 +616,12 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     {
         entry_id FirstLetterID = {ResultText->RenderEntries+0, 0};
         entry_id LastLetterID  = {ResultText->RenderEntries+(ResultText->Count-1), 0};
-        ResultText->Extends.x  = ResultText->CurrentP.x + GetSize(&FirstLetterID).x + GetSize(&LastLetterID).x;
+        ResultText->Extends.x  = ResultText->CurrentP.x;
         ResultText->Extends.y  = Abs(TextHeight.E[0]) + Abs(TextHeight.E[1]);
+        
+        // entry_id *TestBase2 = CreateRenderRect(Renderer, V2(5,5), DepthOffset-0.00001f, Color, Parent);
+        // SetPosition(TestBase2, StartP + V2(ResultText->Extends.x, 0));
+        
     }
 }
 

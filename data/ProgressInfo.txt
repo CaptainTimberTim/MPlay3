@@ -429,6 +429,12 @@
 - Cleanup of font slider, added slider text.
 - Added Active Font Textfield and activation button.
 
+03.10.2021
+- Added TextField scrolling when the text would go off the right side of the field.
+- Fixed text width calculation. 
+- Fixed wrong text alignment that were based on the wrong text width.
+- Added Path validation to font pathing.
+- Added Saving and loading of given custom font.
 
 
 

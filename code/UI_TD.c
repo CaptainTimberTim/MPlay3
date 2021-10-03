@@ -366,7 +366,7 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
     Result.Background->ID->Render = false;
     Result.LeftAlign = CreateRenderRect(Renderer, V2(0), Result.ZValue-0.000001f, 
                                         TextColor, Result.Background);
-    SetLocalPosition(Result.LeftAlign, V2(-(Size.x-4)/2.0f, 0));
+    SetLocalPosition(Result.LeftAlign, V2(-Size.x*0.5f - 2, 0));
     
     // @Layout
     r32 CursorHeight = 0;
@@ -406,9 +406,12 @@ inline void
 SetActive(text_field *TextField, b32 MakeActive)
 {
     TextField->IsActive = MakeActive;
-    TextField->Background->ID->Render = MakeActive;
-    TextField->Cursor->ID->Render = MakeActive;
+    SetActive(TextField->Background, MakeActive);
     SetActive(&TextField->Text, MakeActive);
+    // This only ever needs to be deactivated as the
+    // active textfield will toggle it on/off itself.
+    // We just need to hide it.
+    SetActive(TextField->Cursor, false);
 }
 
 inline void 
@@ -428,8 +431,22 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
     RenderText(&GlobalGameState, TextField->FontSize, &TextField->TextString, 
                TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
     Translate(&TextField->Text, TextField->_FontOffset);
-    SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0)); // @Layout
     SetScissor(&TextField->Text, TextField->Background);
+    SetLocalPosition(TextField->Cursor, V2(TextField->Text.CurrentP.x + 10, 0)); // @Layout
+    
+    // Keep text _right_ aligned when it would move of the right side as you want to see the newest
+    // text you write.
+    v2 AlignPos = GetPosition(TextField->LeftAlign);
+    if(TextField->TextString.Pos > 0)
+    {
+        r32 FieldWidth = GetSize(TextField->Background).x;
+        r32 Overhang = TextField->Text.Extends.x - FieldWidth + TextField->_FontOffset.x;
+        if(Overhang > 0)
+        {
+            SetPositionX(&TextField->Text, AlignPos.x + TextField->_FontOffset.x - Overhang);
+            SetLocalPosition(TextField->Cursor, V2(FieldWidth, 0)); // @Layout
+        }
+    }
     
     if(TextField->TextString.Pos == 0)
     {
@@ -438,7 +455,9 @@ UpdateTextField(renderer *Renderer, text_field *TextField)
                    TextField->TextColor, &TextField->Text, TextField->ZValue-0.000001f, TextField->LeftAlign);
         SetTransparency(&TextField->Text, TextField->Transparency);
         Translate(&TextField->Text, TextField->_FontOffset);
+        SetScissor(&TextField->Text, TextField->Background);
     }
+    
 }
 
 internal text_field_flag_result

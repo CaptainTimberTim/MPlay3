@@ -470,3 +470,96 @@ OutputLastWindowsError()
         }
     }
 }
+
+internal b32
+CheckFileExists(arena_allocator *ScratchArena, string_c FilePath)
+{
+    if(FilePath.Pos == 0) return false;
+    
+    string_w WideFilePath = {};
+    ConvertString8To16(ScratchArena, &FilePath, &WideFilePath);
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WideFilePath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    
+    b32 Result = false;
+    if(FileHandle != INVALID_HANDLE_VALUE)
+    {
+        if(FileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ; // If directory, this is not valid!
+        else Result = true;
+    }
+    
+    return Result;
+}
+
+internal b32
+CheckPathValidity(arena_allocator *ScratchArena, string_c Path)
+{
+    if(Path.Pos == 0) return false;
+    
+    NewLocalString(StarPath, 260, Path.S);
+    if(Path.S[Path.Pos-1] == ':' || Path.S[Path.Pos-1] == '\\') 
+        AppendCharToCompound(&StarPath, '*');
+    
+    string_w WidePath = {};
+    ConvertString8To16(ScratchArena, &StarPath, &WidePath);
+    
+    WIN32_FIND_DATAW FileData = {};
+    HANDLE FileHandle = FindFirstFileExW(WidePath.S, 
+                                         FindExInfoBasic, 
+                                         &FileData, 
+                                         FindExSearchNameMatch, 
+                                         NULL, 
+                                         FIND_FIRST_EX_LARGE_FETCH);
+    
+    b32 Result = FileHandle != INVALID_HANDLE_VALUE;
+    return Result;
+}
+
+internal b32
+CheckPathValidity(arena_allocator *ScratchArena, string_c Path, i32 *FirstWrongCharPos)
+{
+    if(Path.Pos <= 1) return false; // Skip path length of 0 or 1, as we minimum want for example: 'C:' or '..'.
+    if(FirstWrongCharPos == NULL) return false;
+    Assert(Path.Pos <= 260);
+    
+    NewEmptyLocalString(StarPath, 260);
+    StarPath.S[0] = Path.S[0];
+    
+    b32 Result = true;
+    *FirstWrongCharPos = 0;
+    while(Result && *FirstWrongCharPos < (i32)Path.Pos)
+    {
+        StarPath.Pos = ++(*FirstWrongCharPos) + 1;
+        StarPath.S[*FirstWrongCharPos] = Path.S[*FirstWrongCharPos];
+        
+        AppendCharToCompound(&StarPath, '*');
+        
+        string_w WidePath = {};
+        ConvertString8To16(ScratchArena, &StarPath, &WidePath);
+        
+        WIN32_FIND_DATAW FileData = {};
+        HANDLE FileHandle = FindFirstFileExW(WidePath.S, 
+                                             FindExInfoBasic, 
+                                             &FileData, 
+                                             FindExSearchNameMatch, 
+                                             NULL, 
+                                             FIND_FIRST_EX_LARGE_FETCH);
+        
+        Result = FileHandle != INVALID_HANDLE_VALUE;
+        DeleteStringW(ScratchArena, &WidePath);
+    }
+    
+    // We handle the first two letters as a bundle. So when we fail _and_
+    // the Pos is at 1 we want the first letter to be false as well.
+    if(*FirstWrongCharPos == 1 && !Result) 
+        *FirstWrongCharPos = 0;
+    
+    return Result;
+}
+

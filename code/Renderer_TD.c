@@ -1167,6 +1167,15 @@ SetColor(render_text *Text, v3 *Color)
     }
 }
 
+inline void 
+SetColor(render_text *Text, v3 *Color, i32 StartPos)
+{
+    for(u32 It = StartPos; It < Text->Count; ++It)
+    {
+        Text->RenderEntries[It].Color = Color;
+    }
+}
+
 inline void
 CenterText(render_text *Text)
 {

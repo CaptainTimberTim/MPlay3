@@ -407,7 +407,6 @@ struct layout_definition
     r32 ArtistAlbumXP    = 0.50f;
     r32 AlbumSongXP      = 0.63f;
     
-    
     // Drag and slide
     r32 DragEdgeWidth                   =  8;
     r32 HorizontalSliderHeight          = 26;
@@ -487,7 +486,7 @@ struct layout_definition
     
     // PlayingSongPanel
     r32 PanelXOffset = -10;
-    r32 PanelBaseY   = 10;
+    r32 PanelBaseY   = 5;
     r32 PanelBaseX   = 440;
     r32 CurrentTimeTextXOffset  = 10;
     r32 DurationTimeTextYOffset = 15;
@@ -535,7 +534,7 @@ struct layout_definition
     r32 FontSliderExtendsY  = 12.5f;
     r32 FontSliderGrabX     = 5;
     r32 FontSliderGrabY     = 15;
-    r32 FontSizeSliderGap = 25;
+    r32 FontSizeSliderGap   = 5;
 };
 
 // For turning the raw data from EmbeddedResources into
@@ -558,7 +557,7 @@ internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *Mus
 internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn,
                                   playlist_column *PlaylistColumn, i32 ScrollAmount);
 internal void ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn, r32 ScrollAmount);
-internal void SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
+internal void SetNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
 
 
 internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, struct search_bar *Search, mp3_file_info *FileInfo = 0);

@@ -244,7 +244,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     PerformScreenTransform(&GS->Renderer);
     
-    SetTheNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
+    SetNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     
     CreateColorPickerPaletteList(GS, &GS->StyleSettings.ColorPicker);
 }
@@ -326,6 +326,15 @@ LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *
         //NewFontGroup->UsedFontPath = NewStringCompound(FixArena, 260);
         //CopyIntoCompound(&NewFontGroup->UsedFontPath, &FontPath);
         CreateAndWriteFontGroupTexture(FixArena, ScratchArena, NewFontGroup, Atlas->FontSizes, RawFontData);
+        
+        stbtt_fontinfo Font;
+        stbtt_InitFont(&Font, RawFontData, 0);
+        i32 Ascent, Descent, LineGap, RowGap;
+        stbtt_GetFontVMetrics(&Font, &Ascent, &Descent, &LineGap);
+        RowGap = Ascent + (Descent*-1) + LineGap;
+        
+        NewFontGroup->FontMetrics = {(r32)Ascent, (r32)Descent, (r32)LineGap, (r32)RowGap};
+        
     }
 }
 
@@ -531,8 +540,8 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     ResultText->CurrentP = {};
     r32 DepthOffset = ZValue;
     
-    // entry_id *TestBase = CreateRenderRect(Renderer, V2(5,5), DepthOffset-0.00001f, Color, Parent);
-    // SetPosition(TestBase, StartP);
+    //entry_id *TestBase = CreateRenderRect(Renderer, V2(5,5), DepthOffset-0.00001f, Color, Parent);
+    //SetPosition(TestBase, StartP);
     
     ResultText->Base = CreateRenderBitmap(Renderer, V2(0), DepthOffset, Parent, 0); // GLID can be 0, never used!
     SetPosition(ResultText->Base, StartP);
@@ -545,13 +554,8 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     u32 FontGroupStart       = FontGroup->CodepointRange.First;
     u32 FontGroupEnd         = FontGroup->CodepointRange.Last;
     
-    v2 TP = StartP;
-    stbtt_aligned_quad TestQ;
-    stbtt_GetPackedQuad(FontGroup->FontDataForEachSize[FontSize].CharData, FontGroup->BitmapWidth, FontGroup->BitmapHeight, 0, &TP.x, &TP.y, &TestQ, 0);
-    r32 NewBaseline = TestQ.y0;
-    r32 OldBaseline = TestQ.y1;
     
-    
+    r32 FontHeight = GetFontSize(Renderer, FontSize).Size;
     v2 BaseP = {};
     v2 TextHeight = {MAX_REAL32, MIN_REAL32};
     For(Text->Pos)
@@ -576,9 +580,10 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
             //DebugLog(255, "Switch to %s - %i\n", FontGroup->UnicodeGroup->Name.S, FontGroup->GLID);
         }
         
+        r32 FontScaleFactor = FontHeight/(FontGroup->FontMetrics.Ascent + FontGroup->FontMetrics.Descent*-1);
         if(NextChar == 10) // On '\n' we insert a newline
         {
-            ResultText->CurrentP = V2(0/*StartP.x*/, ResultText->CurrentP.y + (OldBaseline-NewBaseline)*1.5f);
+            ResultText->CurrentP = V2(0, ResultText->CurrentP.y + FontGroup->FontMetrics.RowGap*FontScaleFactor);
             continue;
         }
         u32 CharDataID = NextChar - FontGroupStart; // Map codepoint into array range.
@@ -587,18 +592,13 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
         stbtt_GetPackedQuad(FontGroup->FontDataForEachSize[FontSize].CharData, FontGroup->BitmapWidth, FontGroup->BitmapHeight, 
                             CharDataID, &ResultText->CurrentP.x, &ResultText->CurrentP.y, &A, 0);
         
-        rect Rect = {{A.x0, A.y0}, {A.x1, A.y1}};
+        rect Rect = {{A.x0, A.y1*-1}, {A.x1, A.y0*-1}}; // Switch Ascent/Descent as we draw inverse to stbtt.
         rect_pe RectPE = RectToRectPE(Rect);
         ResultText->RenderEntries[ResultText->Count] = CreateFontEntry(RectPE.Extends, DepthOffset, 
                                                                        FontGroup->GLID, Color, Parent);
         render_entry *Entry  = ResultText->RenderEntries+ResultText->Count++;
         entry_id EntryID = {Entry};
-        // Also adding user controlled height offset
-        SetLocalPosition(&EntryID, GetCenter(Rect) - V2(0, (r32)Atlas->HeightOffset*(FontSize+1)));
-        
-        r32 DistToBaseline = GetRect(&EntryID).Max.y - OldBaseline;
-        r32 BaselineOffset = GetRect(&EntryID).Min.y - NewBaseline;
-        Translate(&EntryID, V2(0, -(BaselineOffset + DistToBaseline)));
+        SetLocalPosition(&EntryID, GetCenter(Rect));
         
         Entry->TexCoords[0] = {A.s0, A.t1};
         Entry->TexCoords[1] = {A.s0, A.t0};
@@ -614,8 +614,6 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     }
     if(ResultText->Count > 0)
     {
-        entry_id FirstLetterID = {ResultText->RenderEntries+0, 0};
-        entry_id LastLetterID  = {ResultText->RenderEntries+(ResultText->Count-1), 0};
         ResultText->Extends.x  = ResultText->CurrentP.x;
         ResultText->Extends.y  = Abs(TextHeight.E[0]) + Abs(TextHeight.E[1]);
         
@@ -703,6 +701,7 @@ internal u8
 GetUTF8Decimal(u8 *S, u32 *Utf8Value)
 {
     u8 Result = 0;
+    if(S == NULL) return Result;
     
     if(IsPlaneOne(*S))
     {
@@ -829,7 +828,6 @@ FindAndLoadFontWithUnicodeCodepoint(arena_allocator *ScratchArena, raw_font *Sea
     return FoundMatchingFont;
 }
 
-
 inline font_size 
 GetFontSize(struct renderer *Renderer, font_size_id ID)
 {
@@ -837,6 +835,35 @@ GetFontSize(struct renderer *Renderer, font_size_id ID)
     return Result;
 }
 
+// These are pre-scaled for the given size.
+inline font_metrics
+GetFontMetrics(game_state *GS, font_size_id ID, string_c Text)
+{
+    u32 Codepoint = 0;
+    GetUTF8Decimal(Text.S, &Codepoint);
+    font_metrics Metrics =  GetFontGroup(GS, &GS->Renderer.FontAtlas, Codepoint)->FontMetrics;
+    r32 FontHeight   = GetFontSize(&GS->Renderer, ID).Size;
+    r32 ScaleFactor  = FontHeight/(Metrics.Ascent + Metrics.Descent*-1);
+    Metrics.Ascent  *= ScaleFactor;
+    Metrics.Descent *= ScaleFactor;
+    Metrics.LineGap *= ScaleFactor;
+    Metrics.RowGap  *= ScaleFactor;
+    return Metrics;
+}
+
+// These are pre-scaled for the given size.
+inline r32
+GetFontDescent(game_state *GS, font_size_id ID, string_c Text)
+{
+    return GetFontMetrics(GS, ID, Text).Descent;
+}
+
+// These are pre-scaled for the given size.
+inline r32
+GetFontAscent(game_state *GS, font_size_id ID, string_c Text)
+{
+    return GetFontMetrics(GS, ID, Text).Ascent;
+}
 
 // *****************************
 // Not used during runtime: ****

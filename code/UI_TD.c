@@ -370,18 +370,19 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
     
     // @Layout
     r32 CursorHeight = 0;
+    r32 Descent = GetFontDescent(&GlobalGameState, FontSize, Result.NoText);
     switch(FontSize) {
         case font_Small: {
             CursorHeight = GlobalGameState.Layout.FontSizeSmall;  
-            Result._FontOffset = V2(10, 4);
+            Result._FontOffset = V2(10, -Size.y*0.5f - Descent);
         } break;
         case font_Medium: {
             CursorHeight = GlobalGameState.Layout.FontSizeMedium; 
-            Result._FontOffset = V2(12, 10);
+            Result._FontOffset = V2(12, -Size.y*0.5f - Descent);
         } break;
         case font_Big: {
             CursorHeight = GlobalGameState.Layout.FontSizeBig;    
-            Result._FontOffset = V2(14, 14); // Untested!
+            Result._FontOffset = V2(14, -Size.y*0.5f - Descent);
         } break;
     }
     Result.Cursor = CreateRenderRect(Renderer, V2(2, CursorHeight), 
@@ -897,8 +898,9 @@ CreatePopup(renderer *Renderer, arena_allocator *Arena, popup *Result, string_c 
     Result->BG = CreateRenderRect(Renderer, Size+V2(40,0), Depth, &Renderer->ColorPalette->SliderGrabThing, Result->Anchor);
     SetLocalPosition(Result->BG, V2(Size.x + 40, -Size.y)/2.0f);
     
+    r32 Descent = GetFontDescent(&GlobalGameState, FontSize.ID, Text);
     SetParent(Result->Text.Base, Result->BG);
-    SetLocalPosition(&Result->Text, V2(-Size.x/2.0f, Size.y*0.2f));
+    SetLocalPosition(&Result->Text, V2(-Size.x/2.0f, -Size.y*0.5f - Descent));
     
     SetActive(Result->BG, false);
     SetActive(&Result->Text, false);
@@ -923,8 +925,9 @@ ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c Ne
                                  &Renderer->ColorPalette->SliderGrabThing, Popup->Anchor);
     SetLocalPosition(Popup->BG, V2(Size.x + 40, -Size.y)/2.0f);
     
+    r32 Descent = GetFontDescent(&GlobalGameState, FontSize.ID, NewText);
     SetParent(Popup->Text.Base, Popup->BG);
-    SetLocalPosition(&Popup->Text, V2(-Size.x/2.0f, Size.y*0.2f));
+    SetLocalPosition(&Popup->Text, V2(-Size.x/2.0f, -Size.y*0.5f - Descent));
     
     SetActive(Popup->BG, BGActive);
     SetActive(&Popup->Text, TextActive);

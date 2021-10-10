@@ -2417,7 +2417,7 @@ FinishChangeEntireSong(game_state *GS, playing_song *Song)
         GS->MusicInfo.PlayingSong.DisplayableID.ID = -1;
         GS->MusicInfo.PlayingSong.PlaylistID.ID = -1;
         GS->MusicInfo.PlayingSong.DecodeID = -1;
-        SetTheNewPlayingSong(&GS->Renderer, &GS->MusicInfo.DisplayInfo.PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
+        SetNewPlayingSong(&GS->Renderer, &GS->MusicInfo.DisplayInfo.PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     }
     else PushSongLoadingComplete(GlobalGameState.SoundThreadInterface, DInfo);
 }
@@ -2483,7 +2483,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
         PushSoundBufferClear(GameState->SoundThreadInterface);
     }
     
-    SetTheNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);
+    SetNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);
 }
 
 inline void

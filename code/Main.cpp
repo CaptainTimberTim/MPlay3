@@ -803,9 +803,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             // Test Area **********************************
             // ********************************************
             
-            //NewLocalString(TestError, 100, "Oh no, I have an error... Ok now I have to type until I reach 105!");
+            //NewLocalString(TestError, 100, "Oh no, I have an error... \nOk now I have to type until I reach 105!");
+            //NewLocalString(TestError, 100, "Oh no... \nOk now!");
             //PushErrorMessage(GameState, TestError);
             //PushErrorMessage(GameState, {errorCode_EmptyFile, 27});
+            
             
             
             // ********************************************
@@ -855,7 +857,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         AppendStringToCompound(&FPSComp, (u8 *)FPSString);
                         RemoveRenderText(Renderer, &FPSText);
                         RenderText(GameState, font_Small, &FPSComp,
-                                   &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent);
+                                   &DisplayInfo->ColorPalette.ForegroundText, &FPSText, -0.9999f, FPSParent, 
+                                   V2(0, -GetFontAscent(GameState, font_Small, FPSComp)));
                         DeleteStringCompound(&GameState->ScratchArena, &FPSComp);
                     }
                     else dUpdateRate += GameState->Time.dTime/0.1f;
@@ -1251,7 +1254,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             SongChangedIsCurrentlyDecoding = false;
                             FinishChangeSong(GameState, PlayingSong);
-                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
+                            SetNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                         }
                     }
                     else 
@@ -1267,7 +1270,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             SongChangedIsCurrentlyFullyDecoding = false;
                             FinishChangeEntireSong(GameState, PlayingSong);
-                            SetTheNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
+                            SetNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                         }
                     }
                     else SongChangedIsCurrentlyFullyDecoding = true;

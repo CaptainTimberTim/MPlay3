@@ -436,7 +436,10 @@
 - Added Path validation to font pathing.
 - Added Saving and loading of given custom font.
 
-
+10.10.2021
+- Fixed font placement, now finally using font metrics for alignment.
+- Realigned every text to fit the new 'format'.
+    - Now other fonts are better aligned than before.
 
 
 

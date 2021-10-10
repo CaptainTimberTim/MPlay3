@@ -81,29 +81,29 @@ GetSongButtonYOffset(layout_definition *Layout)
 }
 
 inline r32
-GetSongRow1YOffset(layout_definition *Layout)
+GetSongRow1YOffset(layout_definition *Layout, string_c Text)
 {
-    r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Medium).Size;
+    if(Text.Pos == 0) return 0;
+    r32 Ascent = GetFontAscent(&GlobalGameState, font_Medium, Text);
     r32 CurSlotHeight = SlotHeight(&GlobalGameState.MusicInfo.DisplayInfo.Song.Base);
-    r32 FontYOff = FontHeight*Layout->SlotTextYOffPercent;
-    return CurSlotHeight*0.5f - Layout->SlotGap*0.5f + FontYOff - FontHeight*0.5f;
+    return CurSlotHeight*0.5f - Layout->SlotGap - Ascent;
 }
 
 inline r32
-GetSongRow2YOffset(layout_definition *Layout)
+GetSongRow2YOffset(layout_definition *Layout, string_c Text)
 {
-    r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Small).Size;
-    r32 FontHeightMedium = GetFontSize(&GlobalGameState.Renderer, font_Medium).Size;
-    r32 FontYOff = FontHeight*Layout->SlotTextYOffPercent;
-    return GetSongRow1YOffset(Layout) - FontHeightMedium*0.5f - FontYOff - FontHeight*0.5f;
+    if(Text.Pos == 0) return 0;
+    r32 Descent = GetFontDescent(&GlobalGameState, font_Medium, Text);
+    r32 Ascent  = GetFontAscent(&GlobalGameState, font_Small, Text);
+    return GetSongRow1YOffset(Layout, Text) - Descent*-1 - Ascent + Layout->SlotGap;
 }
 
 inline r32
-GetSongRow3YOffset(layout_definition *Layout)
+GetSongRow3YOffset(layout_definition *Layout, string_c Text)
 {
-    r32 FontHeight = GetFontSize(&GlobalGameState.Renderer, font_Small).Size;
-    r32 FontYOff = FontHeight*Layout->SlotTextYOffPercent;
-    return GetSongRow2YOffset(Layout) - FontHeight + FontYOff;
+    if(Text.Pos == 0) return 0;
+    font_metrics Metrics  = GetFontMetrics(&GlobalGameState, font_Small, Text);
+    return GetSongRow2YOffset(Layout, Text) - Metrics.RowGap;
 }
 
 inline r32
@@ -1193,10 +1193,10 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
     display_column_song *SongColumn = ColumnExt(DisplayColumn);
     mp3_metadata *MD   = GetMetadata(PlaylistColumn, SongColumn->FileInfo, NextID);
     
-    v2 SongP = {Layout->SongXOffset, GetSongRow1YOffset(Layout)};
+    v2 SongP = {Layout->SongXOffset, GetSongRow1YOffset(Layout, MD->Title)};
     RenderText(&GlobalGameState, font_Medium, &MD->Title, DisplayColumn->Colors.Text,
                SongColumn->SongTitle+ID, -0.12001f, DisplayColumn->SlotBGs[ID], SongP);
-    SetScissor(SongColumn->SongTitle+ID, DisplayColumn->Background);
+    SetScissor(SongColumn->SongTitle+ID, DisplayColumn->SlotBGs[ID]);
     
     if(!SongColumn->IsSmallMode)
     {
@@ -1210,30 +1210,30 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
         }
         else if(MD->YearString.Pos > 4);
         else ConcatStringCompounds(3, &YearAddon, &MD->YearString, &Addon);
-        v2 YearP = {Layout->SongXOffset, GetSongRow2YOffset(Layout)};
+        v2 YearP = {Layout->SongXOffset, GetSongRow2YOffset(Layout, YearAddon)};
         RenderText(&GlobalGameState, font_Small, &YearAddon, DisplayColumn->Colors.Text,
                    SongColumn->SongYear+ID, -0.12f, DisplayColumn->SlotBGs[ID], YearP);
-        SetScissor(SongColumn->SongYear+ID, DisplayColumn->Background);
+        SetScissor(SongColumn->SongYear+ID, DisplayColumn->SlotBGs[ID]);
         
         v2 AlbumP = {0, YearP.y}; 
         RenderText(&GlobalGameState, font_Small, &MD->Album, DisplayColumn->Colors.Text,
                    SongColumn->SongAlbum+ID, -0.12f, DisplayColumn->SlotBGs[ID], AlbumP);
-        SetScissor(SongColumn->SongAlbum+ID, DisplayColumn->Background);
+        SetScissor(SongColumn->SongAlbum+ID, DisplayColumn->SlotBGs[ID]);
         
-        v2 ArtistP = {Layout->SongXOffset, GetSongRow3YOffset(Layout)};
+        v2 ArtistP = {Layout->SongXOffset, GetSongRow3YOffset(Layout, MD->Artist)};
         RenderText(&GlobalGameState, font_Small, &MD->Artist, DisplayColumn->Colors.Text,
                    SongColumn->SongArtist+ID, -0.12f, DisplayColumn->SlotBGs[ID], ArtistP);
-        SetScissor(SongColumn->SongArtist+ID, DisplayColumn->Background);
+        SetScissor(SongColumn->SongArtist+ID, DisplayColumn->SlotBGs[ID]);
         
         v2 TrackP = {Layout->SongTrackXOffset, SongP.y};
         RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, SongColumn->SongTrack+ID, -0.12f, 
                    DisplayColumn->SlotBGs[ID], TrackP);
-        SetScissor(SongColumn->SongTrack+ID, DisplayColumn->Background);
+        SetScissor(SongColumn->SongTrack+ID, DisplayColumn->SlotBGs[ID]);
         
         DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
     }
-    SetScissor(SongColumn->Play[ID], DisplayColumn->Background);
-    SetScissor(SongColumn->Add[ID], DisplayColumn->Background);
+    SetScissor(SongColumn->Play[ID], DisplayColumn->SlotBGs[ID]);
+    SetScissor(SongColumn->Add[ID], DisplayColumn->SlotBGs[ID]);
 }
 
 internal void
@@ -1278,11 +1278,10 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
             Assert(Name);
             RenderText(&GlobalGameState, font_Small, Name, DisplayColumn->Colors.Text,
                        DisplayColumn->SlotText+It,  DisplayColumn->ZValue-0.01f, DisplayColumn->SlotBGs[It]);
-            SetScissor(DisplayColumn->SlotText+It, DisplayColumn->Background);
+            SetScissor(DisplayColumn->SlotText+It, DisplayColumn->SlotBGs[It]);
             
-            r32 CurrentOffsetY = GlobalGameState.Layout.SlotTextYOffPercent*GetFontSize(Renderer, font_Small).Size;
+            r32 CurrentOffsetY = -SlotHeight(DisplayColumn)*0.5f - GetFontDescent(&GlobalGameState, font_Small, *Name) + GlobalGameState.Layout.SlotHeight*0.5f;
             Translate(DisplayColumn->SlotText+It, V2(0, CurrentOffsetY));
-            //CenterText(DisplayColumn->Text+It); // NOTE:: Use this to align ontext height
         }
         DisplayColumn->SlotIDs[It] = NextID;
         // #LastSlotOverflow, The last ID is not visible when the column is at the bottom, 
@@ -1895,8 +1894,8 @@ OnMusicPathPressed(void *Data)
             AppendStringToCompound(&PathText, (u8 *)" - ");
         else AppendStringCompoundToCompound(&PathText, &MusicBtnInfo->GameState->MP3Info->FolderPath);
         RemoveRenderText(Renderer, &MusicPath->CurrentPath);
-        RenderText(&GlobalGameState, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, 
-                   V2(0, 62)); // @Layout
+        r32 TextY = GetSize(MusicPath->TextField.Background).y*0.5f - GetFontDescent(MusicBtnInfo->GameState, font_Medium, PathText);
+        RenderText(&GlobalGameState, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, TextY));
         DeleteStringCompound(&MusicBtnInfo->GameState->ScratchArena, &PathText);
     }
     else 
@@ -2343,7 +2342,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     };
     CreateSlider(GameState, &Panel->Timeline, sliderAxis_X, TimelineBG, TimelineGrab, BtnDepth, false);
     
-    SetTheNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
+    SetNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
     
     DisplayInfo->SearchIsActive = -1;
     
@@ -2757,11 +2756,9 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
 }
 
 internal void
-SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo)
+SetNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo)
 {
     game_state *GS = &GlobalGameState;
-    r32 SmallFontHeight  = GetFontSize(Renderer, font_Small).Size;
-    r32 MediumFontHeight = GetFontSize(Renderer, font_Medium).Size;
     
     RemoveRenderText(Renderer, &Panel->DurationText);
     RemoveRenderText(Renderer, &Panel->CurrentTimeText);
@@ -2812,6 +2809,9 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
         Panel->SongDuration = 0;
     }
     
+    font_metrics SmallMetrics  = GetFontMetrics(GS, font_Small, *TitleString);
+    font_metrics MediumMetrics = GetFontMetrics(GS, font_Medium, *TitleString);
+    
     v3 *TextColor = &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText;
     Panel->CurrentTime = 0;
     
@@ -2820,7 +2820,7 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
         Layout->LargeButtonExtents*2*3 + Layout->ButtonGap*4;
     r32 BaseX = BaseTimeX + Layout->PanelXOffset + Layout->PanelBaseX;
     
-    r32 TimeY = Layout->PanelBaseY + Layout->PlayPauseButtonY + SmallFontHeight*0.5f + Layout->DurationTimeTextYOffset;
+    r32 TimeY = Layout->PanelBaseY + Layout->PlayPauseButtonY + Layout->DurationTimeTextYOffset - SmallMetrics.Descent;
     string_c CurrentTime = NewStaticStringCompound("00:00 |");
     RenderText(GS, font_Small, &CurrentTime, TextColor, &Panel->CurrentTimeText, Depth+0.01f, 0);
     SetPosition(&Panel->CurrentTimeText, V2(BaseTimeX+Layout->CurrentTimeTextXOffset, TimeY));
@@ -2831,12 +2831,12 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     RenderText(GS, font_Small, &DurationString, TextColor, &Panel->DurationText, Depth+0.01f, 0);
     SetPosition(&Panel->DurationText, V2(TimeX, TimeY));
     
-    r32 RowY = Layout->PanelBaseY + SmallFontHeight*0.5f;
+    r32 RowY = Layout->PanelBaseY - SmallMetrics.Descent;
     
     RenderText(GS, font_Small, GenreString, TextColor, &Panel->Genre, Depth, 0);
     SetPosition(&Panel->Genre, V2(BaseX, RowY));
     
-    RowY += SmallFontHeight + Layout->PanelTextYOffset;
+    RowY += SmallMetrics.RowGap + Layout->PanelTextYOffset;
     
     // #OffsetNullify To offset Layout->PanelTextAlbumXOffset on AlbumX if Panel->Year does not get set.
     Panel->Year.Extends.x = Layout->PanelTextXOffset*-1;
@@ -2848,13 +2848,13 @@ SetTheNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_defin
     RenderText(GS, font_Small, AlbumString, TextColor, &Panel->Album, Depth, 0);
     SetPosition(&Panel->Album, V2(AlbumX, RowY));
     
-    RowY += SmallFontHeight + Layout->PanelTextYOffset;
+    RowY += SmallMetrics.RowGap + Layout->PanelTextYOffset;
     
     RenderText(GS, font_Small, ArtistString, TextColor, &Panel->Artist, Depth, 0);
     SetPosition(&Panel->Artist, V2(BaseX, RowY));
     
-    r32 RowSongY = RowY + SmallFontHeight*0.5f + MediumFontHeight*0.5f + Layout->PanelTextYOffset;
-    RowY += SmallFontHeight;
+    r32 RowSongY = RowY + SmallMetrics.Ascent + MediumMetrics.Descent*-1;
+    RowY += SmallMetrics.Ascent + MediumMetrics.Descent*-1;
     
     // See #OffsetNullify.
     Panel->Track.Extends.x = Layout->PanelTextXOffset*-1;
@@ -3421,7 +3421,7 @@ CheckSlotDragDrop(input_info *Input, game_state *GS, drag_drop *DragDrop)
                             {
                                 FontSize = font_Medium;
                                 Text = &GetMetadata(PlaylistColumn, &GS->MP3Info->FileInfo, SubSlot->SlotID)->Title;
-                                TextYOffset = GetSongRow1YOffset(&GS->Layout);
+                                TextYOffset = GetSongRow1YOffset(&GS->Layout, *Text);
                             }
                             RenderText(GS, FontSize, Text, DisplayColumn->Colors.Text, &SubSlot->SlotText, -0.9999f);
                             

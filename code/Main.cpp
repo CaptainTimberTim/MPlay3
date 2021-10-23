@@ -807,8 +807,16 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             //NewLocalString(TestError, 100, "Oh no... \nOk now!");
             //PushErrorMessage(GameState, TestError);
             //PushErrorMessage(GameState, {errorCode_EmptyFile, 27});
+            /*
+            v3 ColorT = {0, 1, 1};
+            r32 FontHeightSmall = GetFontSize(&GameState->Renderer, font_Small).Size;
+            entry_id *TestBase = CreateRenderRect(Renderer, V2(5,FontHeightSmall), -0.9f, &ColorT, NULL);
+            SetPosition(TestBase, V2(500, 500));
             
-            
+            r32 FontHeightMedium = GetFontSize(&GameState->Renderer, font_Medium).Size;
+            TestBase = CreateRenderRect(Renderer, V2(5,FontHeightMedium), -0.9f, &ColorT, NULL);
+            SetPosition(TestBase, V2(510, 500));
+            */
             
             // ********************************************
             // FPS ****************************************

@@ -141,11 +141,10 @@ SetSongSlotHeightMode(game_state *GS, b32 MakeSmall)
     display_column *DisplayColumn = &SongColumn->Base;
     SongColumn->IsSmallMode = MakeSmall;
     
-    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor);
     r32 AnchorY = GetPosition(DisplayColumn->TopBorder).y - 
         GetSize(DisplayColumn->TopBorder).y/2.0f - SlotHeight(DisplayColumn)/2.0f;
     SetPosition(DisplayColumn->SlotBGAnchor, V2(0, AnchorY));
-    TranslateWithScreen(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor, fixedTo_Top);
+    UpdateOriginalPosition(&GS->Renderer.TransformList, DisplayColumn->SlotBGAnchor);
     
     r32 YDown = 0;
     r32 CurSlotHeight = SlotHeight(&SongColumn->Base);

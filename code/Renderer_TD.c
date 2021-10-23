@@ -508,6 +508,12 @@ SetActive(entry_id *Entry, b32 Activate)
     Entry->ID->Render = Activate;
 }
 
+inline void 
+SetScissor(entry_id *Entry, entry_id *ScissorID)
+{
+    Entry->ID->Scissor = ScissorID;
+}
+
 inline b32
 IsActive(entry_id *Entry)
 {
@@ -899,12 +905,27 @@ CreateScreenTransformList(renderer *Renderer, arena_allocator *Arena, u32 Size)
     return Result;
 }
 
+inline i32
+FindInTransformList(screen_transform_list *List, entry_id *Entry)
+{
+    i32 Result = -1;
+    For(List->Count)
+    {
+        if(List->Entries[It]->UID == Entry->UID)
+        {
+            Result = It;
+            break;
+        }
+    }
+    return Result;
+}
+
 inline void
 RemoveFromTransformList(screen_transform_list *List, entry_id *Entry)
 {
     For(List->Count)
     {
-        if(List->Entries[It] == Entry)
+        if(List->Entries[It]->UID == Entry->UID)
         {
             List->OpenSlots[It] = true;
             List->OpenSlotCount++;
@@ -971,7 +992,7 @@ ScaleWithScreen(screen_transform_list *List, entry_id *Entry, scale_axis ScaleAx
 }
 
 inline void 
-ChangeFixToPosition(screen_transform_list *List, u32 ID, r32 NewFixToPosition)
+UpdateFixToPosition(screen_transform_list *List, u32 ID, r32 NewFixToPosition)
 {
     Assert(ID < List->Count);
     List->FixToPosition[ID].x = NewFixToPosition;
@@ -979,17 +1000,63 @@ ChangeFixToPosition(screen_transform_list *List, u32 ID, r32 NewFixToPosition)
 }
 
 inline void 
-ChangeFixToPosition(screen_transform_list *List, u32 ID, v2 NewFixToPosition)
+UpdateFixToPosition(screen_transform_list *List, entry_id *Entry, r32 NewFixToPosition)
+{
+    i32 ID = FindInTransformList(List, Entry);
+    Assert(ID >= 0);
+    List->FixToPosition[ID].x = NewFixToPosition;
+    List->FixToPosition[ID].y = NewFixToPosition;
+}
+
+inline void 
+UpdateFixToPosition(screen_transform_list *List, u32 ID, v2 NewFixToPosition)
 {
     Assert(ID < List->Count);
     List->FixToPosition[ID] = NewFixToPosition;
 }
 
+inline void 
+UpdateFixToPosition(screen_transform_list *List, entry_id *Entry, v2 NewFixToPosition)
+{
+    i32 ID = FindInTransformList(List, Entry);
+    Assert(ID >= 0);
+    List->FixToPosition[ID] = NewFixToPosition;
+}
+
 inline void
-ChangeOriginalPosition(screen_transform_list *List, u32 ID, v2 NewOriginalPosition)
+UpdateOriginalPosition(screen_transform_list *List, u32 ID, v2 NewOriginalPosition)
 {
     Assert(ID < List->Count);
     List->OriginalPosition[ID] = NewOriginalPosition;
+    List->OriginalDim[ID]      = List->Renderer->Window.CurrentDim.Dim;
+}
+
+inline void 
+UpdateOriginalPosition(screen_transform_list *List, entry_id *Entry, v2 NewOriginalPosition)
+{
+    i32 ID = FindInTransformList(List, Entry);
+    Assert(ID >= 0);
+    List->OriginalPosition[ID] = NewOriginalPosition;
+    List->OriginalDim[ID]      = List->Renderer->Window.CurrentDim.Dim;
+}
+
+inline void 
+UpdateOriginalPosition(screen_transform_list *List, entry_id *Entry)
+{
+    i32 ID = FindInTransformList(List, Entry);
+    Assert(ID >= 0);
+    List->OriginalPosition[ID] = Entry->ID->Transform.Translation;
+    List->OriginalDim[ID]      = List->Renderer->Window.CurrentDim.Dim;
+}
+
+inline void 
+UpdateOriginalTransform(screen_transform_list *List, entry_id *Entry)
+{
+    i32 ID = FindInTransformList(List, Entry);
+    Assert(ID >= 0);
+    List->OriginalPosition[ID] = Entry->ID->Transform.Translation;
+    List->OriginalScale[ID]    = Entry->ID->Transform.Scale;
+    List->OriginalDim[ID]      = List->Renderer->Window.CurrentDim.Dim;
 }
 
 internal void

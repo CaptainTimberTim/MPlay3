@@ -73,7 +73,6 @@
 // - Add path vilidity to MusicPath stuff!
 
 // BUGS::
-// - color picker pops into original center. should at least be current center.
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...
 // - When having the drag edges close to a side and then making the windows smaller pushes them onto each other

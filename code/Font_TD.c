@@ -200,23 +200,20 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     // Thirdly, the bottom panel and everything that depends on it.
     r32 BottomPanelHeight = GetBottomPanelHeight(&GS->Layout);
     
-    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayInfo->EdgeBottom);
     SetSize(DisplayInfo->EdgeBottom, V2(GetSize(DisplayInfo->EdgeBottom).x, BottomPanelHeight));
     SetPosition(DisplayInfo->EdgeBottom, V2(GetPosition(DisplayInfo->EdgeBottom).x, BottomPanelHeight*0.5f));
-    TransformWithScreen(&GS->Renderer.TransformList, DisplayInfo->EdgeBottom, fixedTo_BottomCenter, scaleAxis_X);
+    UpdateOriginalTransform(&GS->Renderer.TransformList, DisplayInfo->EdgeBottom);
     
     r32 SidePanelHeight = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
     r32 SidePanelY      = CenterYBetweenRects(DisplayInfo->EdgeBottom, DisplayInfo->EdgeTop);
     
-    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayInfo->EdgeLeft);
     SetSize(DisplayInfo->EdgeLeft, V2(GetSize(DisplayInfo->EdgeLeft).x, SidePanelHeight));
     SetPosition(DisplayInfo->EdgeLeft, V2(GetPosition(DisplayInfo->EdgeLeft).x, SidePanelY));
-    TransformWithScreen(&GS->Renderer.TransformList, DisplayInfo->EdgeLeft, fixedTo_MiddleLeft, scaleAxis_Y);
+    UpdateOriginalTransform(&GS->Renderer.TransformList, DisplayInfo->EdgeLeft);
     
-    RemoveFromTransformList(&GS->Renderer.TransformList, DisplayInfo->EdgeRight);
     SetSize(DisplayInfo->EdgeRight, V2(GetSize(DisplayInfo->EdgeRight).x, SidePanelHeight));
     SetPosition(DisplayInfo->EdgeRight, V2(GetPosition(DisplayInfo->EdgeRight).x, SidePanelY));
-    TransformWithScreen(&GS->Renderer.TransformList, DisplayInfo->EdgeRight, fixedTo_MiddleRight, scaleAxis_Y);
+    UpdateOriginalTransform(&GS->Renderer.TransformList, DisplayInfo->EdgeRight);
     
     ProcessEdgeDragOnResize(&GS->Renderer, DisplayInfo);
     
@@ -225,11 +222,10 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     {
         display_column *Column = DisplayInfo->Columns[ColumnIt];
         
-        RemoveFromTransformList(&GS->Renderer.TransformList, Column->SlotBGAnchor);
         r32 AnchorY = GetPosition(Column->TopBorder).y - 
             GetSize(Column->TopBorder).y/2.0f - SlotHeight(Column)/2.0f;
         SetPosition(Column->SlotBGAnchor, V2(0, AnchorY));
-        TranslateWithScreen(&GS->Renderer.TransformList, Column->SlotBGAnchor, fixedTo_Top);
+        UpdateOriginalPosition(&GS->Renderer.TransformList, Column->SlotBGAnchor);
         UpdateSlots(GS, Column);
         
         r32 HoriSliderY = BottomPanelHeight + GetSize(Column->SliderHorizontal.Background).y*0.5f;
@@ -246,7 +242,8 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     SetNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     
-    CreateColorPickerPaletteList(GS, &GS->StyleSettings.ColorPicker);
+    v2 ContentOffset = V2(GS->Layout.ColorPickerContentOffsetX, GS->Layout.ColorPickerContentOffsetY);
+    CreateColorPickerPaletteList(GS, &GS->StyleSettings.ColorPicker, ContentOffset); 
 }
 
 internal unicode_group *

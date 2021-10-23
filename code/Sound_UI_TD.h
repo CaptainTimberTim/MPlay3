@@ -512,12 +512,15 @@ struct layout_definition
     r32 SettingsWindowBorder  = 4;
     r32 SettingsWindowBorderTop = 25;
     
-    r32 ColorPickerOffsetX = -200;
-    r32 ColorPickerOffsetY = -25;
+    r32 ColorPickerOffsetX = -140;
+    r32 ColorPickerOffsetY = 0;
+    r32 ColorPickerWidth   = 620;
+    r32 ColorPickerContentOffsetX = -100;
+    r32 ColorPickerContentOffsetY = 25;
     r32 ColorPickerSpectrumWidth = 30;
     r32 ColorPickerColorFieldSide = 300;
     r32 ColorPickerPaletteColorsGap = 6;
-    r32 ColorPickerColorOutline = 2;//29;
+    r32 ColorPickerColorOutline = 2;
     r32 ColorPickerButtonGapY = 4;
     
     r32 PaletteNameFieldX = 500;
@@ -528,8 +531,11 @@ struct layout_definition
     r32 MediumFontMin = 10;
     r32 MediumFontMax = 100;
     
-    r32 FontSettingsOffsetX = 75;
-    r32 FontSettingsOffsetY = 150;
+    r32 FontSettingsOffsetX = 310;
+    r32 FontSettingsOffsetY = 0;
+    r32 FontSettingsBGWidth = 279;
+    r32 FontSettingsContentOffsetX = -25;
+    r32 FontSettingsContentOffsetY = 155;
     r32 FontSliderExtendsX  = 100;
     r32 FontSliderExtendsY  = 12.5f;
     r32 FontSliderGrabX     = 5;

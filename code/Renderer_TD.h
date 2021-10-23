@@ -260,6 +260,7 @@ inline void SetLocalPosition(entry_id *Entry, v2 Position); // Set Transform
 inline void SetLocalPositionY(entry_id *Entry, r32 NewY);
 inline void SetLocalPositionX(entry_id *Entry, r32 NewX);
 inline void Translate(entry_id *Entry, v2 TranslationOffset); // Move Transform
+inline void SetScissor(entry_id *Entry, entry_id *ScissorID);
 
 inline void SetActive(entry_id *Entry, b32 Activate);
 inline b32  IsActive(entry_id *Entry);
@@ -308,9 +309,14 @@ inline u32 TransformWithScreen(screen_transform_list *List, entry_id *Entry,
                                fixed_to FixedTo, scale_axis ScaleAxis, r32 FixToPosition = 0);
 inline u32 TransformWithScreen(screen_transform_list *List, entry_id *Entry, 
                                fixed_to FixedTo, scale_axis ScaleAxis, v2 FixToPosition);
-inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, r32 NewFixToPosition);
-inline void ChangeFixToPosition(screen_transform_list *List, u32 ID, v2  NewFixToPosition);
-inline void ChangeOriginalPosition(screen_transform_list *List, u32 ID, v2 NewOriginalPosition);
+inline void UpdateFixToPosition(screen_transform_list *List, u32 ID,          r32 NewFixToPosition);
+inline void UpdateFixToPosition(screen_transform_list *List, entry_id *Entry, r32 NewFixToPosition);
+inline void UpdateFixToPosition(screen_transform_list *List, u32 ID,          v2 NewFixToPosition);
+inline void UpdateFixToPosition(screen_transform_list *List, entry_id *Entry, v2 NewFixToPosition);
+inline void UpdateOriginalPosition(screen_transform_list *List, u32 ID,          v2 NewOriginalPosition);
+inline void UpdateOriginalPosition(screen_transform_list *List, entry_id *Entry, v2 NewOriginalPosition);
+inline void UpdateOriginalPosition(screen_transform_list *List, entry_id *Entry); // Uses the current translation.
+inline void UpdateOriginalTransform(screen_transform_list *List, entry_id *Entry); // Uses the current translation.
 internal void PerformScreenTransform(renderer *Renderer);
 
 // Render Text stuff

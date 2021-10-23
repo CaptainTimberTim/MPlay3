@@ -441,6 +441,11 @@
 - Realigned every text to fit the new 'format'.
     - Now other fonts are better aligned than before.
 
+23.10.2021
+- Fixed settings window popping in startup center of app when resizing.
+- Added procedures for changing original position/scale for auto-window-transform.
+- Changed textures to clamp mode, stopping thin line of wrong color at some edges (i.e. colorpicker).
+- Added scrissor regions for settings color-picker/font.
 
 
 

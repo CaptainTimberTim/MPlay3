@@ -647,11 +647,6 @@ WinMain(HINSTANCE Instance,
             // ********************************************
             // FONT stuff *********************************
             // ********************************************
-            Renderer->FontSizes = {{
-                    {font_Small,  GameState->Layout.FontSizeSmall}, 
-                    {font_Medium, GameState->Layout.FontSizeMedium}, 
-                    {font_Big,    GameState->Layout.FontSizeBig}}, 3
-            };
             Renderer->FontAtlas = InitializeFont(GameState);
             
             /*
@@ -1287,7 +1282,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 r32 PlayedSeconds = GetPlayedTime(GameState->SoundThreadInterface);
                 if((u32)(DisplayInfo->PlayingSongPanel.CurrentTime/1000.0f) != (u32)PlayedSeconds)
                 {
-                    UpdatePanelTime(Renderer, &DisplayInfo->PlayingSongPanel, Layout, PlayedSeconds);
+                    UpdatePanelTime(GameState, &DisplayInfo->PlayingSongPanel, Layout, PlayedSeconds);
                 }
                 UpdatePanelTimeline(&DisplayInfo->PlayingSongPanel, PlayedSeconds);
                 

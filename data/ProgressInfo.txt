@@ -447,7 +447,10 @@
 - Changed textures to clamp mode, stopping thin line of wrong color at some edges (i.e. colorpicker).
 - Added scrissor regions for settings color-picker/font.
 
-
+30.10.2021
+- Fixed wrong alignment of playtime after font resize.
+- Added HSV color text to color picker.
+- Font size serialization.
 
 
 

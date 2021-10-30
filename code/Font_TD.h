@@ -75,7 +75,7 @@ struct font_atlas
 {
     font_sizes FontSizes;
     
-    i32 HeightOffset;
+    i32 HeightOffset_; // TODO:: Not used anymore, remove?
     
     u32 MaxCount;
     u32 Count;
@@ -85,7 +85,7 @@ struct font_atlas
     font_name_list *CachedFontNames; // Points to Settings->CachedFontNames.
 };
 
-inline font_atlas NewFontAtlas(struct settings *Settings, font_sizes FontSizes);
+inline font_atlas NewFontAtlas(struct serialization_settings *Settings, font_sizes FontSizes);
 internal void LoadFonts(arena_allocator *FixArena, arena_allocator *ScratchArena, font_atlas *Atlas, 
                         u8 *RawFontData, /*string_c FontPath, */u32 *CodepointsFromGroup, u32 CodepointCount);
 internal void RenderText(struct game_state *GS, font_size_id FontSizeID, string_c *Text, 

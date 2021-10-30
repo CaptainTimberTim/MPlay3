@@ -6,7 +6,7 @@ internal void ProcessWindowResizeForDisplayColumn(renderer *Renderer, music_info
 inline b32 GetDefaultFontDir(arena_allocator *Arena, string_c *Path);
 
 inline font_atlas
-NewFontAtlas(settings *Settings, font_sizes FontSizes)
+NewFontAtlas(serialization_settings *Settings, font_sizes FontSizes)
 {
     PrepareUnicodeGroupList();
     font_atlas Result = {FontSizes, Settings->FontHeightOffset, 5, 0, NULL, Settings->CachedFontNames};
@@ -35,10 +35,11 @@ InitializeFont(game_state *GS)
 {
     GetDefaultFontDir(&GS->FixArena, &GS->FontPath);
     font_sizes FontSizes = {{
-            {font_Small,  GS->Layout.FontSizeSmall}, 
-            {font_Medium, GS->Layout.FontSizeMedium}, 
-            {font_Big,    GS->Layout.FontSizeBig}}, 3
+            {font_Small,  GS->Settings.SmallFontSize}, 
+            {font_Medium, GS->Settings.MediumFontSize}, 
+            {font_Big,    GS->Layout.FontSizeBig}/*Non changeable for now.*/}, 3
     };
+    GS->Renderer.FontSizes = FontSizes;
     
     u32 GroupCodepoints[] = {0x00};//, 0x80};
     font_atlas FontAtlas = NewFontAtlas(&GS->Settings, FontSizes);

@@ -36,7 +36,7 @@ struct game_state
     
     input_info Input;
     
-    settings Settings;
+    serialization_settings Settings;
     
     // Time management
     time_management Time;

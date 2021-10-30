@@ -1819,7 +1819,7 @@ IsColorPaletteDefault()
 internal void
 RemoveCustomColorPalette(u32 PaletteID)
 {
-    settings *Settings = &GlobalGameState.Settings;
+    serialization_settings *Settings = &GlobalGameState.Settings;
     PaletteID -= DEFAULT_COLOR_PALETTE_COUNT;
     Assert(PaletteID >= 0);
     Assert(PaletteID < Settings->PaletteCount);
@@ -1834,7 +1834,7 @@ RemoveCustomColorPalette(u32 PaletteID)
 internal void
 AddCustomColorPalette(color_palette *ColorPalette, string_c *Name)
 {
-    settings *Settings = &GlobalGameState.Settings;
+    serialization_settings *Settings = &GlobalGameState.Settings;
     if(Settings->PaletteCount+1 >= Settings->PaletteMaxCount)
     {
         NewLocalString(ErrorMsg, 255, "ERROR:: Created too many color palettes at once. Restart App if you want more!");
@@ -2867,20 +2867,21 @@ SetNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definiti
 }
 
 internal void
-UpdatePanelTime(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, r32 CurrentTime)
+UpdatePanelTime(game_state *GS, playing_song_panel *Panel, layout_definition *Layout, r32 CurrentTime)
 {
     Panel->CurrentTime = (u32)(CurrentTime*1000);
     WipeStringCompound(&Panel->CurrentTimeString);
     MillisecondsToMinutes(Panel->CurrentTime, &Panel->CurrentTimeString);
     AppendStringToCompound(&Panel->CurrentTimeString, (u8 *)" |");
     
-    RemoveRenderText(Renderer, &Panel->CurrentTimeText);
-    RenderText(&GlobalGameState, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, Layout->PanelTextDepth+0.01f, 0);
+    RemoveRenderText(&GS->Renderer, &Panel->CurrentTimeText);
+    RenderText(GS, font_Small, &Panel->CurrentTimeString, &Panel->MP3Info->MusicInfo->DisplayInfo.ColorPalette.ForegroundText, &Panel->CurrentTimeText, Layout->PanelTextDepth+0.01f, 0);
     
-    r32 BaseX = Layout->PlayPauseButtonX+Layout->PlayPauseButtonExtents+Layout->LargeButtonExtents*2*3+Layout->ButtonGap*4;
-    r32 BaseY = Layout->PanelBaseY + Layout->PlayPauseButtonY;
-    r32 TimeY = BaseY + GetFontSize(Renderer, font_Small).Size*0.5f + Layout->DurationTimeTextYOffset;
-    SetPosition(&Panel->CurrentTimeText, V2(BaseX + Layout->CurrentTimeTextXOffset, TimeY));
+    r32 BaseTimeX = Layout->PlayPauseButtonX + Layout->PlayPauseButtonExtents + 
+        Layout->LargeButtonExtents*2*3 + Layout->ButtonGap*4;
+    font_metrics SmallMetrics  = GetFontMetrics(GS, font_Small, Panel->CurrentTimeString);
+    r32 TimeY = Layout->PanelBaseY + Layout->PlayPauseButtonY + Layout->DurationTimeTextYOffset - SmallMetrics.Descent;
+    SetPosition(&Panel->CurrentTimeText, V2(BaseTimeX+Layout->CurrentTimeTextXOffset, TimeY));
 }
 
 internal void

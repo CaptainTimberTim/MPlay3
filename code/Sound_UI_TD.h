@@ -522,6 +522,7 @@ struct layout_definition
     r32 ColorPickerPaletteColorsGap = 6;
     r32 ColorPickerColorOutline = 2;
     r32 ColorPickerButtonGapY = 4;
+    r32 ColorPickerHSVTextOffset = 140;
     
     r32 PaletteNameFieldX = 500;
     r32 PaletteNameFieldIndent = 10;

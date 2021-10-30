@@ -72,7 +72,7 @@ struct render_text
     render_entry *RenderEntries; // These are not in the render list, only the base entry is.
     u32 Count;
     u32 MaxCount;
-    v2 Extends; // TODO:: Width might not be correct!
+    v2 Extends;
     
     string_c Text;
     enum font_size_id FontSize;

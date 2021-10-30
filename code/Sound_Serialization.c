@@ -5,19 +5,13 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 // MPlay3Settings
-// Version 5
+// Version 8
 //
-// # NOTE 1:: If you don't want this file and the Library 
+// # NOTE:: If you don't want this file and the Library 
 // # file to be in the same directory as the executable, you 
 // # can put them into the '%appdata%\Roaming\MPlay3Data'
 // # folder. If they can be found -by the program- in 
 // # that specific location, it will overwrite them in there.
-//
-// # NOTE 2:: If you want to use a different font than the
-// # default, you can add it here right behind the 'FontPath'
-// # identifier. Only *.ttf files work! With FontHeightOffset 
-// # the vertical position of the text can be adjusted 
-// # (only integers allowed).
 //
 // FontPath: <Path/to/font>
 // FontHeightOffset: <0>
@@ -31,6 +25,8 @@
 // WindowDimensionY: <Between GlobalMinWindowHeight and MAX_I32>
 // Looping: <0/1>
 // Shuffle: <0/1>
+// SmallFontSize: <R32 > 0>
+// MediumFontSize: <R32 > 0>
 // UsedFontCache: <font name>|<font name>
 // ActivePlaylist: <Name>
 // 
@@ -117,10 +113,10 @@ ProcessNextPaletteColor(u8 **C, u32 NameLength, v3 *Color)
     AdvanceToNewline(C);
 }
 
-internal settings
+internal serialization_settings
 TryLoadSettingsFile(game_state *GameState)
 {
-    settings Result = {};
+    serialization_settings Result = {};
     Result.WindowDimX = GameState->Layout.WindowWidth;
     Result.WindowDimY = GameState->Layout.WindowHeight;
     
@@ -155,6 +151,8 @@ TryLoadSettingsFile(game_state *GameState)
             string_c WindowDimYS                    = NewStaticStringCompound("WindowDimensionY:");
             string_c LoopingS                       = NewStaticStringCompound("Looping:");
             string_c ShuffleS                       = NewStaticStringCompound("Shuffle:");
+            string_c SmallFontSizeS                 = NewStaticStringCompound("SmallFontSize:");
+            string_c MediumFontSizeS                = NewStaticStringCompound("MediumFontSize:");
             string_c CachedFontS                    = NewStaticStringCompound("UsedFontCache:");
             string_c ActivePlaylistS                = NewStaticStringCompound("ActivePlaylist:");
             
@@ -258,6 +256,18 @@ TryLoadSettingsFile(game_state *GameState)
                     C += ShuffleS.Pos;
                     EatLeadingSpaces(&C);
                     Result.Shuffle = ProcessNextB32InString(C);
+                }
+                else if(StringCompare(C, SmallFontSizeS.S, 0, SmallFontSizeS.Pos))
+                {
+                    C += SmallFontSizeS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.SmallFontSize = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, MediumFontSizeS.S, 0, MediumFontSizeS.Pos))
+                {
+                    C += MediumFontSizeS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.MediumFontSize = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
                 }
                 else if(StringCompare(C, CachedFontS.S, 0, CachedFontS.Pos))
                 {
@@ -366,20 +376,23 @@ TryLoadSettingsFile(game_state *GameState)
     if(Result.WindowDimX < GlobalMinWindowWidth)  Result.WindowDimX = GlobalMinWindowWidth;
     if(Result.WindowDimY < GlobalMinWindowHeight) Result.WindowDimY = GlobalMinWindowHeight;
     
+    if(Result.SmallFontSize  < GameState->Layout.SmallFontMin)  Result.SmallFontSize  = GameState->Layout.FontSizeSmall;
+    if(Result.MediumFontSize < GameState->Layout.MediumFontMin) Result.MediumFontSize = GameState->Layout.FontSizeMedium;
+    if(Result.SmallFontSize  > GameState->Layout.SmallFontMax)  Result.SmallFontSize  = GameState->Layout.FontSizeSmall;
+    if(Result.MediumFontSize > GameState->Layout.MediumFontMax) Result.MediumFontSize = GameState->Layout.FontSizeMedium;
+    
     return Result;
 }
 
 internal void
-SaveSettingsFile(game_state *GameState, settings *Settings)
+SaveSettingsFile(game_state *GameState, serialization_settings *Settings)
 {
     string_c SaveData = NewStringCompound(&GameState->ScratchArena, 50000);
     
     AppendStringToCompound(&SaveData, (u8 *)"MPlay3Settings\nVersion ");
     I32ToString(&SaveData, SETTINGS_CURRENT_VERSION);
     
-    AppendStringToCompound(&SaveData, (u8 *) "\n\n# NOTE 1:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
-    
-    AppendStringToCompound(&SaveData, (u8 *) "# NOTE 2:: If you want to use a different font than the\n# default, you can add it here right behind the 'FontPath'\n# identifier. Only *.ttf files work! With FontHeightOffset\n# the vertical position of the text can be adjusted\n# (only integers allowed).\n\n");
+    AppendStringToCompound(&SaveData, (u8 *) "\n\n# NOTE:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
     
     NewLocalString(FontPath,          280, "FontPath: ");
     NewLocalString(FileFontOffset,     50, "FontHeightOffset: ");
@@ -394,6 +407,8 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     NewLocalString(WindowDimY,         50, "WindowDimensionY: ");
     NewLocalString(Looping,            50, "Looping: ");
     NewLocalString(Shuffle,            50, "Shuffle: ");
+    NewLocalString(SmallFontSize,      50, "SmallFontSize: ");
+    NewLocalString(MediumFontSize,     50, "MediumFontSize: ");
     NewLocalString(CachedFontNames,   500, "UsedFontCache: ");
     NewLocalString(ActivePlaylist, PLAYLIST_MAX_NAME_LENGTH+50, "ActivePlaylist: ");
     
@@ -414,6 +429,8 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     I32ToString(&WindowDimY, Dim.y);
     I32ToString(&Looping, GameState->MusicInfo.Playlists.List[0].Looping == playLoop_Loop);
     I32ToString(&Shuffle, GameState->MusicInfo.Playlists.List[0].IsShuffled);
+    R32ToString(&SmallFontSize,  GameState->Renderer.FontSizes.Sizes[font_Small].Size);
+    R32ToString(&MediumFontSize, GameState->Renderer.FontSizes.Sizes[font_Medium].Size);
     
     AppendStringCompoundToCompound(&ActivePlaylist, GetPlaylistName(&GameState->MusicInfo, GameState->MusicInfo.Playlist_));
     i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&ActivePlaylist, '(');
@@ -421,7 +438,8 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
     ActivePlaylist.Pos = NameEndP-1;
     
     string_c LB   = NewStaticStringCompound("\n");
-    ConcatStringCompounds(30, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &CachedFontNames, &LB, &ActivePlaylist);
+    ConcatStringCompounds(34, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB,
+                          &SmallFontSize, &LB, &MediumFontSize, &LB, &CachedFontNames, &LB, &ActivePlaylist);
     
     // Save out used font names
     if(Settings->CachedFontNames)
@@ -485,7 +503,7 @@ SaveSettingsFile(game_state *GameState, settings *Settings)
 }
 
 inline void
-ApplySettings(game_state *GameState, settings Settings)
+ApplySettings(game_state *GameState, serialization_settings Settings)
 {
     ChangeVolume(GameState, Settings.Volume);
     music_info *MusicInfo = &GameState->MusicInfo;

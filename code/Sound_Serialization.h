@@ -6,12 +6,12 @@ global_variable string_c SETTINGS_FILE_NAME  = NewStaticStringCompound("MPlay3Se
 global_variable string_c LIBRARY_FILE_NAME   = NewStaticStringCompound("MPlay3Library.save");
 global_variable string_c PLAYLIST_FILE_NAME  = NewStaticStringCompound("MPlay3Playlist_"); // Gets build in SavePlaylist
 
-#define SETTINGS_CURRENT_VERSION 7
+#define SETTINGS_CURRENT_VERSION 8
 #define  LIBRARY_CURRENT_VERSION 3
 #define PLAYLIST_CURRENT_VERSION 1
 
 #define COLOR_PALETTE_MAX_NAME_LENGTH 100
-struct settings
+struct serialization_settings
 {
     string_c FontPath = {0, 0, 0}; // Only for users at this point.
     
@@ -26,7 +26,7 @@ struct settings
     i32 WindowDimY = 0;
     b32 Looping = false;
     b32 Shuffle = false;
-    i32 FontHeightOffset = 0;
+    i32 FontHeightOffset = 0; // TODO:: Not used anymore, remove?
     string_c ActivePlaylist;
     
     font_name_list *CachedFontNames;
@@ -35,11 +35,14 @@ struct settings
     color_palette *Palettes;
     u32 PaletteCount;
     u32 PaletteMaxCount;
+    
+    r32 SmallFontSize  = -1;
+    r32 MediumFontSize = -1;
 };
 
-internal settings TryLoadSettingsFile(game_state *GameState);
-internal void SaveSettingsFile(game_state *GameState, settings *Settings);
-inline   void ApplySettings(game_state *GameState, settings Settings);
+internal serialization_settings TryLoadSettingsFile(game_state *GameState);
+internal void SaveSettingsFile(game_state *GameState, serialization_settings *Settings);
+inline   void ApplySettings(game_state *GameState, serialization_settings Settings);
 
 internal b32  ConfirmLibraryWithCorrectVersionExists(game_state *GameState, u32 VersionToCheckFor, u32 *FileInfoCount);
 internal b32  CompareMP3LibraryFileSavedPath(game_state *GameState, string_c *PathToCompare);

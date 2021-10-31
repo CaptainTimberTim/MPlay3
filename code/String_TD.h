@@ -126,6 +126,9 @@ inline b32 ConvertString16To8(wchar_t *In, string_c *Out); // Only use with Out 
 inline b32 ConvertChar16To8(wchar_t In, u8 *Out, i32 *OutSize);
 
 
+internal void BinaryToHexString(u64 Binary, string_c *Hex);
+internal void DecimalToHexString(u32 Decimal, string_c *Hex);
+
 inline string_c
 NewStringCompound(arena_allocator *Arena, u32 Size)
 {
@@ -794,7 +797,7 @@ ProcessNextR32InString(u8 *Character, u8 Delimiter, u8 &NumberLength)
             i32 E10Muliplier = ProcessNextI32InString(Character, Delimiter, NumberLengthB);
             Character += ++NumberLengthB;
             NumberLength += NumberLengthB;
-            Result = Result*Pow(10, (r32)E10Muliplier);
+            Result = Result*Pow(10.0f, (r32)E10Muliplier);
         }
     }
     Result *= Sign;
@@ -906,7 +909,7 @@ inline r32 ProcessNextR32InString(u8 *Character, u8 *Delimiters, u32 DeliCount, 
             i32 E10Muliplier = ProcessNextI32InString(Character, Delimiters, DeliCount, NumberLengthB);
             Character += ++NumberLengthB;
             NumberLength += NumberLengthB;
-            Result = Result*Pow(10, (r32)E10Muliplier);
+            Result = Result*Pow(10.0f, (r32)E10Muliplier);
         }
     }
     Result *= Sign;
@@ -1305,6 +1308,48 @@ ContainsAB_CaseInsensitive(string_c *String, string_c *Contains)
     }
     
     return Result;
+}
+
+internal void
+BinaryToHexString(u64 Binary, string_c *Hex)
+{
+    struct hex_bin { u32 Bin; u8 Hex; };
+    hex_bin HexBin[] = {
+        {0000, '0'}, {0001, '1'}, {0010, '2'}, {0011, '3'}, {0100, '4'}, {0101, '5'}, {0110, '6'}, {0111, '7'}, 
+        {1000, '8'}, {1001, '9'}, {1010, 'A'}, {1011, 'B'}, {1100, 'C'}, {1101, 'D'}, {1110, 'E'}, {1111, 'F'}
+    };
+    i32 Mask = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3;
+    i32 Step = 10000;
+    
+    while(Binary > 0)
+    {
+        u32 Next = Binary & Mask;
+        Binary /= Step;
+        For(ArrayCount(HexBin))
+        {
+            if(HexBin[It].Bin != Next) continue;
+            AppendCharToCompound(Hex, HexBin[It].Hex);
+            break;
+        }
+    }
+}
+
+internal void
+DecimalToHexString(u32 Decimal, string_c *Hex)
+{
+    u8 HexBin[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', };
+    i32 Mask = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3;
+    u8 Cache[8];
+    u8 Count = 0;
+    
+    while(Decimal > 0)
+    {
+        u32 Next = Decimal & Mask;
+        Decimal = Decimal >> 4;
+        Cache[Count++] = HexBin[Next];
+    }
+    for(i32 It = Count-1; It >= 0; --It)
+        AppendCharToCompound(Hex, Cache[It]);
 }
 
 

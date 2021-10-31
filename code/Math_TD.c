@@ -1,134 +1,5 @@
 #include "Math_TD.h"
-/*// General
 
-inline void 
-MathPrintln(i32 A)
-{
-    printf("%i\n", A);
-}
-
-inline void 
-MathPrint(i32 A)
-{
-    printf("%i", A);
-}
-
-inline void 
-MathPrintln(r32 A)
-{
-    printf("%f\n", A);
-}
-
-inline void 
-MathPrint(r32 A)
-{
-    printf("%f", A);
-}
-
-inline void 
-MathPrintln(v2 A)
-{
-    printf("%f, %f\n", A.x, A.y);
-}
-
-inline void 
-MathPrint(v2 A)
-{
-    printf("%f, %f", A.x, A.y);
-}
-
-inline void 
-MathPrintln(v2i A)
-{
-    printf("%i, %i\n", A.x, A.y);
-}
-
-inline void 
-MathPrint(v2i A)
-{
-    printf("%i, %i", A.x, A.y);
-}
-
-inline void 
-MathPrintln(v3 A)
-{
-    printf("%f, %f, %f\n", A.x, A.y, A.z);
-}
-
-inline void 
-MathPrint(v3 A)
-{
-    printf("%f, %f, %f", A.x, A.y, A.z);
-}
-
-inline void 
-MathPrintln(v3i A)
-{
-    printf("%i, %i, %i\n", A.x, A.y, A.z);
-}
-
-inline void 
-MathPrint(v3i A)
-{
-    printf("%i, %i, %i", A.x, A.y, A.z);
-}
-
-inline void 
-MathPrintln(v4 A)
-{
-    printf("%f, %f, %f, %f\n", A.w, A.x, A.y, A.z);
-}
-
-inline void 
-MathPrint(v4 A)
-{
-    printf("%f, %f, %f, %f", A.w, A.x, A.y, A.z);
-}
-
-inline void 
-MathPrintln(quaternion q)
-{
-    printf("%f, %f, %f, %f\n", q.s, q.x, q.y, q.z);
-}
-
-inline void 
-MathPrint(quaternion q)
-{
-    printf("%f, %f, %f, %f", q.s, q.x, q.y, q.z);
-}
-
-inline void 
-MathPrintln(matrix M)
-{
-    printf("%f, %f, %f, %f\n", M.E[0], M.E[1], M.E[2], M.E[3] );
-    printf("%f, %f, %f, %f\n", M.E[4], M.E[5], M.E[6], M.E[7] );
-    printf("%f, %f, %f, %f\n", M.E[8], M.E[9], M.E[10], M.E[11] );
-    printf("%f, %f, %f, %f\n", M.E[12], M.E[13], M.E[14], M.E[15] );
-}
-
-inline void 
-MathPrint(matrix M)
-{
-    printf("%f, %f, %f, %f", M.E[0], M.E[1], M.E[2], M.E[3] );
-    printf("%f, %f, %f, %f", M.E[4], M.E[5], M.E[6], M.E[7] );
-    printf("%f, %f, %f, %f", M.E[8], M.E[9], M.E[10], M.E[11] );
-    printf("%f, %f, %f, %f", M.E[12], M.E[13], M.E[14], M.E[15] );
-}
-
-inline void 
-MathPrintln(ray R)
-{
-    printf("Origin: %f, %f, %f, Direction: %f, %f, %f \n", 
-           R.Origin.x, R.Origin.y, R.Origin.z, R.Direction.x, R.Direction.y, R.Direction.z);
-}
-
-inline void 
-MathPrint(ray R)
-{
-    printf("Origin: %f, %f, %f, Direction: %f, %f, %f", 
-           R.Origin.x, R.Origin.y, R.Origin.z, R.Direction.x, R.Direction.y, R.Direction.z);
-}
-*/
 // General Math
 
 inline i32 
@@ -149,6 +20,26 @@ Pow(r32 Base, r32 Exponent)
     r32 Result = 0;
     // TODO:: Stop using library and use compiler stuff...
     Result = powf(Base, Exponent);
+    
+    return Result;
+}
+
+inline i32
+Pow(i32 Base, i32 Exponent)
+{
+    i32 Result = 0;
+    // TODO:: Stop using library and use compiler stuff...
+    Result = (i32)powf((r32)Base, (r32)Exponent);
+    
+    return Result;
+}
+
+inline u64
+Pow64(i32 Base, i32 Exponent)
+{
+    u64 Result = 0;
+    // TODO:: Stop using library and use compiler stuff...
+    Result = (u64)powl((r32)Base, (r32)Exponent);
     
     return Result;
 }
@@ -375,7 +266,7 @@ Root2_8(r32 V)
 inline r32
 GraphFirstQuickThenSlow(r32 x)
 {
-    return -Pow(x-1, 4) + 1;
+    return -Pow(x-1, 4.0f) + 1;
 }
 
 inline i32
@@ -3021,3 +2912,35 @@ NearestPointFromTriangleToP(v3 A, v3 B, v3 C, v3 P)
     
     return Result;
 }
+
+// Conversions
+
+inline u32
+FindHighestSetBit(u32 Number)
+{
+    Number |= Number >> 1;
+    Number |= Number >> 2;
+    Number |= Number >> 4;
+    Number |= Number >> 8;
+    Number |= Number >> 16;
+    
+    Number = Number + 1;
+    
+    return (Number >> 1);
+}
+
+internal u64
+DecToBinary(i32 Decimal)
+{
+    u64 Binary = 0;
+    i32 Round = 0;
+    while(Decimal > 0)
+    {
+        i32 Rest = Decimal%2;
+        Decimal  = Decimal/2;
+        Binary  += Rest*Pow64(10, Round++);
+    }
+    return Binary;
+}
+
+

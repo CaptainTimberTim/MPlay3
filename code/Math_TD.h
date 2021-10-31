@@ -154,6 +154,8 @@ struct plane
 inline i32 Abs(i32 Value);
 inline r32 Abs(r32 Value);
 inline r32 Pow(r32 Base, r32 Exponent);
+inline i32 Pow(i32 Base, i32 Exponent);
+inline u64 Pow64(i32 Base, i32 Exponent);
 inline void Clamp(i32 *Value, i32 Minimum, i32 Maximum);
 inline void Clamp(r32 *Value, r32 Minimum, r32 Maximum);
 inline r32  Clamp(r32 Value, r32 Minimum, r32 Maximum);
@@ -433,3 +435,6 @@ internal v3 RayPlaneIntersection(ray Ray, plane Plane);
 inline r32 PointPlaneDistance(v3 Point, plane Plane);
 
 inline v3 NearestPointFromLineSegmentToP(v3 A, v3 B, v3 P);
+
+inline u32 FindHighestSetBit(u32 Number);
+internal u64 DecToBinary(i32 Decimal);

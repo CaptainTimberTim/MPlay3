@@ -452,6 +452,9 @@
 - Added HSV color text to color picker.
 - Font size serialization.
 
+31.10.2021
+- Added Binary-Decimal-Hex conversion procedures.
+- Added Hex-Color String to colorpicker.
 
 
 

@@ -47,7 +47,7 @@ AnimateErrorMessage(renderer *Renderer, user_error_text *ErrorInfo, r32 dTime)
         }
         else 
         {
-            r32 Alpha = 1-Pow(ErrorInfo->dAnim, 10);
+            r32 Alpha = 1-Pow(ErrorInfo->dAnim, 10.0f);
             SetTransparency(&ErrorInfo->Message, Alpha);
             
             ErrorInfo->dAnim += dTime/ErrorInfo->AnimTime;

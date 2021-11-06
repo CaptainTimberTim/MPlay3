@@ -1,6 +1,7 @@
 #include "Allocator_TD.h"
 
 #include "Math_TD.h"
+#include "String_TD.h"
 
 inline arena *
 CreateNewArena(u64 Size)

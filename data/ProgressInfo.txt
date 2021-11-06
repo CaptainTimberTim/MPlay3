@@ -456,7 +456,11 @@
 - Added Binary-Decimal-Hex conversion procedures.
 - Added Hex-Color String to colorpicker.
 
-
+06.10.2021
+- Added info box and custom messages to Asserts.
+- Fixed REMOVE text algin after dragging.
+- Fixed Rename-Fields height.
+- Fixed crash when trying to set Looping/Shuffle in 'All' playlist.
 
 
 

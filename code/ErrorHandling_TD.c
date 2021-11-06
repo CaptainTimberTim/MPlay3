@@ -195,3 +195,82 @@ ProcessThreadErrors(struct game_state *GS)
         }
     }
 }
+
+
+// *************************************************************************
+// Crash handling **********************************************************
+// *************************************************************************
+
+#if 0
+#include <dbghelp.h>
+
+internal void 
+PrintStack()
+{
+    BOOL              Result;
+    HANDLE            Process;
+    HANDLE            Thread;
+    CONTEXT           Context;
+    STACKFRAME64      Stack = {};
+    ULONG             Frame;
+    IMAGEHLP_SYMBOL64 Symbol;
+    DWORD64           Displacement;
+    NewEmptyLocalString(Name, MAX_PATH);
+    
+    RtlCaptureContext(&Context);
+    //MemorySet(&Stack, 0, sizeof(STACKFRAME64));
+    
+    Process                = GetCurrentProcess();
+    Thread                 = GetCurrentThread();
+    Displacement           = 0;
+    Stack.AddrPC.Offset    = Context.Eip;
+    Stack.AddrPC.Mode      = AddrModeFlat;
+    Stack.AddrStack.Offset = Context.Esp;
+    Stack.AddrStack.Mode   = AddrModeFlat;
+    Stack.AddrFrame.Offset = Context.Ebp;
+    Stack.AddrFrame.Mode   = AddrModeFlat;
+    
+    for(FrameIt = 0; ; ++FrameIt)
+    {
+        Result = StackWalk64
+        (
+         IMAGE_FILE_MACHINE_I386,
+         process,
+         thread,
+         &stack,
+         &context,
+         NULL,
+         SymFunctionTableAccess64,
+         SymGetModuleBase64,
+         NULL
+         );
+        
+        symbol.SizeOfStruct  = sizeof( IMAGEHLP_SYMBOL64 );
+        symbol.MaxNameLength = 255;
+        
+        SymGetSymFromAddr64( process, ( ULONG64 )stack.AddrPC.Offset, &displacement, &symbol );
+        UnDecorateSymbolName( symbol.Name, ( PSTR )name, 256, UNDNAME_COMPLETE );
+        
+        printf
+        (
+         "Frame %lu:\n"
+         "    Symbol name:    %s\n"
+         "    PC address:     0x%08LX\n"
+         "    Stack address:  0x%08LX\n"
+         "    Frame address:  0x%08LX\n"
+         "\n",
+         frame,
+         symbol.Name,
+         ( ULONG64 )stack.AddrPC.Offset,
+         ( ULONG64 )stack.AddrStack.Offset,
+         ( ULONG64 )stack.AddrFrame.Offset
+         );
+        
+        if( !result )
+        {
+            break;
+        }
+    }
+}
+
+#endif

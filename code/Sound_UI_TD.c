@@ -2255,7 +2255,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     SetLocalPosition(PlaylistUI->Rename, V2(SmallRectS*2*2 + Layout->TopLeftButtonGroupGap*2, -PLBtnYOff));
     PlaylistUI->Rename->OnPressed = {OnRenamePlaylistClick, GameState};
     
-    PlaylistUI->RenameField = CreateTextField(Renderer, &GameState->FixArena, V2(200.0f, Layout->SlotHeight-Layout->SlotGap), 
+    r32 RenameHeight = SlotHeight(&DisplayInfo->Playlists);
+    PlaylistUI->RenameField = CreateTextField(Renderer, &GameState->FixArena, V2(200.0f, RenameHeight - Layout->SlotGap), 
                                               PanelDepth-0.0019f, (u8 *)"New name...", 0, 
                                               PLColumnColors.Text, PLColumnColors.Slot, font_Small, PLAYLIST_MAX_NAME_LENGTH);
     SetActive(&PlaylistUI->RenameField, false);
@@ -3489,7 +3490,9 @@ CreateREMOVEVisuals(game_state *GS, drag_drop *DragDrop)
         RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);
         NewLocalString(RemoveText, 7, "REMOVE");
         RenderText(GS, font_Small, &RemoveText, DInfo->Playlists.Colors.Text, DragDrop->AllRenderText, DInfo->Playlists.ZValue-0.01f, DInfo->Playlists.SlotBGs[OnScreenID]);
-        Translate(DragDrop->AllRenderText, V2(0, 3));
+        
+        r32 Descent = GetFontDescent(GS, font_Small, RemoveText);
+        Translate(DragDrop->AllRenderText, V2(0, Descent));
         ResetColumnText(&DInfo->Playlists, MusicInfo->Playlist_->Playlists.Displayable.A.Count);
     }
 }
@@ -3700,7 +3703,8 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
         
         RemoveRenderText(&GS->Renderer, DragDrop->AllRenderText);
         RenderText(GS, font_Small, GS->MusicInfo.Playlist_->Playlists.Batch.Names+0, DColumn->Colors.Text, DragDrop->AllRenderText, DColumn->ZValue-0.01f, DColumn->SlotBGs[OnScreenID]);
-        Translate(DragDrop->AllRenderText, V2(0, 3));
+        r32 Descent = GetFontDescent(GS, font_Small, GS->MusicInfo.Playlist_->Playlists.Batch.Names[0]);
+        Translate(DragDrop->AllRenderText, V2(0, Descent));
         ResetColumnText(DColumn, GS->MusicInfo.Playlist_->Playlists.Displayable.A.Count);
         
         SetColor(DColumn->SlotBGs[OnScreenID], DragDrop->OriginalAllColor);

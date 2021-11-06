@@ -1434,6 +1434,13 @@ LoadAllPlaylists(game_state *GS)
 internal void
 SaveShuffledState(game_state *GS, playlist_info *Playlist)
 {
+    // Check if we are in All, then we just save the current settings.
+    if(Playlist == GS->MusicInfo.Playlists.List + 0) 
+    {
+        SaveSettingsFile(GS, &GS->Settings);
+        return;
+    }
+    
     read_file_result FileData = {};
     Assert(Playlist->Filename_.Pos > 0);
     if(ReadBeginningOfFile(&GS->ScratchArena, &FileData, Playlist->Filename_.S, PLAYLIST_MAX_NAME_LENGTH + 80))
@@ -1473,6 +1480,13 @@ SaveShuffledState(game_state *GS, playlist_info *Playlist)
 internal void
 SaveLoopingState(game_state *GS, playlist_info *Playlist)
 {
+    // Check if we are in All, then we just save the current settings.
+    if(Playlist == GS->MusicInfo.Playlists.List + 0) 
+    {
+        SaveSettingsFile(GS, &GS->Settings);
+        return;
+    }
+    
     read_file_result FileData = {};
     Assert(Playlist->Filename_.Pos > 0);
     if(ReadBeginningOfFile(&GS->ScratchArena, &FileData, Playlist->Filename_.S, PLAYLIST_MAX_NAME_LENGTH + 80))

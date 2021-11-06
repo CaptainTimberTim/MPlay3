@@ -40,6 +40,10 @@ inline void CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimite
 inline void AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2);
 inline void CopyIntoCompound(string_c *Into, string_c *Copy);
 
+inline void Append(string_compound *Comp, u8 C);      // Equivalent to AppendCharToCompound
+inline void Append(string_c *Comp1, u8 *String);      // Equivalent to AppendStringToCompound
+inline void Append(string_c *Comp1, string_c *Comp2); // Equivalent to AppendStringCompoundToCompound
+
 inline void WipeStringCompound(string_compound *Comp);
 inline void CreateOrWipeStringComp(arena_allocator *Arena, string_c *C);
 
@@ -157,7 +161,26 @@ AppendCharToCompound(string_compound *Comp, u8 C)
 }
 
 inline void
+Append(string_compound *Comp, u8 C)
+{
+    Assert(Comp->Pos+1 <= Comp->Length);
+    Comp->S[Comp->Pos++] = C;
+    Comp->S[Comp->Pos] = '\0';
+}
+
+inline void
 AppendStringToCompound(string_compound *Comp, u8 *String)
+{
+    while(*String)
+    {
+        Comp->S[Comp->Pos++]  = *String++;
+        Assert(Comp->Pos <= Comp->Length);
+    }
+    Comp->S[Comp->Pos] = '\0';
+}
+
+inline void
+Append(string_compound *Comp, u8 *String)
 {
     while(*String)
     {
@@ -239,6 +262,17 @@ CopyStringToCompound(string_compound *Comp, u8 *String, u8 *Delimiters, u32 Deli
 
 inline void 
 AppendStringCompoundToCompound(string_compound *Comp1, string_compound *Comp2)
+{
+    Assert((Comp1->Length-Comp1->Pos) >= Comp2->Pos);
+    For(Comp2->Pos)
+    {
+        Comp1->S[Comp1->Pos++] = Comp2->S[It];
+    }
+    Comp1->S[Comp1->Pos] = '\0';
+}
+
+inline void 
+Append(string_compound *Comp1, string_compound *Comp2)
 {
     Assert((Comp1->Length-Comp1->Pos) >= Comp2->Pos);
     For(Comp2->Pos)

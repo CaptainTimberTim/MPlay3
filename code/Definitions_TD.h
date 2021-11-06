@@ -81,12 +81,21 @@ sprintf_s(B, Text, __VA_ARGS__);\
 printf(B); \
 }
 
+#define MemoryCopy(dest, source, sizeInBytes) memcpy(dest, source, sizeInBytes)
+#define MemorySet(memory, setTo, sizeInBytes) memset(memory, setTo, sizeInBytes)
+
 #if DEBUG_TD
-#define Assert(Expression)                                                                        \
-ToStatement(if(!(Expression)) {                                                               \
-DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
-*(int *)0 = 0;                                                                \
-})                                       
+#define MAX_ASSERT_SIZE 512 + MAX_PATH
+#define Assert(Expression, ...)                                                                  \
+ToStatement(if(!(Expression)) {                                                              \
+NewEmptyLocalString(AssertText, MAX_ASSERT_SIZE);                            \
+Append(&AssertText, (u8 *)"Info: \n\n"##__VA_ARGS__##"\n\n");                \
+/* 10 is the size of the first Append when nothing is in __VA_ARGS__. */     \
+if(AssertText.Pos == 10) ResetStringCompound(AssertText);                    \
+Append(&AssertText, (u8 *)"Assert fired at:\nFile: "##__FILE__##"\nLine: "); \
+I32ToString(&AssertText, __LINE__);                                          \
+MessageBoxA(0, (char *)AssertText.S, "Assert", MB_OK);                       \
+*(int *)0 = 0; })
 #else
 #define Assert(Expression)
 #endif
@@ -94,9 +103,5 @@ DebugLog(1000, "Assert fired at:\nLine: %i\nFile: %s\n", __LINE__, __FILE__); \
 #define InvalidCodePath    Assert(!"InvalidCodePath");
 #define NotImplemented     Assert(!"NotImplementedYet");
 #define InvalidDefaultCase default: {Assert(!"InvalidDefaultCase");}
-
-
-#define MemoryCopy(dest, source, sizeInBytes) memcpy(dest, source, sizeInBytes)
-#define MemorySet(memory, setTo, sizeInBytes) memcpy(memory, setTo, sizeInBytes)
 
 #endif //_DEFINITIONS__T_D_H

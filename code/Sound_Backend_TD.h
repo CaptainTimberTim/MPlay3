@@ -87,7 +87,6 @@
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it!
 // - If we get closed while being very small, next start has no slots, and no way to create them!
-// - Rename visuals for playlist are broken.
 
 #include "Sound_UI_TD.h"
 
@@ -195,6 +194,7 @@ struct playlist_array
 {
     // The ID for this List is the same for Names in sort_batch it is also called
     // playlist ID, because it represents that as well.
+    // First entry is always the 'All' playlist.
     playlist_info *List;
     u32 Count;
     u32 MaxCount;

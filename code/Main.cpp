@@ -62,6 +62,7 @@ global_variable i32 GlobalMinWindowWidth  = 344;
 global_variable i32 GlobalMinWindowHeight = 190;
 
 #include "Sound_Thread_TD.c"
+#include "Sound_Icons.c"
 #include "Sound_UI_TD.c"
 #include "Sound_Backend_TD.c"
 #include "Sound_Jobs.c"
@@ -782,7 +783,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             
             // Style settings and Color Picker *******************************
             CreateStyleSettings(GameState, &GameState->StyleSettings);
-            SetActive(&GameState->StyleSettings, true);
+            SetActive(&GameState->StyleSettings, false);
             
             CreateShortcutPopups(DisplayInfo);
             // ********************************************

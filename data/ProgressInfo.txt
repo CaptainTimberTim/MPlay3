@@ -462,5 +462,9 @@
 - Fixed Rename-Fields height.
 - Fixed crash when trying to set Looping/Shuffle in 'All' playlist.
 
+07.10.2021
+- Fixed TextField errors after resize.
+- Fixed ColorPreviews of ColorPicker for resizing.
+- Added generation of Plus and PlayPause Icons.
 
 

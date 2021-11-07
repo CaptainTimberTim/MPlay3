@@ -198,6 +198,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     }
 #endif
     music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    
     // Thirdly, the bottom panel and everything that depends on it.
     r32 BottomPanelHeight = GetBottomPanelHeight(&GS->Layout);
     
@@ -243,8 +244,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     SetNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     
-    v2 ContentOffset = V2(GS->Layout.ColorPickerContentOffsetX, GS->Layout.ColorPickerContentOffsetY);
-    CreateColorPickerPaletteList(GS, &GS->StyleSettings.ColorPicker, ContentOffset); 
+    UpdateSettings(GS);
 }
 
 internal unicode_group *

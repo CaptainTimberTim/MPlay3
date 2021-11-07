@@ -234,19 +234,20 @@ inline void
 CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
-    u32 ButtonID = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
-    color_palette *Palette = &SongColumn->Base.Base->ColorPalette;
-    r32 Z = SongColumn->Base.ZValue - 0.01f;
+    color_palette *Palette    = &SongColumn->Base.Base->ColorPalette;
+    u32 ButtonID              = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
+    r32 Depth                 = SongColumn->Base.ZValue - 0.01f;
+    //r32 FontHeight            = GetFontSize(Renderer, font_Small).Size;
     
     r32 HalfSize = Layout->AddButtonExtents;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
-    SongColumn->Play[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
+    SongColumn->Play[ID] = NewButton(Renderer, Rect, Depth, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
                                      SongColumn->Base.SlotBGs[ID]);
     Translate(SongColumn->Play[ID], V2(0, GetSongButtonYOffset(Layout)));
     SongColumn->PlayBtnData[ID] = {ID, &GlobalGameState};
     SongColumn->Play[ID]->OnPressed = {OnSongPlayPressed, &SongColumn->PlayBtnData[ID]};
     
-    SongColumn->Add[ID] = NewButton(Renderer, Rect, Z, false, ButtonID, SongColumn->AddGLID, 
+    SongColumn->Add[ID] = NewButton(Renderer, Rect, Depth, false, ButtonID, SongColumn->AddGLID, 
                                     Renderer->ButtonColors, SongColumn->Play[ID]->Entry);
     Translate(SongColumn->Add[ID], V2(HalfSize*2 + Layout->TopLeftButtonGroupGap, 0));
     
@@ -604,6 +605,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     
     if(Type == columnType_Song) 
     {
+#if 0
 #if RESOURCE_PNG
         ColumnExt(DisplayColumn)->PlayPauseGLID = DecodeAndCreateGLTexture(PlayPause_Icon_DataCount, (u8 *)PlayPause_Icon_Data);
         ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(AddSong_Icon_DataCount, (u8 *)AddSong_Icon_Data);
@@ -613,6 +615,13 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
         Bitmap = {1, AddSong_Icon_Width, AddSong_Icon_Height, (u32 *)AddSong_Icon_Data, colorFormat_RGBA, ArrayCount(AddSong_Icon_Data)};
         ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
 #endif
+#endif
+        loaded_bitmap PlayPauseIcon             = CreatePlayPauseIcon(&GlobalGameState, PlayPause_Icon_Height);
+        ColumnExt(DisplayColumn)->PlayPauseGLID = CreateGLTexture(PlayPauseIcon, true);
+        
+        loaded_bitmap PlusIcon = CreatePlusIcon(&GlobalGameState, AddSong_Icon_Height);
+        ColumnExt(DisplayColumn)->AddGLID = CreateGLTexture(PlusIcon, true);
+        
         For(DisplayColumn->Count)
         {
             CreateSongButtons(Renderer, ColumnExt(DisplayColumn), It);

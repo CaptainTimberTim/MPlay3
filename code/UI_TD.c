@@ -369,20 +369,17 @@ CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue,
     SetLocalPosition(Result.LeftAlign, V2(-Size.x*0.5f - 2, 0));
     
     // @Layout
-    r32 CursorHeight = 0;
-    r32 Descent = GetFontDescent(&GlobalGameState, FontSize, Result.NoText);
+    font_metrics Metrics = GetFontMetrics(&GlobalGameState, FontSize, Result.NoText);
+    r32 CursorHeight = Metrics.Ascent - Metrics.Descent;  
     switch(FontSize) {
         case font_Small: {
-            CursorHeight = GlobalGameState.Layout.FontSizeSmall;  
-            Result._FontOffset = V2(10, -Size.y*0.5f - Descent);
+            Result._FontOffset = V2(10, -Size.y*0.5f - Metrics.Descent);
         } break;
         case font_Medium: {
-            CursorHeight = GlobalGameState.Layout.FontSizeMedium; 
-            Result._FontOffset = V2(12, -Size.y*0.5f - Descent);
+            Result._FontOffset = V2(12, -Size.y*0.5f - Metrics.Descent);
         } break;
         case font_Big: {
-            CursorHeight = GlobalGameState.Layout.FontSizeBig;    
-            Result._FontOffset = V2(14, -Size.y*0.5f - Descent);
+            Result._FontOffset = V2(14, -Size.y*0.5f - Metrics.Descent);
         } break;
     }
     Result.Cursor = CreateRenderRect(Renderer, V2(2, CursorHeight), 
@@ -419,6 +416,29 @@ inline void
 SetParent(text_field *TextField, entry_id *Parent)
 {
     SetParent(TextField->Background, Parent);
+}
+
+inline void
+SetSize(text_field *TextField, v2 Size)
+{
+    SetSize(TextField->Background, Size);
+    
+    font_metrics Metrics = GetFontMetrics(&GlobalGameState, TextField->FontSize, TextField->NoText);
+    switch(TextField->FontSize) {
+        case font_Small: {
+            TextField->_FontOffset = V2(10, -Size.y*0.5f - Metrics.Descent);
+        } break;
+        case font_Medium: {
+            TextField->_FontOffset = V2(12, -Size.y*0.5f - Metrics.Descent);
+        } break;
+        case font_Big: {
+            TextField->_FontOffset = V2(14, -Size.y*0.5f - Metrics.Descent);
+        } break;
+    }
+    r32 CursorHeight = Metrics.Ascent - Metrics.Descent;  
+    SetSize(TextField->Cursor, V2(2, CursorHeight));
+    
+    SetLocalPosition(TextField->LeftAlign, V2(-Size.x*0.5f - 2, 0));
 }
 
 inline void

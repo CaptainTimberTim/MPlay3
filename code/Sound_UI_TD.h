@@ -536,9 +536,9 @@ struct layout_definition
     r32 FontSettingsOffsetX = 310;
     r32 FontSettingsOffsetY = 0;
     r32 FontSettingsBGWidth = 279;
-    r32 FontSettingsContentOffsetX = -25;
+    r32 FontSettingsContentOffsetX = 0;
     r32 FontSettingsContentOffsetY = 155;
-    r32 FontSliderExtendsX  = 100;
+    r32 FontSliderExtendsX  = 125;
     r32 FontSliderExtendsY  = 12.5f;
     r32 FontSliderGrabX     = 5;
     r32 FontSliderGrabY     = 15;

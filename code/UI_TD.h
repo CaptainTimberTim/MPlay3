@@ -141,6 +141,7 @@ internal text_field CreateTextField(renderer *Renderer, arena_allocator *Arena, 
 inline void Translate(text_field *TextField, v2 Translation);
 inline void SetActive(text_field *TextField, b32 MakeActive);
 inline void SetParent(text_field *TextField, entry_id *Parent);
+inline void SetSize(text_field *TextField, v2 Size);
 inline void UpdateTextField(renderer *Renderer, text_field *TextField);
 internal text_field_flag_result ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *TextField);
 

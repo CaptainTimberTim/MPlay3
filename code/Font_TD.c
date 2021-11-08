@@ -245,6 +245,16 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     SetNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     
     UpdateSettings(GS);
+    
+    // Update song column buttons
+    r32 FontHeight                  = GetFontSize(&GS->Renderer, font_Small).Size;
+    display_column_song *SongColumn = &GS->MusicInfo.DisplayInfo.Song;
+    v2 Size = V2(FontHeight*2);
+    For(SongColumn->Base.Count)
+    {
+        SetSize(SongColumn->Play[It], Size);
+        SetSize(SongColumn->Add[It], Size);
+    }
 }
 
 internal unicode_group *

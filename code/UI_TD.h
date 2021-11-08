@@ -77,6 +77,8 @@ internal void ButtonTestMouseInteraction(renderer *Renderer, input_info *Input, 
 inline b32 IsButtonHovering(button *Button);
 inline b32 IsOnButton(button *Button, v2 Position);
 inline void SetScissor(button *Button, entry_id *ScissorID);
+inline v2  GetSize(button *Button);
+inline void SetSize(button *Button, v2 Size);
 
 // Dragable UI stuff
 struct drag_func_pointer

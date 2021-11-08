@@ -35,6 +35,8 @@ struct time_management
     r64 GameTime;
     r32 CurrentTimeSpeed;
     
+    LONGLONG CycleCount;
+    
     i64 PerfCountFrequency;
     b32 SleepIsGranular;
 };
@@ -74,6 +76,8 @@ global_variable i32 GlobalMinWindowHeight = 190;
 global_variable b32 IsRunning;
 HCURSOR ArrowCursor = 0;
 HCURSOR DragCursor = 0;
+
+inline void UpdateTime(game_state *GS);
 
 internal void
 WindowGotResized(game_state *GameState)
@@ -205,6 +209,11 @@ WindowCallback(HWND Window,
             SetActive(Quit, true);
             Quit->WindowExit = true;
             Quit->Time *= 1.0f/GlobalGameState.Layout.QuitCurtainAnimationMultiplies;
+            
+            // Doing it twice to really reset our dTime. If we don't do this, 
+            // the close animation does not start at the beginning.
+            UpdateTime(&GlobalGameState);
+            UpdateTime(&GlobalGameState);
         } break;
         case WM_ACTIVATEAPP: {} break;
         case WM_SYSKEYDOWN:
@@ -426,6 +435,16 @@ GetSecondsElapsed(i64 PerfCountFrequency, LONGLONG Start, LONGLONG End)
     return(Result);
 }
 
+inline void
+UpdateTime(game_state *GS)
+{
+    LONGLONG CurrentCycleCount = GetWallClock();
+    GS->Time.dTime             = GetSecondsElapsed(GS->Time.PerfCountFrequency, 
+                                                   GS->Time.CycleCount, CurrentCycleCount);
+    GS->Time.CycleCount        = CurrentCycleCount;
+    GS->Time.GameTime         += GS->Time.dTime;
+}
+
 internal void
 RetrieveAndSetDataPaths(game_state *GameState)
 {
@@ -533,13 +552,12 @@ WinMain(HINSTANCE Instance,
         LARGE_INTEGER PerfCountFrequencyResult;
         QueryPerformanceFrequency(&PerfCountFrequencyResult);
         GameState->Time.PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
-        LONGLONG PrevCycleCount = GetWallClock();
-        LONGLONG FlipWallClock  = GetWallClock();
+        GameState->Time.CycleCount = GetWallClock();
         
         InitTimers();
         StartTimer("Initialization");
         
-        SetRandomSeed(FlipWallClock);
+        SetRandomSeed(GetWallClock());
         
         // Initializing Allocator
         GameState->FixArena.MaxEmptyArenaCount = 2;
@@ -838,12 +856,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             while(IsRunning)
             {
                 ResetMemoryArena(&GameState->ScratchArena);
-                
-                LONGLONG CurrentCycleCount = GetWallClock();
-                GameState->Time.dTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, 
-                                                          PrevCycleCount, CurrentCycleCount);
-                PrevCycleCount            = CurrentCycleCount;
-                GameState->Time.GameTime += GameState->Time.dTime;
+                UpdateTime(GameState);
                 
 #if DEBUG_TD
                 if(!Renderer->Minimized) {
@@ -1329,7 +1342,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // ****************************************************************
                 // Sleep if we are faster than targeted framerate. ****************
                 // ****************************************************************
-                r32 dFrameWorkTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, CurrentCycleCount, GetWallClock());
+                r32 dFrameWorkTime = GetSecondsElapsed(GameState->Time.PerfCountFrequency, 
+                                                       GameState->Time.CycleCount, GetWallClock());
                 if(dFrameWorkTime < GameState->Time.GoalFrameRate)
                 {
                     DWORD SleepMS = (DWORD)(1000.0f * (GameState->Time.GoalFrameRate - dFrameWorkTime));

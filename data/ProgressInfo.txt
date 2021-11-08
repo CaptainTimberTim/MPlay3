@@ -467,4 +467,5 @@
 - Fixed ColorPreviews of ColorPicker for resizing.
 - Added generation of Plus and PlayPause Icons.
 
-
+08.11.2021
+- Fixed close animation not starting at beginning when pressing the X, as dTime is long when holding the X.

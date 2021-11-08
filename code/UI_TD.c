@@ -215,6 +215,21 @@ SetActive(button *Button, b32 SetActive)
     if(Button->ToggleIcon) Button->ToggleIcon->ID->Render = SetActive;
 }
 
+inline v2
+GetSize(button *Button)
+{
+    return GetSize(Button->Entry);
+}
+
+inline void
+SetSize(button *Button, v2 Size)
+{
+    SetSize(Button->Entry, Size);
+    SetSize(Button->Icon, Size);
+    if(Button->IsToggle)
+        SetSize(Button->ToggleIcon, Size);
+}
+
 inline void
 ResetBtnState(button *Button)
 {

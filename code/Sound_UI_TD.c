@@ -237,9 +237,9 @@ CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
     color_palette *Palette    = &SongColumn->Base.Base->ColorPalette;
     u32 ButtonID              = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
     r32 Depth                 = SongColumn->Base.ZValue - 0.01f;
-    //r32 FontHeight            = GetFontSize(Renderer, font_Small).Size;
+    r32 FontHeight            = GetFontSize(Renderer, font_Small).Size;
     
-    r32 HalfSize = Layout->AddButtonExtents;
+    r32 HalfSize = FontHeight;//Layout->AddButtonExtents;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
     SongColumn->Play[ID] = NewButton(Renderer, Rect, Depth, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
                                      SongColumn->Base.SlotBGs[ID]);

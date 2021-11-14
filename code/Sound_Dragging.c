@@ -1,90 +1,108 @@
 #include "Sound_Dragging.h"
 
 internal void
-CreateColumnDragEdges(game_state *GS, 
-                      column_edge_drag *FirstEdge, 
-                      column_edge_drag *SecondEdge, 
-                      column_edge_drag *ThirdEdge, 
-                      column_edge_drag *FourthEdge)
+CreateColumnDragEdges(game_state *GS, r32 MinY, r32 MaxY, 
+                      r32 PlaylistsGenreX, 
+                      r32 GenreArtistX, 
+                      r32 ArtistAlbumX, 
+                      r32 AlbumSongX)
 {
-    music_info *MusicInfo = &GS->MusicInfo;
+    music_info           *MusicInfo = &GS->MusicInfo;
     music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
-    drag_list *DragableList = &GS->DragableList;
-    r32 BLeft   = GetExtends(DisplayInfo->EdgeLeft).x  + GS->Layout.DragEdgeWidth/2 + GS->Layout.VerticalSliderWidth;
-    r32 BRight  = GetExtends(DisplayInfo->EdgeRight).x + GS->Layout.DragEdgeWidth/2 + GS->Layout.VerticalSliderWidth;
-    r32 BMiddle = GS->Layout.DragEdgeWidth + GS->Layout.VerticalSliderWidth;
+    drag_list         *DragableList = &GS->DragableList;
+    color_palette          *Palette = &DisplayInfo->ColorPalette;
     
-    {
-        FirstEdge->LeftEdgeChain  = {
-            {DisplayInfo->EdgeLeft}, 
-            {BLeft}, 
-            {}, 
-            1
-        };
-        FirstEdge->RightEdgeChain = {
-            {DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-            {BMiddle, BMiddle, BMiddle, BRight}, 
-            {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 
-            4 
-        };
-        FirstEdge->XPercent     = &DisplayInfo->PlaylistsGenre.XPercent;
-        FirstEdge->MusicInfo    = MusicInfo;
-        AddDragable(DragableList, DisplayInfo->PlaylistsGenre.Edge, {}, {OnDisplayColumnEdgeDrag, FirstEdge}, {});
-    }
+    r32 WWidth    = (r32)GS->Renderer.Window.FixedDim.Width;
+    r32 EdgeWidth = GS->Layout.DragEdgeWidth;
+    r32 BLeft     = GetExtends(DisplayInfo->EdgeLeft).x  + GS->Layout.DragEdgeWidth/2 + GS->Layout.VerticalSliderWidth;
+    r32 BRight    = GetExtends(DisplayInfo->EdgeRight).x + GS->Layout.DragEdgeWidth/2 + GS->Layout.VerticalSliderWidth;
+    r32 BMiddle   = GS->Layout.DragEdgeWidth + GS->Layout.VerticalSliderWidth;
     
-    {
-        SecondEdge->LeftEdgeChain  = {
-            {DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
-            {BMiddle, BLeft}, 
-            {&DisplayInfo->PlaylistsGenre.XPercent}, 
-            2
-        };
-        SecondEdge->RightEdgeChain = {
-            {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-            {BMiddle, BMiddle, BRight}, 
-            {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 
-            3
-        };
-        SecondEdge->XPercent     = &DisplayInfo->GenreArtist.XPercent;
-        SecondEdge->MusicInfo    = MusicInfo;
-        AddDragable(DragableList, DisplayInfo->GenreArtist.Edge, {}, {OnDisplayColumnEdgeDrag, SecondEdge}, {});
-    }
+    column_edge_drag *PlaylistsGenre = &DisplayInfo->PlaylistsGenreEdge;
+    column_edge_drag *GenreArtist    = &DisplayInfo->GenreArtistEdge;
+    column_edge_drag *ArtistAlbum    = &DisplayInfo->ArtistAlbumEdge;
+    column_edge_drag *AlbumSong      = &DisplayInfo->AlbumSongEdge;
     
-    {
-        ThirdEdge->LeftEdgeChain  = {
-            {DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
-            {BMiddle, BMiddle, BLeft}, 
-            {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 3
-        };
-        ThirdEdge->RightEdgeChain = {
-            {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-            {BMiddle, BRight},
-            {&DisplayInfo->AlbumSong.XPercent}, 
-            2
-        };
-        ThirdEdge->XPercent     = &DisplayInfo->ArtistAlbum.XPercent;
-        ThirdEdge->MusicInfo    = MusicInfo;
-        AddDragable(DragableList, DisplayInfo->ArtistAlbum.Edge, {}, {OnDisplayColumnEdgeDrag, ThirdEdge}, {});
-    }
+    *PlaylistsGenre = {};
+    *GenreArtist    = {};
+    *ArtistAlbum    = {};
+    *AlbumSong      = {};
     
-    {
-        FourthEdge->LeftEdgeChain  = {
-            {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
-            {BMiddle, BMiddle, BMiddle, BLeft}, 
-            {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 
-            4
-        };
-        FourthEdge->RightEdgeChain = {
-            {DisplayInfo->EdgeRight}, 
-            {BRight}, 
-            {}, 
-            1
-        };
-        FourthEdge->XPercent       = &DisplayInfo->AlbumSong.XPercent;
-        FourthEdge->MusicInfo      = MusicInfo;
-        AddDragable(DragableList, DisplayInfo->AlbumSong.Edge, {}, {OnDisplayColumnEdgeDrag, FourthEdge}, {});
-    }
+    PlaylistsGenre->MusicInfo = MusicInfo;
+    GenreArtist->MusicInfo    = MusicInfo;
+    ArtistAlbum->MusicInfo    = MusicInfo;
+    AlbumSong->MusicInfo      = MusicInfo;
     
+    rect PlaylistGenreRect    = {{PlaylistsGenreX, MinY},{PlaylistsGenreX+EdgeWidth, MaxY}};
+    PlaylistsGenre->Edge      = CreateRenderRect(&GS->Renderer, PlaylistGenreRect, -0.5f, 0, &Palette->Foreground);
+    PlaylistsGenre->XPercent  = GetPosition(PlaylistsGenre->Edge).x/WWidth;
+    
+    rect GenreArtistRect      = {{GenreArtistX, MinY},{GenreArtistX+EdgeWidth, MaxY}};
+    GenreArtist->Edge         = CreateRenderRect(&GS->Renderer, GenreArtistRect, -0.5f, 0, &Palette->Foreground);
+    GenreArtist->XPercent     = GetPosition(GenreArtist->Edge).x/WWidth;
+    
+    rect ArtistAlbumRect      = {{ArtistAlbumX, MinY},{ArtistAlbumX+EdgeWidth, MaxY}};
+    ArtistAlbum->Edge         = CreateRenderRect(&GS->Renderer, ArtistAlbumRect, -0.5f, 0, &Palette->Foreground);
+    ArtistAlbum->XPercent     = GetPosition(ArtistAlbum->Edge).x/WWidth;
+    
+    rect AlbumSongRect        = {{AlbumSongX, MinY},{AlbumSongX+EdgeWidth, MaxY}};
+    AlbumSong->Edge           = CreateRenderRect(&GS->Renderer, AlbumSongRect, -0.5f, 0, &Palette->Foreground);
+    AlbumSong->XPercent       = GetPosition(AlbumSong->Edge).x/WWidth;
+    
+    PlaylistsGenre->LeftEdgeChain  = {
+        {DisplayInfo->EdgeLeft}, 
+        {BLeft}, 
+        {}, 
+        1
+    };
+    PlaylistsGenre->RightEdgeChain = {
+        {GenreArtist->Edge, ArtistAlbum->Edge, AlbumSong->Edge, DisplayInfo->EdgeRight}, 
+        {BMiddle, BMiddle, BMiddle, BRight}, 
+        {&GenreArtist->XPercent, &ArtistAlbum->XPercent, &AlbumSong->XPercent}, 
+        4 
+    };
+    AddDragable(DragableList, PlaylistsGenre->Edge, {}, {OnDisplayColumnEdgeDrag, PlaylistsGenre}, {});
+    
+    GenreArtist->LeftEdgeChain  = {
+        {PlaylistsGenre->Edge, DisplayInfo->EdgeLeft}, 
+        {BMiddle, BLeft}, 
+        {&PlaylistsGenre->XPercent}, 
+        2
+    };
+    GenreArtist->RightEdgeChain = {
+        {ArtistAlbum->Edge, AlbumSong->Edge, DisplayInfo->EdgeRight}, 
+        {BMiddle, BMiddle, BRight}, 
+        {&ArtistAlbum->XPercent, &AlbumSong->XPercent}, 
+        3
+    };
+    AddDragable(DragableList, GenreArtist->Edge, {}, {OnDisplayColumnEdgeDrag, GenreArtist}, {});
+    
+    ArtistAlbum->LeftEdgeChain  = {
+        {GenreArtist->Edge, PlaylistsGenre->Edge, DisplayInfo->EdgeLeft}, 
+        {BMiddle, BMiddle, BLeft}, 
+        {&GenreArtist->XPercent, &PlaylistsGenre->XPercent}, 3
+    };
+    ArtistAlbum->RightEdgeChain = {
+        {AlbumSong->Edge, DisplayInfo->EdgeRight}, 
+        {BMiddle, BRight},
+        {&AlbumSong->XPercent}, 
+        2
+    };
+    AddDragable(DragableList, ArtistAlbum->Edge, {}, {OnDisplayColumnEdgeDrag, ArtistAlbum}, {});
+    
+    AlbumSong->LeftEdgeChain  = {
+        {ArtistAlbum->Edge, GenreArtist->Edge, PlaylistsGenre->Edge, DisplayInfo->EdgeLeft}, 
+        {BMiddle, BMiddle, BMiddle, BLeft}, 
+        {&ArtistAlbum->XPercent, &GenreArtist->XPercent, &PlaylistsGenre->XPercent}, 
+        4
+    };
+    AlbumSong->RightEdgeChain = {
+        {DisplayInfo->EdgeRight}, 
+        {BRight}, 
+        {}, 
+        1
+    };
+    AddDragable(DragableList, AlbumSong->Edge, {}, {OnDisplayColumnEdgeDrag, AlbumSong}, {});
 }
 
 internal void
@@ -111,7 +129,7 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
                          GetLocalPosition(LeftChain->Edges[ LeftChain->Count -1]).x + TotalLeftOffset, 
                          GetLocalPosition(RightChain->Edges[RightChain->Count-1]).x - TotalRightOffset);
     SetLocalPosition(Dragable, V2(NewDragX, GetLocalPosition(Dragable).y));
-    *Info->XPercent = GetPosition(Dragable).x/(r32)Renderer->Window.CurrentDim.Width;
+    Info->XPercent = GetPosition(Dragable).x/(r32)Renderer->Window.CurrentDim.Width;
     
     // Constrain all following left side edges that
     // might need to be constrained.
@@ -145,7 +163,6 @@ OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragabl
         LeftSideP = NewX;
     }
     
-    
     playlist_info *Playlist = Info->MusicInfo->Playlist_;
     FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Playlists, Playlist->Playlists.Displayable.A.Count);
     FitDisplayColumnIntoSlot(Renderer, &Info->MusicInfo->DisplayInfo.Genre,     Playlist->Genre.Displayable.A.Count);
@@ -162,21 +179,28 @@ ProcessEdgeDragOnResize(renderer *Renderer, music_display_info *DisplayInfo)
     r32 NewY      = CenterYBetweenRects(DisplayInfo->EdgeBottom, DisplayInfo->EdgeTop);
     r32 NewHeight = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
     
-    r32 NewXGenreArtist = CWidth*DisplayInfo->GenreArtist.XPercent;
-    SetPosition(DisplayInfo->GenreArtist.Edge, V2(NewXGenreArtist, NewY));
-    SetSize(DisplayInfo->GenreArtist.Edge, V2(GetSize(DisplayInfo->GenreArtist.Edge).x, NewHeight));
+    r32 NewXGenreArtist = CWidth*DisplayInfo->GenreArtistEdge.XPercent;
+    SetPosition(DisplayInfo->GenreArtistEdge.Edge, V2(NewXGenreArtist, NewY));
+    SetSize(DisplayInfo->GenreArtistEdge.Edge, V2(GetSize(DisplayInfo->GenreArtistEdge.Edge).x, NewHeight));
     
-    r32 NewXArtistAlbum = CWidth*DisplayInfo->ArtistAlbum.XPercent;
-    SetPosition(DisplayInfo->ArtistAlbum.Edge, V2(NewXArtistAlbum, NewY));
-    SetSize(DisplayInfo->ArtistAlbum.Edge, V2(GetSize(DisplayInfo->ArtistAlbum.Edge).x, NewHeight));
+    r32 NewXArtistAlbum = CWidth*DisplayInfo->ArtistAlbumEdge.XPercent;
+    SetPosition(DisplayInfo->ArtistAlbumEdge.Edge, V2(NewXArtistAlbum, NewY));
+    SetSize(DisplayInfo->ArtistAlbumEdge.Edge, V2(GetSize(DisplayInfo->ArtistAlbumEdge.Edge).x, NewHeight));
     
-    r32 NewXAlbumSong = CWidth*DisplayInfo->AlbumSong.XPercent;
-    SetPosition(DisplayInfo->AlbumSong.Edge, V2(NewXAlbumSong, NewY));
-    SetSize(DisplayInfo->AlbumSong.Edge, V2(GetSize(DisplayInfo->AlbumSong.Edge).x, NewHeight));
+    r32 NewXAlbumSong = CWidth*DisplayInfo->AlbumSongEdge.XPercent;
+    SetPosition(DisplayInfo->AlbumSongEdge.Edge, V2(NewXAlbumSong, NewY));
+    SetSize(DisplayInfo->AlbumSongEdge.Edge, V2(GetSize(DisplayInfo->AlbumSongEdge.Edge).x, NewHeight));
     
-    r32 NewXPlaylistGenre = CWidth*DisplayInfo->PlaylistsGenre.XPercent;
-    SetPosition(DisplayInfo->PlaylistsGenre.Edge, V2(NewXPlaylistGenre, NewY));
-    SetSize(DisplayInfo->PlaylistsGenre.Edge, V2(GetSize(DisplayInfo->PlaylistsGenre.Edge).x, NewHeight));
+    r32 NewXPlaylistGenre = CWidth*DisplayInfo->PlaylistsGenreEdge.XPercent;
+    SetPosition(DisplayInfo->PlaylistsGenreEdge.Edge, V2(NewXPlaylistGenre, NewY));
+    SetSize(DisplayInfo->PlaylistsGenreEdge.Edge, V2(GetSize(DisplayInfo->PlaylistsGenreEdge.Edge).x, NewHeight));
+    
+    // Makes sure the new x-position is in bounds of our window.
+    OnDisplayColumnEdgeDrag(Renderer, {NewXPlaylistGenre, 0}, 
+                            DisplayInfo->PlaylistsGenreEdge.Edge, &DisplayInfo->PlaylistsGenreEdge);
+    OnDisplayColumnEdgeDrag(Renderer, {NewXGenreArtist, 0}, DisplayInfo->GenreArtistEdge.Edge, &DisplayInfo->GenreArtistEdge);
+    OnDisplayColumnEdgeDrag(Renderer, {NewXArtistAlbum, 0}, DisplayInfo->ArtistAlbumEdge.Edge, &DisplayInfo->ArtistAlbumEdge);
+    OnDisplayColumnEdgeDrag(Renderer, {NewXAlbumSong, 0},   DisplayInfo->AlbumSongEdge.Edge, &DisplayInfo->AlbumSongEdge);
 }
 
 // ****************************************************************************************
@@ -257,10 +281,10 @@ CreateColumnSliders(game_state *GS,
 internal void
 TestHoveringEdgeDrags(game_state *GameState, v2 MouseP, music_display_info *DisplayInfo)
 {
-    if(IsInRect(DisplayInfo->GenreArtist.Edge, MouseP) ||
-       IsInRect(DisplayInfo->ArtistAlbum.Edge, MouseP) ||
-       IsInRect(DisplayInfo->AlbumSong.Edge, MouseP)   ||
-       IsInRect(DisplayInfo->PlaylistsGenre.Edge, MouseP))
+    if(IsInRect(DisplayInfo->GenreArtistEdge.Edge, MouseP) ||
+       IsInRect(DisplayInfo->ArtistAlbumEdge.Edge, MouseP) ||
+       IsInRect(DisplayInfo->AlbumSongEdge.Edge, MouseP)   ||
+       IsInRect(DisplayInfo->PlaylistsGenreEdge.Edge, MouseP))
     {
         GameState->CursorState = cursorState_Drag;
     }
@@ -1124,41 +1148,3 @@ StopDragDrop(game_state *GS, drag_drop *DragDrop)
     }
     DragDrop->Dragging = false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

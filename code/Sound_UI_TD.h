@@ -162,12 +162,6 @@ struct playing_song_panel
     b32 TimelineFreezeChange;
 };
 
-struct drag_edge
-{
-    entry_id *Edge;
-    r32 XPercent;
-};
-
 struct music_btn
 {
     struct game_state *GameState;
@@ -288,10 +282,10 @@ struct music_display_info
     // Button general
     music_btn MusicBtnInfo;
     
-    drag_edge PlaylistsGenre;
-    drag_edge GenreArtist;
-    drag_edge ArtistAlbum;
-    drag_edge AlbumSong;
+    column_edge_drag PlaylistsGenreEdge;
+    column_edge_drag GenreArtistEdge;
+    column_edge_drag ArtistAlbumEdge;
+    column_edge_drag AlbumSongEdge;
     
     // Control Panel
     button *PlayPause;

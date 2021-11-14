@@ -421,10 +421,10 @@ SaveSettingsFile(game_state *GameState, serialization_settings *Settings)
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
     I32ToString(&FileLastSong, FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
-    R32ToString(&FilePlaylistsGenre, GameState->MusicInfo.DisplayInfo.PlaylistsGenre.XPercent);
-    R32ToString(&FileGenreArtist, GameState->MusicInfo.DisplayInfo.GenreArtist.XPercent);
-    R32ToString(&FileArtistAlbum, GameState->MusicInfo.DisplayInfo.ArtistAlbum.XPercent);
-    R32ToString(&FileAlbumSong, GameState->MusicInfo.DisplayInfo.AlbumSong.XPercent);
+    R32ToString(&FilePlaylistsGenre, GameState->MusicInfo.DisplayInfo.PlaylistsGenreEdge.XPercent);
+    R32ToString(&FileGenreArtist,    GameState->MusicInfo.DisplayInfo.GenreArtistEdge.XPercent);
+    R32ToString(&FileArtistAlbum,    GameState->MusicInfo.DisplayInfo.ArtistAlbumEdge.XPercent);
+    R32ToString(&FileAlbumSong,      GameState->MusicInfo.DisplayInfo.AlbumSongEdge.XPercent);
     I32ToString(&WindowDimX, Dim.x);
     I32ToString(&WindowDimY, Dim.y);
     I32ToString(&Looping, GameState->MusicInfo.Playlists.List[0].Looping == playLoop_Loop);
@@ -522,10 +522,10 @@ ApplySettings(game_state *GameState, serialization_settings Settings)
     MusicInfo->DisplayInfo.ColorPaletteID = Settings.ColorPaletteID; 
     UpdateColorPalette(&MusicInfo->DisplayInfo, false);
     
-    MusicInfo->DisplayInfo.PlaylistsGenre.XPercent = Settings.PlaylistsGenreEdgeXPercent;
-    MusicInfo->DisplayInfo.GenreArtist.XPercent = Settings.GenreArtistEdgeXPercent;
-    MusicInfo->DisplayInfo.ArtistAlbum.XPercent = Settings.ArtistAlbumEdgeXPercent;
-    MusicInfo->DisplayInfo.AlbumSong.XPercent = Settings.AlbumSongEdgeXPercent;
+    MusicInfo->DisplayInfo.PlaylistsGenreEdge.XPercent = Settings.PlaylistsGenreEdgeXPercent;
+    MusicInfo->DisplayInfo.GenreArtistEdge.XPercent    = Settings.GenreArtistEdgeXPercent;
+    MusicInfo->DisplayInfo.ArtistAlbumEdge.XPercent    = Settings.ArtistAlbumEdgeXPercent;
+    MusicInfo->DisplayInfo.AlbumSongEdge.XPercent      = Settings.AlbumSongEdgeXPercent;
     
     ProcessEdgeDragOnResize(&GameState->Renderer, &MusicInfo->DisplayInfo);
     FitDisplayColumnIntoSlot(&GameState->Renderer, &MusicInfo->DisplayInfo.Genre, Playlist->Genre.Displayable.A.Count);

@@ -475,3 +475,5 @@
 - Fixed bug: When dragging the genre-artist edge to the left, it produced a gap between it and the leftmost edge.
 - Fixed bug: In playlists and genre columns some slots where missing, when resizing window height from smallest.
 - Seperated dragging code into Sound_Dragging.h/c files.
+- Combined edge drag stuff, which was unnessasarily seperated.
+- Fixed bug: If edge is dragged to one side and window size is reduced, the edge could clip outside the legal area.

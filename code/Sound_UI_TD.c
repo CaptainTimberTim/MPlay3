@@ -1227,8 +1227,8 @@ FitDisplayColumnIntoSlot(renderer *Renderer, display_column *DisplayColumn, u32 
     if(DisplayColumn->Type == columnType_Playlists)
     {
         playlist_ui *PlaylistUI = &DisplayColumn->Base->PlaylistUI;
-        r32 PLCenterX = CenterXBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->Base->PlaylistsGenre.Edge);
-        r32 PLWidth   = WidthBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->Base->PlaylistsGenre.Edge);
+        r32 PLCenterX = CenterXBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->Base->PlaylistsGenreEdge.Edge);
+        r32 PLWidth   = WidthBetweenRects(DisplayColumn->LeftBorder, DisplayColumn->Base->PlaylistsGenreEdge.Edge);
         SetSize(PlaylistUI->Panel, V2(PLWidth, GetSize(PlaylistUI->Panel).y));
         SetLocalPosition(PlaylistUI->Panel, V2(PLCenterX, GetLocalPosition(PlaylistUI->Panel).y));
         
@@ -1877,29 +1877,13 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
         &Palette->Foreground,
     };
     
-    r32 EdgeWidth = Layout->DragEdgeWidth;
-    
+    r32 DragEdgeMinY    = BottomBorder;
+    r32 DragEdgeMaxY    = WHeight-TopBorder;
     r32 PlaylistsGenreX = Layout->PlaylistsGenreXP*WWidth;
-    DisplayInfo->PlaylistsGenre.Edge = 
-        CreateRenderRect(Renderer, {{PlaylistsGenreX,BottomBorder},{PlaylistsGenreX+EdgeWidth,WHeight-TopBorder}},
-                         -0.5f, 0, &Palette->Foreground);
-    DisplayInfo->PlaylistsGenre.XPercent = GetPosition(DisplayInfo->PlaylistsGenre.Edge).x/WWidth;
-    
-    r32 GenreArtistX = Layout->GenreArtistXP*WWidth;
-    DisplayInfo->GenreArtist.Edge = CreateRenderRect(Renderer, 
-                                                     {{GenreArtistX,BottomBorder},{GenreArtistX+EdgeWidth,WHeight-TopBorder}},
-                                                     -0.5f, 0, &Palette->Foreground);
-    DisplayInfo->GenreArtist.XPercent = GetPosition(DisplayInfo->GenreArtist.Edge).x/WWidth;
-    
-    r32 ArtistAlbumX = Layout->ArtistAlbumXP*WWidth;
-    DisplayInfo->ArtistAlbum.Edge = CreateRenderRect(Renderer, 
-                                                     {{ArtistAlbumX,BottomBorder},{ArtistAlbumX+EdgeWidth,WHeight-TopBorder}}, 
-                                                     -0.5f, 0, &Palette->Foreground);
-    DisplayInfo->ArtistAlbum.XPercent = GetPosition(DisplayInfo->ArtistAlbum.Edge).x/WWidth;
-    
-    r32 AlbumSongX = Layout->AlbumSongXP*WWidth;
-    DisplayInfo->AlbumSong.Edge = CreateRenderRect(Renderer, {{AlbumSongX,BottomBorder},{AlbumSongX+EdgeWidth,WHeight-TopBorder}}, -0.5f, 0, &Palette->Foreground);
-    DisplayInfo->AlbumSong.XPercent = GetPosition(DisplayInfo->AlbumSong.Edge).x/WWidth;
+    r32 GenreArtistX    = Layout->GenreArtistXP*WWidth;
+    r32 ArtistAlbumX    = Layout->ArtistAlbumXP*WWidth;
+    r32 AlbumSongX      = Layout->AlbumSongXP*WWidth;
+    CreateColumnDragEdges(GameState, DragEdgeMinY, DragEdgeMaxY, PlaylistsGenreX, GenreArtistX, ArtistAlbumX, AlbumSongX);
     
     // PlaylistsUI extra stuff ****
     playlist_ui *PlaylistUI = &DisplayInfo->PlaylistUI;
@@ -1980,15 +1964,15 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, &Playlist->Playlists};
     
     CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, ColumnColors, -0.025f, 
-                        DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->GenreArtist.Edge, Layout);
+                        DisplayInfo->PlaylistsGenreEdge.Edge, DisplayInfo->GenreArtistEdge.Edge, Layout);
     CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, ColumnColors, -0.05f, 
-                        DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, Layout);
+                        DisplayInfo->GenreArtistEdge.Edge, DisplayInfo->ArtistAlbumEdge.Edge, Layout);
     CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Album, ColumnColors, -0.075f, 
-                        DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, Layout);
+                        DisplayInfo->ArtistAlbumEdge.Edge, DisplayInfo->AlbumSongEdge.Edge, Layout);
     CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, ColumnColors, -0.1f, 
-                        DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight, Layout);
+                        DisplayInfo->AlbumSongEdge.Edge, DisplayInfo->EdgeRight, Layout);
     CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, PLColumnColors, PlaylistColumnDepth, 
-                        DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenre.Edge, Layout);
+                        DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenreEdge.Edge, Layout);
     
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
     MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);

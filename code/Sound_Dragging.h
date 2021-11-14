@@ -18,13 +18,19 @@ struct edge_chain
 };
 struct column_edge_drag
 {
+    entry_id *Edge;
     edge_chain LeftEdgeChain;
     edge_chain RightEdgeChain;
-    r32 *XPercent;
+    r32 XPercent;
     
     struct music_info *MusicInfo;
 };
 
+internal void CreateColumnDragEdges(game_state *GS, r32 MinY, r32 MaxY, 
+                                    r32 PlaylistGenreX, 
+                                    r32 GenreArtistX, 
+                                    r32 ArtistAlbumX, 
+                                    r32 AlbumSongX);
 internal void OnDisplayColumnEdgeDrag(renderer *Renderer, v2 AdjustedMouseP, entry_id *Dragable, void *Data);
 
 

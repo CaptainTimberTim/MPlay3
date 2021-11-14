@@ -683,6 +683,13 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             */
             
             // ********************************************
+            // Dragging************************************
+            // ********************************************
+            drag_list *DragableList = &GameState->DragableList;
+            DragableList->DraggingID = -1;
+            
+            
+            // ********************************************
             // UI rendering stuff   ***********************
             // ********************************************
             r32 WWidth = (r32)Renderer->Window.FixedDim.Width;
@@ -693,20 +700,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             InitializeDisplayInfo(&MusicInfo->DisplayInfo, GameState, MP3Info, Layout);
             music_display_info *DisplayInfo = &MusicInfo->DisplayInfo;
             DisplayInfo->DragDrop = {};
-            
-            
-            // ********************************************
-            // Dragging************************************
-            // ********************************************
-            drag_list *DragableList = &GameState->DragableList;
-            DragableList->DraggingID = -1;
-            
-            // Column edges
-            column_edge_drag EdgePlaylistsGenreDrag = {};
-            column_edge_drag EdgeGenreArtistDrag    = {};
-            column_edge_drag EdgeArtistAlbumDrag    = {};
-            column_edge_drag EdgeAlbumSongDrag      = {};
-            CreateColumnDragEdges(GameState, &EdgePlaylistsGenreDrag, &EdgeGenreArtistDrag, &EdgeArtistAlbumDrag, &EdgeAlbumSongDrag);
             
             // Sliders
             drag_slider_data GenreDrag     = {};

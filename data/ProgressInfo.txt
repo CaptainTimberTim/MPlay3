@@ -469,3 +469,9 @@
 
 08.11.2021
 - Fixed close animation not starting at beginning when pressing the X, as dTime is long when holding the X.
+
+14.11.2021
+- Fixed bug: If we get closed while being very small, next start has no slots, and no way to create them.
+- Fixed bug: When dragging the genre-artist edge to the left, it produced a gap between it and the leftmost edge.
+- Fixed bug: In playlists and genre columns some slots where missing, when resizing window height from smallest.
+- Seperated dragging code into Sound_Dragging.h/c files.

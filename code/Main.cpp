@@ -72,6 +72,7 @@ global_variable i32 GlobalMinWindowHeight = 190;
 #include "UI_TD.c"
 #include "GameBasics_TD.c"
 #include "Sound_Settings.c"
+#include "Sound_Dragging.c"
 
 global_variable b32 IsRunning;
 HCURSOR ArrowCursor = 0;
@@ -701,99 +702,24 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             DragableList->DraggingID = -1;
             
             // Column edges
-            r32 BLeft   = GetExtends(DisplayInfo->EdgeLeft).x  + Layout->DragEdgeWidth/2 + Layout->VerticalSliderWidth;
-            r32 BRight  = GetExtends(DisplayInfo->EdgeRight).x + Layout->DragEdgeWidth/2 + Layout->VerticalSliderWidth;
-            r32 BMiddle = Layout->DragEdgeWidth + Layout->VerticalSliderWidth;
-            
             column_edge_drag EdgePlaylistsGenreDrag = {};
-            EdgePlaylistsGenreDrag.LeftEdgeChain  = {{DisplayInfo->EdgeLeft}, {BLeft}, {}, 1};
-            EdgePlaylistsGenreDrag.RightEdgeChain = {
-                {DisplayInfo->GenreArtist.Edge, DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-                {BMiddle, BMiddle, BMiddle, BRight}, 
-                {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 4 
-            };
-            EdgePlaylistsGenreDrag.XPercent     = &DisplayInfo->PlaylistsGenre.XPercent;
-            EdgePlaylistsGenreDrag.MusicInfo    = MusicInfo;
-            AddDragable(DragableList, DisplayInfo->PlaylistsGenre.Edge, {}, 
-                        {OnDisplayColumnEdgeDrag, &EdgePlaylistsGenreDrag}, {});
-            
-            column_edge_drag EdgeGenreArtistDrag = {};
-            EdgeGenreArtistDrag.LeftEdgeChain  = {
-                {DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
-                {BLeft, BMiddle}, {&DisplayInfo->PlaylistsGenre.XPercent}, 2
-            };
-            EdgeGenreArtistDrag.RightEdgeChain = {
-                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, 
-                {BMiddle, BMiddle, BRight}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->AlbumSong.XPercent}, 3
-            };
-            EdgeGenreArtistDrag.XPercent     = &DisplayInfo->GenreArtist.XPercent;
-            EdgeGenreArtistDrag.MusicInfo    = MusicInfo;
-            AddDragable(DragableList, DisplayInfo->GenreArtist.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeGenreArtistDrag}, {});
-            
-            column_edge_drag EdgeArtistAlbumDrag = {};
-            EdgeArtistAlbumDrag.LeftEdgeChain  = {
-                {DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, 
-                {BMiddle, BMiddle, BLeft}, 
-                {&DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 3
-            };
-            EdgeArtistAlbumDrag.RightEdgeChain = {
-                {DisplayInfo->AlbumSong.Edge, DisplayInfo->EdgeRight}, {BMiddle, BRight},
-                {&DisplayInfo->AlbumSong.XPercent}, 2};
-            EdgeArtistAlbumDrag.XPercent     = &DisplayInfo->ArtistAlbum.XPercent;
-            EdgeArtistAlbumDrag.MusicInfo    = MusicInfo;
-            AddDragable(DragableList, DisplayInfo->ArtistAlbum.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeArtistAlbumDrag}, {});
-            
-            column_edge_drag EdgeAlbumSongDrag = {};
-            EdgeAlbumSongDrag.LeftEdgeChain  = {
-                {DisplayInfo->ArtistAlbum.Edge, DisplayInfo->GenreArtist.Edge, DisplayInfo->PlaylistsGenre.Edge, DisplayInfo->EdgeLeft}, {BMiddle, BMiddle, BMiddle, BLeft}, {&DisplayInfo->ArtistAlbum.XPercent, &DisplayInfo->GenreArtist.XPercent, &DisplayInfo->PlaylistsGenre.XPercent}, 4
-            };
-            EdgeAlbumSongDrag.RightEdgeChain = {{DisplayInfo->EdgeRight}, {BRight}, {}, 1};
-            EdgeAlbumSongDrag.XPercent       = &DisplayInfo->AlbumSong.XPercent;
-            EdgeAlbumSongDrag.MusicInfo      = MusicInfo;
-            AddDragable(DragableList, DisplayInfo->AlbumSong.Edge, {}, {OnDisplayColumnEdgeDrag, &EdgeAlbumSongDrag}, {});
+            column_edge_drag EdgeGenreArtistDrag    = {};
+            column_edge_drag EdgeArtistAlbumDrag    = {};
+            column_edge_drag EdgeAlbumSongDrag      = {};
+            CreateColumnDragEdges(GameState, &EdgePlaylistsGenreDrag, &EdgeGenreArtistDrag, &EdgeArtistAlbumDrag, &EdgeAlbumSongDrag);
             
             // Sliders
-            drag_slider_data GenreDrag  = {MusicInfo, &DisplayInfo->Genre};
-            drag_slider_data ArtistDrag = {MusicInfo, &DisplayInfo->Artist};
-            drag_slider_data AlbumDrag  = {MusicInfo, &DisplayInfo->Album};
-            drag_slider_data SongDrag   = {MusicInfo, &DisplayInfo->Song.Base};
-            drag_slider_data PlaylistsDrag = {MusicInfo, &DisplayInfo->Playlists};
+            drag_slider_data GenreDrag     = {};
+            drag_slider_data ArtistDrag    = {};
+            drag_slider_data AlbumDrag     = {};
+            drag_slider_data SongDrag      = {};
+            drag_slider_data PlaylistsDrag = {};
+            CreateColumnSliders(GameState, &GenreDrag, &ArtistDrag, &AlbumDrag, &SongDrag, &PlaylistsDrag);
             
-            AddDragable(DragableList, DisplayInfo->Genre.SliderHorizontal.Background,  
-                        {OnSliderDragStart, &DisplayInfo->Genre.SliderHorizontal}, {OnHorizontalSliderDrag, &GenreDrag}, {});
-            AddDragable(DragableList, DisplayInfo->Artist.SliderHorizontal.Background, 
-                        {OnSliderDragStart, &DisplayInfo->Artist.SliderHorizontal}, {OnHorizontalSliderDrag, &ArtistDrag}, {});
-            AddDragable(DragableList, DisplayInfo->Album.SliderHorizontal.Background,  
-                        {OnSliderDragStart, &DisplayInfo->Album.SliderHorizontal}, {OnHorizontalSliderDrag, &AlbumDrag}, {});
-            AddDragable(DragableList, DisplayInfo->Song.Base.SliderHorizontal.Background,
-                        {OnSliderDragStart, &DisplayInfo->Song.Base.SliderHorizontal}, {OnHorizontalSliderDrag, &SongDrag},{});
-            AddDragable(DragableList, DisplayInfo->Playlists.SliderHorizontal.Background,
-                        {OnSliderDragStart, &DisplayInfo->Playlists.SliderHorizontal}, {OnHorizontalSliderDrag, &PlaylistsDrag},{});
-            
-            AddDragable(DragableList, DisplayInfo->Genre.SliderVertical.Background,
-                        {OnSliderDragStart, &DisplayInfo->Genre.SliderVertical}, {OnVerticalSliderDrag, &GenreDrag}, {});
-            AddDragable(DragableList, DisplayInfo->Artist.SliderVertical.Background,
-                        {OnSliderDragStart, &DisplayInfo->Artist.SliderVertical}, {OnVerticalSliderDrag, &ArtistDrag}, {});
-            AddDragable(DragableList, DisplayInfo->Album.SliderVertical.Background,
-                        {OnSliderDragStart, &DisplayInfo->Album.SliderVertical}, {OnVerticalSliderDrag, &AlbumDrag}, {});
-            AddDragable(DragableList, DisplayInfo->Song.Base.SliderVertical.Background,
-                        {OnSliderDragStart, &DisplayInfo->Song.Base.SliderVertical}, {OnVerticalSliderDrag, &SongDrag},
-                        {OnSongDragEnd, &SongDrag});
-            AddDragable(DragableList, DisplayInfo->Playlists.SliderVertical.Background,
-                        {OnSliderDragStart, &DisplayInfo->Playlists.SliderVertical}, {OnVerticalSliderDrag, &PlaylistsDrag}, {});
             
             // Timeline stuff
-            AddDragable(DragableList, DisplayInfo->Volume.Background,{},{OnVolumeDrag, GameState},{});
-            timeline_slider_drag TimelineDragInfo = {GameState, false};
-            // Adding this twice, once for grabbing the small nubs and for the thin bar.
-            AddDragable(DragableList, DisplayInfo->PlayingSongPanel.Timeline.GrabThing,
-                        {OnTimelineDragStart, &TimelineDragInfo},
-                        {OnTimelineDrag, &TimelineDragInfo},
-                        {OnTimelineDragEnd, &TimelineDragInfo});
-            AddDragable(DragableList, DisplayInfo->PlayingSongPanel.Timeline.Background,
-                        {OnTimelineDragStart, &TimelineDragInfo},
-                        {OnTimelineDrag, &TimelineDragInfo},
-                        {OnTimelineDragEnd, &TimelineDragInfo});
+            timeline_slider_drag TimelineDrag = {};
+            CreateTimelineSliders(GameState, &TimelineDrag);
             
             if(LoadedLibraryFile) AddJob_CheckMusicPathChanged(&GameState->CheckMusicPath);
             else                  OnMusicPathPressed(&DisplayInfo->MusicBtnInfo);
@@ -1052,7 +978,8 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     Assert(!CrawlInfoOut.ThreadIsRunning);
                     
-                    // Dragging stuff ******
+                    // *********************************************
+                    // Dragging stuff ******************************
                     b32 LeftMouseUpAndNoDragging = false;
                     if(Input->KeyChange[KEY_LMB] == KeyDown)
                     {
@@ -1133,9 +1060,15 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         
                         TestHoveringEdgeDrags(GameState, Input->MouseP, DisplayInfo);
                         
-                        HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.Add, &DisplayInfo->PlaylistUI.AddCurtain, playlistBtnType_Add);
-                        HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.AddSelection, &DisplayInfo->PlaylistUI.AddSelectionCurtain, playlistBtnType_AddSelection);
-                        HandlePlaylistButtonAnimation(GameState, DisplayInfo->PlaylistUI.Remove, &DisplayInfo->PlaylistUI.RemoveCurtain, playlistBtnType_Remove);
+                        HandlePlaylistsColumnButtonAnimation(GameState, DisplayInfo->PlaylistUI.Add,
+                                                             &DisplayInfo->PlaylistUI.AddCurtain, 
+                                                             playlistBtnType_Add);
+                        HandlePlaylistsColumnButtonAnimation(GameState, DisplayInfo->PlaylistUI.AddSelection,
+                                                             &DisplayInfo->PlaylistUI.AddSelectionCurtain,
+                                                             playlistBtnType_AddSelection);
+                        HandlePlaylistsColumnButtonAnimation(GameState, DisplayInfo->PlaylistUI.Remove,
+                                                             &DisplayInfo->PlaylistUI.RemoveCurtain, 
+                                                             playlistBtnType_Remove);
                         
                         // Next/Previous song *******
                         if(Input->KeyChange[KEY_RIGHT] == KeyDown || Input->KeyChange[KEY_NEXT]  == KeyDown)

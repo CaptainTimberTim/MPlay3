@@ -75,7 +75,6 @@
 // BUGS::
 // - fix issues regarding handmade network comment
 //       - Find issue with drawing order bug. This one I have no clue right now...
-// - When having the drag edges close to a side and then making the windows smaller pushes them onto each other
 // - On large files when preload is not enough, it _seldom_crashes when using the already decoded data...
 // - MP3 V0 crashes?
 // - selecting and deselecting stuff (in combination with search) is buggy.

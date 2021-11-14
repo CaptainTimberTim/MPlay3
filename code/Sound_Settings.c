@@ -123,6 +123,7 @@ UpdateSettings(game_state *GS)
     v2 NewSize = V2(GS->Layout.FontSliderExtendsX*2 - GS->Layout.SearchButtonExtents*2, 
                     SmallFontMetrics.Ascent - SmallFontMetrics.Descent);
     SetSize(&GS->StyleSettings.FontSettings.ActiveFont, NewSize);
+    SetActive(&GS->StyleSettings.FontSettings.ActiveFont, GS->StyleSettings.IsActive);
 }
 
 // Font settings ********************************************

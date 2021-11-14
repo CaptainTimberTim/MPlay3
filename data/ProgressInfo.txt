@@ -477,3 +477,4 @@
 - Seperated dragging code into Sound_Dragging.h/c files.
 - Combined edge drag stuff, which was unnessasarily seperated.
 - Fixed bug: If edge is dragged to one side and window size is reduced, the edge could clip outside the legal area.
+- Fixed bug: ActiveFont textfield activating when resizing text.

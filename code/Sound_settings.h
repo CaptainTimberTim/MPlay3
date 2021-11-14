@@ -11,7 +11,6 @@ struct palette_color
 
 struct color_picker
 {
-    // TODO:: Add HSV and HEX text for colors.
     entry_id *Parent;
     entry_id *Background;
     

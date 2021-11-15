@@ -237,9 +237,9 @@ CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
     color_palette *Palette    = &SongColumn->Base.Base->ColorPalette;
     u32 ButtonID              = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
     r32 Depth                 = SongColumn->Base.ZValue - 0.01f;
-    r32 FontHeight            = GetFontSize(Renderer, font_Small).Size;
     
-    r32 HalfSize = FontHeight;//Layout->AddButtonExtents;
+    //r32 FontHeight            = GetFontSize(Renderer, font_Small).Size;
+    r32 HalfSize = Layout->AddButtonExtents; // FontHeight;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
     SongColumn->Play[ID] = NewButton(Renderer, Rect, Depth, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
                                      SongColumn->Base.SlotBGs[ID]);
@@ -609,7 +609,6 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     
     if(Type == columnType_Song) 
     {
-#if 0
 #if RESOURCE_PNG
         ColumnExt(DisplayColumn)->PlayPauseGLID = DecodeAndCreateGLTexture(PlayPause_Icon_DataCount, (u8 *)PlayPause_Icon_Data);
         ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(AddSong_Icon_DataCount, (u8 *)AddSong_Icon_Data);
@@ -619,9 +618,11 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
         Bitmap = {1, AddSong_Icon_Width, AddSong_Icon_Height, (u32 *)AddSong_Icon_Data, colorFormat_RGBA, ArrayCount(AddSong_Icon_Data)};
         ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
 #endif
-#endif
+        
+#if 0
         loaded_bitmap PlayPauseIcon             = CreatePlayPauseIcon(&GlobalGameState, PlayPause_Icon_Height);
         ColumnExt(DisplayColumn)->PlayPauseGLID = CreateGLTexture(PlayPauseIcon, true);
+#endif
         
         loaded_bitmap PlusIcon = CreatePlusIcon(&GlobalGameState, AddSong_Icon_Height);
         ColumnExt(DisplayColumn)->AddGLID = CreateGLTexture(PlusIcon, true);
@@ -1938,8 +1939,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     PlaylistUI->RenameField = CreateTextField(Renderer, &GameState->FixArena, V2(200.0f, RenameHeight - Layout->SlotGap), 
                                               PanelDepth-0.0019f, (u8 *)"New name...", 0, 
                                               PLColumnColors.Text, PLColumnColors.Slot, font_Small, PLAYLIST_MAX_NAME_LENGTH);
-    SetActive(&PlaylistUI->RenameField, false);
     UpdateTextField(Renderer, &PlaylistUI->RenameField);
+    SetActive(&PlaylistUI->RenameField, false);
     
     string_c AddText          = NewStaticStringCompound("New Playlist.");
     string_c AddSelectionText = NewStaticStringCompound("New Playlist\nwith selection.");

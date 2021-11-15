@@ -478,3 +478,7 @@
 - Combined edge drag stuff, which was unnessasarily seperated.
 - Fixed bug: If edge is dragged to one side and window size is reduced, the edge could clip outside the legal area.
 - Fixed bug: ActiveFont textfield activating when resizing text.
+
+15.11.2021
+- Fixed bug: Properly disabled rename textfield, which had active text out of frame.
+- Fixed bug: Playlist name alignment after rename was too high.

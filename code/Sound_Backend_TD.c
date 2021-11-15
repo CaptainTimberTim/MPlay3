@@ -2972,7 +2972,8 @@ UpdatePlaylistScreenName(game_state *GS, playlist_info *Playlist)
     
     RenderText(GS, font_Small, &ScreenName, DisplayColumn->Colors.Text,
                DisplayColumn->SlotText+SlotID,  DisplayColumn->ZValue-0.01f, DisplayColumn->SlotBGs[SlotID]);
-    Translate(DisplayColumn->SlotText+SlotID, V2(0, 3));
+    r32 Descent = GetFontDescent(GS, font_Small, ScreenName);
+    Translate(DisplayColumn->SlotText+SlotID, V2(0, Descent));
     ResetColumnText(DisplayColumn, Playlist->Playlists.Displayable.A.Count);
 }
 

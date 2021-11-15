@@ -519,6 +519,14 @@ internal void
 RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
            v3 *Color, render_text *ResultText, r32 ZValue, entry_id *Parent, v2 StartP)
 {
+    
+    if(Parent)
+    {
+        v2 p = GetPosition(Parent) + StartP;
+        if(p.x < 0 || p.y < 0)
+            i32 g = 20;
+    }
+    
     // Create memory if this render_text was not used before
     // or is not big enough for the given text.
     if(ResultText->MaxCount == 0)
@@ -624,10 +632,8 @@ RenderText(game_state *GS, font_size_id FontSize, string_c *Text,
     {
         ResultText->Extends.x  = ResultText->CurrentP.x;
         ResultText->Extends.y  = Abs(TextHeight.E[0]) + Abs(TextHeight.E[1]);
-        
         // entry_id *TestBase2 = CreateRenderRect(Renderer, V2(5,5), DepthOffset-0.00001f, Color, Parent);
         // SetPosition(TestBase2, StartP + V2(ResultText->Extends.x, 0));
-        
     }
 }
 

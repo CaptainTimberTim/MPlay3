@@ -422,10 +422,10 @@ internal void
 ProcessActiveSearch(column_info ColumnInfo, r32 dTime, input_info *Input, mp3_file_info *FileInfo = 0)
 {
     Assert(ColumnInfo.PlaylistColumn);
-    renderer *Renderer                   = ColumnInfo.Renderer;
-    display_column *DisplayColumn  = ColumnInfo.DisplayColumn;
-    playlist_column      *PlaylistColumn = ColumnInfo.PlaylistColumn;
-    text_field_flag_result FieldResult   = ProcessTextField(Renderer, dTime, Input, &DisplayColumn->Search.TextField);
+    renderer                *Renderer  = ColumnInfo.Renderer;
+    display_column      *DisplayColumn = ColumnInfo.DisplayColumn;
+    playlist_column    *PlaylistColumn = ColumnInfo.PlaylistColumn;
+    text_field_flag_result FieldResult = ProcessTextField(Renderer, dTime, Input, &DisplayColumn->Search.TextField);
     
     if(FieldResult.Flag & processTextField_TextChanged)
     {
@@ -439,13 +439,15 @@ ProcessActiveSearch(column_info ColumnInfo, r32 dTime, input_info *Input, mp3_fi
         if(ColumnInfo.MusicInfo->Playlist_->Columns[DisplayColumn->Type].Displayable.A.Count == 1) 
         {
             SetSelectionArray(DisplayColumn, PlaylistColumn, 0);
+            PropagateSelectionChange(&GlobalGameState.MusicInfo);
             UpdateColumnColor(DisplayColumn, PlaylistColumn);
         }
         ResetSearchList(Renderer, DisplayColumn);
         UpdateSortingInfoChanged(Renderer, &GlobalGameState.MusicInfo, GlobalGameState.MP3Info, DisplayColumn->Type);
         
         playlist_id SelectedID = Get(&PlaylistColumn->Selected, NewSelectID(0));
-        if(DisplayColumn->Type == columnType_Song) BringDisplayableEntryOnScreen(ColumnInfo.MusicInfo, DisplayColumn, SelectedID);
+        if(DisplayColumn->Type == columnType_Song) 
+            BringDisplayableEntryOnScreen(ColumnInfo.MusicInfo, DisplayColumn, SelectedID);
         else BringDisplayableEntryOnScreenWithSortID(DisplayColumn->SearchInfo.MusicInfo, DisplayColumn, SelectedID);
     }
 }

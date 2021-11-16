@@ -482,3 +482,6 @@
 15.11.2021
 - Fixed bug: Properly disabled rename textfield, which had active text out of frame.
 - Fixed bug: Playlist name alignment after rename was too high.
+
+16.11.2021
+- Fixed bug: When having an album selected and then searching a genre and confirming with enter, the song column was left empty.

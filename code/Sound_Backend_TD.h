@@ -80,11 +80,10 @@
 // - selecting and deselecting stuff (in combination with search) is buggy.
 // - Fix stutter on first play of song.
 // - Currently playing song is before music path background.
-// - If we have an album selected->then search genre and select it->then album is empty
 // - Switching audio sources freezes playing of music entirely. On play 1 sec gets advanced...
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
-// - Random text behind lower left corner. Find it!
+// - Random text behind lower left corner. Find it! Found it?
 
 #include "Sound_UI_TD.h"
 

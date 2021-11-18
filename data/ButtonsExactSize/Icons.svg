@@ -1,0 +1,1595 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg8"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   sodipodi:docname="Icons.svg">
+  <defs
+     id="defs2">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient970">
+      <stop
+         style="stop-color:#adadad;stop-opacity:1;"
+         offset="0"
+         id="stop966" />
+      <stop
+         style="stop-color:#adadad;stop-opacity:0;"
+         offset="1"
+         id="stop968" />
+    </linearGradient>
+    <marker
+       inkscape:stockid="Arrow1Mstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mstart"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path4531"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#e7d492;stroke-width:1pt;stroke-opacity:1;fill:#e7d492;fill-opacity:1"
+         transform="scale(0.4) translate(10,0)" />
+    </marker>
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient970"
+       id="radialGradient972"
+       cx="62.871613"
+       cy="103.85417"
+       fx="62.871613"
+       fy="103.85417"
+       r="4.5361654"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.646424,-2.2268289e-7,2.064355e-7,1.5262976,-40.676429,-54.681572)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient970"
+       id="radialGradient972-3"
+       cx="62.871613"
+       cy="103.85417"
+       fx="62.871613"
+       fy="103.85417"
+       r="4.5361652"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.646424,-2.2268289e-7,2.064355e-7,1.5262976,-88.465176,-43.314171)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient970"
+       id="radialGradient972-3-1"
+       cx="62.871613"
+       cy="103.85417"
+       fx="62.871613"
+       fy="103.85417"
+       r="4.5361652"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.646424,-2.2268289e-7,2.064355e-7,1.5262976,-52.110743,-43.198851)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient970"
+       id="radialGradient972-3-9"
+       cx="62.871613"
+       cy="103.85417"
+       fx="62.871613"
+       fy="103.85417"
+       r="4.5361652"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.646424,-2.2268289e-7,2.064355e-7,1.5262976,-88.265623,-8.4705046)" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="16"
+     inkscape:cx="270.93601"
+     inkscape:cy="751.62072"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="3840"
+     inkscape:window-height="2066"
+     inkscape:window-x="2869"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1"
+       width="10.22306"
+       height="10.22306"
+       x="33.893116"
+       y="63.757225"
+       ry="0"
+       inkscape:export-xdpi="102.78615"
+       inkscape:export-ydpi="102.78615"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PlayPause_Icon.png" />
+    <circle
+       style="opacity:1;fill:#0e2311;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0347243;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path841-4-8"
+       cx="163.07474"
+       cy="6.1245599"
+       r="6.8741961"
+       inkscape:export-xdpi="2955.9817"
+       inkscape:export-ydpi="2955.9817" />
+    <rect
+       style="opacity:1;fill:#e2cb7b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4504"
+       width="19.820126"
+       height="9.9100628"
+       x="131.29584"
+       y="2.1912367"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#b09127;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.29583,2.1912337 h 19.82012 l -5.28228,4.996243 h -9.34769 z"
+       id="path4899"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#b09127;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.29583,2.1912337 5.19015,4.996243 -5.19015,4.9138183 z"
+       id="path4895"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#977d21;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 151.11595,2.1912337 V 12.101295 L 145.83367,7.1874767 Z"
+       id="path4897"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#977d21;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.29583,12.101295 5.19015,-4.9138183 h 9.34769 l 5.28228,4.9138183 z"
+       id="path4901"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <rect
+       style="opacity:1;fill:#dabc56;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.79145443;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4504-3"
+       width="18.402714"
+       height="8.5635223"
+       x="132.00455"
+       y="2.8645079"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <rect
+       style="opacity:1;fill:#e2cb7b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4504-6"
+       width="19.820126"
+       height="9.9100628"
+       x="131.28816"
+       y="13.197975"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#977d21;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.28817,13.19798 h 19.82012 l -5.28228,4.996243 h -9.34769 z"
+       id="path4899-3"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#977d21;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.28817,13.19798 5.19015,4.996243 -5.19015,4.913819 z"
+       id="path4895-8"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#b09127;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 151.10829,13.19798 v 9.910062 l -5.28228,-4.913819 z"
+       id="path4897-3"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <path
+       style="fill:#b09127;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.28817,23.108042 5.19015,-4.913819 h 9.34769 l 5.28228,4.913819 z"
+       id="path4901-4"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <rect
+       style="opacity:1;fill:#816b1c;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.79145443;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4504-3-9"
+       width="18.402714"
+       height="8.5635223"
+       x="131.99687"
+       y="13.871246"
+       inkscape:export-xdpi="1537.8303"
+       inkscape:export-ydpi="1537.8303" />
+    <rect
+       style="opacity:1;fill:#e2cb7b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4504-6-2"
+       width="19.820126"
+       height="9.9100628"
+       x="131.28401"
+       y="24.131569"
+       inkscape:export-xdpi="1537.8297"
+       inkscape:export-ydpi="1537.8297" />
+    <path
+       style="fill:#977d21;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.28403,24.131577 h 19.82012 l -5.28228,4.996243 h -9.34769 z"
+       id="path4899-3-1"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="1537.8297"
+       inkscape:export-ydpi="1537.8297" />
+    <path
+       style="fill:#977d21;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.28403,24.131577 5.19015,4.996243 -5.19015,4.913819 z"
+       id="path4895-8-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1537.8297"
+       inkscape:export-ydpi="1537.8297" />
+    <path
+       style="fill:#b09127;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 151.10415,24.131577 v 9.910062 l -5.28228,-4.913819 z"
+       id="path4897-3-0"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1537.8297"
+       inkscape:export-ydpi="1537.8297" />
+    <path
+       style="fill:#b09127;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 131.28403,34.041639 5.19015,-4.913819 h 9.34769 l 5.28228,4.913819 z"
+       id="path4901-4-5"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="1537.8297"
+       inkscape:export-ydpi="1537.8297" />
+    <rect
+       style="opacity:1;fill:#a28722;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.79145443;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4504-3-9-9"
+       width="18.402714"
+       height="8.5635223"
+       x="131.99272"
+       y="24.80484"
+       inkscape:export-xdpi="1537.8297"
+       inkscape:export-ydpi="1537.8297" />
+    <circle
+       style="opacity:1;fill:#3c9345;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0343663;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path841-4"
+       cx="163.07474"
+       cy="6.1245599"
+       r="6.8033252"
+       inkscape:export-xdpi="2955.9817"
+       inkscape:export-ydpi="2955.9817" />
+    <circle
+       style="opacity:1;fill:#0e2311;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0347243;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path841-4-8-0"
+       cx="163.14034"
+       cy="20.275032"
+       r="6.8741965"
+       inkscape:export-xdpi="2955.9817"
+       inkscape:export-ydpi="2955.9817" />
+    <circle
+       style="opacity:1;fill:#204e24;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0343663;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path841-4-9"
+       cx="163.14034"
+       cy="20.275032"
+       r="6.8033257"
+       inkscape:export-xdpi="2955.9817"
+       inkscape:export-ydpi="2955.9817" />
+    <circle
+       style="opacity:1;fill:#0e2311;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0347243;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path841-4-8-4"
+       cx="162.97498"
+       cy="34.80349"
+       r="6.8741965"
+       inkscape:export-xdpi="2955.9817"
+       inkscape:export-ydpi="2955.9817" />
+    <circle
+       style="opacity:1;fill:#7eca86;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.0343663;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="path841-4-1"
+       cx="162.97498"
+       cy="34.80349"
+       r="6.8033257"
+       inkscape:export-xdpi="2955.9817"
+       inkscape:export-ydpi="2955.9817" />
+    <rect
+       style="opacity:1;fill:#e4e4e4;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.65;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4533"
+       width="10.22306"
+       height="10.22306"
+       x="21.715649"
+       y="63.874157"
+       ry="0"
+       inkscape:export-xdpi="210.24471"
+       inkscape:export-ydpi="210.24471"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Background_Icon.png" />
+    <g
+       id="g4583"
+       transform="translate(11.989547,-0.11693042)"
+       inkscape:export-xdpi="102.78615"
+       inkscape:export-ydpi="102.78615"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PlayPause_Icon.png">
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549"
+         d="m 23.536423,65.991433 3.107009,3.10701 -3.107009,2.881498 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551"
+         d="m 27.428535,72.101047 v -6.23072 h 1.186008 v 6.23072 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.30623421px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7"
+         d="m 29.307775,72.101047 v -6.23072 h 1.186 v 6.23072 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.30623317px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2"
+       width="10.22306"
+       height="10.22306"
+       x="21.79917"
+       y="75.834473"
+       ry="0"
+       inkscape:export-xdpi="112.13034"
+       inkscape:export-ydpi="112.13034"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Stop_Icon.png" />
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.68354839;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4628"
+       width="5.4456158"
+       height="5.4456158"
+       x="24.187891"
+       y="78.223198"
+       ry="0"
+       inkscape:export-xdpi="112.13034"
+       inkscape:export-ydpi="112.13034"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Stop_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2-4"
+       width="10.22306"
+       height="10.22306"
+       x="33.926529"
+       y="76.068329"
+       ry="0"
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Next_Icon.png" />
+    <g
+       id="g4690"
+       transform="translate(0.06682026,-0.63476482)"
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Next_Icon.png">
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549-0"
+         d="m 35.475858,79.125414 2.938493,2.790478 -2.938493,2.587941 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24384929px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-7"
+         d="m 41.344944,84.612601 v -5.595955 h 1.121675 v 5.595955 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.28223526px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549-0-7"
+         d="m 38.410397,79.125414 2.938493,2.790478 -2.938493,2.587941 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24384929px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2-4-7"
+       width="10.22306"
+       height="10.22306"
+       x="21.481789"
+       y="87.243538"
+       ry="0"
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Previous_Icon.png" />
+    <g
+       id="g4690-7"
+       transform="rotate(-180,32.782277,87.084844)"
+       inkscape:export-xdpi="112.13"
+       inkscape:export-ydpi="112.13"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Previous_Icon.png">
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549-0-79"
+         d="m 35.475858,79.125414 2.938493,2.790478 -2.938493,2.587941 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24384929px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-7-1"
+         d="m 41.344944,84.612601 v -5.595955 h 1.121675 v 5.595955 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.28223526px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549-0-7-8"
+         d="m 38.410397,79.125414 2.938493,2.790478 -2.938493,2.587941 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24384929px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2-4-0"
+       width="10.22306"
+       height="10.22306"
+       x="33.820019"
+       y="87.592339"
+       ry="0"
+       inkscape:export-xdpi="979.46021"
+       inkscape:export-ydpi="979.46021" />
+    <g
+       id="g894"
+       transform="translate(0.7773841)"
+       inkscape:export-xdpi="979"
+       inkscape:export-ydpi="979">
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549-0-4"
+         d="m 35.436166,90.014659 2.938493,2.790478 -2.938493,2.587941 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24384929px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path4549-0-7-4"
+         d="m 37.93367,90.014659 2.938493,2.790478 -2.938493,2.587941 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24384929px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2-4-7-8"
+       width="10.22306"
+       height="10.22306"
+       x="21.235992"
+       y="98.590485"
+       ry="0"
+       inkscape:export-xdpi="979.46021"
+       inkscape:export-ydpi="979.46021" />
+    <g
+       id="g918"
+       inkscape:export-xdpi="979"
+       inkscape:export-ydpi="979">
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path893"
+         d="m 22.312407,107.7107 8.037899,-8.037897 h -8.037899 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path899"
+         d="m 22.312407,107.71107 8.050078,-1e-5 -0.01343,-8.036632 -4.018321,4.018312 z"
+         style="fill:#111111;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path901"
+         d="m 22.312407,107.71107 2.875985,-1e-5 -1.437992,-1.43798 z"
+         style="fill:#dfdfdf;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path903"
+         d="m 25.188392,107.71106 2.221662,-8.5e-4 -2.5274,-2.56939 -1.132254,1.13226 z"
+         style="fill:#cacaca;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path905"
+         d="m 27.410054,107.71021 2.952431,8.5e-4 -4.025044,-4.02503 -1.454787,1.45479 z"
+         style="fill:#838383;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path907"
+         d="m 30.382639,107.73122 -5e-6,-2.66768 -2.71135,-2.71136 -1.333843,1.33385 z"
+         style="fill:#5b5b5b;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path909"
+         d="m 30.38261,105.06352 -0.02687,-2.49969 -1.41445,-1.48164 -1.270005,1.27 z"
+         style="fill:#323232;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1"
+       width="10.22306"
+       height="10.22306"
+       x="46.127377"
+       y="63.640293"
+       ry="0"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsICO\Play_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7"
+       width="10.22306"
+       height="10.22306"
+       x="46.34993"
+       y="75.955399"
+       ry="0"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459" />
+    <g
+       id="g948"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459">
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-5"
+         d="m 49.718874,83.848407 v -5.463739 h 1.348488 v 5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.30578014px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459.4167"
+         inkscape:export-xdpi="1459.4167"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4"
+         d="m 51.855564,83.848407 v -5.463739 h 1.348479 v 5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.3057791px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.28865531px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 49.512058,66.017079 4.049008,2.837727 -4.049008,2.631761 z"
+       id="path4549-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="1459.4167"
+       inkscape:export-ydpi="1459.4167"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsICO\Play_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1"
+       width="10.22306"
+       height="10.22306"
+       x="46.399536"
+       y="87.795502"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 48.779196,92.042623 h 5.463739 v 1.728818 h -5.463739 z"
+       id="path4551-7-4-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 52.375475,90.175162 v 5.463739 h -1.728818 v -5.463739 z"
+       id="path4551-7-4-1-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2-4-7-8-8"
+       width="10.22306"
+       height="10.22306"
+       x="33.864906"
+       y="98.511124"
+       ry="0"
+       inkscape:export-xdpi="56.07"
+       inkscape:export-ydpi="56.07"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Search_Icon.png" />
+    <g
+       id="g923"
+       transform="rotate(-45,37.979293,104.30751)"
+       inkscape:export-xdpi="56.07"
+       inkscape:export-ydpi="56.07"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Search_Icon.png">
+      <circle
+         transform="scale(1,-1)"
+         r="1.8427683"
+         cy="-104.52833"
+         cx="37.75806"
+         id="path902"
+         style="opacity:1;fill:none;fill-opacity:0.9844358;fill-rule:nonzero;stroke:#ffffff;stroke-width:1.04741943;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+      <rect
+         transform="matrix(0,1,1,0,0,0)"
+         y="39.669727"
+         x="103.99035"
+         height="3.7135694"
+         width="1.0759656"
+         id="rect904"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.03959489;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7"
+       width="10.22306"
+       height="10.22306"
+       x="46.416077"
+       y="98.693031"
+       ry="0"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459" />
+    <path
+       style="fill:#c4c4c4;fill-opacity:1;stroke:none;stroke-width:0.22062224px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 55.065382,106.44639 h -1.916341 l -2.511744,-4.36058 -1.31339,2.6e-4 v 0.83386 l -1.281458,-1.29371 1.281458,-1.30539 v 0.83384 l 1.84687,3.9e-4 2.532113,4.36028 h 1.362492 z"
+       id="path910-8"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccccccccc"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.22062223px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 55.065382,101.16273 h -1.916341 l -2.511744,4.36058 -1.31339,-2.7e-4 v -0.83385 l -1.286535,1.29955 1.286535,1.29955 v -0.83384 l 1.84687,-3.9e-4 2.532113,-4.36028 h 1.362492 z"
+       id="path910"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccccccccccc"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9"
+       width="10.22306"
+       height="10.22306"
+       x="21.361517"
+       y="110.10844"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Icon.png" />
+    <g
+       id="g1031"
+       transform="translate(-0.09153907,-0.54788723)"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Icon.png">
+      <path
+         transform="matrix(0.90974023,0.14512302,-0.14512302,0.90974023,19.321617,6.9840091)"
+         d="m 26.32254,112.13144 c 1.75381,-0.0218 3.237788,1.42578 3.259574,3.17959 0.02179,1.75381 -1.425777,3.23779 -3.179587,3.25957 -1.75381,0.0218 -3.237788,-1.42578 -3.259574,-3.17959 -0.0084,-0.67631 0.200647,-1.34797 0.591378,-1.90006"
+         sodipodi:t0="0"
+         sodipodi:argument="-20.432774"
+         sodipodi:radius="3.2198288"
+         sodipodi:revolution="0.85000002"
+         sodipodi:expansion="0"
+         sodipodi:cy="115.35102"
+         sodipodi:cx="26.362534"
+         id="path1021"
+         style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:1.28199995;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         sodipodi:type="spiral" />
+      <path
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path1025"
+         d="m 23.151102,112.46407 h 2.462718 v 2.46271 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.36998561px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8"
+       width="10.22306"
+       height="10.22306"
+       x="34.228703"
+       y="110.13626"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png" />
+    <rect
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.77021897;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.98832685;paint-order:stroke fill markers"
+       id="rect1057"
+       width="6.4177847"
+       height="6.4177847"
+       x="95.218597"
+       y="68.497009"
+       transform="rotate(35.078583)"
+       ry="1.211599"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001" />
+    <path
+       style="opacity:1;fill:#4f4f4f;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2.28847671;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:stroke fill markers"
+       d="m 38.974443,112.13332 a 0.8265307,0.8265307 0 0 0 -0.710466,0.35087 0.8265307,0.8265307 0 0 0 0.201262,1.15123 0.8265307,0.8265307 0 0 0 1.151242,-0.20126 0.8265307,0.8265307 0 0 0 -0.201266,-1.15191 0.8265307,0.8265307 0 0 0 -0.440772,-0.14893 z m 2.688238,1.88787 a 0.8265307,0.8265307 0 0 0 -0.710468,0.3502 0.8265307,0.8265307 0 0 0 0.201266,1.15191 0.8265307,0.8265307 0 0 0 1.151238,-0.20127 0.8265307,0.8265307 0 0 0 -0.201266,-1.15191 0.8265307,0.8265307 0 0 0 -0.44077,-0.14893 z m -2.288391,0.40052 a 0.8265307,0.8265307 0 0 0 -0.710468,0.35087 0.8265307,0.8265307 0 0 0 0.201268,1.15124 0.8265307,0.8265307 0 0 0 1.151238,-0.20127 0.8265307,0.8265307 0 0 0 -0.201266,-1.15124 0.8265307,0.8265307 0 0 0 -0.440772,-0.1496 z m -2.288389,0.40118 a 0.8265307,0.8265307 0 0 0 -0.710468,0.35088 0.8265307,0.8265307 0 0 0 0.201266,1.15124 0.8265307,0.8265307 0 0 0 1.151239,-0.20127 0.8265307,0.8265307 0 0 0 -0.201267,-1.15191 0.8265307,0.8265307 0 0 0 -0.44077,-0.14894 z m 2.688236,1.88788 a 0.8265307,0.8265307 0 0 0 -0.710468,0.35087 0.8265307,0.8265307 0 0 0 0.201268,1.15124 0.8265307,0.8265307 0 0 0 1.151238,-0.20126 0.8265307,0.8265307 0 0 0 -0.201264,-1.15192 0.8265307,0.8265307 0 0 0 -0.440774,-0.14893 z"
+       id="path1065-3"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-5"
+       width="10.22306"
+       height="10.22306"
+       x="57.725391"
+       y="98.719254"
+       ry="0"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459" />
+    <rect
+       style="opacity:1;fill:url(#radialGradient972);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-5-4"
+       width="9.6953459"
+       height="9.6953459"
+       x="57.98925"
+       y="98.983109"
+       ry="0"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459" />
+    <g
+       id="g976"
+       transform="translate(-0.00333388,-0.41134354)"
+       inkscape:export-xdpi="1459"
+       inkscape:export-ydpi="1459">
+      <path
+         inkscape:export-ydpi="1459"
+         inkscape:export-xdpi="1459"
+         sodipodi:nodetypes="cccccccccccc"
+         inkscape:connector-curvature="0"
+         id="path910-8-9"
+         d="m 66.348387,106.89356 h -1.916342 l -2.511744,-4.36058 -1.313389,2.6e-4 v 0.83386 l -1.281458,-1.29371 1.281458,-1.30539 v 0.83384 l 1.846871,4e-4 2.532112,4.36027 h 1.362492 z"
+         style="fill:#d9d9d9;fill-opacity:1;stroke:none;stroke-width:0.22062226px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="1459"
+         inkscape:export-xdpi="1459"
+         sodipodi:nodetypes="cccccccccccc"
+         inkscape:connector-curvature="0"
+         id="path910-3"
+         d="m 66.35506,101.59069 h -1.916342 l -2.511744,4.36058 -1.31339,-2.7e-4 v -0.83385 l -1.286535,1.29955 1.286535,1.29955 v -0.83384 l 1.846871,-3.9e-4 2.532113,-4.36028 h 1.362492 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.22062224px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-9"
+       width="10.22306"
+       height="10.22306"
+       x="9.9366474"
+       y="110.08665"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Pressed_Icon.png" />
+    <rect
+       style="opacity:1;fill:url(#radialGradient972-3);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-5-4-6"
+       width="9.6953459"
+       height="9.6953459"
+       x="10.200504"
+       y="110.35051"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Pressed_Icon.png" />
+    <g
+       id="g1031-8"
+       transform="translate(-11.516409,-0.56967265)"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Loop_Pressed_Icon.png">
+      <path
+         transform="matrix(0.90974023,0.14512302,-0.14512302,0.90974023,19.321617,6.9840091)"
+         d="m 26.32254,112.13144 c 1.75381,-0.0218 3.237788,1.42578 3.259574,3.17959 0.02179,1.75381 -1.425777,3.23779 -3.179587,3.25957 -1.75381,0.0218 -3.237788,-1.42578 -3.259574,-3.17959 -0.0084,-0.67631 0.200647,-1.34797 0.591378,-1.90006"
+         sodipodi:t0="0"
+         sodipodi:argument="-20.432774"
+         sodipodi:radius="3.2198288"
+         sodipodi:revolution="0.85000002"
+         sodipodi:expansion="0"
+         sodipodi:cy="115.35102"
+         sodipodi:cx="26.362534"
+         id="path1021-2"
+         style="fill:none;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:1.28199995;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         sodipodi:type="spiral" />
+      <path
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path1025-4"
+         d="m 23.151102,112.46407 h 2.462718 v 2.46271 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.36998561px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-9"
+       width="10.22306"
+       height="10.22306"
+       x="46.29108"
+       y="110.20199"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png" />
+    <rect
+       style="opacity:1;fill:url(#radialGradient972-3-1);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-5-4-6-9"
+       width="9.6953459"
+       height="9.6953459"
+       x="46.554939"
+       y="110.46584"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Pressed_Icon.png" />
+    <path
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:6.69059134;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.98832685;paint-order:stroke fill markers"
+       d="M 192.52344 420.73242 C 191.0549 420.70474 189.60263 421.38602 188.69141 422.68359 L 180.01367 435.03906 C 178.55571 437.11519 179.05474 439.96 181.13086 441.41797 L 193.48438 450.09375 C 195.5605 451.55171 198.40727 451.05464 199.86523 448.97852 L 208.54102 436.62305 C 209.99898 434.54692 209.5019 431.70211 207.42578 430.24414 L 195.07031 421.56641 C 194.29177 421.01967 193.40456 420.74903 192.52344 420.73242 z M 192.89453 424.05859 A 3.1238956 3.1238956 0 0 1 194.56055 424.62305 A 3.1238956 3.1238956 0 0 1 195.32227 428.97656 A 3.1238956 3.1238956 0 0 1 190.9707 429.73633 A 3.1238956 3.1238956 0 0 1 190.20898 425.38477 A 3.1238956 3.1238956 0 0 1 192.89453 424.05859 z M 203.05469 431.19531 A 3.1238956 3.1238956 0 0 1 204.7207 431.75781 A 3.1238956 3.1238956 0 0 1 205.48242 436.11133 A 3.1238956 3.1238956 0 0 1 201.13086 436.87109 A 3.1238956 3.1238956 0 0 1 200.36914 432.51758 A 3.1238956 3.1238956 0 0 1 203.05469 431.19531 z M 194.40625 432.70898 A 3.1238956 3.1238956 0 0 1 196.07227 433.27344 A 3.1238956 3.1238956 0 0 1 196.83203 437.625 A 3.1238956 3.1238956 0 0 1 192.48242 438.38477 A 3.1238956 3.1238956 0 0 1 191.7207 434.03516 A 3.1238956 3.1238956 0 0 1 194.40625 432.70898 z M 185.75781 434.22461 A 3.1238956 3.1238956 0 0 1 187.42383 434.78711 A 3.1238956 3.1238956 0 0 1 188.18359 439.14062 A 3.1238956 3.1238956 0 0 1 183.83203 439.90234 A 3.1238956 3.1238956 0 0 1 183.07227 435.55078 A 3.1238956 3.1238956 0 0 1 185.75781 434.22461 z M 195.91797 441.35938 A 3.1238956 3.1238956 0 0 1 197.58398 441.92383 A 3.1238956 3.1238956 0 0 1 198.34375 446.27734 A 3.1238956 3.1238956 0 0 1 193.99219 447.03711 A 3.1238956 3.1238956 0 0 1 193.23242 442.68555 A 3.1238956 3.1238956 0 0 1 195.91797 441.35938 z "
+       transform="scale(0.26458333)"
+       id="rect1057-2"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Randomize_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5"
+       width="10.22306"
+       height="10.22306"
+       x="21.446024"
+       y="121.39758"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\MusicPath_Icon.png" />
+    <path
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers"
+       d="m 23.435522,130.3913 v -7.76438 h 6.244063 v 5.55108 l -2.2133,2.2133 z m 2.798279,-1.77095 v -0.001 l 0.03101,0.001 -0.100252,-3.39824 a 1.5420247,0.98805335 0 0 0 1.092958,0.29197 1.5420247,0.98805335 0 0 0 1.542023,-0.98806 1.5420247,0.98805335 0 0 0 -1.542023,-0.98753 1.5420247,0.98805335 0 0 0 -1.538926,0.92862 h -0.0067 l 0.08837,2.83446 -1.014925,0.0434 v 0.27389 h 1.024744 l 0.01964,0.62942 H 24.3156 v 0.32866 z"
+       id="rect932"
+       inkscape:connector-curvature="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\MusicPath_Icon.png" />
+    <g
+       transform="translate(-21.711684,0.70068909)"
+       id="g955-7">
+      <ellipse
+         ry="0.98805338"
+         rx="1.5420247"
+         cy="128.16277"
+         cx="26.784927"
+         id="path940-2"
+         style="opacity:1;fill:#8b8b8b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers" />
+      <path
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="rect942-5"
+         d="m 29.014328,123.27641 0.42311,-0.0215 v 4.16719 H 29.00749 Z"
+         style="opacity:1;fill:#8b8b8b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers"
+         transform="rotate(1.6888835)" />
+      <path
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="rect944-5"
+         d="m 23.84281,124.11236 1.918229,-0.0434 v 0.37207 H 23.84281 Z"
+         style="opacity:1;fill:#8b8b8b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers" />
+      <path
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="rect946-8"
+         d="m 24.312727,125.07046 h 1.240234 v 0.32659 l -1.240234,-0.0526 z"
+         style="opacity:1;fill:#8b8b8b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.55004835;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-4"
+       width="10.22306"
+       height="10.22306"
+       x="34.177094"
+       y="121.73132"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Confirm_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.35233399px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 36.259376,127.49805 -0.95241,-0.9524 2.773871,-2.77385 5.189444,5.18944 -0.952688,0.95267 -4.237036,-4.23704 z"
+       id="path941"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccc"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Confirm_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-4-7"
+       width="10.22306"
+       height="10.22306"
+       x="46.465683"
+       y="121.67871"
+       ry="0"
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Cancel_Icon.png" />
+    <g
+       id="g979"
+       transform="translate(0.03611023,-0.12805295)"
+       inkscape:export-xdpi="98.114052"
+       inkscape:export-ydpi="98.114052"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Cancel_Icon.png">
+      <rect
+         transform="rotate(45)"
+         y="49.630238"
+         x="125.5162"
+         height="7.3389697"
+         width="1.3472919"
+         id="rect960"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers" />
+      <rect
+         transform="rotate(-45)"
+         y="122.52037"
+         x="-53.97337"
+         height="7.3389697"
+         width="1.3472921"
+         id="rect960-9"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.60000002;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-2-4-7-8-3"
+       width="10.22306"
+       height="10.22306"
+       x="9.8321772"
+       y="98.462181"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 10.90734,107.58402 8.037899,-8.037896 H 10.90734 Z"
+       id="path893-3"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#a0a0a0;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 10.908591,107.58277 8.050078,-1e-5 -0.01343,-8.036636 -4.018321,4.018316 z"
+       id="path899-6"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 10.908591,107.58277 2.875985,-1e-5 -1.437992,-1.43798 z"
+       id="path901-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#f7f7f7;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 13.784576,107.58276 2.221662,-8.5e-4 -2.5274,-2.56939 -1.132254,1.13226 z"
+       id="path903-9"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#e4e4e4;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 16.006238,107.58191 2.952431,8.5e-4 -4.025044,-4.02503 -1.454787,1.45479 z"
+       id="path905-1"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#cfcfcf;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 18.978823,107.60292 -5e-6,-2.66768 -2.71135,-2.71136 -1.333843,1.33385 z"
+       id="path907-4"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <path
+       style="fill:#b6b6b6;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 18.978794,104.93522 -0.02687,-2.49969 -1.41445,-1.48164 -1.270005,1.27 z"
+       id="path909-2"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\PaletteSwap_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-4-7-7"
+       width="10.22306"
+       height="10.22306"
+       x="21.431675"
+       y="132.90988"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Rescan_Icon.png" />
+    <g
+       id="g1087"
+       transform="matrix(1,0,0,-1,0.26265417,276.60356)"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Rescan_Icon.png">
+      <path
+         id="rect932-3"
+         transform="scale(0.26458333)"
+         d="m 93.296875,509.9375 -8.0625,7.9707 -0.05078,8.80664 10.978515,11.10743 12.49414,-12.35157 -3.35547,-3.39453 -3.35351,3.35352 -4.31055,-4.31055 3.37695,-3.37695 z m 1.828125,5.37109 0.650391,0.65625 -3.029297,2.9961 1.285156,1.21875 2.050781,-2.02735 0.541016,0.55078 -1.945313,2.09376 5.783206,5.49804 -0.0137,0.01 a 2.7799183,4.3385333 45.328772 0 1 -1.242192,4.90234 2.7799183,4.3385333 45.328772 0 1 -5.039062,1.07422 2.7799183,4.3385333 45.328772 0 1 1.130859,-5.02734 2.7799183,4.3385333 45.328772 0 1 2.763672,-1.57618 l -6.921875,-6.60156 0.06445,-0.0586 -0.002,-0.002 z"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.68811846;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.06225682;paint-order:stroke fill markers"
+         inkscape:connector-curvature="0" />
+      <g
+         id="g1079">
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.150056px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 27.491475,135.31076 2.531467,-0.44526 -0.52096,2.45576 z"
+           id="path4549-9-5"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cccc"
+           inkscape:export-xdpi="1459.4167"
+           inkscape:export-ydpi="1459.4167" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.22997268px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 28.192286,135.86586 -1.990699,1.9907 0.754597,0.75459 1.990699,-1.9907 z"
+           id="path1039"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="ccccc" />
+      </g>
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-1"
+       width="10.22306"
+       height="10.22306"
+       x="34.311386"
+       y="132.97311"
+       ry="0"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Save_Icon.png" />
+    <g
+       id="g1009"
+       transform="matrix(1,0,0,-1,-0.07312313,276.67308)"
+       inkscape:export-xdpi="98.110001"
+       inkscape:export-ydpi="98.110001"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Save_Icon.png">
+      <path
+         id="path962"
+         transform="scale(0.26458333)"
+         d="m 136.64844,511.84375 v 23.91016 h 25.25586 v -18.82618 l -5.72266,-5.08398 z m 5.45703,1.57813 h 14.34375 v 5.375 h -14.34375 z m -2.65625,11.125 h 19.65625 v 10.17187 h -19.65625 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.99999994px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <rect
+         y="136.02707"
+         x="40.419781"
+         height="1.0541992"
+         width="0.53743494"
+         id="rect970"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.53347749;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+      <g
+         transform="translate(-0.06141651,0.01193792)"
+         id="g993">
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.5;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers"
+           id="rect972"
+           width="3.6014569"
+           height="0.51449382"
+           x="37.756832"
+           y="139.33102" />
+        <rect
+           style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.43019176;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers"
+           id="rect972-8"
+           width="2.6660135"
+           height="0.51449382"
+           x="38.201168"
+           y="140.3951" />
+      </g>
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-1-8"
+       width="10.22306"
+       height="10.22306"
+       x="46.43261"
+       y="133.25423"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png" />
+    <g
+       id="g1124"
+       transform="translate(9.4919273,0.84335937)">
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         id="path899-6-7"
+         transform="scale(0.26458333)"
+         d="m 211.48633,508.33789 -5.7793,5.7793 5.79883,6.05859 z"
+         style="fill:#676767;fill-opacity:1;stroke:none;stroke-width:1.13778162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path901-9-7"
+         d="m 47.919327,142.53435 2.875985,-1e-5 -1.437991,-1.43798 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path903-9-8"
+         d="m 50.795312,142.53434 2.221664,-8.5e-4 -2.527401,-2.56939 -1.132254,1.13226 z"
+         style="fill:#f1f1f1;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         id="path905-1-6"
+         transform="scale(0.26458333)"
+         d="m 196.32422,523.5 -0.0801,0.0801 1.0957,4.08594 -1.625,5.49804 -4.04296,-3.97851 -0.21876,-0.81446 -0.62695,0.62696 9.55274,9.71093 11.1582,0.004 z"
+         style="fill:#d1d1d1;fill-opacity:1;stroke:none;stroke-width:1.13778162px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         inkscape:connector-curvature="0" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path907-4-3"
+         d="m 55.98956,142.5545 -5e-6,-2.66768 -2.71135,-2.71136 -1.333844,1.33385 z"
+         style="fill:#b5b5b5;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-ydpi="979"
+         inkscape:export-xdpi="979"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path909-2-1"
+         d="m 55.989531,139.8868 -0.02687,-2.49969 -1.41445,-1.48164 -1.270005,1.27 z"
+         style="fill:#8f8f8f;fill-opacity:1;stroke:none;stroke-width:0.30103806px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <g
+       id="g1116"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="matrix(0.65025007,-1.3207824,-1.3207824,-0.65025007,199.77327,294.54978)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png">
+      <path
+         sodipodi:nodetypes="cccccc"
+         inkscape:connector-curvature="0"
+         id="path1026"
+         d="m 49.925689,135.80839 1.074166,4.00884 0.6129,0.60298 0.24629,-0.8332 -1.074167,-4.00884 z"
+         style="fill:none;fill-opacity:1;stroke:#fefefe;stroke-width:0.34597173;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <rect
+         transform="rotate(-15)"
+         y="143.46341"
+         x="12.423921"
+         height="0.77977782"
+         width="2.1910808"
+         id="rect1028"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.36531347;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+      <rect
+         transform="rotate(-15)"
+         y="142.57944"
+         x="12.889329"
+         height="0.91275793"
+         width="1.260267"
+         id="rect1030"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.53602028;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-0"
+       width="10.22306"
+       height="10.22306"
+       x="57.743549"
+       y="87.812035"
+       ry="0"
+       inkscape:export-xdpi="74.753563"
+       inkscape:export-ydpi="74.753563"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Remove_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 60.123208,92.059159 h 5.463739 v 1.728818 h -5.463739 z"
+       id="path4551-7-4-1-5"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc"
+       inkscape:export-xdpi="74.753563"
+       inkscape:export-ydpi="74.753563"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Remove_Icon.png" />
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-4-7-7-7"
+       width="10.22306"
+       height="10.22306"
+       x="21.379877"
+       y="-155.03627"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="scale(1,-1)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Shortcut_Icon.png" />
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot984"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none"
+       transform="matrix(0.2952101,0,0,-0.2952101,6.8419472,314.4889)"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Shortcut_Icon.png"><flowRegion
+         id="flowRegion986"
+         style="fill:#ffffff;fill-opacity:1"><rect
+           id="rect988"
+           width="93.125"
+           height="66.1875"
+           x="55.125"
+           y="536.08221"
+           style="fill:#ffffff;fill-opacity:1" /></flowRegion><flowPara
+         id="flowPara990"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#ffffff;fill-opacity:1">?</flowPara></flowRoot>    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-4-7-7-7-5"
+       width="10.22306"
+       height="10.22306"
+       x="10.136199"
+       y="-155.15338"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="scale(1,-1)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Help_Pressed_Icon.png" />
+    <rect
+       style="opacity:1;fill:url(#radialGradient972-3-9);fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.61644703;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-5-4-6-97"
+       width="9.6953459"
+       height="9.6953459"
+       x="10.400056"
+       y="145.19418"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Help_Pressed_Icon.png" />
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot984-6"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none"
+       transform="matrix(0.2952101,0,0,-0.2952101,-4.4017326,314.60601)"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Help_Pressed_Icon.png"><flowRegion
+         id="flowRegion986-2"
+         style="fill:#ffffff;fill-opacity:1"><rect
+           id="rect988-2"
+           width="93.125"
+           height="66.1875"
+           x="55.125"
+           y="536.08221"
+           style="fill:#ffffff;fill-opacity:1" /></flowRegion><flowPara
+         id="flowPara990-3"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial;fill:#ffffff;fill-opacity:1">?</flowPara></flowRoot>    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-0-6"
+       width="10.22306"
+       height="10.22306"
+       x="68.975578"
+       y="87.812035"
+       ry="0"
+       inkscape:export-xdpi="74.753563"
+       inkscape:export-ydpi="74.753563"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Remove_Icon.png" />
+    <g
+       id="g4734"
+       transform="matrix(1,0,0,-1,0,185.86054)"
+       inkscape:export-xdpi="74.753563"
+       inkscape:export-ydpi="74.753563">
+      <g
+         transform="matrix(1.2255791,0,0,1.2255791,-17.339809,-20.399732)"
+         id="g4715">
+        <path
+           style="fill:none;fill-opacity:1;stroke:#fefefe;stroke-width:0.50933003;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           d="m 76.742765,89.807229 -4.596329,4.025488 -0.397867,1.201595 1.260626,-0.216493 4.596328,-4.025489 z"
+           id="path1026-7"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cccccc" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 75.673441,90.406698 1.19412,1.366902 -0.697866,0.161994 -0.772046,-0.883668 z"
+           id="path4708"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="ccccc" />
+        <path
+           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 71.927326,93.692156 1.197035,1.356119 -1.223841,-0.08246 z"
+           id="path4710"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="cccc" />
+      </g>
+      <path
+         inkscape:connector-curvature="0"
+         id="path4717"
+         d="m 72.795633,96.403946 h 1.730571"
+         style="fill:none;stroke:#fdfdfd;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <path
+         inkscape:connector-curvature="0"
+         id="path4719"
+         d="m 75.036804,96.403946 h 1.059709"
+         style="fill:none;stroke:#fdfdfd;stroke-width:0.46178031;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <path
+         inkscape:connector-curvature="0"
+         id="path4721"
+         d="m 76.735742,96.403946 h 1.473325"
+         style="fill:none;stroke:#fdfdfd;stroke-width:0.40000001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-8"
+       width="10.22306"
+       height="10.22306"
+       x="80.051231"
+       y="87.828575"
+       ry="0"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.12720299px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 304.86328 337.55664 L 304.86328 342.40039 L 322.0918 342.40039 L 322.0918 337.55664 L 304.86328 337.55664 z M 304.86328 345.00977 L 304.86328 349.85938 L 315.04688 349.85938 L 315.04688 345.00977 L 304.86328 345.00977 z M 304.86328 352.46875 L 304.86328 357.31641 L 315.04688 357.31641 L 315.04688 352.46875 L 304.86328 352.46875 z M 304.86328 359.92773 L 304.86328 364.76953 L 322.11133 364.76953 L 322.11133 359.92773 L 304.86328 359.92773 z "
+       transform="scale(0.26458333)"
+       id="path1283-6"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png"
+       inkscape:export-xdpi="56"
+       inkscape:export-ydpi="56" />
+    <g
+       id="g1080"
+       transform="translate(0.39687612)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517">
+      <path
+         inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png"
+         inkscape:export-ydpi="74.75"
+         inkscape:export-xdpi="74.75"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4-1-8"
+         d="m 83.853026,92.075696 h 5.463739 v 1.728818 h -5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png"
+         inkscape:export-ydpi="74.75"
+         inkscape:export-xdpi="74.75"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4-1-9-4"
+         d="m 87.449305,90.208235 v 5.463739 h -1.728818 v -5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-8-5"
+       width="10.22306"
+       height="10.22306"
+       x="91.018204"
+       y="87.821503"
+       ry="0"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png" />
+    <path
+       inkscape:connector-curvature="0"
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24483198px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 91.628712,89.312023 v 0.864547 h 4.844147 v -0.176734 h 0.61909 v -0.687813 z m 0,1.582333 v 0.864547 h 4.844147 v -0.864547 z m 0,1.581816 v 0.864548 h 2.970879 v -0.864548 z m 0,1.582333 v 0.864547 h 4.844147 v -0.864547 z m 0,1.581814 v 0.864547 h 5.463237 v -0.638204 h -0.61909 v -0.226343 z"
+       id="path4551-7-4-1-8-59-9-8"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517" />
+    <g
+       id="g1080-3"
+       transform="translate(10.933897,-0.00707268)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517">
+      <path
+         inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png"
+         inkscape:export-ydpi="74.75"
+         inkscape:export-xdpi="74.75"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4-1-8-5"
+         d="m 83.853026,92.075696 h 5.463739 v 1.728818 h -5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png"
+         inkscape:export-ydpi="74.75"
+         inkscape:export-xdpi="74.75"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4-1-9-4-2"
+         d="m 87.449305,90.208235 v 5.463739 h -1.728818 v -5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-8-1"
+       width="10.22306"
+       height="10.22306"
+       x="102.09433"
+       y="87.927795"
+       ry="0"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png" />
+    <path
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png"
+       inkscape:export-xdpi="56"
+       inkscape:export-ydpi="56"
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.24483198px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 102.70484,89.418311 v 0.864548 h 4.12843 v -0.864548 z m 0,1.582333 v 0.864547 h 2.26446 v -0.582908 h 1.86397 v -0.281639 z m 0,1.581817 v 0.864547 h 2.26446 v -0.864547 z m 0,1.582333 v 0.864547 h 4.1336 V 94.79628 h -1.86914 v -0.631486 z m 0,1.581814 v 0.864547 h 4.1336 v -0.864547 z"
+       id="path4551-7-4-1-8-59-9-7" />
+    <g
+       id="g1080-2"
+       transform="translate(22.010025,0.0992161)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_AddSelection_Icon.png"
+       inkscape:export-xdpi="56.06517"
+       inkscape:export-ydpi="56.06517">
+      <path
+         inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png"
+         inkscape:export-ydpi="74.75"
+         inkscape:export-xdpi="74.75"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4-1-8-0"
+         d="m 83.853026,92.075696 h 5.463739 v 1.728818 h -5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <path
+         inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\Playlist_Add_Icon.png"
+         inkscape:export-ydpi="74.75"
+         inkscape:export-xdpi="74.75"
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path4551-7-4-1-9-4-1"
+         d="m 87.449305,90.208235 v 5.463739 h -1.728818 v -5.463739 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.34622648px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    </g>
+    <rect
+       style="opacity:1;fill:#fccccc;fill-opacity:1;fill-rule:nonzero;stroke:#cecece;stroke-width:0.64999998;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0"
+       id="rect4533-1-1-7-1-7-9-8-5-1-8-5"
+       width="10.22306"
+       height="10.22306"
+       x="68.975586"
+       y="98.76619"
+       ry="0"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png" />
+    <g
+       id="g1116-7"
+       inkscape:export-xdpi="74.75"
+       inkscape:export-ydpi="74.75"
+       transform="matrix(0.6363359,-1.29252,-1.29252,-0.6363359,218.89488,256.57489)"
+       inkscape:export-filename="C:\Workspace\Programming\CPP_Projects\MPlay3\data\ButtonsExactSize\ColorPicker_Icon.png">
+      <path
+         sodipodi:nodetypes="cccccc"
+         inkscape:connector-curvature="0"
+         id="path1026-2"
+         d="m 49.925689,135.80839 1.074166,4.00884 0.6129,0.60298 0.24629,-0.8332 -1.074167,-4.00884 z"
+         style="fill:none;fill-opacity:1;stroke:#fefefe;stroke-width:0.34597173;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <rect
+         transform="rotate(-15)"
+         y="143.46341"
+         x="12.423921"
+         height="0.77977782"
+         width="2.1910808"
+         id="rect1028-6"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.36531347;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+      <rect
+         transform="rotate(-15)"
+         y="142.57944"
+         x="12.889329"
+         height="0.91275793"
+         width="1.260267"
+         id="rect1030-1"
+         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.53602028;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0;paint-order:stroke fill markers" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.7434659px;line-height:1.25;font-family:'Great Vibes';-inkscape-font-specification:'Great Vibes';letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.14358665"
+       x="75.371429"
+       y="-100.22666"
+       id="text1030"
+       transform="scale(1,-1)"><tspan
+         sodipodi:role="line"
+         id="tspan1028"
+         x="75.371429"
+         y="-100.22666"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Adobe Arabic';-inkscape-font-specification:'Adobe Arabic';fill:#ffffff;fill-opacity:1;stroke-width:0.14358665">T</tspan></text>
+  </g>
+</svg>

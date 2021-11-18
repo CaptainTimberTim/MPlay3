@@ -209,6 +209,15 @@ UpdateGLTexture(loaded_bitmap Bitmap, GLuint TexID)
 }
 
 inline void
+DecodeAndUpdateGLTexture(arena_allocator *Arena, loaded_bitmap Bitmap, GLuint TexID)
+{
+    loaded_bitmap IconBitmap = DecodeIcon(Arena, Bitmap.Width, Bitmap.Height, 
+                                          (u8 *)Bitmap.Pixels, Bitmap.Pitch); // Abusing pitch for memory size
+    UpdateGLTexture(IconBitmap, TexID);
+    FreeMemory(Arena, IconBitmap.Pixels);
+}
+
+inline void
 DeleteGLTexture(u32 GLID)
 {
     GLID -= 1;

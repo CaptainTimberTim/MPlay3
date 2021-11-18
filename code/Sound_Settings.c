@@ -464,7 +464,7 @@ CreateColorPicker(game_state *GS, color_picker *Result, v2 ColorFieldSize, r32 S
     u32 RemoveID = DecodeAndCreateGLTexture(Minus_Icon_DataCount, (u8 *)Minus_Icon_Data);
     u32 SaveID   = DecodeAndCreateGLTexture(Save_Icon_DataCount, (u8 *)Save_Icon_Data);
 #else
-    u32 NewID    = DecodeAndCreateGLTexture(&GS->ScratchArena, NewBitmapData(Plus_Icon, colorFormat_RGBA));
+    u32 NewID    = DecodeAndCreateGLTexture(&GS->ScratchArena, NewBitmapData(Add_Medium_Icon, colorFormat_RGBA));
     u32 RemoveID = DecodeAndCreateGLTexture(&GS->ScratchArena, NewBitmapData(Minus_Icon, colorFormat_RGBA));
     u32 SaveID   = DecodeAndCreateGLTexture(&GS->ScratchArena, NewBitmapData(Save_Icon, colorFormat_RGBA));
 #endif

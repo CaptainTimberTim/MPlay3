@@ -60,15 +60,16 @@ SlotHeight(display_column *DisplayColumn)
     else
     {
         r32 MediumFont = FontSizes.Sizes[font_Medium].Size;
-        if(ColumnExt(DisplayColumn)->IsSmallMode)
+        display_column_song *SongColumn = ColumnExt(DisplayColumn);
+        if(SongColumn->IsSmallMode)
         {
-            r32 BtnMin = GlobalGameState.Layout.AddButtonExtents*2 + GlobalGameState.Layout.SongPlayYOffset;
+            r32 BtnMin = SongColumn->BtnSize + GlobalGameState.Layout.SongPlayYOffset;
             return Max(MediumFont, BtnMin) + GlobalGameState.Layout.SlotGap + GlobalGameState.Layout.SongPlayYOffset;
         }
         else
         {
             r32 Height = SmallFont*2 + MediumFont + GlobalGameState.Layout.SongSlotHeight;
-            return Max(Height, GlobalGameState.Layout.AddButtonExtents*2 + GlobalGameState.Layout.SlotGap*2 + MediumFont);
+            return Max(Height, SongColumn->BtnSize + GlobalGameState.Layout.SlotGap*2 + MediumFont);
         }
     }
 }
@@ -76,8 +77,9 @@ SlotHeight(display_column *DisplayColumn)
 inline r32
 GetSongButtonYOffset(layout_definition *Layout)
 {
-    r32 CurSlotHeight = SlotHeight(&GlobalGameState.MusicInfo.DisplayInfo.Song.Base);
-    return -CurSlotHeight*0.5f + Layout->AddButtonExtents + Layout->SongPlayYOffset + Layout->SlotGap*0.5f;
+    display_column_song *SongColumn = &GlobalGameState.MusicInfo.DisplayInfo.Song;
+    r32 CurSlotHeight = SlotHeight(&SongColumn->Base);
+    return -CurSlotHeight*0.5f + SongColumn->BtnSize*0.5f + Layout->SongPlayYOffset + Layout->SlotGap*0.5f;
 }
 
 inline r32
@@ -231,6 +233,55 @@ OnSongAddPressed(void *Data)
 }
 
 inline void
+CreateSongButtonTextures(game_state *GS, display_column_song *SongColumn)
+{
+#if RESOURCE_PNG
+    Assert(false, "If you decide to switch back to PNG, this needs to be implemented!");
+#endif
+    
+    r32          FontHeight = GetFontSize(&GS->Renderer, font_Small).Size;
+    r32      AvailableSpace = FontHeight*1.4f;
+    loaded_bitmap AddBitmap = {};
+    loaded_bitmap  PPBitmap = {};
+    bitmap_color_format  cF = colorFormat_RGBA;
+    if(AvailableSpace <= Add_Tiny_Icon_Width)
+    {
+        AddBitmap = NewBitmapData(Add_Tiny_Icon, cF);
+        PPBitmap  = NewBitmapData(PlayPause_Tiny_Icon, cF);
+        SongColumn->BtnSize = Add_Tiny_Icon_Width;
+    }
+    else if(AvailableSpace > Add_Tiny_Icon_Width && AvailableSpace <= Add_Small_Icon_Width)
+    {
+        AddBitmap = NewBitmapData(Add_Small_Icon, cF);
+        PPBitmap  = NewBitmapData(PlayPause_Small_Icon, cF);
+        SongColumn->BtnSize = Add_Small_Icon_Width;
+    }
+    else if(AvailableSpace > Add_Small_Icon_Width && AvailableSpace <= Add_Medium_Icon_Width)
+    {
+        AddBitmap = NewBitmapData(Add_Medium_Icon, cF);
+        PPBitmap  = NewBitmapData(PlayPause_Medium_Icon, cF);
+        SongColumn->BtnSize = Add_Medium_Icon_Width;
+    }
+    else if(AvailableSpace > Add_Medium_Icon_Width)
+    {
+        AddBitmap = NewBitmapData(Add_Large_Icon, cF);
+        PPBitmap  = NewBitmapData(PlayPause_Large_Icon, cF);
+        SongColumn->BtnSize = Add_Large_Icon_Width;
+    }
+    
+    if(!SongColumn->AddGLID) 
+    {
+        SongColumn->PlayPauseGLID = DecodeAndCreateGLTexture(&GS->ScratchArena, AddBitmap);
+        SongColumn->AddGLID       = DecodeAndCreateGLTexture(&GS->ScratchArena, PPBitmap);
+    }
+    else 
+    {
+        DecodeAndUpdateGLTexture(&GS->ScratchArena, AddBitmap, SongColumn->AddGLID);
+        DecodeAndUpdateGLTexture(&GS->ScratchArena, PPBitmap, SongColumn->PlayPauseGLID);
+    }
+}
+
+internal void
 CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
@@ -238,18 +289,17 @@ CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
     u32 ButtonID              = SongColumn->Base.Base->PlayPause->Entry->ID->TexID;
     r32 Depth                 = SongColumn->Base.ZValue - 0.01f;
     
-    //r32 FontHeight            = GetFontSize(Renderer, font_Small).Size;
-    r32 HalfSize = Layout->AddButtonExtents; // FontHeight;
+    r32 HalfSize = SongColumn->BtnSize*0.5f;
     rect Rect = {{-HalfSize, -HalfSize}, {HalfSize, HalfSize}};
     SongColumn->Play[ID] = NewButton(Renderer, Rect, Depth, false, ButtonID, SongColumn->PlayPauseGLID, Renderer->ButtonColors, 
                                      SongColumn->Base.SlotBGs[ID]);
-    Translate(SongColumn->Play[ID], V2(0, GetSongButtonYOffset(Layout)));
-    SongColumn->PlayBtnData[ID] = {ID, &GlobalGameState};
+    SetLocalPosition(SongColumn->Play[ID], V2(0, GetSongButtonYOffset(Layout)));
+    SongColumn->PlayBtnData[ID]     = {ID, &GlobalGameState};
     SongColumn->Play[ID]->OnPressed = {OnSongPlayPressed, &SongColumn->PlayBtnData[ID]};
     
     SongColumn->Add[ID] = NewButton(Renderer, Rect, Depth, false, ButtonID, SongColumn->AddGLID, 
                                     Renderer->ButtonColors, SongColumn->Play[ID]->Entry);
-    Translate(SongColumn->Add[ID], V2(HalfSize*2 + Layout->TopLeftButtonGroupGap, 0));
+    SetLocalPosition(SongColumn->Add[ID], V2(HalfSize*2 + Layout->TopLeftButtonGroupGap, 0));
     
     SongColumn->Add[ID]->OnPressed = {OnSongAddPressed, &SongColumn->PlayBtnData[ID]};
 }
@@ -611,24 +661,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     
     if(Type == columnType_Song) 
     {
-#if RESOURCE_PNG
-        ColumnExt(DisplayColumn)->PlayPauseGLID = DecodeAndCreateGLTexture(PlayPause_Icon_DataCount, (u8 *)PlayPause_Icon_Data);
-        ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(AddSong_Icon_DataCount, (u8 *)AddSong_Icon_Data);
-#else
-        loaded_bitmap Bitmap = {1, PlayPause_Icon_Width, PlayPause_Icon_Height, (u32 *)PlayPause_Icon_Data, colorFormat_RGBA, ArrayCount(PlayPause_Icon_Data)};
-        ColumnExt(DisplayColumn)->PlayPauseGLID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
-        Bitmap = {1, AddSong_Icon_Width, AddSong_Icon_Height, (u32 *)AddSong_Icon_Data, colorFormat_RGBA, ArrayCount(AddSong_Icon_Data)};
-        ColumnExt(DisplayColumn)->AddGLID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
-#endif
-        
-#if 0
-        loaded_bitmap PlayPauseIcon             = CreatePlayPauseIcon(&GlobalGameState, PlayPause_Icon_Height);
-        ColumnExt(DisplayColumn)->PlayPauseGLID = CreateGLTexture(PlayPauseIcon, true);
-#endif
-        
-        loaded_bitmap PlusIcon = CreatePlusIcon(&GlobalGameState, AddSong_Icon_Height);
-        ColumnExt(DisplayColumn)->AddGLID = CreateGLTexture(PlusIcon, true);
-        
+        CreateSongButtonTextures(&GlobalGameState, ColumnExt(DisplayColumn));
         For(DisplayColumn->Count)
         {
             CreateSongButtons(Renderer, ColumnExt(DisplayColumn), It);
@@ -1796,7 +1829,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     u32 StyleSettingsID    = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Style_Settings_Icon, cF));
     u32 ShortcutID         = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Help_Icon, cF));
     u32 ShortcutPressedID  = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Help_Pressed_Icon, cF));
-    u32 PLAddID            = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Playlist_Add_Icon, cF));
+    u32 PLAddID            = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Add_Medium_Icon, cF));
     u32 PLAddSelectionID   = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Playlist_AddSelection_Icon, cF));
     u32 PLRemoveID         = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Playlist_Remove_Icon, cF));
     u32 PLRenameID         = DecodeAndCreateGLTexture(Scratch, NewBitmapData(Playlist_Rename_Icon, cF));

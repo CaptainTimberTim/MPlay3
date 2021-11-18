@@ -247,15 +247,18 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     UpdateSettings(GS);
     
     // Update song column buttons
-    /*
-    r32 FontHeight                  = GetFontSize(&GS->Renderer, font_Small).Size;
     display_column_song *SongColumn = &GS->MusicInfo.DisplayInfo.Song;
-    v2 Size = V2(FontHeight*2);
+    CreateSongButtonTextures(GS, SongColumn);
+    
+    v2 Size = V2(SongColumn->BtnSize);
     For(SongColumn->Base.Count)
     {
         SetSize(SongColumn->Play[It], Size);
         SetSize(SongColumn->Add[It], Size);
-    }*/
+        r32 X = GetLocalPosition(SongColumn->Play[It]).x;
+        SetLocalPosition(SongColumn->Play[It], V2(X, GetSongButtonYOffset(&GS->Layout)));
+        SetLocalPosition(SongColumn->Add[It], V2(Size.x + GS->Layout.TopLeftButtonGroupGap, 0));
+    }
 }
 
 internal unicode_group *

@@ -134,6 +134,7 @@ struct display_column_song
     button  *Add[MAX_DISPLAY_SONG_COUNT];
     u32 PlayPauseGLID;
     u32 AddGLID;
+    r32 BtnSize;
     
     b32 IsSmallMode;
     
@@ -365,7 +366,7 @@ struct layout_definition
     r32 MediumButtonExtents    = 21;
     r32 LargeButtonExtents     = 24;
     r32 PlayPauseButtonExtents = 45;
-    r32 AddButtonExtents       = 22;
+    //r32 AddButtonExtents       = 22;
     
     // Button positions
     r32 TopLeftButtonGroupStartX = 40;
@@ -476,6 +477,7 @@ colorFormat, \
 ArrayCount(_Combine(name, _Data))\
 }
 
+inline void CreateSongButtonTextures(game_state *GS, display_column_song *SongColumn);
 inline void UpdateColumnColor(display_column *DisplayColumn, struct playlist_column *PlaylistColumn);
 internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID);
 internal void BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, display_column *DisplayColumn, batch_id SortID);

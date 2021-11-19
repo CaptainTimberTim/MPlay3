@@ -488,3 +488,6 @@
 
 18.11.2021
 - Added four sizes for Song Buttons to switch between for different font sizes.
+
+19.11.2021
+- Added Song column font alignment when buttons resize.

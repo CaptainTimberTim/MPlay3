@@ -336,8 +336,8 @@ struct layout_definition
     r32 VerticalSliderGrabThingBorder   =  2;
     
     // Slot
-    r32 SlotHeight     = 6; //30;
-    r32 SongSlotHeight = 2; //100;
+    r32 SlotHeight     = 6;
+    r32 SongSlotHeight = 2;
     r32 SlotGap        = 3;
     
     r32 SmallTextLeftBorder = 12;
@@ -349,9 +349,7 @@ struct layout_definition
     r32 FontSizeBig    = 75;
     
     // Column Text
-    r32 SongXOffset           = 92;
-    r32 SongPlayButtonXOffset = 40;
-    r32 SongTrackXOffset      = -18;
+    r32 SongXOffset           = 10;
     r32 SongAlbumXOffset      = 8;
     
     r32 SongPlayYOffset       = 5;

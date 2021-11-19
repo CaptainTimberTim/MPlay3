@@ -271,8 +271,8 @@ CreateSongButtonTextures(game_state *GS, display_column_song *SongColumn)
     
     if(!SongColumn->AddGLID) 
     {
-        SongColumn->PlayPauseGLID = DecodeAndCreateGLTexture(&GS->ScratchArena, AddBitmap);
-        SongColumn->AddGLID       = DecodeAndCreateGLTexture(&GS->ScratchArena, PPBitmap);
+        SongColumn->AddGLID       = DecodeAndCreateGLTexture(&GS->ScratchArena, AddBitmap);
+        SongColumn->PlayPauseGLID = DecodeAndCreateGLTexture(&GS->ScratchArena, PPBitmap);
     }
     else 
     {
@@ -954,22 +954,27 @@ internal void
 ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
-    r32 YearX = (DisplayColumn->Type == columnType_Song) ? GetYearWidth(ColumnExt(DisplayColumn)) : -1;
+    r32 YearX        = (DisplayColumn->Type == columnType_Song) ? GetYearWidth(ColumnExt(DisplayColumn)) : -1;
+    r32 ColumnStartX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x*0.5f;
     
     for(u32 It = 0;
         It < DisplayColumn->Count &&
         It < DisplayableCount; 
         ++It)
     {
-        r32 TextX = GetXTextPosition(DisplayColumn->SlotBGs[It], DisplayColumn->TextX);
         if(DisplayColumn->Type == columnType_Song)
         {
             display_column_song *SongColumn = ColumnExt(DisplayColumn);
             
-            SetPositionX(SongColumn->SongTitle+It,  TextX+Layout->SongXOffset);
-            SetPositionX(SongColumn->SongArtist+It, TextX+Layout->SongXOffset);
-            SetPositionX(SongColumn->SongTrack+It,  TextX+Layout->SongTrackXOffset);
-            SetPositionX(SongColumn->SongYear+It,   TextX+Layout->SongXOffset);
+            r32 BtnSize   = ColumnExt(DisplayColumn)->BtnSize;
+            r32 AfterBtnX = ColumnStartX + Layout->SongXOffset + Layout->TopLeftButtonGroupGap*2 + BtnSize*2;
+            // I need to offset by the first character only. Thats why we devide by the letter count.
+            r32 TrackX    = ColumnStartX + SongColumn->SongTrack[It].Extends.x*0.5f/SongColumn->SongTrack[It].Count;
+            
+            SetPositionX(SongColumn->SongTitle+It,  AfterBtnX);
+            SetPositionX(SongColumn->SongArtist+It, AfterBtnX);
+            SetPositionX(SongColumn->SongTrack+It,  TrackX);
+            SetPositionX(SongColumn->SongYear+It,   AfterBtnX);
             r32 YearRightX = GetPosition(SongColumn->SongYear[It].Base).x + YearX + Layout->SongAlbumXOffset;
             SetPositionX(SongColumn->SongAlbum+It,  YearRightX);
             
@@ -980,13 +985,13 @@ ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
             SetActive(SongColumn->SongTrack+It, true);
             SetActive(SongColumn->SongYear+It, true);
             
-            r32 NewBtnX = GetPosition(DisplayColumn->LeftBorder).x;
-            SetPositionX(SongColumn->Play[It]->Entry, NewBtnX+Layout->SongPlayButtonXOffset);
+            r32 NewBtnX = ColumnStartX + Layout->TopLeftButtonGroupGap + BtnSize*0.5f;
+            SetPositionX(SongColumn->Play[It]->Entry, NewBtnX);
             SetSongButtonsActive(SongColumn, It, true);
         }
         else
         {
-            SetPositionX(DisplayColumn->SlotText+It, TextX);
+            SetPositionX(DisplayColumn->SlotText+It, ColumnStartX + DisplayColumn->TextX);
             SetActive(DisplayColumn->SlotText+It, true);
         }
     }
@@ -1024,7 +1029,6 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
         if(MD->YearString.Pos < 4) 
         {
             string_c FakeYear = NewStaticStringCompound(" ");
-            //ConcatStringCompounds(3, &YearAddon, &FakeYear, &Addon);
             CopyIntoCompound(&YearAddon, &FakeYear);
         }
         else if(MD->YearString.Pos > 4);
@@ -1044,7 +1048,7 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
                    SongColumn->SongArtist+ID, -0.12f, DisplayColumn->SlotBGs[ID], ArtistP);
         SetScissor(SongColumn->SongArtist+ID, DisplayColumn->SlotBGs[ID]);
         
-        v2 TrackP = {Layout->SongTrackXOffset, SongP.y};
+        v2 TrackP = {0, SongP.y};
         RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, SongColumn->SongTrack+ID, -0.12f, 
                    DisplayColumn->SlotBGs[ID], TrackP);
         SetScissor(SongColumn->SongTrack+ID, DisplayColumn->SlotBGs[ID]);
@@ -1200,16 +1204,31 @@ internal void
 UpdateSlots(game_state *GS, display_column *DisplayColumn)
 {
     v2 Dim = V2(DisplayColumn->SlotWidth, SlotHeight(DisplayColumn) - GS->Layout.SlotGap);
+    
     For(DisplayColumn->Count)
     {
         r32 YDown = (It > 0) ? -SlotHeight(DisplayColumn) : 0;
         SetLocalPosition(DisplayColumn->SlotBGs[It], V2(0, YDown));
         SetSize(DisplayColumn->SlotBGs[It], Dim);
-        if(DisplayColumn->Type == columnType_Song) 
+    }
+    
+    if(DisplayColumn->Type == columnType_Song) 
+    {
+        display_column_song *SongColumn = ColumnExt(DisplayColumn);
+        CreateSongButtonTextures(GS, SongColumn);
+        
+        v2  Size = V2(SongColumn->BtnSize);
+        r32 BtnX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x*0.5f;
+        BtnX    += GS->Layout.TopLeftButtonGroupGap + Size.x*0.5f;
+        
+        For(DisplayColumn->Count)
         {
-            display_column_song *SongColumn = ColumnExt(DisplayColumn);
-            r32 YOff = GetSongButtonYOffset(&GS->Layout);
-            SetLocalPosition(SongColumn->Play[It], V2(GetLocalPosition(SongColumn->Play[It]).x, YOff));
+            SetSize(SongColumn->Play[It], Size);
+            SetSize(SongColumn->Add[It], Size);
+            
+            SetLocalPosition(SongColumn->Play[It], V2(0, GetSongButtonYOffset(&GS->Layout)));
+            SetPositionX(SongColumn->Play[It]->Entry, BtnX);
+            SetLocalPosition(SongColumn->Add[It], V2(Size.x + GS->Layout.TopLeftButtonGroupGap, 0));
         }
     }
 }

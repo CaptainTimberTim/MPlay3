@@ -84,6 +84,9 @@
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
+// - When scrolling with the slider, it glitches to the lower entry when crossing the edge between slots.
+// - Search after font change not properly resized.
+// - When year is missing there is misalignment. Just cache year size at start and use it...
 
 #include "Sound_UI_TD.h"
 

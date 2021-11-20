@@ -41,7 +41,7 @@ struct button
     b32 IsDisabled;
 };
 
-#define MAX_BUTTONS 80
+#define MAX_BUTTONS 120
 struct button_group
 {
     button Buttons[MAX_BUTTONS];
@@ -141,8 +141,10 @@ struct text_field
 
 internal text_field CreateTextField(renderer *Renderer, arena_allocator *Arena, v2 Size, r32 ZValue, u8 *EmptyFieldString, entry_id *Parent, v3 *TextColor, v3 *BGColor, font_size_id FontSize, u32 MaxStringLength = 255);
 inline void Translate(text_field *TextField, v2 Translation);
+inline void SetLocalPosition(text_field *TextField, v2 Position);
 inline void SetActive(text_field *TextField, b32 MakeActive);
 inline void SetParent(text_field *TextField, entry_id *Parent);
+inline v2   GetSize(text_field *TextField);
 inline void SetSize(text_field *TextField, v2 Size);
 inline void UpdateTextField(renderer *Renderer, text_field *TextField);
 internal text_field_flag_result ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *TextField);

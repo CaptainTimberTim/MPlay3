@@ -416,6 +416,12 @@ Translate(text_field *TextField, v2 Translation)
 }
 
 inline void
+SetLocalPosition(text_field *TextField, v2 Position)
+{
+    SetLocalPosition(TextField->Background, Position);
+}
+
+inline void
 SetActive(text_field *TextField, b32 MakeActive)
 {
     TextField->IsActive = MakeActive;
@@ -431,6 +437,13 @@ inline void
 SetParent(text_field *TextField, entry_id *Parent)
 {
     SetParent(TextField->Background, Parent);
+}
+
+inline v2
+GetSize(text_field *TextField)
+{
+    v2 Result = GetSize(TextField->Background);
+    return Result;
 }
 
 inline void

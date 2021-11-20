@@ -51,11 +51,12 @@ internal void ResetColumnText(display_column *DisplayColumn, u32 DisplayableCoun
 inline r32
 SlotHeight(display_column *DisplayColumn)
 {
+    r32 Result = 0;
     font_sizes FontSizes =  GlobalGameState.Renderer.FontAtlas.FontSizes;
     r32 SmallFont = FontSizes.Sizes[font_Small].Size;
     if(DisplayColumn->Type != columnType_Song)
     {
-        return SmallFont + GlobalGameState.Layout.SlotHeight;
+        Result = SmallFont + GlobalGameState.Layout.SlotHeight;
     }
     else
     {
@@ -64,14 +65,18 @@ SlotHeight(display_column *DisplayColumn)
         if(SongColumn->IsSmallMode)
         {
             r32 BtnMin = SongColumn->BtnSize + GlobalGameState.Layout.SongPlayYOffset;
-            return Max(MediumFont, BtnMin) + GlobalGameState.Layout.SlotGap + GlobalGameState.Layout.SongPlayYOffset;
+            Result = Max(MediumFont, BtnMin) + GlobalGameState.Layout.SlotGap + GlobalGameState.Layout.SongPlayYOffset;
         }
         else
         {
             r32 Height = SmallFont*2 + MediumFont + GlobalGameState.Layout.SongSlotHeight;
-            return Max(Height, SongColumn->BtnSize + GlobalGameState.Layout.SlotGap*2 + MediumFont);
+            Result = Max(Height, SongColumn->BtnSize + GlobalGameState.Layout.SlotGap*2 + MediumFont);
         }
     }
+    
+    // NOTE:: To prevent errors from floating point imprecisions we round here.
+    Result = Round(Result);
+    return Result;
 }
 
 inline r32
@@ -302,6 +307,17 @@ CreateSongButtons(renderer *Renderer, display_column_song *SongColumn, u32 ID)
     SetLocalPosition(SongColumn->Add[ID], V2(HalfSize*2 + Layout->TopLeftButtonGroupGap, 0));
     
     SongColumn->Add[ID]->OnPressed = {OnSongAddPressed, &SongColumn->PlayBtnData[ID]};
+}
+
+inline void
+UpdateSongColumnYearStringWidth(game_state *GS, display_column_song *SongColumn)
+{
+    
+    NewLocalString(YearString, 6, "2000 |");
+    render_text YearText = {};
+    RenderText(GS, font_Small, &YearString, NULL, &YearText, 0, NULL, {});
+    SongColumn->YearTextWidth = YearText.Extends.x;
+    RemoveRenderText(&GS->Renderer, &YearText);
 }
 
 inline void
@@ -540,6 +556,8 @@ ProcessAllSearchBars(game_state *GS)
     }
 }
 
+
+
 internal search_bar
 CreateSearchBar(column_info ColumnInfo, arena_allocator *Arena, entry_id *Parent, layout_definition *Layout)
 {
@@ -551,8 +569,7 @@ CreateSearchBar(column_info ColumnInfo, arena_allocator *Arena, entry_id *Parent
 #if RESOURCE_PNG
     u32 SearchID = DecodeAndCreateGLTexture(Search_Icon_DataCount, (u8 *)Search_Icon_Data);
 #else
-    loaded_bitmap Bitmap   = {1, Search_Icon_Width, Search_Icon_Height, (u32 *)Search_Icon_Data, colorFormat_RGBA, ArrayCount(Search_Icon_Data)};
-    u32 SearchID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, Bitmap);
+    u32 SearchID = DecodeAndCreateGLTexture(&GlobalGameState.ScratchArena, NewBitmapData(Search_Icon, colorFormat_RGBA));
 #endif
     
     Result.Button = NewButton(Renderer, {{-SearchExt, -SearchExt},{SearchExt, SearchExt}}, 
@@ -567,13 +584,13 @@ CreateSearchBar(column_info ColumnInfo, arena_allocator *Arena, entry_id *Parent
     Assert(ColumnInfo.PlaylistColumn);
     Result.InitialDisplayables.A = CreateArray(Arena, ColumnInfo.PlaylistColumn->Displayable.A.Length);
     
-    v2 TextFieldSize = V2(ColumnInfo.DisplayColumn->SlotWidth/2.0f, Layout->SearchFieldHeight);
+    r32 Height = GetFontSize(Renderer, font_Medium).Size + Layout->SearchFieldHeight;
+    v2 TextFieldSize = V2(ColumnInfo.DisplayColumn->SlotWidth/2.0f, Height);
     Result.TextField = CreateTextField(Renderer, Arena, TextFieldSize, 
                                        ColumnInfo.DisplayColumn->ZValue-0.029f, (u8 *)"Search...", ColumnInfo.DisplayColumn->SliderHorizontal.Background, 
                                        &ColumnInfo.DisplayInfo->ColorPalette.Text,
                                        &ColumnInfo.DisplayInfo->ColorPalette.ButtonActive, font_Medium);
-    Translate(&Result.TextField, V2(0, Layout->SearchFieldHeight/2 + 
-                                    GetExtends(ColumnInfo.DisplayColumn->SliderHorizontal.Background).y));
+    Translate(&Result.TextField, V2(0, Height/2 + GetExtends(ColumnInfo.DisplayColumn->SliderHorizontal.Background).y));
     
     return Result;
 }
@@ -597,9 +614,8 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     else DisplayColumn->TopBorder = DisplayInfo->EdgeTop;
     // NOTE:: Right and bottom border is a slider, therefore set later in procedure
     
-    DisplayColumn->TextX = Layout->SmallTextLeftBorder;
     if(Type == columnType_Song) 
-        DisplayColumn->TextX = Layout->BigTextLeftBorder;
+        UpdateSongColumnYearStringWidth(&GlobalGameState, ColumnExt(DisplayColumn));
     
     // Creating horizontal slider 
     r32 SliderHoriHeight = Layout->HorizontalSliderHeight;
@@ -934,27 +950,10 @@ ChangeDisplayColumnCount(renderer *Renderer, display_column *DisplayColumn, u32 
     DisplayColumn->Count = NewCount;
 }
 
-inline r32
-GetYearWidth(display_column_song *SongColumn)
-{
-    r32 Result = 0;
-    For(SongColumn->Base.Count)
-    {
-        if(SongColumn->SongYear[It].Count == 6) // "2006 |" -> 6 Characters
-        {
-            Result = SongColumn->SongYear[It].Extends.x;
-            break;
-        }
-    }
-    
-    return Result;
-}
-
 internal void
 ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
 {
     layout_definition *Layout = &GlobalGameState.Layout;
-    r32 YearX        = (DisplayColumn->Type == columnType_Song) ? GetYearWidth(ColumnExt(DisplayColumn)) : -1;
     r32 ColumnStartX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x*0.5f;
     
     for(u32 It = 0;
@@ -966,17 +965,23 @@ ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
         {
             display_column_song *SongColumn = ColumnExt(DisplayColumn);
             
-            r32 BtnSize   = ColumnExt(DisplayColumn)->BtnSize;
-            r32 AfterBtnX = ColumnStartX + Layout->SongXOffset + Layout->TopLeftButtonGroupGap*2 + BtnSize*2;
+            r32 BtnSize       = ColumnExt(DisplayColumn)->BtnSize;
+            r32 TrackTextSize = SongColumn->SongTrack[It].Extends.x;
+            r32 BtnGaps       = Layout->TopLeftButtonGroupGap*2;
+            r32 BtnsWidth     = BtnGaps + BtnSize*2;
+            
+            r32 AfterBtnX = ColumnStartX + Layout->SongXOffset;
+            AfterBtnX += (TrackTextSize+BtnGaps > BtnsWidth) ? TrackTextSize+BtnGaps : BtnsWidth;
+            
             // I need to offset by the first character only. Thats why we devide by the letter count.
-            r32 TrackX    = ColumnStartX + SongColumn->SongTrack[It].Extends.x*0.5f/SongColumn->SongTrack[It].Count;
+            r32 TrackX    = ColumnStartX + TrackTextSize*0.5f/SongColumn->SongTrack[It].Count;
             
             SetPositionX(SongColumn->SongTitle+It,  AfterBtnX);
             SetPositionX(SongColumn->SongArtist+It, AfterBtnX);
             SetPositionX(SongColumn->SongTrack+It,  TrackX);
             SetPositionX(SongColumn->SongYear+It,   AfterBtnX);
-            r32 YearRightX = GetPosition(SongColumn->SongYear[It].Base).x + YearX + Layout->SongAlbumXOffset;
-            SetPositionX(SongColumn->SongAlbum+It,  YearRightX);
+            r32 YearRightX = GetPosition(SongColumn->SongYear[It].Base).x + SongColumn->YearTextWidth;
+            SetPositionX(SongColumn->SongAlbum+It,  YearRightX + Layout->SongAlbumXOffset);
             
             SetActive(SongColumn->SongTitle+It, true);
             SetActive(SongColumn->SongArtist+It, true);
@@ -991,7 +996,7 @@ ResetColumnText(display_column *DisplayColumn, u32 DisplayableCount)
         }
         else
         {
-            SetPositionX(DisplayColumn->SlotText+It, ColumnStartX + DisplayColumn->TextX);
+            SetPositionX(DisplayColumn->SlotText+It, ColumnStartX + Layout->ColumnTextLeftBorder);
             SetActive(DisplayColumn->SlotText+It, true);
         }
     }
@@ -1026,7 +1031,7 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
     {
         string_c YearAddon = NewStringCompound(&GlobalGameState.ScratchArena, 10);
         string_c Addon = NewStaticStringCompound(" |");
-        if(MD->YearString.Pos < 4) 
+        if(MD->YearString.Pos != 4) 
         {
             string_c FakeYear = NewStaticStringCompound(" ");
             CopyIntoCompound(&YearAddon, &FakeYear);
@@ -1049,8 +1054,7 @@ UpdateSongText(playlist_column *PlaylistColumn, display_column *DisplayColumn, u
         SetScissor(SongColumn->SongArtist+ID, DisplayColumn->SlotBGs[ID]);
         
         v2 TrackP = {0, SongP.y};
-        RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, SongColumn->SongTrack+ID, -0.12f, 
-                   DisplayColumn->SlotBGs[ID], TrackP);
+        RenderText(&GlobalGameState, font_Medium, &MD->TrackString, DisplayColumn->Colors.Text, SongColumn->SongTrack+ID, -0.12f, DisplayColumn->SlotBGs[ID], TrackP);
         SetScissor(SongColumn->SongTrack+ID, DisplayColumn->SlotBGs[ID]);
         
         DeleteStringCompound(&GlobalGameState.ScratchArena, &YearAddon);
@@ -1122,13 +1126,15 @@ ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *D
 {
     playlist_column *PlaylistColumn = MusicInfo->Playlist_->Columns + DisplayColumn->Type;
     r32 CurrentSlotHeight = SlotHeight(DisplayColumn);
-    r32 TotalHeight   = GetDisplayableHeight(PlaylistColumn->Displayable.A.Count, CurrentSlotHeight);
+    r32 TotalHeight       = GetDisplayableHeight(PlaylistColumn->Displayable.A.Count, CurrentSlotHeight);
     // DisplayCursor is the very top position. Therefore MaxHeight needs to be reduced by VisibleHeight
     TotalHeight = Max(0.0f, TotalHeight-DisplayColumn->ColumnHeight);
     
     i32 PrevCursorID = Floor(DisplayColumn->DisplayCursor/CurrentSlotHeight);
     DisplayColumn->DisplayCursor = Clamp(DisplayColumn->DisplayCursor+ScrollAmount, 0.0f, TotalHeight);
     
+    // NOTE:: This Mod produces jitter because of floating point imprecisions, when CurrentSlotHeight is
+    // not a clean number.
     r32 NewY = Mod(DisplayColumn->DisplayCursor, CurrentSlotHeight);
     i32 NewCursorID = Floor(DisplayColumn->DisplayCursor/CurrentSlotHeight);
     NewCursorID     = Min(NewCursorID, Max(0, (i32)PlaylistColumn->Displayable.A.Count-1));
@@ -1216,6 +1222,7 @@ UpdateSlots(game_state *GS, display_column *DisplayColumn)
     {
         display_column_song *SongColumn = ColumnExt(DisplayColumn);
         CreateSongButtonTextures(GS, SongColumn);
+        UpdateSongColumnYearStringWidth(GS, SongColumn);
         
         v2  Size = V2(SongColumn->BtnSize);
         r32 BtnX = GetPosition(DisplayColumn->LeftBorder).x + GetSize(DisplayColumn->LeftBorder).x*0.5f;

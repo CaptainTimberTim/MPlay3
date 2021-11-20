@@ -89,7 +89,6 @@ struct display_column
     render_text   SlotText[MAX_DISPLAY_COUNT];
     entry_id      *SlotBGs[MAX_DISPLAY_COUNT];
     entry_id *Background;
-    r32 TextX;
     r32 DisplayCursor; // Y position in the total displayables
     entry_id *SlotBGAnchor; // Is only moved on resize, to be at the exact pos for the first BGRect.
     r32 ZValue;
@@ -135,6 +134,7 @@ struct display_column_song
     u32 PlayPauseGLID;
     u32 AddGLID;
     r32 BtnSize;
+    r32 YearTextWidth;
     
     b32 IsSmallMode;
     
@@ -340,8 +340,7 @@ struct layout_definition
     r32 SongSlotHeight = 2;
     r32 SlotGap        = 3;
     
-    r32 SmallTextLeftBorder = 12;
-    r32 BigTextLeftBorder   = 32;
+    r32 ColumnTextLeftBorder = 12;
     
     // Font
     r32 FontSizeSmall  = 24;
@@ -356,7 +355,7 @@ struct layout_definition
     r32 SlotTextYOffPercent   = 0.125f;
     
     // Search
-    r32 SearchFieldHeight   = 50;
+    r32 SearchFieldHeight   = 0;
     
     // Button sizes
     r32 SearchButtonExtents    = 12;

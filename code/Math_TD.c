@@ -97,7 +97,10 @@ Floor(r32 Value)
 {
     i32 Result = 0;
     
-    Result = (i32)(Value + 65536.0f) - 65536;
+    // TODO:: Back to using the libc function for floor/ceil.
+    // As the ones commented out are not 100% reliable...
+    Result = (i32)floor(Value);
+    //Result = (i32)(Value + 65536.0f) - 65536;
     
     return(Result);
 }
@@ -107,7 +110,8 @@ Ceiling(r32 Value)
 {
     i32 Result = 0;
     
-    Result = 65536 - (i32)(65536.0f - Value);
+    Result = (i32)ceil(Value);
+    //Result = 65536 - (i32)(65536.0f - Value);
     
     return(Result);
 }
@@ -130,6 +134,13 @@ CeilingR32(r32 Value)
     Result = (r32)(65536 - (i32)(65536.0f - Value));
     
     return(Result);
+}
+
+inline r32
+Round(r32 Value)
+{
+    Value = roundf(Value);
+    return Value;
 }
 
 inline i32

@@ -491,3 +491,10 @@
 
 19.11.2021
 - Added Song column font alignment when buttons resize.
+- Fixed missing year entry width if only songs without year are on screen.
+
+20.11.2021
+- Fixed bug: Jitter when scrolling with the scrollbar fixed. Bug was due to Floor function not being 100% reliable. Switched back to libc floor for now.
+- Fixed bug: Jitter when resizing font. Due to 'unclean' slot heights the modulo had floating point imprecisions. Now all slot heights geht rounded to full values.
+- Now the Title in song column gets pushed right if track size is too large.
+- Fixed search bars not resizing for font changes.

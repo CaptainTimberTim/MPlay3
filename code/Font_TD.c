@@ -237,6 +237,10 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
         r32 SearchRectY = BottomPanelHeight + GetSize(SearchRect).y*0.5f;
         SetPosition(SearchRect, V2(GetPosition(SearchRect).x, SearchRectY));
         
+        r32 Height = GetFontSize(&GS->Renderer, font_Medium).Size + GS->Layout.SearchFieldHeight;
+        SetSize(&Column->Search.TextField, V2(GetSize(&Column->Search.TextField).x, Height));
+        SetLocalPosition(&Column->Search.TextField, V2(0, Height/2 + GetExtends(Column->SliderHorizontal.Background).y));
+        
         ProcessWindowResizeForDisplayColumn(&GS->Renderer, &GS->MusicInfo, Column);
     }
     

@@ -498,3 +498,6 @@
 - Fixed bug: Jitter when resizing font. Due to 'unclean' slot heights the modulo had floating point imprecisions. Now all slot heights geht rounded to full values.
 - Now the Title in song column gets pushed right if track size is too large.
 - Fixed search bars not resizing for font changes.
+
+24.11.2021
+- Fixed bug: Crash when having the player running a long time when minimized. Because removed entries were not being reset without rendering.

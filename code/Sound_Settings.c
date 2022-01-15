@@ -18,17 +18,35 @@ CreateStyleSettings(game_state *GS, style_settings_window *StyleSettings)
     v2 MainPos = V2(Renderer->Window.CurrentDim.Dim)*0.5f;
     
     // Create Move Nob
-    r32 BorderTopHeight   = Layout->SettingsWindowBorderTop + Layout->SettingsWindowBorder + Layout->SettingsWindowHeight;
-    v2 BGSize             = V2(Layout->SettingsWindowWidth, Layout->SettingsWindowHeight);
+    r32   BorderTopHeight = Layout->SettingsWindowBorderTop + Layout->SettingsWindowBorder + Layout->SettingsWindowHeight;
+    v2             BGSize = V2(Layout->SettingsWindowWidth, Layout->SettingsWindowHeight);
     StyleSettings->Border = CreateRenderRect(Renderer, V2(BGSize.x + Layout->SettingsWindowBorder, BorderTopHeight), 
                                              Depth+0.0011f, &Palette->SliderGrabThing, 0);
     SetPosition(StyleSettings->Border, MainPos+V2(0, Layout->SettingsWindowBorderTop));
     TranslateWithScreen(&Renderer->TransformList, StyleSettings->Border, fixedTo_TopLeft);
     
     // Create Background
-    StyleSettings->Background = CreateRenderRect(Renderer, BGSize, Depth+0.001f, 
-                                                 &Palette->Foreground, StyleSettings->Border);
+    StyleSettings->Background = CreateRenderRect(Renderer, BGSize, Depth+0.001f,&Palette->Foreground, StyleSettings->Border);
     SetPosition(StyleSettings->Background, MainPos+V2(0, 12.5f));
+    
+    // Initialize FontSettings
+    StyleSettings->FontParent = CreateRenderRect(Renderer, {}, Depth, StyleSettings->Background, &Palette->Text);
+    CreateFontSettings(GS, &StyleSettings->FontSettings, StyleSettings->FontParent);
+    
+    // Initialize ColorPicker
+    StyleSettings->ColorPickerParent = CreateRenderRect(Renderer, {}, Depth, StyleSettings->Background, &Palette->Text);
+    CreateColorPicker(GS, &StyleSettings->ColorPicker, ColorPickerFieldSize, Layout->ColorPickerSpectrumWidth, StyleSettings->ColorPickerParent);
+    
+    r32 FontSettingsWidth = GetSize(StyleSettings->FontSettings.Background).x;
+    r32 ColorPickerWidth  = GetSize(StyleSettings->ColorPicker.Background).x;
+    r32 BackgroundWidth   = FontSettingsWidth+ColorPickerWidth;
+    SetSize(StyleSettings->Background, V2(BackgroundWidth, Layout->SettingsWindowHeight));
+    SetSize(StyleSettings->Border, V2(BackgroundWidth + Layout->SettingsWindowBorder, BorderTopHeight));
+    
+    r32 FontSettingsX = BackgroundWidth*0.5f - FontSettingsWidth*0.5f;
+    SetLocalPosition(StyleSettings->FontParent, V2(FontSettingsX, 0));
+    r32 ColorPickerParentX = -BackgroundWidth*0.5f + ColorPickerWidth*0.5f;
+    SetLocalPosition(StyleSettings->ColorPickerParent, V2(ColorPickerParentX, 0));
     
     // Create cancel button.
 #if RESOURCE_PNG
@@ -42,18 +60,8 @@ CreateStyleSettings(game_state *GS, style_settings_window *StyleSettings)
     StyleSettings->Cancel = NewButton(Renderer, BtnRect, Depth-0.003f, false, Renderer->ButtonBaseID, CancelID, 
                                       Renderer->ButtonColors, StyleSettings->Background);
     v2 AddOffset = V2(Layout->ColorPickerButtonGapY, -Layout->ColorPickerButtonGapY);
-    Translate(StyleSettings->Cancel, V2(BGSize.x*0.5f, -BGSize.y*0.5f) - V2(BtnExtends, -BtnExtends) - AddOffset);
+    Translate(StyleSettings->Cancel, V2(BackgroundWidth*0.5f, -BGSize.y*0.5f) - V2(BtnExtends, -BtnExtends) - AddOffset);
     StyleSettings->Cancel->OnPressed = {OnCancelStyleSettings, StyleSettings};
-    
-    // Initialize ColorPicker
-    
-    StyleSettings->ColorPickerParent = CreateRenderRect(Renderer, {}, Depth, StyleSettings->Background, &Palette->Text);
-    
-    CreateColorPicker(GS, &StyleSettings->ColorPicker, ColorPickerFieldSize, Layout->ColorPickerSpectrumWidth, StyleSettings->ColorPickerParent);
-    
-    // Initialize FontSettings
-    StyleSettings->FontParent = CreateRenderRect(Renderer, {}, Depth, StyleSettings->Background, &Palette->Text);
-    CreateFontSettings(GS, &StyleSettings->FontSettings, StyleSettings->FontParent);
     
     StyleSettings->IsActive = true;
 }
@@ -114,16 +122,55 @@ OnStyleSettings(void *Data)
 internal void
 UpdateSettings(game_state *GS)
 {
-    v2 ContentOffset = V2(GS->Layout.ColorPickerContentOffsetX, GS->Layout.ColorPickerContentOffsetY);
-    CreateColorPickerPaletteList(GS, &GS->StyleSettings.ColorPicker, ContentOffset);
+    style_settings_window *StyleSettings = &GS->StyleSettings;
+    color_picker *ColorPicker = &StyleSettings->ColorPicker;
     
+    r32 TextWidth     = GetColorPickerTextWidth(GS);
+    r32 SpectrumWidth = GetSize(&ColorPicker->ColorSpectrum).x;
+    r32 FieldWidth    = GetSize(ColorPicker->TextureEntry).x;
+    r32 ContentOffX   = SpectrumWidth - TextWidth*0.5f;
+    v2  ContentOffset = V2(ContentOffX, GS->Layout.ColorPickerContentOffsetY);
+    
+    r32 PrevRightX = GetPosition(ColorPicker->ActiveColorBG).x + GetSize(ColorPicker->ActiveColorBG).x*0.5f;
+    CreateColorPickerPaletteList(GS, ColorPicker, V2(ContentOffX, ContentOffset.y));
+    
+    v2 BGSize = V2(FieldWidth + SpectrumWidth*2 + TextWidth, GS->Layout.SettingsWindowHeight);
+    SetSize(ColorPicker->Background, BGSize);
+    
+    r32 RightX = GetPosition(ColorPicker->ActiveColorBG).x + GetSize(ColorPicker->ActiveColorBG).x*0.5f;
+    Translate(ColorPicker->FixedSizeHolder, V2(PrevRightX - RightX, 0));
+    
+    // Style Settings update
+    r32 FontSettingsWidth = GetSize(StyleSettings->FontSettings.Background).x;
+    r32 BackgroundWidth   = FontSettingsWidth+BGSize.x;
+    r32    PrevStyleWidth = GetSize(StyleSettings->Background).x;
+    SetSize(StyleSettings->Background, V2(BackgroundWidth, GS->Layout.SettingsWindowHeight));
+    SetSize(StyleSettings->Border, V2(BackgroundWidth + GS->Layout.SettingsWindowBorder, GetSize(StyleSettings->Border).y));
+    r32 MoveXDist  = -(BackgroundWidth - PrevStyleWidth)*0.5f;
+    Translate(StyleSettings->Border, V2(MoveXDist, 0));
+    UpdateOriginalPosition(&GS->Renderer.TransformList, StyleSettings->Border);
+    
+    r32 FontSettingsX = BackgroundWidth*0.5f - FontSettingsWidth*0.5f;
+    SetLocalPosition(StyleSettings->FontParent, V2(FontSettingsX, 0));
+    r32 ColorPickerParentX = -BackgroundWidth*0.5f + BGSize.x*0.5f;
+    SetLocalPosition(StyleSettings->ColorPickerParent, V2(ColorPickerParentX, 0));
+    
+    r32 BtnExtends = GS->Layout.MediumButtonExtents;
+    v2   AddOffset = V2(GS->Layout.ColorPickerButtonGapY, -GS->Layout.ColorPickerButtonGapY);
+    SetLocalPosition(StyleSettings->Cancel, V2(BackgroundWidth*0.5f, -BGSize.y*0.5f) - V2(BtnExtends, -BtnExtends) - AddOffset);
+    
+    // Font Settings update
     NewLocalString(Text, 27, "abcdefghijklmnopqrstuvwxyz");
     font_metrics SmallFontMetrics = GetFontMetrics(GS, font_Small, Text);
     UpdateTextField(&GS->Renderer, &GS->StyleSettings.FontSettings.ActiveFont);
     v2 NewSize = V2(GS->Layout.FontSliderExtendsX*2 - GS->Layout.SearchButtonExtents*2, 
                     SmallFontMetrics.Ascent - SmallFontMetrics.Descent);
-    SetSize(&GS->StyleSettings.FontSettings.ActiveFont, NewSize);
-    SetActive(&GS->StyleSettings.FontSettings.ActiveFont, GS->StyleSettings.IsActive);
+    SetSize(&StyleSettings->FontSettings.ActiveFont, NewSize);
+    SetActive(&StyleSettings->FontSettings.ActiveFont, GS->StyleSettings.IsActive);
+    
+    font_metrics MediumFontMetrics = GetFontMetrics(GS, font_Medium, Text);
+    r32 PaletteNameWidth = GetSize(&ColorPicker->PaletteName).x;
+    SetSize(&ColorPicker->PaletteName, V2(PaletteNameWidth, MediumFontMetrics.Ascent - MediumFontMetrics.Descent));
 }
 
 // Font settings ********************************************
@@ -194,20 +241,20 @@ CreateFontSettings(game_state *GS, font_settings *FontSettings, entry_id *Parent
     FontSettings->Parent = Parent;
     r32 Depth = GetDepth(Parent) - 0.000001f;
     
-    v2 BaseOffset = {Layout->FontSettingsOffsetX, Layout->FontSettingsOffsetY};
+    v2 BaseOffset = {};//{Layout->FontSettingsOffsetX, Layout->FontSettingsOffsetY};
     v2 BGSize     = V2(Layout->FontSettingsBGWidth, Layout->SettingsWindowHeight);
-    FontSettings->Background = CreateRenderRect(&GS->Renderer, BGSize, Depth+0.001f, &Palette->Foreground, Parent);
+    FontSettings->Background = CreateRenderRect(&GS->Renderer, BGSize, Depth+0.0008f, &Palette->ForegroundText, Parent);
     SetLocalPosition(FontSettings->Background, BaseOffset);
     
     Parent = FontSettings->Background;
-    BaseOffset = V2(Layout->FontSettingsContentOffsetX, Layout->FontSettingsContentOffsetY);
+    BaseOffset = V2(Layout->FontSettingsContentOffsetX, Layout->FontSettingsContentOffsetY + Layout->ColorPickerOffsetY);
     v2 SliderExtends = {Layout->FontSliderExtendsX, Layout->FontSliderExtendsY};
     v2    FontOffset = BaseOffset + V2(-SliderExtends.x, 0);
     v2  SliderOffset = V2(BaseOffset.x, FontOffset.y + SmallFontMetrics.Descent - Layout->FontSliderGrabY);
     rect_pe   BGRect = {SliderOffset, SliderExtends};
     rect_pe GrabRect = {SliderOffset, {Layout->FontSliderGrabX, Layout->FontSliderGrabY}};
     
-    RenderText(GS, font_Small, &ChangeSmallText, &GS->MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &FontSettings->SmallFontText, Depth + 0.00001f, Parent, FontOffset);
+    RenderText(GS, font_Small, &ChangeSmallText, &GS->MusicInfo.DisplayInfo.ColorPalette.Text, &FontSettings->SmallFontText, Depth + 0.00001f, Parent, FontOffset);
     SetScissor(&FontSettings->SmallFontText, FontSettings->Background);
     
     CreateSlider(GS, &FontSettings->SmallFontSlider, sliderAxis_X, Rect(BGRect), Rect(GrabRect), Depth, true, Parent);
@@ -218,7 +265,7 @@ CreateFontSettings(game_state *GS, font_settings *FontSettings, entry_id *Parent
     FontOffset.y += -GrabRect.Extends.y*2 + SmallFontMetrics.Descent - MediumFontMetrics.Ascent - Layout->FontSizeSliderGap;
     BGRect.Pos.y  = FontOffset.y + SmallFontMetrics.Descent - GrabRect.Extends.y;
     
-    RenderText(GS, font_Medium, &ChangeMediumText, &GS->MusicInfo.DisplayInfo.ColorPalette.ForegroundText, &FontSettings->MediumFontText, Depth + 0.00001f, Parent, FontOffset);
+    RenderText(GS, font_Medium, &ChangeMediumText, &GS->MusicInfo.DisplayInfo.ColorPalette.Text, &FontSettings->MediumFontText, Depth + 0.00001f, Parent, FontOffset);
     SetScissor(&FontSettings->MediumFontText, FontSettings->Background);
     
     CreateSlider(GS, &FontSettings->MediumFontSlider, sliderAxis_X, Rect(BGRect), Rect(GrabRect), Depth, true, Parent);
@@ -332,16 +379,16 @@ CreateColorPickerPaletteList(game_state *GS, color_picker *ColorPicker, v2 Offse
 {
     color_palette *Palette = &GS->MusicInfo.DisplayInfo.ColorPalette;
     
-    r32 FontSize = GetFontSize(&GS->Renderer, font_Small).Size;
+    r32         FontSize = GetFontSize(&GS->Renderer, font_Small).Size;
     font_metrics Metrics = GetFontMetrics(GS, font_Small, GlobalPaletteColorNames[0]);
-    r32 ColorGap = GS->Layout.ColorPickerPaletteColorsGap;
-    r32 YDownMove = Metrics.RowGap + ColorGap;
+    r32         ColorGap = GS->Layout.ColorPickerPaletteColorsGap;
+    r32        YDownMove = Metrics.RowGap + ColorGap;
     
     v2 ColorSquareSize = V2(FontSize);
     v2 ColorSquareOutlineSize = ColorSquareSize + V2(GS->Layout.ColorPickerColorOutline)*2;
-    v2 StartP = (V2(GS->Layout.ColorPickerColorFieldSide) + 
-                 V2(ColorSquareOutlineSize.x + ColorGap, -ColorSquareOutlineSize.y))*0.5f;
-    StartP += Offset;
+    v2 StartP = V2(GS->Layout.ColorPickerColorFieldSide)*0.5f; 
+    StartP += V2(ColorSquareOutlineSize.x + ColorGap, -ColorSquareOutlineSize.y)*0.5f;
+    StartP += Offset + V2(0, GS->Layout.ColorPickerOffsetY);
     
     r32 YDown = 0;
     r32 DepthAdvance = 0.00001f;
@@ -393,6 +440,20 @@ CreateColorPickerPaletteList(game_state *GS, color_picker *ColorPicker, v2 Offse
     
 }
 
+inline r32
+GetColorPickerTextWidth(game_state *GS)
+{
+    string_c *LongestName = GlobalPaletteColorNames+5; // 'Slider Background'
+    render_text Text = {};
+    RenderText(GS, font_Small, LongestName, NULL, &Text, 0, NULL, {});
+    RemoveRenderText(&GS->Renderer, &Text);
+    
+    r32 FontSize = GetFontSize(&GS->Renderer, font_Small).Size;
+    r32 ColorSquareWidth = FontSize + GS->Layout.ColorPickerColorOutline*2;
+    r32 Result = Text.Extends.x + ColorSquareWidth + GS->Layout.ColorPickerPaletteColorsGap*3;
+    return Result;
+}
+
 internal void
 CreateColorPicker(game_state *GS, color_picker *Result, v2 ColorFieldSize, r32 SpectrumWidth, entry_id *Parent)
 {
@@ -409,14 +470,21 @@ CreateColorPicker(game_state *GS, color_picker *Result, v2 ColorFieldSize, r32 S
     Result->Bitmap.Height = (u32)ColorFieldSize.y;
     Result->Bitmap.WasLoaded = true;
     
+    r32 TextWidth         = GetColorPickerTextWidth(GS);
+    v2  BGSize            = V2(ColorFieldSize.x + SpectrumWidth*2 + TextWidth, Layout->SettingsWindowHeight);
+    r32 ContentOffX       = SpectrumWidth - TextWidth*0.5f;
+    v2  ContentOffset     = V2(ContentOffX, Layout->ColorPickerContentOffsetY);
     v2i ColorSpectrumSize = V2i((i32)SpectrumWidth, (i32)ColorFieldSize.y);
     
-    v2 BaseOffset = V2(Layout->ColorPickerOffsetX, Layout->ColorPickerOffsetY);
-    v2 BGSize     = V2(Layout->ColorPickerWidth, Layout->SettingsWindowHeight);
     Result->Background = CreateRenderRect(&GS->Renderer, BGSize, Depth+0.001f, &Palette->Foreground, Parent);
-    SetLocalPosition(Result->Background, BaseOffset);
     Parent = Result->Background;
-    v2 ContentOffset = V2(Layout->ColorPickerContentOffsetX, Layout->ColorPickerContentOffsetY);
+    
+    Result->FixedSizeHolder = CreateRenderRect(&GS->Renderer, {}, Depth+0.001f, &Palette->ErrorText, Parent);
+    SetLocalPosition(Result->FixedSizeHolder, V2(0, GS->Layout.ColorPickerOffsetY));
+    Parent = Result->FixedSizeHolder;
+    
+    // Create palette colors
+    CreateColorPickerPaletteList(&GlobalGameState, Result, ContentOffset);
     
     // Create brightness slider
     loaded_bitmap ColorSpectrumBitmap = {};
@@ -454,9 +522,6 @@ CreateColorPicker(game_state *GS, color_picker *Result, v2 ColorFieldSize, r32 S
     Result->PickDot = CreateRenderRect(Renderer, V2(8,8), Depth-0.001f, &Palette->Text, Parent);
     Result->InnerInnerDot = CreateRenderRect(Renderer, V2(6,6), Depth-0.0011f, &Palette->Slot, Result->PickDot);
     Result->InnerDot = CreateRenderRect(Renderer, V2(4,4), Depth-0.0012f, &Palette->Text, Result->PickDot);
-    
-    // Create palette colors
-    CreateColorPickerPaletteList(&GlobalGameState, Result, ContentOffset);
     
     // Create Buttons
 #if RESOURCE_PNG
@@ -500,13 +565,14 @@ CreateColorPicker(game_state *GS, color_picker *Result, v2 ColorFieldSize, r32 S
     
     // Create Textfield for palette names ****************
     Result->PaletteName = CreateTextField(Renderer, &GS->FixArena, V2(Layout->PaletteNameFieldX, MediumFontHeight), 
-                                          Depth+0.0001f, (u8 *)"Custom Palette", Parent, 
+                                          Depth+0.0010001f, (u8 *)"Custom Palette", Parent, 
                                           &Palette->ForegroundText, &Palette->Foreground, font_Medium);
     r32 FieldX = Layout->PaletteNameFieldX*0.5f - ColorFieldSize.x*0.5f - Layout->PaletteNameFieldIndent;
     Translate(&Result->PaletteName, ContentOffset + V2(FieldX, ColorFieldSize.y*0.5f + MediumFontHeight*0.5f));
     SetActive(&Result->PaletteName, true);
     AppendStringCompoundToCompound(&Result->PaletteName.TextString, GetCurrentPaletteName());
     UpdateTextField(Renderer, &Result->PaletteName);
+    SetScissor(&Result->PaletteName, Result->Background);
     
     Result->CurrentColorPaletteID = MAX_UINT32;
     ColorToPickerPosition(Result, GetColor(Result->PaletteColors[0].Preview));
@@ -700,9 +766,10 @@ CreateRenderTextFromColor(color_picker *ColorPicker, v3 NewColor, v3 NewHSVColor
         DecimalToHexString(Hex, &HexString);
         
         RemoveRenderText(Renderer, &ColorPicker->HexText);
-        RenderText(&GlobalGameState, font_Small, &HexString, &Palette->ForegroundText, &ColorPicker->HexText, Depth + DepthOff*7, ColorPicker->New->Entry);
+        RenderText(&GlobalGameState, font_Small, &HexString, &Palette->ForegroundText, &ColorPicker->HexText, Depth + DepthOff*7, ColorPicker->Save->Entry);
         
-        v2 Offset = V2(Layout->SmallButtonExtents + Layout->ColorPickerHexTextOffset, -Layout->SmallButtonExtents - Descent);
+        v2 Offset = V2(Layout->SmallButtonExtents + Layout->ColorPickerButtonGapY - 5, 
+                       -(Layout->SmallButtonExtents - Descent)*2);
         SetLocalPosition(&ColorPicker->HexText, Offset);
     }
 }

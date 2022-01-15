@@ -1452,6 +1452,12 @@ OnShufflePlaylistToggleOff(void *Data)
     SaveShuffledState(GameState, MusicInfo->Playlist_);
 }
 
+inline color_palette *
+GetColorPalette(game_state *GS)
+{
+    return &GS->MusicInfo.DisplayInfo.ColorPalette;
+}
+
 inline void
 CreateBasicColorPalette(color_palette *Palette)
 {

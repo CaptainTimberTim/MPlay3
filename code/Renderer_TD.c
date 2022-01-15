@@ -2,7 +2,17 @@
 #include "GameBasics_TD.h"
 
 inline void GetWindowDimensions(HWND Window, v2i *Dim);
-inline renderer
+
+internal void
+InitializeRenderEntryList(game_state *GS, render_entry_list *EntryList, u32 MaxCount)
+{
+    EntryList->Entries   = AllocateArray(&GS->FixArena, MaxCount, render_entry);
+    EntryList->IDs       = AllocateArray(&GS->FixArena, MaxCount, entry_id);
+    EntryList->OpenSlots = AllocateArray(&GS->FixArena, MaxCount, b32);
+    EntryList->MaxCount  = MaxCount;
+}
+
+internal renderer
 InitializeRenderer(game_state *GameState, HWND WindowHandle)
 {
     renderer Result = {};
@@ -21,12 +31,8 @@ InitializeRenderer(game_state *GameState, HWND WindowHandle)
     
     Result.TransformList  = CreateScreenTransformList(&GameState->Renderer, &GameState->FixArena);
     
-    Result.RenderEntryList.Entries = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, render_entry);
-    Result.RenderEntryList.IDs     = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, entry_id);
-    Result.RenderEntryList.OpenSlots = AllocateArray(&GameState->FixArena, START_RENDER_ENTRIES, b32);
-    Result.RenderEntryList.MaxCount = START_RENDER_ENTRIES;
+    InitializeRenderEntryList(GameState, &Result.RenderEntryList, START_RENDER_ENTRIES);
     
-    Result.UIDCounter = 0;
     return Result;
 }
 
@@ -177,10 +183,9 @@ UpdateEntryList(render_entry_list *EntryList)
 }
 
 inline i32 
-GetEntryID_ID(renderer *Renderer, entry_id *EntryID)
+GetEntryID_ID(render_entry_list *EntryList, entry_id *EntryID)
 {
     i32 Result = -1;
-    render_entry_list *EntryList = &Renderer->RenderEntryList;
     
     For(EntryList->MaxCount)
     {
@@ -196,11 +201,10 @@ GetEntryID_ID(renderer *Renderer, entry_id *EntryID)
 }
 
 internal void
-RemoveRenderEntry(renderer *Renderer, entry_id *EntryID)
+RemoveRenderEntry(render_entry_list *EntryList, entry_id *EntryID)
 {
-    render_entry_list *EntryList = &Renderer->RenderEntryList;
     Assert(EntryID->ID != 0);
-    i32 EntryID_ID = GetEntryID_ID(Renderer, EntryID);
+    i32 EntryID_ID = GetEntryID_ID(EntryList, EntryID);
     if(!EntryList->OpenSlots[EntryID_ID])
     {
         EntryList->OpenSlots[EntryID_ID] = true;
@@ -212,13 +216,17 @@ RemoveRenderEntry(renderer *Renderer, entry_id *EntryID)
         EntryList->_SortingNeeded = true;
     }
 }
+inline void
+RemoveRenderEntry(renderer *Renderer, entry_id *EntryID)
+{
+    RemoveRenderEntry(&Renderer->RenderEntryList, EntryID);
+}
 
 internal entry_id *
-CreateRenderEntry(renderer *Renderer, v2 Size, r32 Depth, v2 Position = {}, entry_id *Parent = 0)
+CreateRenderEntry(render_entry_list *EntryList, v2 Size, r32 Depth, v2 Position = {}, entry_id *Parent = 0)
 {
     entry_id *Result = 0;
     
-    render_entry_list *EntryList = &Renderer->RenderEntryList;
     if(EntryList->OpenSlotCount > 0)
     {
         For(EntryList->MaxCount)
@@ -246,7 +254,7 @@ CreateRenderEntry(renderer *Renderer, v2 Size, r32 Depth, v2 Position = {}, entr
     *Entry = {};
     Entry->ID = Result;
     Result->ID = Entry;
-    Result->UID = ++Renderer->UIDCounter;
+    Result->UID = ++GlobalUIDCounter;
     EntryList->EntryCount++;
     EntryList->_SortingNeeded = true;
     
@@ -274,82 +282,107 @@ CreateRenderEntry(renderer *Renderer, v2 Size, r32 Depth, v2 Position = {}, entr
     return Result;
 }
 
+internal entry_id *
+CreateRenderRect(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, v3 *Color)
+{
+    entry_id *Result = 0;
+    
+    rect_pe_2D RectPE = RectToRectPE(Rect);
+    Result = CreateRenderEntry(EntryList, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
+    
+    Result->ID->Type = renderType_2DRectangle;
+    Result->ID->Color = Color;
+    
+    return Result;
+}
 inline entry_id *
 CreateRenderRect(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, v3 *Color)
 {
-    entry_id *Result = 0;
-    
-    rect_pe_2D RectPE = RectToRectPE(Rect);
-    Result = CreateRenderEntry(Renderer, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
-    
-    Result->ID->Type = renderType_2DRectangle;
-    Result->ID->Color = Color;
-    
-    return Result;
+    return CreateRenderRect(&Renderer->RenderEntryList, Rect, Depth, Parent, Color);
 }
 
 internal entry_id *
-CreateRenderRect(renderer *Renderer, v2 Size, r32 Depth, v3 *Color, entry_id *Parent)
+CreateRenderRect(render_entry_list *EntryList, v2 Size, r32 Depth, v3 *Color, entry_id *Parent)
 {
-    entry_id *Result = CreateRenderEntry(Renderer, Size, Depth, {}, Parent);
+    entry_id *Result = CreateRenderEntry(EntryList, Size, Depth, {}, Parent);
     
     Result->ID->Type = renderType_2DRectangle;
     Result->ID->Color = Color;
     
     return Result;
 }
-
 inline entry_id *
-CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, loaded_bitmap Bitmap)
+CreateRenderRect(renderer *Renderer, v2 Size, r32 Depth, v3 *Color, entry_id *Parent)
+{
+    return CreateRenderRect(&Renderer->RenderEntryList, Size, Depth, Color, Parent);
+}
+
+internal entry_id *
+CreateRenderBitmap(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, loaded_bitmap Bitmap, v3 *DefaultColor)
 {
     entry_id *Result = 0;
     
     rect_pe_2D RectPE = RectToRectPE(Rect);
-    Result = CreateRenderEntry(Renderer, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
+    Result = CreateRenderEntry(EntryList, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
     
     Result->ID->Type = renderType_2DBitmap;
     Result->ID->TexID = CreateGLTexture(Bitmap);
-    Result->ID->Color = &Renderer->DefaultEntryColor;
+    Result->ID->Color = DefaultColor;
     
     return Result;
 }
-
 inline entry_id *
-CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID)
+CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, loaded_bitmap Bitmap)
 {
-    entry_id *Result = 0;
-    
-    rect_pe_2D RectPE = RectToRectPE(Rect);
-    Result = CreateRenderEntry(Renderer, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
-    
-    Result->ID->Type = renderType_2DBitmap;
-    Result->ID->TexID = BitmapID;
-    Result->ID->Color = &Renderer->DefaultEntryColor;
-    
-    return Result;
+    return CreateRenderBitmap(&Renderer->RenderEntryList, Rect, Depth, Parent, Bitmap, &Renderer->DefaultEntryColor);
 }
 
 internal entry_id *
-CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID)
-{
-    entry_id *Result = 0;
-    
-    Result = CreateRenderEntry(Renderer, Size, Depth, {}, Parent);
-    
-    Result->ID->Type = renderType_2DBitmap;
-    Result->ID->TexID = BitmapID;
-    Result->ID->Color = &Renderer->DefaultEntryColor;
-    
-    return Result;
-}
-
-inline entry_id *
-CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path)
+CreateRenderBitmap(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID, v3 *DefaultColor)
 {
     entry_id *Result = 0;
     
     rect_pe_2D RectPE = RectToRectPE(Rect);
-    Result = CreateRenderEntry(Renderer, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
+    Result = CreateRenderEntry(EntryList, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
+    
+    Result->ID->Type = renderType_2DBitmap;
+    Result->ID->TexID = BitmapID;
+    Result->ID->Color = DefaultColor;
+    
+    return Result;
+}
+inline entry_id *
+CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID)
+{
+    return CreateRenderBitmap(&Renderer->RenderEntryList, Rect, Depth, Parent, BitmapID, &Renderer->DefaultEntryColor);
+}
+
+internal entry_id *
+CreateRenderBitmap(render_entry_list *EntryList, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID, v3 *DefaultColor)
+{
+    entry_id *Result = 0;
+    
+    Result = CreateRenderEntry(EntryList, Size, Depth, {}, Parent);
+    
+    Result->ID->Type = renderType_2DBitmap;
+    Result->ID->TexID = BitmapID;
+    Result->ID->Color = DefaultColor;
+    
+    return Result;
+}
+inline entry_id *
+CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID)
+{
+    return CreateRenderBitmap(&Renderer->RenderEntryList, Size, Depth, Parent, BitmapID, &Renderer->DefaultEntryColor);
+}
+
+internal entry_id *
+CreateRenderBitmap(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, string_c *Path, v3 *DefaultColor)
+{
+    entry_id *Result = 0;
+    
+    rect_pe_2D RectPE = RectToRectPE(Rect);
+    Result = CreateRenderEntry(EntryList, RectPE.Extends*2, Depth, RectPE.Pos, Parent);
     
     loaded_bitmap Bitmap = LoadImage_STB(Path->S); 
     Assert(Bitmap.Pixels);
@@ -357,8 +390,13 @@ CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, s
     Result->ID->Type = renderType_2DBitmap;
     Result->ID->TexID = CreateGLTexture(Bitmap);
     FreeImage_STB(Bitmap);
-    Result->ID->Color = &Renderer->DefaultEntryColor;
+    Result->ID->Color = DefaultColor;
     return Result;
+}
+inline entry_id *
+CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path)
+{
+    return CreateRenderBitmap(&Renderer->RenderEntryList, Rect, Depth, Parent, Path, &Renderer->DefaultEntryColor);
 }
 
 internal entry_id *
@@ -1168,6 +1206,13 @@ SetPositionY(render_text *Text, r32 Y)
 {
     if(Text->Base == 0) return;
     SetPosition(Text->Base, V2(GetPosition(Text->Base).x, Y));
+}
+
+inline void
+SetLocalPositionX(render_text *Text, r32 X)
+{
+    if(Text->Base == 0) return;
+    SetLocalPositionX(Text->Base, X);
 }
 
 inline void

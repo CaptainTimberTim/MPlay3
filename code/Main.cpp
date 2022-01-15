@@ -140,7 +140,8 @@ ApplyWindowResize(HWND Window, i32 NewWidth, i32 NewHeight, b32 ForceResize)
     WindowGotResized(&GlobalGameState);
     
     HDC DeviceContext = GetDC(Window);
-    DisplayBufferInWindow(DeviceContext, &GlobalGameState.Renderer);
+    renderer *Renderer = &GlobalGameState.Renderer;
+    DisplayBufferInWindow(DeviceContext, Renderer->Window, &Renderer->RenderEntryList, Renderer->BackgroundColor);
     
     ReleaseDC(Window, DeviceContext);
 }
@@ -225,7 +226,8 @@ WindowCallback(HWND Window,
         {
             PAINTSTRUCT Paint;
             HDC DeviceContext = BeginPaint(Window, &Paint);
-            DisplayBufferInWindow(DeviceContext, &GlobalGameState.Renderer);
+            renderer *Renderer = &GlobalGameState.Renderer;
+            DisplayBufferInWindow(DeviceContext, Renderer->Window, &Renderer->RenderEntryList, Renderer->BackgroundColor);
             SwapBuffers(DeviceContext);
             EndPaint(Window, &Paint);
             ReleaseDC(Window, DeviceContext);
@@ -749,7 +751,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
             r32 FontHeightMedium = GetFontSize(&GameState->Renderer, font_Medium).Size;
             TestBase = CreateRenderRect(Renderer, V2(5,FontHeightMedium), -0.9f, &ColorT, NULL);
             SetPosition(TestBase, V2(510, 500));
+            
+            render_entry_list MinimizedList = {};
+            InitializeRenderEntryList(GameState, &MinimizedList, 50);
             */
+            
             
             // ********************************************
             // FPS ****************************************
@@ -1254,7 +1260,11 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // Rendering *********************************
                 // *******************************************
                 *ReRender = true;
-                if(!Renderer->Minimized) DisplayBufferInWindow(DeviceContext, Renderer);
+                if(!Renderer->Minimized) DisplayBufferInWindow(DeviceContext, 
+                                                               Renderer->Window, 
+                                                               &Renderer->RenderEntryList, 
+                                                               Renderer->BackgroundColor);
+                else UpdateEntryList(&Renderer->RenderEntryList); // This needs to happen even if we don't render.
                 
                 
                 // Allocation debug stuff

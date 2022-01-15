@@ -225,9 +225,9 @@ DeleteGLTexture(u32 GLID)
 }
 
 inline void
-ConvertToGLSpace(renderer *Renderer, render_entry *Entry, v3 *Result)
+ConvertToGLSpace(window_info WindowDims, render_entry *Entry, v3 *Result)
 {
-    v2 CurD = V2(Renderer->Window.CurrentDim.Dim);
+    v2 CurD = V2(WindowDims.CurrentDim.Dim);
     ApplyTransform(Entry, Result);
     
     For(4)
@@ -241,15 +241,13 @@ ConvertToGLSpace(renderer *Renderer, render_entry *Entry, v3 *Result)
 }
 
 internal void
-DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
+DisplayBufferInWindow(HDC DeviceContext, window_info Window, render_entry_list *EntryList, v4 BGColor)
 {
-    glClearColor(Renderer->BackgroundColor.r, Renderer->BackgroundColor.g, 
-                 Renderer->BackgroundColor.b, Renderer->BackgroundColor.a);
+    glClearColor(BGColor.r, BGColor.g, BGColor.b, BGColor.a);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
     
-    render_entry_list *EntryList = &Renderer->RenderEntryList;
     UpdateEntryList(EntryList);
     
     for(u32 EntryID = 0; EntryID < EntryList->EntryCount; EntryID++)
@@ -274,7 +272,7 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
                 
                 glBegin(GL_QUADS);
                 v3 V[4];
-                ConvertToGLSpace(Renderer, RenderEntry, V);
+                ConvertToGLSpace(Window, RenderEntry, V);
                 For(4)
                 {
                     v2 T = RenderEntry->TexCoords[It];
@@ -291,7 +289,7 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
             {
                 glBegin(GL_QUADS);
                 v3 V[4];
-                ConvertToGLSpace(Renderer, RenderEntry, V);
+                ConvertToGLSpace(Window, RenderEntry, V);
                 For(4)
                 {
                     v2 T = RenderEntry->TexCoords[It];
@@ -324,7 +322,7 @@ DisplayBufferInWindow(HDC DeviceContext, renderer *Renderer)
                     }
                     
                     v3 V[4];
-                    ConvertToGLSpace(Renderer, TextEntry, V);
+                    ConvertToGLSpace(Window, TextEntry, V);
                     For(4)
                     {
                         v2 T = TextEntry->TexCoords[It];

@@ -181,7 +181,7 @@ struct render_entry_list
 {
     render_entry *Entries; // This array will be sorted, and changes everytime a new entry is added.
     u32 EntryCount;
-    entry_id *IDs;          // This has a fixed list. IDs will not be moved around.
+    entry_id *IDs;         // This has a fixed list. IDs will not be moved around.
     u32 IDCount;
     
     u32 MaxCount;
@@ -199,7 +199,6 @@ struct renderer
     b32 Rerender;
     b32 Minimized;
     
-    u32 UIDCounter;
     render_entry_list RenderEntryList;
     screen_transform_list TransformList;
     
@@ -218,6 +217,7 @@ struct renderer
     button_colors ButtonColors;
     u32 ButtonIconCount;
 };
+global_variable u32 GlobalUIDCounter = 0;
 
 inline v3 Color(u8 R, u8 G, u8 B);
 
@@ -230,13 +230,21 @@ inline void   UpdateEntryList(render_entry_list *EntryList);
 internal void FixUpEntries(render_entry_list *EntryList);
 inline void   Quicksort3(render_entry *Entries, i32 Count);
 
-internal entry_id *CreateRenderRect(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, v3 *Color);
-internal entry_id *CreateRenderRect(renderer *Renderer, v2 Size, r32 Depth, v3 *Color, entry_id *Parent = 0);
-internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, loaded_bitmap Bitmap);
-internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID);
-internal entry_id *CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID);
-internal entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path);
-internal void RemoveRenderEntry(renderer *Renderer, entry_id *EntryID);
+internal entry_id *CreateRenderRect(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, v3 *Color);
+internal entry_id *CreateRenderRect(render_entry_list *EntryList, v2 Size, r32 Depth, v3 *Color, entry_id *Parent);
+internal entry_id *CreateRenderBitmap(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, loaded_bitmap Bitmap, v3 *DefaultColor);
+internal entry_id * CreateRenderBitmap(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID, v3 *DefaultColor);
+internal entry_id * CreateRenderBitmap(render_entry_list *EntryList, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID, v3 *DefaultColor);
+internal entry_id * CreateRenderBitmap(render_entry_list *EntryList, rect Rect, r32 Depth, entry_id *Parent, string_c *Path, v3 *DefaultColor);
+internal void RemoveRenderEntry(render_entry_list *EntryList, entry_id *EntryID);
+
+inline entry_id *CreateRenderRect(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, v3 *Color);
+inline entry_id *CreateRenderRect(renderer *Renderer, v2 Size, r32 Depth, v3 *Color, entry_id *Parent = 0);
+inline entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, loaded_bitmap Bitmap);
+inline entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, u32 BitmapID);
+inline entry_id *CreateRenderBitmap(renderer *Renderer, v2 Size, r32 Depth, entry_id *Parent, u32 BitmapID);
+inline entry_id *CreateRenderBitmap(renderer *Renderer, rect Rect, r32 Depth, entry_id *Parent, string_c *Path);
+inline void RemoveRenderEntry(renderer *Renderer, entry_id *EntryID);
 
 internal entry_id *Copy(renderer *Renderer, entry_id *Entry);
 

@@ -31,16 +31,16 @@ union color_palette
 };
 global_variable string_c GlobalPaletteColorNames[] = 
 {
-    NewStaticStringCompound("Text"),
-    NewStaticStringCompound("Error Text"),
-    NewStaticStringCompound("Foreground Text"),
-    NewStaticStringCompound("Foreground"),
-    NewStaticStringCompound("Slot"),
-    NewStaticStringCompound("Slider Background"),
-    NewStaticStringCompound("Slider Grab Thing"),
-    NewStaticStringCompound("Button Active"),
-    NewStaticStringCompound("Selected"),
-    NewStaticStringCompound("Playing Song"),
+    NewStaticStringCompound("Text"), // 0
+    NewStaticStringCompound("Error Text"), // 1
+    NewStaticStringCompound("Foreground Text"), // 2
+    NewStaticStringCompound("Foreground"), // 3
+    NewStaticStringCompound("Slot"), // 4
+    NewStaticStringCompound("Slider Background"), // 5
+    NewStaticStringCompound("Slider Grab Thing"), // 6
+    NewStaticStringCompound("Button Active"), // 7
+    NewStaticStringCompound("Selected"), // 8
+    NewStaticStringCompound("Playing Song"), // 9
 };
 global_variable string_c GlobalDefaultColorPaletteNames[] = 
 {
@@ -426,12 +426,12 @@ struct layout_definition
     // Style settings window
     r32 SettingsWindowDepth   = -0.9f;
     r32 SettingsWindowWidth   = 900;
-    r32 SettingsWindowHeight  = 475;
+    r32 SettingsWindowHeight  = 475 + 25;
     r32 SettingsWindowBorder  = 4;
     r32 SettingsWindowBorderTop = 25;
     
     r32 ColorPickerOffsetX = -140;
-    r32 ColorPickerOffsetY = 0;
+    r32 ColorPickerOffsetY = 25;
     r32 ColorPickerWidth   = 620;
     r32 ColorPickerContentOffsetX = -100;
     r32 ColorPickerContentOffsetY = 25;
@@ -440,7 +440,7 @@ struct layout_definition
     r32 ColorPickerPaletteColorsGap = 6;
     r32 ColorPickerColorOutline = 2;
     r32 ColorPickerButtonGapY = 4;
-    r32 ColorPickerHSVTextOffset = 80;
+    r32 ColorPickerHSVTextOffset = 140;
     r32 ColorPickerHexTextOffset = 170;
     
     r32 PaletteNameFieldX = 500;
@@ -493,7 +493,7 @@ internal void UpdateColumnVerticalSlider(display_column *DisplayColumn, u32 Disp
 inline string_c GetRandomExitMessage(game_state *GS, string_c *Language = NULL);
 internal void ProcessEdgeDragOnResize(renderer *Renderer, music_display_info *DisplayInfo);
 internal void UpdateSlots(game_state *GS, display_column *DisplayColumn);
-
+inline color_palette *GetColorPalette(game_state *GS);
 
 
 #endif //_SOUND__U_I__T_D_H

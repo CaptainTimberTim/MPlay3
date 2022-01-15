@@ -13,6 +13,7 @@ struct color_picker
 {
     entry_id *Parent;
     entry_id *Background;
+    entry_id *FixedSizeHolder;
     
     loaded_bitmap Bitmap;
     u32 GLID; 
@@ -108,8 +109,8 @@ internal void HandleActiveFontSettings(game_state *GS, font_settings *FontSettin
 // Color Picker
 internal void CreateColorPicker(game_state *GS, color_picker *Result, v2 BitmapSize, r32 SpectrumWidth, entry_id *Parent);
 internal void HandleActiveColorPicker(game_state *GS, color_picker *ColorPicker);
-inline void SetActive(color_picker *ColorPicker, b32 Activate);
+inline   void SetActive(color_picker *ColorPicker, b32 Activate);
 internal void CreateColorPickerPaletteList(game_state *GS, color_picker *ColorPicker, v2 Offset);
-
+inline    r32 GetColorPickerTextWidth(game_state *GS);
 
 #endif //_SOUND_SETTINGS_H

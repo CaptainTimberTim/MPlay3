@@ -250,6 +250,12 @@ SetLocalPosition(button *Button, v2 T)
 }
 
 inline void
+SetLocalPositionX(button *Button, r32 X)
+{
+    SetLocalPositionX(Button->Entry, X);
+}
+
+inline void
 SetPosition(button *Button, v2 T)
 {
     SetPosition(Button->Entry, T);
@@ -469,6 +475,14 @@ SetSize(text_field *TextField, v2 Size)
     SetLocalPosition(TextField->LeftAlign, V2(-Size.x*0.5f - 2, 0));
 }
 
+inline void 
+SetScissor(text_field *TextField, entry_id *Rect)
+{
+    SetScissor(TextField->Background, Rect);
+    SetScissor(TextField->Cursor, Rect);
+    SetScissor(&TextField->Text, Rect);
+}
+
 inline void
 UpdateTextField(renderer *Renderer, text_field *TextField)
 {
@@ -684,10 +698,39 @@ SetLocalPosition(slider *Slider, v2 T)
     SetLocalPosition(Slider->GrabThing, T + (OldPBackground - OldPGrabThing));
 }
 
+inline void
+SetLocalPositionX(slider *Slider, r32 X)
+{
+    r32 OldPBackground = GetLocalPosition(Slider->Background).x;
+    r32 OldPGrabThing  = GetLocalPosition(Slider->GrabThing).x;
+    SetLocalPositionX(Slider->Background, X);
+    SetLocalPositionX(Slider->GrabThing, X + (OldPBackground - OldPGrabThing));
+}
+
 inline v2
 GetLocalPosition(slider *Slider)
 {
     return GetLocalPosition(Slider->Background);
+}
+
+inline v2 
+GetSize(slider *Slider)
+{
+    v2 Result = GetSize(Slider->Background);
+    return Result;
+}
+
+inline void
+SetSize(slider *Slider, v2 Size)
+{
+    SetSize(Slider->Background, Size);
+}
+
+inline void
+SetSize(slider *Slider, v2 Size, v2 GrabSize)
+{
+    SetSize(Slider->Background, Size);
+    SetSize(Slider->GrabThing, GrabSize);
 }
 
 inline void

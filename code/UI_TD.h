@@ -69,6 +69,7 @@ inline void SetActive(button *Button, b32 SetActive);
 inline void ResetBtnState(button *Button);
 inline void Translate(button *Button, v2 Translation);
 inline void SetLocalPosition(button *Button, v2 Translation);
+inline void SetLocalPositionX(button *Button, r32 X);
 inline void SetPosition(button *Button, v2 Translation);
 inline v2   GetPosition(button *Button);
 inline v2   GetLocalPosition(button *Button);
@@ -148,7 +149,7 @@ inline v2   GetSize(text_field *TextField);
 inline void SetSize(text_field *TextField, v2 Size);
 inline void UpdateTextField(renderer *Renderer, text_field *TextField);
 internal text_field_flag_result ProcessTextField(renderer *Renderer, r32 dTime, input_info *Input, text_field *TextField);
-
+inline void SetScissor(text_field *TextField, entry_id *Rect);
 
 // LOAD BAR *********************
 
@@ -192,7 +193,11 @@ struct slider
 inline void SetTransparency(slider *Slider, r32 Alpha);
 inline void Translate(slider *Slider, v2 T);
 inline void SetLocalPosition(slider *Slider, v2 T);
+inline void SetLocalPositionX(slider *Slider, r32 X);
 inline v2   GetLocalPosition(slider *Slider);
+inline v2   GetSize(slider *Slider);
+inline void SetSize(slider *Slider, v2 Size);
+inline void SetSize(slider *Slider, v2 Size, v2 GrabSize);
 inline void SetActive(slider *Slider, b32 Activate);
 
 internal void CreateSlider(game_state *GS, slider *Result, slider_axis Axis, rect BGRect, rect GrabRect, r32 Depth, b32 ShouldAutoDrag, entry_id *Parent = 0);

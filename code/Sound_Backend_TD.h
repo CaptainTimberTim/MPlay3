@@ -12,6 +12,8 @@
 // - adjust many sizes, text for example is too big imo. Which happened because of the bad rendering, which is now fixed.
 // - add some form of highlighting on the other columns, based on what songs are visible rn. 
 // - During metadata loading -> just show everything that is already crawled, live.
+// - If app is minimized, render something different to show what is playing when hovering the task-bar preview.
+// - Have the UpNext list as a 'playlist' that you can switch to and see all songs listed like normal playlist. Maybe have it only appear once you have a song in it.
 
 // List of Tags to search for in the code:
 // - TODO::    , Stuff where I want to go and make something better later/clean it up/make it more save/etc.
@@ -84,6 +86,8 @@
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
+// - When cursor is drag-cursor and style settings open. It does not change back.
+// - Buttons not clickable when settings are up.
 
 #include "Sound_UI_TD.h"
 

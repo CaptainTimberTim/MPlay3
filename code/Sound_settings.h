@@ -98,7 +98,6 @@ internal void CreateStyleSettings(game_state *GS, style_settings_window *StyleSe
 internal void HandleActiveStyleSettings(game_state *GS, style_settings_window *StyleSettings, input_info *Input);
 inline   void SetActive(style_settings_window *StyleWindow, b32 Activate);
 inline   void OnStyleSettings(void *Data);
-inline   void OnCancelStyleSettings(void *Data);
 internal void UpdateSettings(game_state *GS);
 
 // Font settings

@@ -1641,28 +1641,28 @@ inline void
 OnMusicPathPressed(void *Data)
 {
     music_btn *MusicBtnInfo = (music_btn *)Data;
-    music_display_info *DisplayInfo = &MusicBtnInfo->GameState->MusicInfo.DisplayInfo;
+    game_state *GS = MusicBtnInfo->GameState;
+    music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
     music_path_ui *MusicPath = &DisplayInfo->MusicPath;
-    renderer *Renderer = &MusicBtnInfo->GameState->Renderer;
     
     SetActive(&MusicPath->TextField, !MusicPath->TextField.IsActive);
     if(MusicPath->TextField.IsActive)
     {
-        UpdateTextField(&MusicBtnInfo->GameState->Renderer, &MusicPath->TextField);
+        UpdateTextField(&GS->Renderer, &MusicPath->TextField);
         
-        string_c PathText = NewStringCompound(&MusicBtnInfo->GameState->ScratchArena, 255+12);
-        AppendStringToCompound(&PathText, (u8 *)"Old Path:     ");
-        if(MusicBtnInfo->GameState->MP3Info->FolderPath.Pos == 0)
-            AppendStringToCompound(&PathText, (u8 *)" - ");
-        else AppendStringCompoundToCompound(&PathText, &MusicBtnInfo->GameState->MP3Info->FolderPath);
-        RemoveRenderText(Renderer, &MusicPath->CurrentPath);
-        r32 TextY = GetSize(MusicPath->TextField.Background).y*0.5f - GetFontDescent(MusicBtnInfo->GameState, font_Medium, PathText);
-        RenderText(&GlobalGameState, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(0, TextY));
-        DeleteStringCompound(&MusicBtnInfo->GameState->ScratchArena, &PathText);
+        string_c PathText = NewStringCompound(&GS->ScratchArena, 255+12);
+        AppendStringToCompound(&PathText, (u8 *)"Old Path: ");
+        if(GS->MP3Info->FolderPath.Pos == 0) AppendStringToCompound(&PathText, (u8 *)" - ");
+        else AppendStringCompoundToCompound(&PathText, &GS->MP3Info->FolderPath);
+        RemoveRenderText(&GS->Renderer, &MusicPath->CurrentPath);
+        r32 TextX = GS->Layout.MediumButtonExtents*2 + GS->Layout.MusicPathButtonYOffset;
+        r32 TextY = GetSize(MusicPath->TextField.Background).y*0.5f - GetFontDescent(GS, font_Medium, PathText);
+        RenderText(GS, font_Medium, &PathText, &DisplayInfo->ColorPalette.ForegroundText, &MusicPath->CurrentPath, -0.6f-0.001f, MusicPath->TextField.LeftAlign, V2(TextX, TextY));
+        DeleteStringCompound(&GS->ScratchArena, &PathText);
     }
     else 
     {
-        RemoveRenderText(Renderer, &MusicPath->TextField.Text);
+        RemoveRenderText(&GS->Renderer, &MusicPath->TextField.Text);
         SetActive(&MusicPath->LoadingBar, false);
     }
     MusicPath->Background->ID->Render = MusicPath->TextField.IsActive;
@@ -1670,7 +1670,7 @@ OnMusicPathPressed(void *Data)
     SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
     SetActive(MusicPath->Rescan, MusicPath->TextField.IsActive);
-    RemoveRenderText(Renderer, &MusicPath->Output);
+    RemoveRenderText(&GS->Renderer, &MusicPath->Output);
     
     ResetStringCompound(MusicPath->TextField.TextString);
     MusicPath->TextField.dBackspacePress = 0;
@@ -2180,7 +2180,8 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     
     MusicPath->Rescan = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, Renderer->ButtonBaseID, 
                                   RescanID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    Translate(MusicPath->Rescan, V2(Layout->RescanButtonXOffset, Layout->RescanButtonYOffset));
+    v2 RescanPos = V2(MediumRectS, MediumRectS + TextFieldHeight/2.0f + Layout->MusicPathButtonYOffset);
+    SetLocalPosition(MusicPath->Rescan, RescanPos);
     SetActive(MusicPath->Rescan, false);
     MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
     

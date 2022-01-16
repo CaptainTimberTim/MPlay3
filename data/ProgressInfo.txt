@@ -501,3 +501,11 @@
 
 24.11.2021
 - Fixed bug: Crash when having the player running a long time when minimized. Because removed entries were not being reset without rendering.
+
+15.01.2022
+- Finished settings resize and alignment when changing font sizes.
+
+16.01.2022
+- Fixed Rescan button placement.
+- Fixed that settings button does not close them.
+- Fixed: When cursor is drag-cursor and style settings open. It does not change back.

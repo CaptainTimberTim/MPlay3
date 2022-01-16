@@ -61,7 +61,7 @@ CreateStyleSettings(game_state *GS, style_settings_window *StyleSettings)
                                       Renderer->ButtonColors, StyleSettings->Background);
     v2 AddOffset = V2(Layout->ColorPickerButtonGapY, -Layout->ColorPickerButtonGapY);
     Translate(StyleSettings->Cancel, V2(BackgroundWidth*0.5f, -BGSize.y*0.5f) - V2(BtnExtends, -BtnExtends) - AddOffset);
-    StyleSettings->Cancel->OnPressed = {OnCancelStyleSettings, StyleSettings};
+    StyleSettings->Cancel->OnPressed = {OnStyleSettings, StyleSettings};
     
     StyleSettings->IsActive = true;
 }
@@ -75,6 +75,7 @@ SetActive(style_settings_window *StyleWindow, b32 Activate)
     SetActive(StyleWindow->Cancel, Activate);
     SetActive(&StyleWindow->ColorPicker, Activate);
     SetActive(&StyleWindow->FontSettings, Activate); // Needs to come _after_ SetActive(ColorPicker)
+    if(Activate) GlobalGameState.CursorState = cursorState_Arrow;
 }
 
 internal void
@@ -108,15 +109,10 @@ HandleActiveStyleSettings(game_state *GS, style_settings_window *StyleSettings, 
 }
 
 inline void
-OnCancelStyleSettings(void *Data)
-{
-    SetActive((style_settings_window *)Data, false);
-}
-
-inline void
 OnStyleSettings(void *Data)
 {
-    SetActive((style_settings_window *)Data, true);
+    style_settings_window * StyleSettings = (style_settings_window *)Data;
+    SetActive(StyleSettings, !StyleSettings->IsActive);
 }
 
 internal void

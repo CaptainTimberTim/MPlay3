@@ -86,8 +86,6 @@
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
-// - When cursor is drag-cursor and style settings open. It does not change back.
-// - Buttons not clickable when settings are up.
 
 #include "Sound_UI_TD.h"
 

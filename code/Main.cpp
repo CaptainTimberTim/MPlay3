@@ -518,6 +518,46 @@ GetDefaultFontDir(arena_allocator *Arena, string_c *Path)
     return Result;
 }
 
+internal void
+HandleModeChange(game_state *GS)
+{
+    music_display_info *DisplayInfo = &GS->MusicInfo.DisplayInfo;
+    GS->ModeFlags = 0;
+    if(DisplayInfo->MusicPath.TextField.IsActive)    GS->ModeFlags |= mode_MusicPath;
+    if(GS->StyleSettings.IsActive)                   GS->ModeFlags |= mode_StyleSettings;
+    if(IsSearchOpen(DisplayInfo))                    GS->ModeFlags |= mode_Search;
+    if(DisplayInfo->PlaylistUI.RenameField.IsActive) GS->ModeFlags |= mode_PLRename;
+    
+    if(IsActive(GS, mode_MusicPath))
+    {
+        if(IsActive(GS, mode_StyleSettings))
+        {
+            OnStyleSettings(&GS->StyleSettings);
+            GS->ModeFlags &= ~mode_StyleSettings;
+        }
+    }
+    if(IsActive(GS, mode_MusicPath) ||
+       IsActive(GS, mode_StyleSettings))
+    {
+        if(IsActive(GS, mode_Search))
+        {
+            InterruptSearch(&GS->Renderer, &GS->MusicInfo);
+            GS->ModeFlags &= ~mode_Search;
+        }
+    }
+    if(IsActive(GS, mode_MusicPath)   ||
+       IsActive(GS, mode_StyleSettings) ||
+       IsActive(GS, mode_Search)) 
+    {
+        if(IsActive(GS, mode_PLRename))
+        {
+            SetPlaylistRenameActive(GS, false);
+            GS->ModeFlags &= ~mode_PLRename;
+        }
+    }
+    
+}
+
 i32 CALLBACK 
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
@@ -818,42 +858,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 if(Input->KeyChange[KEY_VOLUME_UP] == KeyDown) DebugLog(10, "UP!\n");
                 if(Input->KeyChange[KEY_VOLUME_DOWN] == KeyDown) DebugLog(10, "DOWN!\n");
                 
-                // *******************************************
-                // Mode Handling *****************************
-                // *******************************************
-                GameState->ModeFlags = 0;
-                if(DisplayInfo->MusicPath.TextField.IsActive)    GameState->ModeFlags |= mode_MusicPath;
-                if(GameState->StyleSettings.IsActive)            GameState->ModeFlags |= mode_StyleSettings;
-                if(IsSearchOpen(DisplayInfo))                    GameState->ModeFlags |= mode_Search;
-                if(DisplayInfo->PlaylistUI.RenameField.IsActive) GameState->ModeFlags |= mode_PLRename;
-                
-                if(IsActive(GameState, mode_MusicPath))
-                {
-                    if(IsActive(GameState, mode_StyleSettings))
-                    {
-                        OnCancelStyleSettings(&GameState->StyleSettings);
-                        GameState->ModeFlags &= ~mode_StyleSettings;
-                    }
-                }
-                if(IsActive(GameState, mode_MusicPath) ||
-                   IsActive(GameState, mode_StyleSettings))
-                {
-                    if(IsActive(GameState, mode_Search))
-                    {
-                        InterruptSearch(Renderer, MusicInfo);
-                        GameState->ModeFlags &= ~mode_Search;
-                    }
-                }
-                if(IsActive(GameState, mode_MusicPath)   ||
-                   IsActive(GameState, mode_StyleSettings) ||
-                   IsActive(GameState, mode_Search)) 
-                {
-                    if(IsActive(GameState, mode_PLRename))
-                    {
-                        SetPlaylistRenameActive(GameState, false);
-                        GameState->ModeFlags &= ~mode_PLRename;
-                    }
-                }
+                HandleModeChange(GameState);
                 
                 // *******************************************
                 // Thread handling ****************************
@@ -1041,6 +1046,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                     //if(Input->KeyChange[KEY_F10] == KeyDown) AddJob_CheckMusicPathChanged(CheckMusicPath);
                     // To use F12 in VS look at: https://conemu.github.io/en/GlobalHotKeys.html
                     
+                    HandleModeChange(GameState);
                     if(IsActive(GameState, mode_StyleSettings))
                     {
                         HandleActiveStyleSettings(GameState, &GameState->StyleSettings, Input);

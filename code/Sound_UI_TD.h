@@ -171,7 +171,7 @@ struct music_btn
 
 struct music_path_ui
 {
-    button *Button; 
+    button *Button;
     text_field TextField;
     
     render_text CurrentPath;
@@ -396,11 +396,11 @@ struct layout_definition
     r32 MusicPathHeightScaler     = 0.86f; // 0..1
     r32 MusicPathTextFieldHeight  = 50;
     r32 MusicPathBGTransparency   = 0.75f;
-    r32 MusicPathButtonYOffset    = 19;
+    r32 MusicPathButtonYOffset    = 8;//19;
     r32 MusicPathButtonGap        = 10;
     r32 MusicPathLoadingBarHeight = 40;
-    r32 RescanButtonXOffset       = 204;
-    r32 RescanButtonYOffset       = 55;
+    //r32 RescanButtonXOffset       = 204;
+    //r32 RescanButtonYOffset       = 8;//55;
     
     // PlayingSongPanel
     r32 PanelXOffset = -10;

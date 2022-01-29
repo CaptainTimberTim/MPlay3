@@ -1452,191 +1452,6 @@ OnShufflePlaylistToggleOff(void *Data)
     SaveShuffledState(GameState, MusicInfo->Playlist_);
 }
 
-inline color_palette *
-GetColorPalette(game_state *GS)
-{
-    return &GS->MusicInfo.DisplayInfo.ColorPalette;
-}
-
-inline void
-CreateBasicColorPalette(color_palette *Palette)
-{
-    Palette->Slot             = Color(11, 15, 14);
-    Palette->Text             = Color(144,176,128);//Color(165, 189, 184);
-    Palette->Selected         = Color(8, 30, 8);//Color(13, 40, 13);
-    Palette->Foreground       = Color(3, 25, 3);
-    Palette->ForegroundText   = Color(144,176,128);
-    Palette->SliderBackground = Color(3, 22, 3);
-    Palette->SliderGrabThing  = Color(10, 40, 3);
-    Palette->ButtonActive     = Color(25, 56, 18);
-    Palette->PlayingSong      = Color(23, 45, 23);
-    Palette->ErrorText        = Color(170, 11, 22);
-}
-
-inline void
-CreateEvilColorPalette(color_palette *Palette)
-{
-    Palette->Slot             = Color(11, 15, 14);
-    Palette->Text             = Color(221,179,177);
-    Palette->Selected         = Color(8, 5, 5);
-    Palette->Foreground       = Color(31, 9, 9);
-    Palette->ForegroundText   = Color(221,179,177);
-    Palette->SliderBackground = Color(28, 6, 6);
-    Palette->SliderGrabThing  = Color(51, 9, 9);
-    Palette->ButtonActive     = Color(61, 15, 15);
-    Palette->PlayingSong      = Color(23, 20, 20);
-    Palette->ErrorText        = Color(170, 11, 22);
-}
-
-inline void
-CreateAquaColorPalette(color_palette *Palette)
-{
-    Palette->Slot             = Color(3,7,22);
-    Palette->Text             = Color(81,154,173);
-    Palette->Selected         = Color(50,54,78);
-    Palette->Foreground       = Color(0,14,48);
-    Palette->ForegroundText   = Color(81,154,173);
-    Palette->SliderBackground = Color(3,18,58);
-    Palette->SliderGrabThing  = Color(50,54,78);
-    Palette->ButtonActive     = Color(70,68,94);
-    Palette->PlayingSong      = Color(35,39,63);
-    Palette->ErrorText        = Color(170, 11, 22);
-}
-
-inline void
-CreateMonochromeColorPalette(color_palette *Palette)
-{
-    Palette->Slot             = Color(151,153,153);
-    Palette->Text             = Color(17,10,10);
-    Palette->Selected         = Color(220,220,220);
-    Palette->Foreground       = Color(30,30,30);
-    Palette->ForegroundText   = Palette->Slot;//Color(57,50,50);
-    Palette->SliderBackground = Color(34,33,34);
-    Palette->SliderGrabThing  = Color(70,73,73);
-    Palette->ButtonActive     = Color(86,88,88);
-    Palette->PlayingSong      = Color(235,235,235);
-    Palette->ErrorText        = Color(170, 11, 22);
-}
-
-inline void
-CreateMonoInvertedColorPalette(color_palette *Palette)
-{
-    Palette->Slot             = Color(30,30,30);
-    Palette->Text             = Color(220,220,220);
-    Palette->Selected         = Color(53,50,50);
-    Palette->Foreground       = Color(151,153,153);
-    Palette->ForegroundText   = Palette->Slot;//Color(100,100,100);
-    Palette->SliderBackground = Color(131,133,133);
-    Palette->SliderGrabThing  = Color(70,73,73);
-    Palette->ButtonActive     = Color(78,80,80);
-    Palette->PlayingSong      = Color(38,35,35);
-    Palette->ErrorText        = Color(170, 11, 22);
-}
-
-inline void
-CreateCustomColorPalette(color_palette *Palette, u32 CustomID)
-{
-    *Palette = GlobalGameState.Settings.Palettes[CustomID];
-    
-    r32 Div = 255.0f;
-    Palette->Slot             /= Div;
-    Palette->Text             /= Div;
-    Palette->Selected         /= Div;
-    Palette->Foreground       /= Div;
-    Palette->ForegroundText   /= Div;
-    Palette->SliderBackground /= Div;
-    Palette->SliderGrabThing  /= Div;
-    Palette->ButtonActive     /= Div;
-    Palette->PlayingSong      /= Div;
-    Palette->ErrorText        /= Div;
-}
-
-inline void
-UpdateColorPalette(music_display_info *DisplayInfo, b32 GoToNextPalette)
-{
-    u32 PaletteAmount = DEFAULT_COLOR_PALETTE_COUNT+GlobalGameState.Settings.PaletteCount;
-    if(GoToNextPalette) DisplayInfo->ColorPaletteID = ++DisplayInfo->ColorPaletteID%PaletteAmount;
-    else if(DisplayInfo->ColorPaletteID >= PaletteAmount) DisplayInfo->ColorPaletteID = 0;
-    
-    switch(DisplayInfo->ColorPaletteID)
-    {
-        case 0: CreateBasicColorPalette(&DisplayInfo->ColorPalette); break;
-        case 1: CreateEvilColorPalette(&DisplayInfo->ColorPalette);  break;
-        case 2: CreateAquaColorPalette(&DisplayInfo->ColorPalette); break;
-        case 3: CreateMonochromeColorPalette(&DisplayInfo->ColorPalette); break;
-        case 4: CreateMonoInvertedColorPalette(&DisplayInfo->ColorPalette); break;
-        default:
-        {
-            u32 CustomPaletteID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
-            CreateCustomColorPalette(&DisplayInfo->ColorPalette, CustomPaletteID);
-        }
-    }
-}
-
-inline b32
-IsColorPaletteDefault()
-{
-    return (GlobalGameState.MusicInfo.DisplayInfo.ColorPaletteID < DEFAULT_COLOR_PALETTE_COUNT);
-}
-
-internal void
-RemoveCustomColorPalette(u32 PaletteID)
-{
-    serialization_settings *Settings = &GlobalGameState.Settings;
-    PaletteID -= DEFAULT_COLOR_PALETTE_COUNT;
-    Assert(PaletteID >= 0);
-    Assert(PaletteID < Settings->PaletteCount);
-    
-    RemoveItem(Settings->Palettes, Settings->PaletteCount, PaletteID, color_palette);
-    RemoveItem(Settings->PaletteNames, Settings->PaletteCount, PaletteID, string_c);
-    
-    Settings->PaletteCount--;
-    Assert(Settings->PaletteCount >= 0);
-}
-
-internal void
-AddCustomColorPalette(color_palette *ColorPalette, string_c *Name)
-{
-    serialization_settings *Settings = &GlobalGameState.Settings;
-    if(Settings->PaletteCount+1 >= Settings->PaletteMaxCount)
-    {
-        NewLocalString(ErrorMsg, 255, "ERROR:: Created too many color palettes at once. Restart App if you want more!");
-        PushErrorMessage(&GlobalGameState, ErrorMsg);
-    }
-    else
-    {
-        Settings->PaletteNames[Settings->PaletteCount] = NewStringCompound(&GlobalGameState.FixArena, 100);
-        if(Name->Pos >= 100) Name->Pos = 100;
-        AppendStringCompoundToCompound(Settings->PaletteNames+Settings->PaletteCount, Name);
-        For(PALETTE_COLOR_AMOUNT)
-        {
-            Settings->Palettes[Settings->PaletteCount].Colors[It] = ColorPalette->Colors[It]*255.0f;
-        }
-        Settings->PaletteCount++;
-        // TODO:: Maybe write it out immidiately that it cannot get lost?
-    }
-}
-
-inline void
-OnPaletteSwap(void *Data)
-{
-    music_display_info *DisplayInfo = &((music_btn *)Data)->GameState->MusicInfo.DisplayInfo;
-    UpdateColorPalette(DisplayInfo, true);
-}
-
-inline string_c *
-GetCurrentPaletteName()
-{
-    string_c *Result = 0;
-    
-    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
-    if(DisplayInfo->ColorPaletteID < DEFAULT_COLOR_PALETTE_COUNT) 
-        Result = GlobalDefaultColorPaletteNames + DisplayInfo->ColorPaletteID;
-    else Result = GlobalGameState.Settings.PaletteNames + (DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT);
-    
-    return Result;
-}
-
 inline void
 OnMusicPathPressed(void *Data)
 {
@@ -1731,12 +1546,19 @@ FinishedSettingUpMusicPath(game_state *GameState, music_path_ui *MusicPath)
 }
 
 inline void
-ProcessMusicPath(renderer *Renderer, r32 dTime, input_info *Input, text_field *TextField)
+ProcessMusicPath(game_state *GS, r32 dTime, input_info *Input, text_field *TextField)
 {
-    text_field_flag_result FieldResult = ProcessTextField(Renderer, dTime, Input, TextField);
+    text_field_flag_result FieldResult = ProcessTextField(&GS->Renderer, dTime, Input, TextField);
     
     if(FieldResult.Flag & processTextField_TextChanged)
     {
+        i32 FailedPos = 0;
+        b32 PathIsValid = CheckPathValidity(&GS->ScratchArena, TextField->TextString, &FailedPos);
+        
+        color_palette *Palette = &GS->MusicInfo.DisplayInfo.ColorPalette;
+        if(PathIsValid || TextField->TextString.Pos == 0) 
+            SetColor(&TextField->Text, &Palette->Text);
+        else SetColor(&TextField->Text, &Palette->ErrorText, FailedPos);
     }
     if(FieldResult.Flag & processTextField_Confirmed)
     {
@@ -1778,32 +1600,32 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 WHeight = (r32)Renderer->Window.FixedDim.Height;
     
     DisplayInfo->Song.FileInfo = &MP3Info->FileInfo;
-    CreateBasicColorPalette(&DisplayInfo->ColorPalette);
+    CreateLushGreenColorPalette(&DisplayInfo->ColorPalette);
     
     r32 TopBorder    = Layout->TopBorder;
     r32 BottomBorder = GetBottomPanelHeight(Layout);
     r32 LeftBorder   = Layout->LeftBorder;
     r32 RightBorder  = Layout->RightBorder;
     
-    DisplayInfo->EdgeTop = CreateRenderRect(Renderer, {{0, WHeight-TopBorder},{WWidth, WHeight}}, -0.5f,
-                                            0, &Palette->Foreground);
-    TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeTop, fixedTo_TopCenter, scaleAxis_X);
-    DisplayInfo->EdgeBottom = CreateRenderRect(Renderer, {{0, 0},{WWidth, BottomBorder}}, -0.5f,
-                                               0, &Palette->Foreground);
-    TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeBottom, fixedTo_BottomCenter, scaleAxis_X);
+    { // Foreground Edges **********************************
+        DisplayInfo->EdgeTop = CreateRenderRect(Renderer, {{0, WHeight-TopBorder},{WWidth, WHeight}}, -0.5f,
+                                                0, &Palette->Foreground);
+        TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeTop, fixedTo_TopCenter, scaleAxis_X);
+        DisplayInfo->EdgeBottom = CreateRenderRect(Renderer, {{0, 0},{WWidth, BottomBorder}}, -0.5f,
+                                                   0, &Palette->Foreground);
+        TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeBottom, fixedTo_BottomCenter, scaleAxis_X);
+        
+        r32 HeightEdge = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
+        
+        DisplayInfo->EdgeLeft = CreateRenderRect(Renderer, {{0,BottomBorder},{LeftBorder,WHeight-TopBorder}}, -0.5f,
+                                                 0, &Palette->Foreground);
+        TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeLeft, fixedTo_MiddleLeft, scaleAxis_Y);
+        DisplayInfo->EdgeRight = CreateRenderRect(Renderer, {{WWidth-RightBorder,BottomBorder},{WWidth,WHeight-TopBorder}}, 
+                                                  -0.5f, 0, &Palette->Foreground);
+        TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeRight, fixedTo_MiddleRight, scaleAxis_Y);
+    }
     
-    r32 HeightEdge = HeightBetweenRects(DisplayInfo->EdgeTop, DisplayInfo->EdgeBottom);
-    
-    DisplayInfo->EdgeLeft = CreateRenderRect(Renderer, {{0,BottomBorder},{LeftBorder,WHeight-TopBorder}}, -0.5f,
-                                             0, &Palette->Foreground);
-    TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeLeft, fixedTo_MiddleLeft, scaleAxis_Y);
-    DisplayInfo->EdgeRight = CreateRenderRect(Renderer, {{WWidth-RightBorder,BottomBorder},{WWidth,WHeight-TopBorder}}, 
-                                              -0.5f, 0, &Palette->Foreground);
-    TransformWithScreen(&Renderer->TransformList, DisplayInfo->EdgeRight, fixedTo_MiddleRight, scaleAxis_Y);
-    
-    
-    // Buttons *********************************************
-    
+    // Button Loading *********************************************
     Renderer->ButtonColors = 
     {
         &Palette->SliderGrabThing,
@@ -1870,6 +1692,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 BtnDepth         = -0.6f;
     v2  PlayPauseP       = V2(Layout->PlayPauseButtonX, Layout->PlayPauseButtonY);
     r32 ButtonUpperLeftX = Layout->TopLeftButtonGroupStartX;
+    r32 ControlBtnY      = PlayPauseP.y + Layout->StopNextPrevBtnYOffsetFromPlayPause;
     r32 StepX            = Layout->SmallButtonExtents*2 + Layout->TopLeftButtonGroupGap;
     r32 Gap              = Layout->ButtonGap;
     
@@ -1884,46 +1707,45 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     rect SmallBtnRect  = {{-SmallRectS, -SmallRectS}, {SmallRectS,SmallRectS}};
     rect TinyBtnRect   = {{-TinyRectS, -TinyRectS}, {TinyRectS,TinyRectS}};
     
-    DisplayInfo->PlayPause = NewButton(Renderer, PlayPauseRect, BtnDepth, true, Renderer->ButtonBaseID, 
-                                       PlayID, Renderer->ButtonColors, 0, PauseID);
-    SetLocalPosition(DisplayInfo->PlayPause, PlayPauseP);
-    DisplayInfo->PlayPause->OnPressed = {OnPlayPauseSongToggleOn, &DisplayInfo->MusicBtnInfo};
-    DisplayInfo->PlayPause->OnPressedToggleOff = {OnPlayPauseSongToggleOff, &DisplayInfo->MusicBtnInfo};
-    
-    r32 PlayPauseAndBtnX = PlayPauseP.x + PlayPauseS + LargeRectS;
-    r32 LargeBtnDist = LargeRectS*2;
-    r32 SNPBtnY = PlayPauseP.y + Layout->StopNextPrevBtnYOffsetFromPlayPause;
-    
-    DisplayInfo->Stop = NewButton(Renderer, LargeBtnRect, BtnDepth, false, Renderer->ButtonBaseID, StopID, Renderer->ButtonColors, 0);
-    SetLocalPosition(DisplayInfo->Stop, V2(PlayPauseAndBtnX + Gap, SNPBtnY));
-    DisplayInfo->Stop->OnPressed = {OnStopSong, &DisplayInfo->MusicBtnInfo};
-    
-    DisplayInfo->Previous = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                      Renderer->ButtonBaseID, PreviousID, Renderer->ButtonColors, 0);
-    SetLocalPosition(DisplayInfo->Previous, V2(PlayPauseAndBtnX + Gap + LargeBtnDist + Gap, SNPBtnY));
-    DisplayInfo->Previous->OnPressed = {OnPreviousSong, &DisplayInfo->MusicBtnInfo};
-    
-    DisplayInfo->Next = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
-                                  Renderer->ButtonBaseID, NextID, Renderer->ButtonColors, 0);
-    SetLocalPosition(DisplayInfo->Next, V2(PlayPauseAndBtnX + Gap + (LargeBtnDist + Gap)*2, SNPBtnY));
-    DisplayInfo->Next->OnPressed = {OnNextSong, &DisplayInfo->MusicBtnInfo};
-    
-    r32 LSBtnYOffset = Layout->LoopShuffleBtnYOffsetFromPlayPause;
-    DisplayInfo->ShufflePlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
-                                             RandomizeID, Renderer->ButtonColors, 0, RandomizePressedID);
-    SetLocalPosition(DisplayInfo->ShufflePlaylist, V2(PlayPauseP.x - (PlayPauseS+MediumRectS+Gap), 
-                                                      PlayPauseP.y + LSBtnYOffset - (MediumRectS*2 + Gap)));
-    DisplayInfo->ShufflePlaylist->OnPressed = {OnShufflePlaylistToggleOn, &DisplayInfo->MusicBtnInfo};
-    DisplayInfo->ShufflePlaylist->OnPressedToggleOff = {OnShufflePlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
-    
-    DisplayInfo->LoopPlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, 
-                                          Renderer->ButtonBaseID, LoopID, Renderer->ButtonColors, 0, LoopPressedID);
-    SetLocalPosition(DisplayInfo->LoopPlaylist, V2(PlayPauseP.x - (PlayPauseS+MediumRectS+Gap), 
-                                                   PlayPauseP.y + LSBtnYOffset));
-    DisplayInfo->LoopPlaylist->OnPressed = {OnLoopPlaylistToggleOn,  &DisplayInfo->MusicBtnInfo};
-    DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
-    
-    
+    { // Bottom-Left music control panel ******************************
+        DisplayInfo->PlayPause = NewButton(Renderer, PlayPauseRect, BtnDepth, true, Renderer->ButtonBaseID, 
+                                           PlayID, Renderer->ButtonColors, 0, PauseID);
+        SetLocalPosition(DisplayInfo->PlayPause, PlayPauseP);
+        DisplayInfo->PlayPause->OnPressed = {OnPlayPauseSongToggleOn, &DisplayInfo->MusicBtnInfo};
+        DisplayInfo->PlayPause->OnPressedToggleOff = {OnPlayPauseSongToggleOff, &DisplayInfo->MusicBtnInfo};
+        
+        r32 PlayPauseAndBtnX = PlayPauseP.x + PlayPauseS + LargeRectS;
+        r32 LargeBtnDist = LargeRectS*2;
+        
+        DisplayInfo->Stop = NewButton(Renderer, LargeBtnRect, BtnDepth, false, Renderer->ButtonBaseID, StopID, Renderer->ButtonColors, 0);
+        SetLocalPosition(DisplayInfo->Stop, V2(PlayPauseAndBtnX + Gap, ControlBtnY));
+        DisplayInfo->Stop->OnPressed = {OnStopSong, &DisplayInfo->MusicBtnInfo};
+        
+        DisplayInfo->Previous = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
+                                          Renderer->ButtonBaseID, PreviousID, Renderer->ButtonColors, 0);
+        SetLocalPosition(DisplayInfo->Previous, V2(PlayPauseAndBtnX + Gap + LargeBtnDist + Gap, ControlBtnY));
+        DisplayInfo->Previous->OnPressed = {OnPreviousSong, &DisplayInfo->MusicBtnInfo};
+        
+        DisplayInfo->Next = NewButton(Renderer, LargeBtnRect, BtnDepth, false, 
+                                      Renderer->ButtonBaseID, NextID, Renderer->ButtonColors, 0);
+        SetLocalPosition(DisplayInfo->Next, V2(PlayPauseAndBtnX + Gap + (LargeBtnDist + Gap)*2, ControlBtnY));
+        DisplayInfo->Next->OnPressed = {OnNextSong, &DisplayInfo->MusicBtnInfo};
+        
+        r32 LSBtnYOffset = Layout->LoopShuffleBtnYOffsetFromPlayPause;
+        DisplayInfo->ShufflePlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
+                                                 RandomizeID, Renderer->ButtonColors, 0, RandomizePressedID);
+        SetLocalPosition(DisplayInfo->ShufflePlaylist, V2(PlayPauseP.x - (PlayPauseS+MediumRectS+Gap), 
+                                                          PlayPauseP.y + LSBtnYOffset - (MediumRectS*2 + Gap)));
+        DisplayInfo->ShufflePlaylist->OnPressed = {OnShufflePlaylistToggleOn, &DisplayInfo->MusicBtnInfo};
+        DisplayInfo->ShufflePlaylist->OnPressedToggleOff = {OnShufflePlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
+        
+        DisplayInfo->LoopPlaylist = NewButton(Renderer, MediumBtnRect, BtnDepth, true, 
+                                              Renderer->ButtonBaseID, LoopID, Renderer->ButtonColors, 0, LoopPressedID);
+        SetLocalPosition(DisplayInfo->LoopPlaylist, V2(PlayPauseP.x - (PlayPauseS+MediumRectS+Gap), 
+                                                       PlayPauseP.y + LSBtnYOffset));
+        DisplayInfo->LoopPlaylist->OnPressed = {OnLoopPlaylistToggleOn,  &DisplayInfo->MusicBtnInfo};
+        DisplayInfo->LoopPlaylist->OnPressedToggleOff = {OnLoopPlaylistToggleOff, &DisplayInfo->MusicBtnInfo};
+    }
     
     // All the Column stuff ******************************
     music_info *MusicInfo    = &GameState->MusicInfo;
@@ -1953,243 +1775,248 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
     r32 AlbumSongX      = Layout->AlbumSongXP*WWidth;
     CreateColumnDragEdges(GameState, DragEdgeMinY, DragEdgeMaxY, PlaylistsGenreX, GenreArtistX, ArtistAlbumX, AlbumSongX);
     
-    // PlaylistsUI extra stuff ****
-    playlist_ui *PlaylistUI = &DisplayInfo->PlaylistUI;
-    PlaylistUI->BtnColors = {
-        &Palette->Text,
-        &Palette->SliderBackground, 
-        &Palette->ButtonActive,
-        &Palette->SliderGrabThing,
-    };
+    { // PlaylistsUI extra stuff ********************************
+        playlist_ui *PlaylistUI = &DisplayInfo->PlaylistUI;
+        PlaylistUI->BtnColors = {
+            &Palette->Text,
+            &Palette->SliderBackground, 
+            &Palette->ButtonActive,
+            &Palette->SliderGrabThing,
+        };
+        
+        r32 PlaylistColumnDepth = 0.0f;
+        r32 PanelDepth = PlaylistColumnDepth-0.012f;
+        r32 PanelYMax  = WHeight - TopBorder;
+        r32 PanelYMin  = PanelYMax - Layout->PlaylistPanelHeight;
+        PlaylistUI->Panel = CreateRenderRect(Renderer, {{LeftBorder,PanelYMin},{PlaylistsGenreX,PanelYMax}}, 
+                                             PanelDepth, 0, &Palette->Slot);
+        TranslateWithScreen(&Renderer->TransformList, PlaylistUI->Panel, fixedTo_Top);
+        
+        PlaylistUI->PanelRightEdge = CreateRenderRect(Renderer, 
+                                                      {{PlaylistsGenreX - Layout->VerticalSliderWidth,PanelYMin}, {PlaylistsGenreX,PanelYMax}}, 
+                                                      PanelDepth-0.0021f, 0, &Palette->Foreground);
+        SetParent(PlaylistUI->PanelRightEdge, PlaylistUI->Panel);
+        
+        PlaylistUI->BtnAnchor = CreateRenderRect(Renderer, V2(0), 0, &Palette->Foreground, 0);
+        v2 AnchorP = GetPosition(PlaylistUI->Panel) + V2(-GetSize(PlaylistUI->Panel).x*0.5f + SmallRectS, 0);
+        SetPosition(PlaylistUI->BtnAnchor, AnchorP);
+        TranslateWithScreen(&Renderer->TransformList, PlaylistUI->BtnAnchor, fixedTo_TopLeft);
+        
+        r32 PLBtnYOff = Layout->PlaylistDividerHeight/2.0f;
+        PlaylistUI->Add = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
+                                    Renderer->ButtonBaseID, PLAddID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+        SetLocalPosition(PlaylistUI->Add, V2(0, -PLBtnYOff));
+        PlaylistUI->Add->OnPressed = {OnAnimationDone, &PlaylistUI->AddCurtain.Activated};
+        
+        PlaylistUI->AddSelection = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, Renderer->ButtonBaseID, 
+                                             PLAddSelectionID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+        SetLocalPosition(PlaylistUI->AddSelection, V2(SmallRectS*2 + Layout->TopLeftButtonGroupGap, -PLBtnYOff));
+        PlaylistUI->AddSelection->OnPressed = {OnAnimationDone, &PlaylistUI->AddSelectionCurtain.Activated};
+        
+        PlaylistUI->Remove = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
+                                       Renderer->ButtonBaseID, PLRemoveID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+        SetLocalPosition(PlaylistUI->Remove, V2(SmallRectS*2*3 + Layout->TopLeftButtonGroupGap*3, -PLBtnYOff));
+        PlaylistUI->Remove->OnPressed = {OnAnimationDone, &PlaylistUI->RemoveCurtain.Activated};
+        
+        PlaylistUI->Rename = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
+                                       Renderer->ButtonBaseID, PLRenameID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
+        SetLocalPosition(PlaylistUI->Rename, V2(SmallRectS*2*2 + Layout->TopLeftButtonGroupGap*2, -PLBtnYOff));
+        PlaylistUI->Rename->OnPressed = {OnRenamePlaylistClick, GameState};
+        
+        r32 RenameHeight = SlotHeight(&DisplayInfo->Playlists);
+        PlaylistUI->RenameField = CreateTextField(Renderer, &GameState->FixArena, V2(200.0f, RenameHeight - Layout->SlotGap), 
+                                                  PanelDepth-0.0019f, (u8 *)"New name...", 0, 
+                                                  PLColumnColors.Text, PLColumnColors.Slot, font_Small, PLAYLIST_MAX_NAME_LENGTH);
+        UpdateTextField(Renderer, &PlaylistUI->RenameField);
+        SetActive(&PlaylistUI->RenameField, false);
+        
+        string_c AddText          = NewStaticStringCompound("New Playlist.");
+        string_c AddSelectionText = NewStaticStringCompound("New Playlist\nwith selection.");
+        string_c RemoveText       = NewStaticStringCompound("Delete selected Playlist?");
+        CreateQuitAnimation(&PlaylistUI->AddCurtain,          V2(1), &AddText,          0.8f, font_Small, 0, PlaylistColumnDepth-0.02f);
+        CreateQuitAnimation(&PlaylistUI->AddSelectionCurtain, V2(1), &AddSelectionText, 0.8f, font_Small, 0, PlaylistColumnDepth-0.02f);
+        CreateQuitAnimation(&PlaylistUI->RemoveCurtain,       V2(1), &RemoveText,       1.2f, font_Small, 0, PlaylistColumnDepth-0.02f);
+        
+    }
+    { // DisplayColumns setup ************************************
+        DisplayInfo->Columns[0] = &DisplayInfo->Genre;
+        DisplayInfo->Columns[1] = &DisplayInfo->Artist;
+        DisplayInfo->Columns[2] = &DisplayInfo->Album;
+        DisplayInfo->Columns[3] = &DisplayInfo->Song.Base;
+        DisplayInfo->Columns[4] = &DisplayInfo->Playlists;
+        
+        column_info GenreColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Genre, &Playlist->Genre};
+        column_info ArtistColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Artist, &Playlist->Artist};
+        column_info AlbumColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Album, &Playlist->Album};
+        column_info SongColumn   = {Renderer, DisplayInfo, MusicInfo, Parent(&DisplayInfo->Song), &Playlist->Song};
+        column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, &Playlist->Playlists};
+        
+        CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, ColumnColors, -0.025f, 
+                            DisplayInfo->PlaylistsGenreEdge.Edge, DisplayInfo->GenreArtistEdge.Edge, Layout);
+        CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, ColumnColors, -0.05f, 
+                            DisplayInfo->GenreArtistEdge.Edge, DisplayInfo->ArtistAlbumEdge.Edge, Layout);
+        CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Album, ColumnColors, -0.075f, 
+                            DisplayInfo->ArtistAlbumEdge.Edge, DisplayInfo->AlbumSongEdge.Edge, Layout);
+        CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, ColumnColors, -0.1f, 
+                            DisplayInfo->AlbumSongEdge.Edge, DisplayInfo->EdgeRight, Layout);
+        CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, PLColumnColors, 0.0f, 
+                            DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenreEdge.Edge, Layout);
+        
+        MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
+        MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);
+        MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
+        MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
+        MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
+        
+        ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
+        ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);
+        ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
+        ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
+        ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
+        
+        SwitchSelection(&DisplayInfo->Playlists, &Playlist->Playlists, 0);
+        UpdateDisplayColumnColor(&DisplayInfo->Playlists, &Playlist->Playlists);
+    }
+    { // Song panel stuff **************************************
+        r32 PlayPauseAndGap = PlayPauseP.x + PlayPauseS + Gap;
+        r32 VolumeHeight    = PlayPauseS*2 - (LargeRectS*2 + Gap);
+        r32 VolumeUpperY    = ControlBtnY - (LargeRectS+Gap);
+        r32 VolumeXEnd      = PlayPauseAndGap+LargeRectS*2*3+Gap*2;
+        DisplayInfo->Volume.Background = 
+            CreateRenderRect(Renderer, {{PlayPauseAndGap, VolumeUpperY - VolumeHeight}, {VolumeXEnd, VolumeUpperY}}, 
+                             BtnDepth, 0, &Palette->SliderBackground);
+        DisplayInfo->Volume.GrabThing  = 
+            CreateRenderRect(Renderer, {{PlayPauseAndGap, VolumeUpperY - VolumeHeight}, {PlayPauseAndGap+Layout->VolumeGrabThingWidth, VolumeUpperY}}, BtnDepth - 0.000001f, 0, &Palette->SliderGrabThing);
+        DisplayInfo->Volume.MaxSlidePix =
+            GetExtends(DisplayInfo->Volume.Background).x - GetExtends(DisplayInfo->Volume.GrabThing).x;
+        OnVolumeDrag(Renderer, GetLocalPosition(DisplayInfo->Volume.Background), DisplayInfo->Volume.Background, GameState);
+        
+        playing_song_panel *Panel = &DisplayInfo->PlayingSongPanel;
+        Panel->MP3Info = MP3Info;
+        Panel->CurrentTimeString = NewStringCompound(&GameState->FixArena, 10);
+        
+        r32 TimelineX   = VolumeXEnd  + Layout->TimelineXGap;
+        r32 TimelineGTY = (PlayPauseP.y - PlayPauseS);
+        r32 TimelineY   = TimelineGTY + Layout->TimelineGrapThingHeight*0.5f;
+        
+        rect TimelineBG = {
+            {TimelineX,                       TimelineY - Layout->TimelineHeight*0.5f}, 
+            {TimelineX+Layout->TimelineWidth, TimelineY + Layout->TimelineHeight*0.5f}
+        };
+        rect TimelineGrab = {
+            {TimelineX, TimelineGTY}, 
+            {TimelineX+Layout->TimelineGrapThingWidth, TimelineGTY+Layout->TimelineGrapThingHeight}
+        };
+        CreateSlider(GameState, &Panel->Timeline, sliderAxis_X, TimelineBG, TimelineGrab, BtnDepth, false);
+        
+        SetNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
+        
+        DisplayInfo->SearchIsActive = -1;
+    }
+    { // Buttons in upper-left corner ********************
+        
+        // Shortcut-Help button
+        r32 BtnY = Layout->TopLeftButtonGroupY;
+        DisplayInfo->Help = NewButton(Renderer, SmallBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
+                                      ShortcutID, Renderer->ButtonColors, 0, ShortcutPressedID);
+        SetLocalPosition(DisplayInfo->Help, V2(ButtonUpperLeftX, Renderer->Window.CurrentDim.Height-BtnY));
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->Help->Entry, fixedTo_TopLeft);
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->Help->Icon, fixedTo_TopLeft);
+        
+        shortcut_popups *Popups = &DisplayInfo->Popups;
+        DisplayInfo->Help->OnPressed          = {OnShortcutHelpOn, Popups};
+        DisplayInfo->Help->OnPressedToggleOff = {OnShortcutHelpOff, Popups};
+        
+        // Palette swap button
+        DisplayInfo->PaletteSwap = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
+                                             Renderer->ButtonBaseID, PaletteID, Renderer->ButtonColors, 0);
+        SetLocalPosition(DisplayInfo->PaletteSwap, V2(ButtonUpperLeftX + StepX*1, Renderer->Window.CurrentDim.Height-BtnY));
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Entry, fixedTo_TopLeft);
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Icon, fixedTo_TopLeft);
+        DisplayInfo->PaletteSwap->OnPressed = {OnPaletteSwap, &DisplayInfo->MusicBtnInfo};
+        
+        // Color picker button
+        DisplayInfo->StyleSettings = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
+                                               Renderer->ButtonBaseID, StyleSettingsID, Renderer->ButtonColors, 0);
+        SetLocalPosition(DisplayInfo->StyleSettings, V2(ButtonUpperLeftX + StepX*2, Renderer->Window.CurrentDim.Height-BtnY));
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->StyleSettings->Entry, fixedTo_TopLeft);
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->StyleSettings->Icon, fixedTo_TopLeft);
+        DisplayInfo->StyleSettings->OnPressed = {OnStyleSettings, &GameState->StyleSettings};
+        
+        // Music Lib Path button
+        DisplayInfo->MusicLibPath = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
+                                              Renderer->ButtonBaseID, MusicPathID, Renderer->ButtonColors, 0);
+        SetLocalPosition(DisplayInfo->MusicLibPath, V2(ButtonUpperLeftX + StepX*3, Renderer->Window.CurrentDim.Height-BtnY));
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->MusicLibPath->Entry, fixedTo_TopLeft);
+        TranslateWithScreen(&Renderer->TransformList, DisplayInfo->MusicLibPath->Icon, fixedTo_TopLeft);
+        DisplayInfo->MusicLibPath->OnPressed = {OnMusicPathPressed, &DisplayInfo->MusicBtnInfo};
+        
+    }
+    { // Music path stuff *******************************
+        music_path_ui *MusicPath = &DisplayInfo->MusicPath;
+        
+        entry_id *PathParent = CreateRenderRect(Renderer, V2(0), 0, 0, 0);
+        PathParent->ID->Render = false;
+        Translate(PathParent, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
+        TranslateWithScreen(&Renderer->TransformList, PathParent, fixedTo_FixYToGiven_XLeft, Layout->MusicPathHeightScaler);
+        
+        string_c     MusicPathText = NewStaticStringCompound("New path to music folder...");
+        font_metrics MediumMetrics = GetFontMetrics(GameState, font_Medium, MusicPathText);
+        r32        TextFieldHeight = MediumMetrics.Ascent - MediumMetrics.Descent;
+        MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, 
+                                               V2(WWidth-WWidth*0.1f, TextFieldHeight), BtnDepth-0.001f,
+                                               MusicPathText.S, 0, &Palette->Text, 
+                                               &Palette->ButtonActive, font_Medium);
+        Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
+        MusicPath->TextField.DoMouseHover = false;
+        TransformWithScreen(&Renderer->TransformList, MusicPath->TextField.Background, fixedTo_FixYToGiven_XCenter, 
+                            scaleAxis_X, Layout->MusicPathHeightScaler);
+        MusicPath->TextField.LeftAlign->ID->Parent = PathParent;
+        
+        MusicPath->Background = CreateRenderRect(Renderer, V2(WWidth, WHeight), BtnDepth-0.0009f, 
+                                                 &Palette->Foreground, 0);
+        Translate(MusicPath->Background, V2(WWidth/2.0f, WHeight/2.0f));
+        TransformWithScreen(&Renderer->TransformList, MusicPath->Background, fixedTo_MiddleCenter, scaleAxis_XY);
+        SetTransparency(MusicPath->Background, Layout->MusicPathBGTransparency);
+        MusicPath->Background->ID->Render = false;
+        
+        r32 MusicPathBtnY = -MediumRectS - TextFieldHeight*0.5f - Layout->MusicPathButtonYOffset;
+        MusicPath->Save = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, Renderer->ButtonBaseID, 
+                                    ConfirmID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
+        Translate(MusicPath->Save, V2(MediumRectS, MusicPathBtnY));
+        MusicPath->Save->OnPressed = {OnMusicPathSavePressed, &DisplayInfo->MusicBtnInfo};
+        SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
+        
+        MusicPath->Quit = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
+                                    Renderer->ButtonBaseID, CancelID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
+        Translate(MusicPath->Quit, V2(MediumRectS*3+Layout->MusicPathButtonGap, MusicPathBtnY));
+        MusicPath->Quit->OnPressed = {OnMusicPathQuitPressed, &DisplayInfo->MusicBtnInfo};
+        SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
+        
+        MusicPath->OutputString = NewStringCompound(&GameState->FixArena, 500);
+        
+        v2 LoadingBarSize = V2(WWidth-WWidth*0.1f, Layout->MusicPathLoadingBarHeight);
+        MusicPath->LoadingBar = CreateLoadingBar(LoadingBarSize, BtnDepth-0.0011f, MusicPath->TextField.Background);
+        SetLocalPosition(&MusicPath->LoadingBar, V2(0, -LoadingBarSize.y*0.5f - MediumRectS*2 - TextFieldHeight/2.0f - 
+                                                    Layout->MusicPathButtonYOffset*2));
+        ScaleWithScreen(&Renderer->TransformList, MusicPath->LoadingBar.BG, scaleAxis_X);
+        SetActive(&MusicPath->LoadingBar, false);
+        
+        MusicPath->CrawlThreadStateCount = 0;
+        
+        MusicPath->Rescan = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, Renderer->ButtonBaseID, 
+                                      RescanID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
+        v2 RescanPos = V2(MediumRectS, MediumRectS + TextFieldHeight/2.0f + Layout->MusicPathButtonYOffset);
+        SetLocalPosition(MusicPath->Rescan, RescanPos);
+        SetActive(MusicPath->Rescan, false);
+        MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
+    }
     
-    
-    r32 PlaylistColumnDepth = 0.0f;
-    r32 PanelDepth = PlaylistColumnDepth-0.012f;
-    r32 PanelYMax  = WHeight - TopBorder;
-    r32 PanelYMin  = PanelYMax - Layout->PlaylistPanelHeight;
-    PlaylistUI->Panel = CreateRenderRect(Renderer, {{LeftBorder,PanelYMin},{PlaylistsGenreX,PanelYMax}}, 
-                                         PanelDepth, 0, &Palette->Slot);
-    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->Panel, fixedTo_Top);
-    
-    PlaylistUI->PanelRightEdge = CreateRenderRect(Renderer, 
-                                                  {{PlaylistsGenreX - Layout->VerticalSliderWidth,PanelYMin}, {PlaylistsGenreX,PanelYMax}}, 
-                                                  PanelDepth-0.0021f, 0, &Palette->Foreground);
-    SetParent(PlaylistUI->PanelRightEdge, PlaylistUI->Panel);
-    
-    PlaylistUI->BtnAnchor = CreateRenderRect(Renderer, V2(0), 0, &Palette->Foreground, 0);
-    v2 AnchorP = GetPosition(PlaylistUI->Panel) + V2(-GetSize(PlaylistUI->Panel).x*0.5f + SmallRectS, 0);
-    SetPosition(PlaylistUI->BtnAnchor, AnchorP);
-    TranslateWithScreen(&Renderer->TransformList, PlaylistUI->BtnAnchor, fixedTo_TopLeft);
-    
-    r32 PLBtnYOff = Layout->PlaylistDividerHeight/2.0f;
-    PlaylistUI->Add = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
-                                Renderer->ButtonBaseID, PLAddID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
-    SetLocalPosition(PlaylistUI->Add, V2(0, -PLBtnYOff));
-    PlaylistUI->Add->OnPressed = {OnAnimationDone, &PlaylistUI->AddCurtain.Activated};
-    
-    PlaylistUI->AddSelection = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, Renderer->ButtonBaseID, 
-                                         PLAddSelectionID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
-    SetLocalPosition(PlaylistUI->AddSelection, V2(SmallRectS*2 + Layout->TopLeftButtonGroupGap, -PLBtnYOff));
-    PlaylistUI->AddSelection->OnPressed = {OnAnimationDone, &PlaylistUI->AddSelectionCurtain.Activated};
-    
-    PlaylistUI->Remove = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
-                                   Renderer->ButtonBaseID, PLRemoveID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
-    SetLocalPosition(PlaylistUI->Remove, V2(SmallRectS*2*3 + Layout->TopLeftButtonGroupGap*3, -PLBtnYOff));
-    PlaylistUI->Remove->OnPressed = {OnAnimationDone, &PlaylistUI->RemoveCurtain.Activated};
-    
-    PlaylistUI->Rename = NewButton(Renderer, TinyBtnRect, PanelDepth-0.002f, false, 
-                                   Renderer->ButtonBaseID, PLRenameID, PlaylistUI->BtnColors, PlaylistUI->BtnAnchor);
-    SetLocalPosition(PlaylistUI->Rename, V2(SmallRectS*2*2 + Layout->TopLeftButtonGroupGap*2, -PLBtnYOff));
-    PlaylistUI->Rename->OnPressed = {OnRenamePlaylistClick, GameState};
-    
-    r32 RenameHeight = SlotHeight(&DisplayInfo->Playlists);
-    PlaylistUI->RenameField = CreateTextField(Renderer, &GameState->FixArena, V2(200.0f, RenameHeight - Layout->SlotGap), 
-                                              PanelDepth-0.0019f, (u8 *)"New name...", 0, 
-                                              PLColumnColors.Text, PLColumnColors.Slot, font_Small, PLAYLIST_MAX_NAME_LENGTH);
-    UpdateTextField(Renderer, &PlaylistUI->RenameField);
-    SetActive(&PlaylistUI->RenameField, false);
-    
-    string_c AddText          = NewStaticStringCompound("New Playlist.");
-    string_c AddSelectionText = NewStaticStringCompound("New Playlist\nwith selection.");
-    string_c RemoveText       = NewStaticStringCompound("Delete selected Playlist?");
-    CreateQuitAnimation(&PlaylistUI->AddCurtain,          V2(1), &AddText,          0.8f, font_Small, 0, PlaylistColumnDepth-0.02f);
-    CreateQuitAnimation(&PlaylistUI->AddSelectionCurtain, V2(1), &AddSelectionText, 0.8f, font_Small, 0, PlaylistColumnDepth-0.02f);
-    CreateQuitAnimation(&PlaylistUI->RemoveCurtain,       V2(1), &RemoveText,       1.2f, font_Small, 0, PlaylistColumnDepth-0.02f);
-    
-    
-    //                         ****
-    
-    DisplayInfo->Columns[0] = &DisplayInfo->Genre;
-    DisplayInfo->Columns[1] = &DisplayInfo->Artist;
-    DisplayInfo->Columns[2] = &DisplayInfo->Album;
-    DisplayInfo->Columns[3] = &DisplayInfo->Song.Base;
-    DisplayInfo->Columns[4] = &DisplayInfo->Playlists;
-    
-    column_info GenreColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Genre, &Playlist->Genre};
-    column_info ArtistColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Artist, &Playlist->Artist};
-    column_info AlbumColumn  = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Album, &Playlist->Album};
-    column_info SongColumn   = {Renderer, DisplayInfo, MusicInfo, Parent(&DisplayInfo->Song), &Playlist->Song};
-    column_info PlaylistsColumn = {Renderer, DisplayInfo, MusicInfo, &DisplayInfo->Playlists, &Playlist->Playlists};
-    
-    CreateDisplayColumn(GenreColumn, &GameState->FixArena, columnType_Genre, ColumnColors, -0.025f, 
-                        DisplayInfo->PlaylistsGenreEdge.Edge, DisplayInfo->GenreArtistEdge.Edge, Layout);
-    CreateDisplayColumn(ArtistColumn, &GameState->FixArena, columnType_Artist, ColumnColors, -0.05f, 
-                        DisplayInfo->GenreArtistEdge.Edge, DisplayInfo->ArtistAlbumEdge.Edge, Layout);
-    CreateDisplayColumn(AlbumColumn, &GameState->FixArena, columnType_Album, ColumnColors, -0.075f, 
-                        DisplayInfo->ArtistAlbumEdge.Edge, DisplayInfo->AlbumSongEdge.Edge, Layout);
-    CreateDisplayColumn(SongColumn, &GameState->FixArena, columnType_Song, ColumnColors, -0.1f, 
-                        DisplayInfo->AlbumSongEdge.Edge, DisplayInfo->EdgeRight, Layout);
-    CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, PLColumnColors, PlaylistColumnDepth, 
-                        DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenreEdge.Edge, Layout);
-    
-    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
-    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);
-    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
-    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
-    MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
-    
-    ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
-    ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);
-    ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Artist);
-    ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Album);
-    ProcessWindowResizeForDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Song.Base);
-    
-    SwitchSelection(&DisplayInfo->Playlists, &Playlist->Playlists, 0);
-    UpdateDisplayColumnColor(&DisplayInfo->Playlists, &Playlist->Playlists);
-    
-    // Song panel stuff **************************************
-    r32 PlayPauseAndGap = PlayPauseP.x + PlayPauseS + Gap;
-    r32 VolumeHeight    = PlayPauseS*2 - (LargeRectS*2 + Gap);
-    r32 VolumeUpperY    = SNPBtnY - (LargeRectS+Gap);
-    r32 VolumeXEnd      = PlayPauseAndGap+LargeRectS*2*3+Gap*2;
-    DisplayInfo->Volume.Background = 
-        CreateRenderRect(Renderer, {{PlayPauseAndGap, VolumeUpperY - VolumeHeight}, {VolumeXEnd, VolumeUpperY}}, 
-                         BtnDepth, 0, &Palette->SliderBackground);
-    DisplayInfo->Volume.GrabThing  = 
-        CreateRenderRect(Renderer, {{PlayPauseAndGap, VolumeUpperY - VolumeHeight}, {PlayPauseAndGap+Layout->VolumeGrabThingWidth, VolumeUpperY}}, BtnDepth - 0.000001f, 0, &Palette->SliderGrabThing);
-    DisplayInfo->Volume.MaxSlidePix =
-        GetExtends(DisplayInfo->Volume.Background).x - GetExtends(DisplayInfo->Volume.GrabThing).x;
-    OnVolumeDrag(Renderer, GetLocalPosition(DisplayInfo->Volume.Background), DisplayInfo->Volume.Background, GameState);
-    
-    playing_song_panel *Panel = &DisplayInfo->PlayingSongPanel;
-    Panel->MP3Info = MP3Info;
-    Panel->CurrentTimeString = NewStringCompound(&GameState->FixArena, 10);
-    
-    r32 TimelineX   = VolumeXEnd  + Layout->TimelineXGap;
-    r32 TimelineGTY = (PlayPauseP.y - PlayPauseS);
-    r32 TimelineY   = TimelineGTY + Layout->TimelineGrapThingHeight*0.5f;
-    
-    rect TimelineBG = {
-        {TimelineX,                       TimelineY - Layout->TimelineHeight*0.5f}, 
-        {TimelineX+Layout->TimelineWidth, TimelineY + Layout->TimelineHeight*0.5f}
-    };
-    rect TimelineGrab = {
-        {TimelineX, TimelineGTY}, 
-        {TimelineX+Layout->TimelineGrapThingWidth, TimelineGTY+Layout->TimelineGrapThingHeight}
-    };
-    CreateSlider(GameState, &Panel->Timeline, sliderAxis_X, TimelineBG, TimelineGrab, BtnDepth, false);
-    
-    SetNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
-    
-    DisplayInfo->SearchIsActive = -1;
-    
-    // Shortcut-Help button
-    r32 BtnY = Layout->TopLeftButtonGroupY;
-    DisplayInfo->Help = NewButton(Renderer, SmallBtnRect, BtnDepth, true, Renderer->ButtonBaseID, 
-                                  ShortcutID, Renderer->ButtonColors, 0, ShortcutPressedID);
-    SetLocalPosition(DisplayInfo->Help, V2(ButtonUpperLeftX, Renderer->Window.CurrentDim.Height-BtnY));
-    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->Help->Entry, fixedTo_TopLeft);
-    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->Help->Icon, fixedTo_TopLeft);
-    
-    shortcut_popups *Popups = &DisplayInfo->Popups;
-    DisplayInfo->Help->OnPressed          = {OnShortcutHelpOn, Popups};
-    DisplayInfo->Help->OnPressedToggleOff = {OnShortcutHelpOff, Popups};
-    
-    // Palette swap button
-    DisplayInfo->PaletteSwap = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
-                                         Renderer->ButtonBaseID, PaletteID, Renderer->ButtonColors, 0);
-    SetLocalPosition(DisplayInfo->PaletteSwap, V2(ButtonUpperLeftX + StepX*1, Renderer->Window.CurrentDim.Height-BtnY));
-    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Entry, fixedTo_TopLeft);
-    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->PaletteSwap->Icon, fixedTo_TopLeft);
-    DisplayInfo->PaletteSwap->OnPressed = {OnPaletteSwap, &DisplayInfo->MusicBtnInfo};
-    
-    // Color picker button
-    DisplayInfo->StyleSettings = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
-                                           Renderer->ButtonBaseID, StyleSettingsID, Renderer->ButtonColors, 0);
-    SetLocalPosition(DisplayInfo->StyleSettings, V2(ButtonUpperLeftX + StepX*2, Renderer->Window.CurrentDim.Height-BtnY));
-    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->StyleSettings->Entry, fixedTo_TopLeft);
-    TranslateWithScreen(&Renderer->TransformList, DisplayInfo->StyleSettings->Icon, fixedTo_TopLeft);
-    DisplayInfo->StyleSettings->OnPressed = {OnStyleSettings, &GameState->StyleSettings};
-    
-    // Music path stuff *******************************
-    music_path_ui *MusicPath = &DisplayInfo->MusicPath;
-    
-    MusicPath->Button = NewButton(Renderer, SmallBtnRect, BtnDepth, false, 
-                                  Renderer->ButtonBaseID, MusicPathID, Renderer->ButtonColors, 0);
-    SetLocalPosition(MusicPath->Button, V2(ButtonUpperLeftX + StepX*3, Renderer->Window.CurrentDim.Height-BtnY));
-    TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Entry, fixedTo_TopLeft);
-    TranslateWithScreen(&Renderer->TransformList, MusicPath->Button->Icon, fixedTo_TopLeft);
-    MusicPath->Button->OnPressed = {OnMusicPathPressed, &DisplayInfo->MusicBtnInfo};
-    
-    entry_id *PathParent = CreateRenderRect(Renderer, V2(0), 0, 0, 0);
-    PathParent->ID->Render = false;
-    Translate(PathParent, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
-    TranslateWithScreen(&Renderer->TransformList, PathParent, fixedTo_FixYToGiven_XLeft, Layout->MusicPathHeightScaler);
-    
-    r32 TextFieldHeight = Layout->MusicPathTextFieldHeight;
-    MusicPath->TextField = CreateTextField(Renderer, &GameState->FixArena, 
-                                           V2(WWidth-WWidth*0.1f, TextFieldHeight), BtnDepth-0.001f,
-                                           (u8 *)"New path to music folder...", 0, &Palette->Text, 
-                                           &Palette->ButtonActive, font_Medium);
-    Translate(&MusicPath->TextField, V2(WWidth/2.0f, WHeight - Layout->MusicPathHeightOffset));
-    MusicPath->TextField.DoMouseHover = false;
-    TransformWithScreen(&Renderer->TransformList, MusicPath->TextField.Background, fixedTo_FixYToGiven_XCenter, 
-                        scaleAxis_X, Layout->MusicPathHeightScaler);
-    MusicPath->TextField.LeftAlign->ID->Parent = PathParent;
-    
-    MusicPath->Background = CreateRenderRect(Renderer, V2(WWidth, WHeight), BtnDepth-0.0009f, 
-                                             &Palette->Foreground, 0);
-    Translate(MusicPath->Background, V2(WWidth/2.0f, WHeight/2.0f));
-    TransformWithScreen(&Renderer->TransformList, MusicPath->Background, fixedTo_MiddleCenter, scaleAxis_XY);
-    SetTransparency(MusicPath->Background, Layout->MusicPathBGTransparency);
-    MusicPath->Background->ID->Render = false;
-    
-    MusicPath->Save = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
-                                Renderer->ButtonBaseID, ConfirmID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    Translate(MusicPath->Save, V2(MediumRectS, -MediumRectS - TextFieldHeight/2.0f - Layout->MusicPathButtonYOffset));
-    MusicPath->Save->OnPressed = {OnMusicPathSavePressed, &DisplayInfo->MusicBtnInfo};
-    SetActive(MusicPath->Save, MusicPath->TextField.IsActive);
-    
-    MusicPath->Quit = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, 
-                                Renderer->ButtonBaseID, CancelID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    Translate(MusicPath->Quit, V2(MediumRectS*3+Layout->MusicPathButtonGap, 
-                                  -MediumRectS - TextFieldHeight/2.0f - Layout->MusicPathButtonYOffset));
-    MusicPath->Quit->OnPressed = {OnMusicPathQuitPressed, &DisplayInfo->MusicBtnInfo};
-    SetActive(MusicPath->Quit, MusicPath->TextField.IsActive);
-    
-    MusicPath->OutputString = NewStringCompound(&GameState->FixArena, 500);
-    
-    v2 LoadingBarSize = V2(WWidth-WWidth*0.1f, Layout->MusicPathLoadingBarHeight);
-    MusicPath->LoadingBar = CreateLoadingBar(LoadingBarSize, BtnDepth-0.0011f, MusicPath->TextField.Background);
-    SetLocalPosition(&MusicPath->LoadingBar, V2(0, -LoadingBarSize.y*0.5f - MediumRectS*2 - TextFieldHeight/2.0f - 
-                                                Layout->MusicPathButtonYOffset*2));
-    ScaleWithScreen(&Renderer->TransformList, MusicPath->LoadingBar.BG, scaleAxis_X);
-    SetActive(&MusicPath->LoadingBar, false);
-    
-    MusicPath->CrawlThreadStateCount = 0;
-    
-    MusicPath->Rescan = NewButton(Renderer, MediumBtnRect, BtnDepth-0.001f, false, Renderer->ButtonBaseID, 
-                                  RescanID, Renderer->ButtonColors, MusicPath->TextField.LeftAlign);
-    v2 RescanPos = V2(MediumRectS, MediumRectS + TextFieldHeight/2.0f + Layout->MusicPathButtonYOffset);
-    SetLocalPosition(MusicPath->Rescan, RescanPos);
-    SetActive(MusicPath->Rescan, false);
-    MusicPath->Rescan->OnPressed = {OnRescanPressed, &DisplayInfo->MusicBtnInfo};
-    
-    // Quit curtain ****************************
-    NewEmptyLocalString(LanguageText, 200);
-    string_c QuitText = GetRandomExitMessage(GameState, &LanguageText);
-    CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime, font_Big, &LanguageText);
-    
+    { // Quit curtain ****************************
+        NewEmptyLocalString(LanguageText, 200);
+        string_c QuitText = GetRandomExitMessage(GameState, &LanguageText);
+        CreateQuitAnimation(&DisplayInfo->Quit, V2(WWidth, WHeight), &QuitText, Layout->QuitCurtainAnimationTime, font_Big, &LanguageText);
+    }
     
 }
 
@@ -2295,7 +2122,7 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
                 Popups->ActiveText = 2;
                 Popups->IsHovering = true;
             }
-            else if(IsButtonHovering(DisplayInfo->MusicPath.Button))
+            else if(IsButtonHovering(DisplayInfo->MusicLibPath))
             {
                 if(Popups->ActiveText != 3) 
                     ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->MusicPath, FontSize);

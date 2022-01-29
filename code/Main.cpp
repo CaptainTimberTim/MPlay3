@@ -873,7 +873,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 // *******************************************
                 ProcessPendingMessages(Input, Window);
                 
-                
+#if DEBUG_TD // Font resizing for testing!
                 if(Input->Pressed[KEY_CONTROL_LEFT] || Input->Pressed[KEY_CONTROL_RIGHT])
                 {
                     if(Input->Pressed[KEY_UP])
@@ -894,7 +894,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                     }
                 }
-                
+#endif
                 
                 if(Input->KeyChange[KEY_ESCAPE] == KeyDown)
                 {

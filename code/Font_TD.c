@@ -250,6 +250,24 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     UpdateSettings(GS);
     
+    // Music library path.
+    {
+        music_path_ui *MusicPath = &DisplayInfo->MusicPath;
+        
+        string_c     MusicPathText = NewStaticStringCompound("New path to music folder...");
+        font_metrics MediumMetrics = GetFontMetrics(GS, font_Medium, MusicPathText);
+        r32 TextFieldHeight = MediumMetrics.Ascent - MediumMetrics.Descent;
+        r32  TextFieldWidth = GetSize(&MusicPath->TextField).x;
+        SetSize(&MusicPath->TextField, V2(TextFieldWidth, TextFieldHeight));
+        
+        r32 BtnExtends = GS->Layout.MediumButtonExtents;
+        r32 BtnYOffset = -BtnExtends - TextFieldHeight*0.5f - GS->Layout.MusicPathButtonYOffset;
+        SetLocalPosition(MusicPath->Save, V2(BtnExtends,   BtnYOffset));
+        SetLocalPosition(MusicPath->Quit, V2(BtnExtends*3 + GS->Layout.MusicPathButtonGap, BtnYOffset));
+        
+        r32 RescanY = BtnExtends + TextFieldHeight*0.5f + GS->Layout.MusicPathButtonYOffset;
+        SetLocalPosition(MusicPath->Rescan, V2(BtnExtends, RescanY));
+    }
 }
 
 internal unicode_group *

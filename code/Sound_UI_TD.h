@@ -9,7 +9,7 @@
 
 #define DOUBLE_CLICK_TIME 0.5f
 
-#define DEFAULT_COLOR_PALETTE_COUNT 5 // Amount of complete color palettes that currently exist.
+#define DEFAULT_COLOR_PALETTE_COUNT 6 // Amount of complete color palettes that currently exist.
 #define PALETTE_COLOR_AMOUNT 10 // Amount of colors per palette.
 union color_palette
 {
@@ -47,6 +47,7 @@ global_variable string_c GlobalDefaultColorPaletteNames[] =
     NewStaticStringCompound("Lush Green"),
     NewStaticStringCompound("Smoldering Red"),
     NewStaticStringCompound("Aquatic Blue"),
+    NewStaticStringCompound("Summer Sunrise"),
     NewStaticStringCompound("Deep Night Grey"),
     NewStaticStringCompound("Monochrome Grey"),
 };
@@ -171,7 +172,6 @@ struct music_btn
 
 struct music_path_ui
 {
-    button *Button;
     text_field TextField;
     
     render_text CurrentPath;
@@ -293,9 +293,12 @@ struct music_display_info
     button *Stop;
     button *Previous;
     button *Next;
+    
     button *PaletteSwap;
     button *StyleSettings;
     button *Help;
+    button *MusicLibPath;
+    
     shortcut_popups Popups;
     slider Volume;
     
@@ -394,13 +397,10 @@ struct layout_definition
     // Music path
     r32 MusicPathHeightOffset     = 200;
     r32 MusicPathHeightScaler     = 0.86f; // 0..1
-    r32 MusicPathTextFieldHeight  = 50;
     r32 MusicPathBGTransparency   = 0.75f;
-    r32 MusicPathButtonYOffset    = 8;//19;
+    r32 MusicPathButtonYOffset    = 8;
     r32 MusicPathButtonGap        = 10;
     r32 MusicPathLoadingBarHeight = 40;
-    //r32 RescanButtonXOffset       = 204;
-    //r32 RescanButtonYOffset       = 8;//55;
     
     // PlayingSongPanel
     r32 PanelXOffset = -10;

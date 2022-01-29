@@ -2,16 +2,14 @@
 // IDEAS::
 // - think about making song display MDs next to each other (genre in the artist row) an if 
 //   it goes over the edge, drop it into the new line
-// - ability to change slot height with auto text fit?
 // - album image as panel background
 // - lyrics window when file exists?
 // - think about selecting all entries that are visible when pressing enter during search
 // - if song selected, pressing the big play should start it?
 // - Think about if search in song column should work differently, or search through Title/artist/album
 // - loading metadata could be "interactive" and all songs already loaded be available already?
-// - adjust many sizes, text for example is too big imo. Which happened because of the bad rendering, which is now fixed.
+//     - During metadata loading -> just show everything that is already crawled, live.
 // - add some form of highlighting on the other columns, based on what songs are visible rn. 
-// - During metadata loading -> just show everything that is already crawled, live.
 // - If app is minimized, render something different to show what is playing when hovering the task-bar preview.
 // - Have the UpNext list as a 'playlist' that you can switch to and see all songs listed like normal playlist. Maybe have it only appear once you have a song in it.
 
@@ -55,7 +53,6 @@
 //      - stop rendering when no user input and no song is playing
 // - If a render text needs to switch fonts insider their own text, it should restart with that new font for consistency?
 //      - Or check beforehand and then start with the other font.
-// - Make it possible to close colorpicker with the colorpicker button
 // - Print user error when save files could not be correctly loaded.
 // - PlayNext should have reset or remove and maybe be overall more controllable.
 // - PLAYLIST:
@@ -64,15 +61,6 @@
 //     - Add drag&drop for sorting playlist slots?
 //     - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
 // - Add unregister hotkey and add mute only on ctrl press, or something similar.
-// - Font Resizing
-//     - Font settings window, where the three size types are adjustable individually.
-//          - Add textfield for adding custom font, that is still only possible through setting file rn.
-//     - SlotHeights need to resize with the font.
-//     - Maybe split font into more sizes/separate sizes for slots and song slots -> that you could just adjust those, without
-//       changing all other text in the app.
-//          - Maybe not, and have the bottom panel scale up with the font size.
-//          - Then you would maybe need one smaller version of the buttons in the panel, so that the panel can get smaller.
-// - Add path vilidity to MusicPath stuff!
 
 // BUGS::
 // - fix issues regarding handmade network comment
@@ -86,6 +74,7 @@
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
+// - Copy colorPalette curtain broken.
 
 #include "Sound_UI_TD.h"
 

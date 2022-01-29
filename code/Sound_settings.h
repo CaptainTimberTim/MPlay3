@@ -111,5 +111,13 @@ internal void HandleActiveColorPicker(game_state *GS, color_picker *ColorPicker)
 inline   void SetActive(color_picker *ColorPicker, b32 Activate);
 internal void CreateColorPickerPaletteList(game_state *GS, color_picker *ColorPicker, v2 Offset);
 inline    r32 GetColorPickerTextWidth(game_state *GS);
+//inline void CreateBasicColorPalette(color_palette *Palette);
+inline void CreateLushGreenColorPalette(color_palette *Palette);
+inline void OnPaletteSwap(void *Data);
+inline void UpdateColorPalette(music_display_info *DisplayInfo, b32 GoToNextPalette);
+inline string_c * GetCurrentPaletteName();
+internal void AddCustomColorPalette(color_palette *ColorPalette, string_c *Name);
+internal void RemoveCustomColorPalette(u32 PaletteID);
+inline b32 IsColorPaletteDefault();
 
 #endif //_SOUND_SETTINGS_H

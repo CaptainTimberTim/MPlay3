@@ -24,7 +24,7 @@ HandleActiveMusicPath(music_display_info *DisplayInfo, input_info *Input, crawl_
         case 0: // #Many: Just opened, no thread running yet
         {
             if(Input->KeyChange[KEY_ENTER] == KeyDown) OnMusicPathSavePressed(&DisplayInfo->MusicBtnInfo);
-            ProcessMusicPath(&GlobalGameState.Renderer, GlobalGameState.Time.dTime, Input, &MusicPath->TextField);
+            ProcessMusicPath(&GlobalGameState, GlobalGameState.Time.dTime, Input, &MusicPath->TextField);
             ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, MusicPath->Save);
             ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, MusicPath->Quit);
             ButtonTestMouseInteraction(&GlobalGameState.Renderer, Input, MusicPath->Rescan);

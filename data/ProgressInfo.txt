@@ -509,3 +509,10 @@
 - Fixed Rescan button placement.
 - Fixed that settings button does not close them.
 - Fixed: When cursor is drag-cursor and style settings open. It does not change back.
+
+29.01.2022
+- Fixed missing resizing of musicLibPath textfield.
+- UI creation procedure cleanup.
+- Added path validation for musicLibPath textfield.
+- Updated all but one ColorPalettes.
+- Added "Summer Sunrise" as new colorPalette

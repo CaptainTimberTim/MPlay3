@@ -239,7 +239,7 @@ CreateFontSettings(game_state *GS, font_settings *FontSettings, entry_id *Parent
     
     v2 BaseOffset = {};//{Layout->FontSettingsOffsetX, Layout->FontSettingsOffsetY};
     v2 BGSize     = V2(Layout->FontSettingsBGWidth, Layout->SettingsWindowHeight);
-    FontSettings->Background = CreateRenderRect(&GS->Renderer, BGSize, Depth+0.0008f, &Palette->ForegroundText, Parent);
+    FontSettings->Background = CreateRenderRect(&GS->Renderer, BGSize, Depth+0.0008f, &Palette->Slot, Parent);
     SetLocalPosition(FontSettings->Background, BaseOffset);
     
     Parent = FontSettings->Background;
@@ -1008,6 +1008,207 @@ HandleActiveColorPicker(game_state *GS, color_picker *ColorPicker)
     HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->New, colorPickerAnimBtn_New, &ColorPicker->NewAnim);
     HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Save, colorPickerAnimBtn_Save, &ColorPicker->SaveAnim);
     HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Remove, colorPickerAnimBtn_Remove, &ColorPicker->RemoveAnim);
+}
+
+inline color_palette *
+GetColorPalette(game_state *GS)
+{
+    return &GS->MusicInfo.DisplayInfo.ColorPalette;
+}
+
+inline void
+CreateLushGreenColorPalette(color_palette *Palette)
+{
+    Palette->Slot             = Color(11,  15,  11);
+    Palette->Text             = Color(144, 174, 130);
+    Palette->Selected         = Color(18,  45,  18);
+    Palette->Foreground       = Color(14,  18,  12);
+    Palette->ForegroundText   = Color(144, 174, 130);
+    Palette->SliderBackground = Color(17,  24,  17);
+    Palette->SliderGrabThing  = Color(38,  52,  34);
+    Palette->ButtonActive     = Color(22,  51,  16);
+    Palette->PlayingSong      = Color(24,  40,  24);
+    Palette->ErrorText        = Color(170, 11,  22);
+}
+
+inline void
+CreateEvilColorPalette(color_palette *Palette)
+{
+    Palette->Slot             = Color(71,  25,  25);
+    Palette->Text             = Color(217, 199, 197);
+    Palette->Selected         = Color(106, 34,  34);
+    Palette->Foreground       = Color(106, 34,  34);
+    Palette->ForegroundText   = Color(217, 199, 197);
+    Palette->SliderBackground = Color(56,  23,  23);
+    Palette->SliderGrabThing  = Color(86,  26,  23);
+    Palette->ButtonActive     = Color(58,  12,  12);
+    Palette->PlayingSong      = Color(56,  23,  23);
+    Palette->ErrorText        = Color(170, 11,  22);
+}
+
+inline void
+CreateAquaColorPalette(color_palette *Palette)
+{
+    Palette->Slot             = Color(17,  26,  44);
+    Palette->Text             = Color(150, 187, 197);
+    Palette->Selected         = Color(27,  47,  89);
+    Palette->Foreground       = Color(23,  53,  102);
+    Palette->ForegroundText   = Color(150, 187, 197);
+    Palette->SliderBackground = Color(20,  36,  79);
+    Palette->SliderGrabThing  = Color(11,  29,  58);
+    Palette->ButtonActive     = Color(19,  52,  102);
+    Palette->PlayingSong      = Color(20,  37,  79);
+    Palette->ErrorText        = Color(170, 11,  22);
+}
+
+inline void
+CreateSunriseColorPalette(color_palette *Palette)
+{
+    Palette->Slot             = Color(201, 103, 29);
+    Palette->Text             = Color(255, 239, 149);
+    Palette->Selected         = Color(171, 83,  32);
+    Palette->Foreground       = Color(220, 163, 45);
+    Palette->ForegroundText   = Color(135, 39,  4);
+    Palette->SliderBackground = Color(249, 212, 94);
+    Palette->SliderGrabThing  = Color(218, 136, 42);
+    Palette->ButtonActive     = Color(253, 128, 41);
+    Palette->PlayingSong      = Color(206, 122, 34);
+    Palette->ErrorText        = Color(170, 11,  22);
+}
+
+inline void
+CreateMonochromeColorPalette(color_palette *Palette)
+{
+    Palette->Slot             = Color(44,  44,  44);
+    Palette->Text             = Color(173, 173, 173);
+    Palette->Selected         = Color(79,  79,  79);
+    Palette->Foreground       = Color(27,  27,  27);
+    Palette->ForegroundText   = Color(173, 173, 173);
+    Palette->SliderBackground = Color(88,  88,  88);
+    Palette->SliderGrabThing  = Color(39,  39,  39);
+    Palette->ButtonActive     = Color(88,  88,  88);
+    Palette->PlayingSong      = Color(22,  22,  22);
+    Palette->ErrorText        = Color(170, 11,  22);
+}
+
+inline void
+CreateMonoInvertedColorPalette(color_palette *Palette)
+{
+    Palette->Slot             = Color(30,30,30);
+    Palette->Text             = Color(220,220,220);
+    Palette->Selected         = Color(53,50,50);
+    Palette->Foreground       = Color(151,153,153);
+    Palette->ForegroundText   = Palette->Slot;//Color(100,100,100);
+    Palette->SliderBackground = Color(131,133,133);
+    Palette->SliderGrabThing  = Color(70,73,73);
+    Palette->ButtonActive     = Color(78,80,80);
+    Palette->PlayingSong      = Color(38,35,35);
+    Palette->ErrorText        = Color(170, 11, 22);
+}
+
+inline void
+CreateCustomColorPalette(color_palette *Palette, u32 CustomID)
+{
+    *Palette = GlobalGameState.Settings.Palettes[CustomID];
+    
+    r32 Div = 255.0f;
+    Palette->Slot             /= Div;
+    Palette->Text             /= Div;
+    Palette->Selected         /= Div;
+    Palette->Foreground       /= Div;
+    Palette->ForegroundText   /= Div;
+    Palette->SliderBackground /= Div;
+    Palette->SliderGrabThing  /= Div;
+    Palette->ButtonActive     /= Div;
+    Palette->PlayingSong      /= Div;
+    Palette->ErrorText        /= Div;
+}
+
+inline void
+UpdateColorPalette(music_display_info *DisplayInfo, b32 GoToNextPalette)
+{
+    u32 PaletteAmount = DEFAULT_COLOR_PALETTE_COUNT+GlobalGameState.Settings.PaletteCount;
+    if(GoToNextPalette) DisplayInfo->ColorPaletteID = ++DisplayInfo->ColorPaletteID%PaletteAmount;
+    else if(DisplayInfo->ColorPaletteID >= PaletteAmount) DisplayInfo->ColorPaletteID = 0;
+    
+    switch(DisplayInfo->ColorPaletteID)
+    {
+        case 0: CreateLushGreenColorPalette(&DisplayInfo->ColorPalette); break;
+        case 1: CreateEvilColorPalette(&DisplayInfo->ColorPalette);  break;
+        case 2: CreateAquaColorPalette(&DisplayInfo->ColorPalette); break;
+        case 3: CreateSunriseColorPalette(&DisplayInfo->ColorPalette); break;
+        case 4: CreateMonochromeColorPalette(&DisplayInfo->ColorPalette); break;
+        case 5: CreateMonoInvertedColorPalette(&DisplayInfo->ColorPalette); break;
+        default:
+        {
+            u32 CustomPaletteID = DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT;
+            CreateCustomColorPalette(&DisplayInfo->ColorPalette, CustomPaletteID);
+        }
+    }
+}
+
+inline b32
+IsColorPaletteDefault()
+{
+    return (GlobalGameState.MusicInfo.DisplayInfo.ColorPaletteID < DEFAULT_COLOR_PALETTE_COUNT);
+}
+
+internal void
+RemoveCustomColorPalette(u32 PaletteID)
+{
+    serialization_settings *Settings = &GlobalGameState.Settings;
+    PaletteID -= DEFAULT_COLOR_PALETTE_COUNT;
+    Assert(PaletteID >= 0);
+    Assert(PaletteID < Settings->PaletteCount);
+    
+    RemoveItem(Settings->Palettes, Settings->PaletteCount, PaletteID, color_palette);
+    RemoveItem(Settings->PaletteNames, Settings->PaletteCount, PaletteID, string_c);
+    
+    Settings->PaletteCount--;
+    Assert(Settings->PaletteCount >= 0);
+}
+
+internal void
+AddCustomColorPalette(color_palette *ColorPalette, string_c *Name)
+{
+    serialization_settings *Settings = &GlobalGameState.Settings;
+    if(Settings->PaletteCount+1 >= Settings->PaletteMaxCount)
+    {
+        NewLocalString(ErrorMsg, 255, "ERROR:: Created too many color palettes at once. Restart App if you want more!");
+        PushErrorMessage(&GlobalGameState, ErrorMsg);
+    }
+    else
+    {
+        Settings->PaletteNames[Settings->PaletteCount] = NewStringCompound(&GlobalGameState.FixArena, 100);
+        if(Name->Pos >= 100) Name->Pos = 100;
+        AppendStringCompoundToCompound(Settings->PaletteNames+Settings->PaletteCount, Name);
+        For(PALETTE_COLOR_AMOUNT)
+        {
+            Settings->Palettes[Settings->PaletteCount].Colors[It] = ColorPalette->Colors[It]*255.0f;
+        }
+        Settings->PaletteCount++;
+        // TODO:: Maybe write it out immidiately that it cannot get lost?
+    }
+}
+
+inline void
+OnPaletteSwap(void *Data)
+{
+    music_display_info *DisplayInfo = &((music_btn *)Data)->GameState->MusicInfo.DisplayInfo;
+    UpdateColorPalette(DisplayInfo, true);
+}
+
+inline string_c *
+GetCurrentPaletteName()
+{
+    string_c *Result = 0;
+    
+    music_display_info *DisplayInfo = &GlobalGameState.MusicInfo.DisplayInfo;
+    if(DisplayInfo->ColorPaletteID < DEFAULT_COLOR_PALETTE_COUNT) 
+        Result = GlobalDefaultColorPaletteNames + DisplayInfo->ColorPaletteID;
+    else Result = GlobalGameState.Settings.PaletteNames + (DisplayInfo->ColorPaletteID-DEFAULT_COLOR_PALETTE_COUNT);
+    
+    return Result;
 }
 
 

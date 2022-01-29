@@ -12,6 +12,7 @@
 // - add some form of highlighting on the other columns, based on what songs are visible rn. 
 // - If app is minimized, render something different to show what is playing when hovering the task-bar preview.
 // - Have the UpNext list as a 'playlist' that you can switch to and see all songs listed like normal playlist. Maybe have it only appear once you have a song in it.
+// - Add a 'jump to playing' button?
 
 // List of Tags to search for in the code:
 // - TODO::    , Stuff where I want to go and make something better later/clean it up/make it more save/etc.
@@ -61,6 +62,7 @@
 //     - Add drag&drop for sorting playlist slots?
 //     - Think about job'ifying playlist-loading. The only 'problem' is the _in what playlist was the app closed_.
 // - Add unregister hotkey and add mute only on ctrl press, or something similar.
+// - Change ActiveSong to only a border or similar.
 
 // BUGS::
 // - fix issues regarding handmade network comment
@@ -74,7 +76,6 @@
 // - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
-// - Copy colorPalette curtain broken.
 
 #include "Sound_UI_TD.h"
 

@@ -555,8 +555,8 @@ CreateColorPicker(game_state *GS, color_picker *Result, v2 ColorFieldSize, r32 S
     string_c SaveText   = NewStaticStringCompound("Saving current Color Palette.");
     string_c RemoveText = NewStaticStringCompound("Remove this Color Palette?");
     
-    CreateQuitAnimation(&Result->NewAnim, ColorFieldSize, &NewText, 0.5f);
-    CreateQuitAnimation(&Result->SaveAnim, ColorFieldSize, &SaveText, 0.75f);
+    CreateQuitAnimation(&Result->NewAnim,    ColorFieldSize, &NewText, 0.5f);
+    CreateQuitAnimation(&Result->SaveAnim,   ColorFieldSize, &SaveText, 0.75f);
     CreateQuitAnimation(&Result->RemoveAnim, ColorFieldSize, &RemoveText, 1.2f);
     
     // Create Textfield for palette names ****************
@@ -877,29 +877,27 @@ OnAnimationDone(void *Data)
 }
 
 internal void
-HandleColorPickerButtonAnimation(color_picker *ColorPicker, button *Btn, color_picker_anim_btn AnimBtn, quit_animation *Anim)
+HandleColorPickerButtonAnimation(style_settings_window *StyleSettings, button *Btn, color_picker_anim_btn AnimBtn, quit_animation *Anim)
 {
     if(!Anim->Activated)
     {
-        r32 Pushdown = 25;
+        v2 BGSize = GetSize(StyleSettings->Background);
         if(Btn->State == buttonState_Pressed)
         {
-            v2 Position = GetPosition(ColorPicker->Parent)+V2(0, GetExtends(ColorPicker->Parent).y-Pushdown);
-            v2 Size = GetSize(ColorPicker->Parent)-V2(0, Pushdown);
-            if(QuitAnimation(Anim, 1, Position, Size))
+            v2 Position = GetPosition(StyleSettings->Background) + V2(0, BGSize.y*0.5f);
+            if(QuitAnimation(Anim, 1, Position, BGSize))
             {
-                if(AnimBtn == colorPickerAnimBtn_New)         OnNewPalette(ColorPicker);
-                else if(AnimBtn == colorPickerAnimBtn_Save)   OnSavePalette(ColorPicker);
-                else if(AnimBtn == colorPickerAnimBtn_Remove) OnRemovePalette(ColorPicker);
+                if     (AnimBtn == colorPickerAnimBtn_New)    OnNewPalette(&StyleSettings->ColorPicker);
+                else if(AnimBtn == colorPickerAnimBtn_Save)   OnSavePalette(&StyleSettings->ColorPicker);
+                else if(AnimBtn == colorPickerAnimBtn_Remove) OnRemovePalette(&StyleSettings->ColorPicker);
                 
                 SetActive(Anim, false);
             }
         }
         else if(Anim->dAnim != 0)
         {
-            v2 Position = GetPosition(ColorPicker->Parent)+V2(0, GetExtends(ColorPicker->Parent).y-Pushdown);
-            v2 Size = GetSize(ColorPicker->Parent)-V2(0, Pushdown);
-            if(QuitAnimation(Anim, -1, Position, Size))
+            v2 Position = GetPosition(StyleSettings->Background) + V2(0, BGSize.y*0.5f);
+            if(QuitAnimation(Anim, -1, Position, BGSize))
             {
                 SetActive(Anim, false);
             }
@@ -1005,9 +1003,10 @@ HandleActiveColorPicker(game_state *GS, color_picker *ColorPicker)
     }
     
     // Handle Remove button animation
-    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->New, colorPickerAnimBtn_New, &ColorPicker->NewAnim);
-    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Save, colorPickerAnimBtn_Save, &ColorPicker->SaveAnim);
-    HandleColorPickerButtonAnimation(ColorPicker, ColorPicker->Remove, colorPickerAnimBtn_Remove, &ColorPicker->RemoveAnim);
+    style_settings_window *StyleSettings = &GS->StyleSettings;
+    HandleColorPickerButtonAnimation(StyleSettings, ColorPicker->New, colorPickerAnimBtn_New, &ColorPicker->NewAnim);
+    HandleColorPickerButtonAnimation(StyleSettings, ColorPicker->Save, colorPickerAnimBtn_Save, &ColorPicker->SaveAnim);
+    HandleColorPickerButtonAnimation(StyleSettings, ColorPicker->Remove, colorPickerAnimBtn_Remove, &ColorPicker->RemoveAnim);
 }
 
 inline color_palette *
@@ -1019,15 +1018,15 @@ GetColorPalette(game_state *GS)
 inline void
 CreateLushGreenColorPalette(color_palette *Palette)
 {
-    Palette->Slot             = Color(11,  15,  11);
+    Palette->Slot             = Color(14,  19,  14);//Color(11,  15,  11);
     Palette->Text             = Color(144, 174, 130);
-    Palette->Selected         = Color(18,  45,  18);
-    Palette->Foreground       = Color(14,  18,  12);
+    Palette->Selected         = Color(24,  40,  24);
+    Palette->Foreground       = Color(23,  30,  20);//Color(14,  18,  12);
     Palette->ForegroundText   = Color(144, 174, 130);
     Palette->SliderBackground = Color(17,  24,  17);
     Palette->SliderGrabThing  = Color(38,  52,  34);
-    Palette->ButtonActive     = Color(22,  51,  16);
-    Palette->PlayingSong      = Color(24,  40,  24);
+    Palette->ButtonActive     = Color(70,  89,  64);
+    Palette->PlayingSong      = Color(30,  58,  30);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 
@@ -1064,15 +1063,15 @@ CreateAquaColorPalette(color_palette *Palette)
 inline void
 CreateSunriseColorPalette(color_palette *Palette)
 {
-    Palette->Slot             = Color(201, 103, 29);
-    Palette->Text             = Color(255, 239, 149);
-    Palette->Selected         = Color(171, 83,  32);
-    Palette->Foreground       = Color(220, 163, 45);
+    Palette->Slot             = Color(221, 159, 68);
+    Palette->Text             = Color(120, 42,  6);
+    Palette->Selected         = Color(240, 205, 106);
+    Palette->Foreground       = Color(226, 184, 95);
     Palette->ForegroundText   = Color(135, 39,  4);
-    Palette->SliderBackground = Color(249, 212, 94);
-    Palette->SliderGrabThing  = Color(218, 136, 42);
-    Palette->ButtonActive     = Color(253, 128, 41);
-    Palette->PlayingSong      = Color(206, 122, 34);
+    Palette->SliderBackground = Color(241, 209, 105);
+    Palette->SliderGrabThing  = Color(221, 161, 66);
+    Palette->ButtonActive     = Color(250, 181, 49);
+    Palette->PlayingSong      = Color(218, 173, 70);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 

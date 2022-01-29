@@ -516,3 +516,4 @@
 - Added path validation for musicLibPath textfield.
 - Updated all but one ColorPalettes.
 - Added "Summer Sunrise" as new colorPalette
+- Fixed colorPalette button animations.

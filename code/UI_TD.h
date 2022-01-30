@@ -246,4 +246,20 @@ internal void CreatePopup(renderer *Renderer, arena_allocator *Arena, popup *Res
 internal void ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c NewText, font_size FontSize);
 internal void DoAnimation(popup *Popup, r32 dTime);
 
+// Border - Rectangle 
+
+struct border_rectangle
+{
+    entry_id *Top;
+    entry_id *Bottom;
+    entry_id *Right;
+    entry_id *Left;
+    
+    r32 Thickness;
+};
+internal border_rectangle CreateBorderRectangle(renderer *Renderer, v2 Size, r32 Depth, r32 Thickness, v3 *Color, entry_id *Parent = NULL);
+inline void SetSize(border_rectangle *BorderRect, v2 Size);
+inline void SetActive(border_rectangle *BorderRect, b32 Activate);
+inline void SetParent(border_rectangle *BorderRect, entry_id *Parent);
+
 #endif //_U_I__T_D_H

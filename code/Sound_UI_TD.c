@@ -866,19 +866,23 @@ UpdateDisplayColumnColor(display_column *DisplayColumn, playlist_column *Playlis
 }
 
 internal void
-UpdatePlayingSongColor(display_column *DisplayColumn, playlist_column *PlaylistColumn, playlist_id PlaylistID, v3 *Color)
+UpdatePlayingSongColor(display_column_song *SongColumn, playlist_column *PlaylistColumn, 
+                       playlist_id PlayingSongPlaylistID, v3 *Color)
 {
+    display_column *DisplayColumn = &SongColumn->Base;
+    SetActive(&SongColumn->PlayingSongBorder, false);
     for(u32 It = 0; 
         It < DisplayColumn->Count &&
         It < PlaylistColumn->Displayable.A.Count; 
         It++)
     {
         playlist_id ActualID  = Get(&PlaylistColumn->Displayable, DisplayColumn->SlotIDs[It]);
-        if(PlaylistID == ActualID)
+        if(PlayingSongPlaylistID == ActualID) // Playing Song, now we set the border.
         {
-            SetColor(DisplayColumn->SlotBGs[It], Color);
+            SetParent(&SongColumn->PlayingSongBorder, DisplayColumn->SlotBGs[It]);
+            SetActive(&SongColumn->PlayingSongBorder, true);
         }
-        else if(StackContains(&PlaylistColumn->Selected, ActualID))
+        if(StackContains(&PlaylistColumn->Selected, ActualID))
         {
             SetColor(DisplayColumn->SlotBGs[It], DisplayColumn->Colors.Selected);
         }
@@ -895,7 +899,7 @@ UpdateColumnColor(display_column *DisplayColumn, playlist_column *PlaylistColumn
         playlist_id PlaylistID = {-1};
         if(MusicInfo->PlayingSong.DisplayableID >= 0) 
             PlaylistID = Get(&MusicInfo->Playlist_->Song.Displayable, MusicInfo->PlayingSong.DisplayableID);
-        UpdatePlayingSongColor(DisplayColumn, PlaylistColumn, PlaylistID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
+        UpdatePlayingSongColor(ColumnExt(DisplayColumn), PlaylistColumn, PlaylistID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
     }
     else
     {
@@ -914,7 +918,7 @@ UpdateSelectionColors(music_info *MusicInfo)
     if(MusicInfo->PlayingSong.DisplayableID >= 0)
     {
         playlist_id PlaylistID = Get(&MusicInfo->Playlist_->Song.Displayable, MusicInfo->PlayingSong.DisplayableID);
-        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song.Base, &MusicInfo->Playlist_->Song, PlaylistID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
+        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song, &MusicInfo->Playlist_->Song, PlaylistID, &MusicInfo->DisplayInfo.ColorPalette.PlayingSong);
     }
 }
 
@@ -1303,6 +1307,11 @@ FitDisplayColumnIntoSlot(renderer *Renderer, display_column *DisplayColumn, u32 
             SetSize(RenameField->Background, V2(DisplayColumn->SlotWidth, GetSize(RenameField->Background).y));
             SetLocalPosition(RenameField->LeftAlign, V2(DisplayColumn->SlotWidth*-0.5f, 0));
         }
+    }
+    else if(DisplayColumn->Type == columnType_Song)
+    {
+        v2 BorderSize = V2(DisplayColumn->SlotWidth, SlotHeight(DisplayColumn) - GlobalGameState.Layout.SlotGap);
+        SetSize(&ColumnExt(DisplayColumn)->PlayingSongBorder, BorderSize);
     }
 }
 
@@ -1861,6 +1870,11 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
                             DisplayInfo->AlbumSongEdge.Edge, DisplayInfo->EdgeRight, Layout);
         CreateDisplayColumn(PlaylistsColumn, &GameState->FixArena, columnType_Playlists, PLColumnColors, 0.0f, 
                             DisplayInfo->EdgeLeft, DisplayInfo->PlaylistsGenreEdge.Edge, Layout);
+        
+        // Adding PlayingSong border.
+        v2 BorderSize = V2(DisplayInfo->Song.Base.SlotWidth, SlotHeight(&DisplayInfo->Song.Base) - Layout->SlotGap);
+        DisplayInfo->Song.PlayingSongBorder = CreateBorderRectangle(Renderer, BorderSize, -0.101f, 
+                                                                    Layout->PlayingSongBorderThickness, &Palette->PlayingSong);
         
         MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Playlists);
         MoveDisplayColumn(Renderer, MusicInfo, &DisplayInfo->Genre);

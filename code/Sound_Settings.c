@@ -1026,7 +1026,7 @@ CreateLushGreenColorPalette(color_palette *Palette)
     Palette->SliderBackground = Color(17,  24,  17);
     Palette->SliderGrabThing  = Color(38,  52,  34);
     Palette->ButtonActive     = Color(70,  89,  64);
-    Palette->PlayingSong      = Color(30,  58,  30);
+    Palette->PlayingSong      = Color(144, 174, 130);//Color(30,  58,  30);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 
@@ -1041,7 +1041,7 @@ CreateEvilColorPalette(color_palette *Palette)
     Palette->SliderBackground = Color(56,  23,  23);
     Palette->SliderGrabThing  = Color(86,  26,  23);
     Palette->ButtonActive     = Color(58,  12,  12);
-    Palette->PlayingSong      = Color(56,  23,  23);
+    Palette->PlayingSong      = Color(217, 199, 197);//Color(56,  23,  23);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 
@@ -1056,7 +1056,7 @@ CreateAquaColorPalette(color_palette *Palette)
     Palette->SliderBackground = Color(20,  36,  79);
     Palette->SliderGrabThing  = Color(11,  29,  58);
     Palette->ButtonActive     = Color(19,  52,  102);
-    Palette->PlayingSong      = Color(20,  37,  79);
+    Palette->PlayingSong      = Color(150, 187, 197);//Color(111, 136, 196);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 
@@ -1071,7 +1071,7 @@ CreateSunriseColorPalette(color_palette *Palette)
     Palette->SliderBackground = Color(241, 209, 105);
     Palette->SliderGrabThing  = Color(221, 161, 66);
     Palette->ButtonActive     = Color(250, 181, 49);
-    Palette->PlayingSong      = Color(218, 173, 70);
+    Palette->PlayingSong      = Color(120, 42,  6);//Color(134, 42,  4);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 
@@ -1086,7 +1086,7 @@ CreateMonochromeColorPalette(color_palette *Palette)
     Palette->SliderBackground = Color(88,  88,  88);
     Palette->SliderGrabThing  = Color(39,  39,  39);
     Palette->ButtonActive     = Color(88,  88,  88);
-    Palette->PlayingSong      = Color(22,  22,  22);
+    Palette->PlayingSong      = Color(173, 173, 173);
     Palette->ErrorText        = Color(170, 11,  22);
 }
 
@@ -1101,7 +1101,7 @@ CreateMonoInvertedColorPalette(color_palette *Palette)
     Palette->SliderBackground = Color(131,133,133);
     Palette->SliderGrabThing  = Color(70,73,73);
     Palette->ButtonActive     = Color(78,80,80);
-    Palette->PlayingSong      = Color(38,35,35);
+    Palette->PlayingSong      = Color(220,220,220);
     Palette->ErrorText        = Color(170, 11, 22);
 }
 

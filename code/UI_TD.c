@@ -1025,6 +1025,62 @@ ChangeText(renderer *Renderer, arena_allocator *Arena, popup *Popup, string_c Ne
 }
 
 
+// Border - Rectangle *****************************************
+internal border_rectangle 
+CreateBorderRectangle(renderer *Renderer, v2 Size, r32 Depth, r32 Thickness, v3 *Color, entry_id *Parent)
+{
+    border_rectangle Result;
+    Result.Thickness = Thickness;
+    
+    r32 ReducedWidth = Size.x - Thickness*2;
+    Result.Top    = CreateRenderRect(Renderer, V2(ReducedWidth, Thickness), Depth, Color, Parent);
+    Result.Bottom = CreateRenderRect(Renderer, V2(ReducedWidth, Thickness), Depth, Color, Parent);
+    Result.Right  = CreateRenderRect(Renderer, V2(Thickness, Size.y),       Depth, Color, Parent);
+    Result.Left   = CreateRenderRect(Renderer, V2(Thickness, Size.y),       Depth, Color, Parent);
+    
+    SetLocalPosition(Result.Top,    V2(0, ( Size.y - Thickness)*0.5f));
+    SetLocalPosition(Result.Bottom, V2(0, (-Size.y + Thickness)*0.5f));
+    SetLocalPosition(Result.Right,  V2(( Size.x - Thickness)*0.5f, 0));
+    SetLocalPosition(Result.Left,   V2((-Size.x + Thickness)*0.5f, 0));
+    
+    return Result;
+}
+
+inline void
+SetSize(border_rectangle *BorderRect, v2 Size)
+{
+    r32 Thickness = BorderRect->Thickness;
+    r32 ReducedWidth = Size.x - Thickness*2;
+    SetSize(BorderRect->Top,    V2(ReducedWidth, Thickness));
+    SetSize(BorderRect->Bottom, V2(ReducedWidth, Thickness));
+    SetSize(BorderRect->Right,  V2(Thickness, Size.y));
+    SetSize(BorderRect->Left,   V2(Thickness, Size.y));
+    
+    SetLocalPosition(BorderRect->Top,    V2(0, ( Size.y - Thickness)*0.5f));
+    SetLocalPosition(BorderRect->Bottom, V2(0, (-Size.y + Thickness)*0.5f));
+    SetLocalPosition(BorderRect->Right,  V2(( Size.x - Thickness)*0.5f, 0));
+    SetLocalPosition(BorderRect->Left,   V2((-Size.x + Thickness)*0.5f, 0));
+}
+
+inline void 
+SetActive(border_rectangle *BorderRect, b32 Activate)
+{
+    SetActive(BorderRect->Top,    Activate);
+    SetActive(BorderRect->Bottom, Activate);
+    SetActive(BorderRect->Right,  Activate);
+    SetActive(BorderRect->Left,   Activate);
+}
+
+inline void 
+SetParent(border_rectangle *BorderRect, entry_id *Parent)
+{
+    SetParent(BorderRect->Top,    Parent);
+    SetParent(BorderRect->Bottom, Parent);
+    SetParent(BorderRect->Right,  Parent);
+    SetParent(BorderRect->Left,   Parent);
+}
+
+
 
 
 

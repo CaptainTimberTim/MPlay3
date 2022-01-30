@@ -2440,9 +2440,8 @@ FinishChangeSong(game_state *GameState, playing_song *Song)
     {
         PushSongChanged(GameState->SoundThreadInterface, DInfo);
         
-        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song.Base, &MusicInfo->Playlist_->Song, PlaylistID, 
+        UpdatePlayingSongColor(&MusicInfo->DisplayInfo.Song, &MusicInfo->Playlist_->Song, PlaylistID, 
                                &MusicInfo->DisplayInfo.Song.Base.Base->ColorPalette.PlayingSong);
-        
         
         mp3_metadata *MD = GetMetadata(&GameState->MusicInfo.Playlist_->Song, &GameState->MP3Info->FileInfo, PlaylistID);
         DebugLog(1255, "Nr.%i: %s (%s) by %s \n%i - %s - %i - %i Hz\n", MD->Track, MD->Title.S, MD->Album.S, MD->Artist.S, MD->Year, MD->Genre.S, MD->Duration, DInfo->hz);

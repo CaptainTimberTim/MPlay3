@@ -238,14 +238,14 @@ enum metadata_flags
 
 struct mp3_metadata
 {
-    string_compound Title;
-    string_compound Artist;
-    string_compound Album;
-    string_compound Genre;
+    string_c Title;
+    string_c Artist;
+    string_c Album;
+    string_c Genre;
     u32 Track;
-    string_compound TrackString;
+    string_c TrackString;
     u32 Year;
-    string_compound YearString;
+    string_c YearString;
     u32 Duration;
     i32 FoundFlags;
 };

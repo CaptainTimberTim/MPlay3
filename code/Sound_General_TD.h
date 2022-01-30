@@ -88,4 +88,27 @@ inline b32 operator!=(playlist_id ID1, i32  ID2)        { return ID1.ID != ID2; 
 inline select_id    NewSelectID(i32 ID) { return {ID}; }
 inline decode_id    NewDecodeID(i32 ID) { return {ID}; }
 
+/*
+// Start of table for songs, but this needs a better thought out plan!
+
+// Sound HashTable
+struct song_table_entry
+{
+    u32     Key;
+    file_id Value;
+};
+
+struct song_hash_table
+{
+    song_table_entry *Table;
+    u32 TableSize;
+    u32 Count;
+    
+    arena_allocator *CreationArena;
+};
+
+inline song_hash_table CreateSongTable(arena_allocator *Arena, u32 Size);
+inline void DestroySongTable(song_hash_table *HashTable);
+*/
+
 #endif //_SOUND__GENERAL__T_D_H

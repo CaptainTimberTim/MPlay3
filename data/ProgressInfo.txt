@@ -517,3 +517,6 @@
 - Updated all but one ColorPalettes.
 - Added "Summer Sunrise" as new colorPalette
 - Fixed colorPalette button animations.
+
+30.01.2022
+- Changed PlayingSong visualization from simple color of slot to a border around that slot in that color.

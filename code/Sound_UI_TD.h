@@ -139,6 +139,8 @@ struct display_column_song
     
     b32 IsSmallMode;
     
+    border_rectangle PlayingSongBorder;
+    
     struct mp3_file_info *FileInfo;
 };
 #define Parent(name)    &(name)->Base
@@ -413,6 +415,8 @@ struct layout_definition
     r32 PanelTextYOffset  = -4;
     r32 PanelTextDepth    = -0.6f;
     
+    r32 PlayingSongBorderThickness = 3;
+    
     // QuitCurtain
     r32 QuitCurtainAnimationTime       = 1;
     r32 QuitCurtainAnimationMultiplies = 1.75f;
@@ -479,7 +483,6 @@ inline void UpdateColumnColor(display_column *DisplayColumn, struct playlist_col
 internal void BringDisplayableEntryOnScreen(music_info *MusicInfo, display_column *DisplayColumn, playlist_id PlaylistID);
 internal void BringDisplayableEntryOnScreenWithSortID(music_info *MusicInfo, display_column *DisplayColumn, batch_id SortID);
 inline void ToggleSelection(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 ColumnDisplayID);
-internal void UpdatePlayingSongColor(display_column *DisplayColumn, playlist_column *PlaylistColumn, u32 FileID, v4 *Color);
 internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *MusicInfo);
 internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn,
                                   playlist_column *PlaylistColumn, i32 ScrollAmount);

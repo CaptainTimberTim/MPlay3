@@ -1062,6 +1062,13 @@ SetSize(border_rectangle *BorderRect, v2 Size)
     SetLocalPosition(BorderRect->Left,   V2((-Size.x + Thickness)*0.5f, 0));
 }
 
+inline b32
+IsActive(border_rectangle *BorderRect)
+{
+    b32 Result = IsActive(BorderRect->Top);
+    return Result;
+}
+
 inline void 
 SetActive(border_rectangle *BorderRect, b32 Activate)
 {

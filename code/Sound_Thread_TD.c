@@ -338,6 +338,16 @@ PushNewPlayedTime(sound_thread_interface *Interface, r32 NewTime)
 }
 
 internal void
+PushNewPlayedTimeAfterLoading(sound_thread_interface *Interface, r32 NewTime)
+{
+    WaitForSingleObjectEx(Interface->SoundMutex, INFINITE, false);
+    Interface->CurrentPlaytime = NewTime;
+    Interface->ChangedTimeToggle = true;
+    Interface->ChangedTimeAfterLoadingToggle = true;
+    ReleaseMutex(Interface->SoundMutex);
+}
+
+internal void
 PushToneVolume(sound_thread_interface *Interface, r32 VolumeChange)
 {
     WaitForSingleObjectEx(Interface->SoundMutex, INFINITE, false);
@@ -430,6 +440,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             if(Interface->ChangedTimeToggle)
             {
                 Interface->ChangedTimeToggle = false;
+                Interface->ChangedTimeAfterLoadingToggle = false;
                 SoundInfo->PlayedSampleCount = (u32)(Interface->CurrentPlaytime*
                                                      SoundInfo->SoundInstance.SamplesPerSecond);
                 CurrentSongPlaytime = Interface->CurrentPlaytime;
@@ -442,7 +453,8 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
             
             Interface->CurrentPlaytime = Playtime/1000.0f;
         }
-        else Interface->CurrentPlaytime = 0;
+        else if(!Interface->ChangedTimeAfterLoadingToggle)
+            Interface->CurrentPlaytime = 0;
         
         if(PlayState == playState_Done) 
         {

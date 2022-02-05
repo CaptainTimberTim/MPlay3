@@ -75,8 +75,6 @@ struct font_atlas
 {
     font_sizes FontSizes;
     
-    i32 HeightOffset_; // TODO:: Not used anymore, remove?
-    
     u32 MaxCount;
     u32 Count;
     font_group *FontGroups; // Sparse array of required codepoints

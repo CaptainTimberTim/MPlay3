@@ -71,9 +71,7 @@
 // - MP3 V0 crashes?
 // - selecting and deselecting stuff (in combination with search) is buggy.
 // - Fix stutter on first play of song.
-// - Currently playing song is before music path background.
 // - Switching audio sources freezes playing of music entirely. On play 1 sec gets advanced...
-// - 'Dear Sister', Pretty Reckless - year is creazy on playing song panel.
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
 

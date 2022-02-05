@@ -185,10 +185,10 @@ GetInitialYForDisplayColumnSlot(display_column *DisplayColumn)
 inline void
 OnSongPlayPressed(void *Data)
 {
-    song_play_btn *PlayInfo = (song_play_btn *)Data;
-    music_info *MusicInfo = &PlayInfo->GameState->MusicInfo;
+    song_play_btn    *PlayInfo = (song_play_btn *)Data;
+    music_info      *MusicInfo = &PlayInfo->GameState->MusicInfo;
     display_column *SongColumn = &MusicInfo->DisplayInfo.Song.Base;
-    b32 *IsPlaying = &MusicInfo->IsPlaying;
+    b32             *IsPlaying = &MusicInfo->IsPlaying;
     
     if(!IsInRect(SongColumn->Background, GlobalGameState.Input.MouseP)) return;
     
@@ -196,7 +196,6 @@ OnSongPlayPressed(void *Data)
     
     playlist_id PlaylistID = {};
     displayable_id DisplayableID = GetDisplayableID(MusicInfo, PlayInfo->DisplayID, &PlaylistID);
-    //displayable_id DisplayableID = {SongColumn->OnScreenIDs[PlayInfo->DisplayID].ID}; // TODO::PLAYLIST_DISPLAYABLE
     
     if(MusicInfo->PlayingSong.DisplayableID != DisplayableID)
     {
@@ -879,8 +878,11 @@ UpdatePlayingSongColor(display_column_song *SongColumn, playlist_column *Playlis
         playlist_id ActualID  = Get(&PlaylistColumn->Displayable, DisplayColumn->SlotIDs[It]);
         if(PlayingSongPlaylistID == ActualID) // Playing Song, now we set the border.
         {
-            SetParent(&SongColumn->PlayingSongBorder, DisplayColumn->SlotBGs[It]);
-            SetActive(&SongColumn->PlayingSongBorder, true);
+            if(!IsActive(&SongColumn->PlayingSongBorder))
+            {
+                SetParent(&SongColumn->PlayingSongBorder, DisplayColumn->SlotBGs[It]);
+                SetActive(&SongColumn->PlayingSongBorder, true);
+            }
         }
         if(StackContains(&PlaylistColumn->Selected, ActualID))
         {
@@ -1097,6 +1099,8 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
         It++)
     {
         DisplayColumn->SlotBGs[It]->ID->Render = true;
+        DisplayColumn->SlotIDs[It] = NextID;
+        if(NextID < 0) continue;
         
         if(DisplayColumn->Type == columnType_Song) 
         {
@@ -1114,10 +1118,10 @@ MoveDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *Dis
             r32 CurrentOffsetY = -SlotHeight(DisplayColumn)*0.5f - GetFontDescent(&GlobalGameState, font_Small, *Name) + GlobalGameState.Layout.SlotHeight*0.5f;
             Translate(DisplayColumn->SlotText+It, V2(0, CurrentOffsetY));
         }
-        DisplayColumn->SlotIDs[It] = NextID;
+        
         // #LastSlotOverflow, The last ID is not visible when the column is at the bottom, 
-        // but the NextID would be out of displayable range.
-        if(NextID.ID+1 < (i32)PlaylistColumn->Displayable.A.Count) NextID.ID++; 
+        // but the NextID would be out of displayable range, so we cycle around to the top.
+        NextID.ID = (NextID.ID + 1)%PlaylistColumn->Displayable.A.Count;
     }
     ResetColumnText(DisplayColumn, PlaylistColumn->Displayable.A.Count);
     UpdateColumnColor(DisplayColumn, PlaylistColumn);
@@ -1923,7 +1927,7 @@ InitializeDisplayInfo(music_display_info *DisplayInfo, game_state *GameState, mp
         };
         CreateSlider(GameState, &Panel->Timeline, sliderAxis_X, TimelineBG, TimelineGrab, BtnDepth, false);
         
-        SetNewPlayingSong(Renderer, Panel, Layout, &GameState->MusicInfo);
+        UpdatePlayingSongPanel(Renderer, Panel, Layout, &GameState->MusicInfo);
         
         DisplayInfo->SearchIsActive = -1;
     }
@@ -2067,12 +2071,18 @@ CreateShortcutPopups(music_display_info *DisplayInfo)
     Popups->CopyPalette     = NewStaticStringCompound("Copies the current palette and immidiately switches to it.");
     Popups->DeletePalette   = NewStaticStringCompound("Deletes the current palette (only for custom palettes).");
     Popups->CancelPicker    = NewStaticStringCompound("Quits the color-picker.");
+    Popups->FontSettingsSmall  = NewStaticStringCompound("Change size of 'small' font.");
+    Popups->FontSettingsMedium = NewStaticStringCompound("Change size of 'medium' font.");
+    Popups->FontSettingsPath   = NewStaticStringCompound("Add path to a custom font (empty = standard font).");
+    
     
     Popups->AddPlaylist     = NewStaticStringCompound("Create a new, empty playlist. Fill it, by Drag&Dropping 'Slots' onto it.");
     Popups->AddSelectionPlaylist = NewStaticStringCompound("Create a playlist with the current selection of songs.");
     Popups->RenamePlaylist  = NewStaticStringCompound("Rename the active playlist ('All' excluded).");
     Popups->RemovePlaylist  = NewStaticStringCompound("Remove the active playlist ('All' excluded).");
     Popups->SearchPlaylists = NewStaticStringCompound("Search playlist by name.");
+    
+    Popups->SongHeightToggle = NewStaticStringCompound("Press [F9] to toggle between small and normal view.");
     
     CreatePopup(&GlobalGameState.Renderer, &GlobalGameState.FixArena, &Popups->Popup, Popups->Help, 
                 GetFontSize(&GlobalGameState.Renderer, font_Medium), -0.99f, 0.05f);
@@ -2093,36 +2103,60 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
         font_size FontSize = GetFontSize(&GS->Renderer, font_Medium);
         if(!DisplayInfo->MusicPath.TextField.IsActive)
         {
-            if(IsOnButton(GS->StyleSettings.ColorPicker.Save, MouseP))
+            if(IsActive(GS, mode_StyleSettings))
             {
-                if(Popups->ActiveText != 23) 
-                    ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SavePalette, FontSize);
-                Popups->ActiveText = 23;
-                Popups->IsHovering = true;
+                if(IsOnButton(GS->StyleSettings.ColorPicker.Save, MouseP))
+                {
+                    if(Popups->ActiveText != 23) 
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SavePalette, FontSize);
+                    Popups->ActiveText = 23;
+                    Popups->IsHovering = true;
+                }
+                else if(IsOnButton(GS->StyleSettings.ColorPicker.New, MouseP))
+                {
+                    if(Popups->ActiveText != 24) 
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->CopyPalette, FontSize);
+                    Popups->ActiveText = 24;
+                    Popups->IsHovering = true;
+                }
+                else if(IsOnButton(GS->StyleSettings.ColorPicker.Remove, MouseP))
+                {
+                    if(Popups->ActiveText != 25) 
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->DeletePalette, FontSize);
+                    Popups->ActiveText = 25;
+                    Popups->IsHovering = true;
+                }
+                else if(IsOnButton(GS->StyleSettings.Cancel, MouseP))
+                {
+                    if(Popups->ActiveText != 26) 
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->CancelPicker, FontSize);
+                    Popups->ActiveText = 26;
+                    Popups->IsHovering = true;
+                }
+                else if(IsInRect(GS->StyleSettings.FontSettings.SmallFontSlider.Background, MouseP))
+                {
+                    if(Popups->ActiveText != 33) 
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->FontSettingsSmall, FontSize);
+                    Popups->ActiveText = 33;
+                    Popups->IsHovering = true;
+                }
+                else if(IsInRect(GS->StyleSettings.FontSettings.MediumFontSlider.Background, MouseP))
+                {
+                    if(Popups->ActiveText != 34) 
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->FontSettingsMedium, FontSize);
+                    Popups->ActiveText = 34;
+                    Popups->IsHovering = true;
+                }
+                else if(IsOnButton(GS->StyleSettings.FontSettings.EditFont, MouseP) ||
+                        IsInRect(GS->StyleSettings.FontSettings.ActiveFont.Background, MouseP))
+                {
+                    if(Popups->ActiveText != 35)
+                        ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->FontSettingsPath, FontSize);
+                    Popups->ActiveText = 35;
+                    Popups->IsHovering = true;
+                }
             }
-            else if(IsOnButton(GS->StyleSettings.ColorPicker.New, MouseP))
-            {
-                if(Popups->ActiveText != 24) 
-                    ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->CopyPalette, FontSize);
-                Popups->ActiveText = 24;
-                Popups->IsHovering = true;
-            }
-            else if(IsOnButton(GS->StyleSettings.ColorPicker.Remove, MouseP))
-            {
-                if(Popups->ActiveText != 25) 
-                    ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->DeletePalette, FontSize);
-                Popups->ActiveText = 25;
-                Popups->IsHovering = true;
-            }
-            else 
-                if(IsOnButton(GS->StyleSettings.Cancel, MouseP))
-            {
-                if(Popups->ActiveText != 26) 
-                    ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->CancelPicker, FontSize);
-                Popups->ActiveText = 26;
-                Popups->IsHovering = true;
-            }
-            else if(IsButtonHovering(DisplayInfo->PaletteSwap))
+            if(IsButtonHovering(DisplayInfo->PaletteSwap))
             {
                 if(Popups->ActiveText != 1) 
                     ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->PaletteSwap, FontSize);
@@ -2237,23 +2271,34 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
             }
             else if(IsInRect(DisplayInfo->Song.Base.Background, MouseP))
             {
-                For(DisplayInfo->Song.Base.Count)
+                if(!IsInRect(GS->StyleSettings.Border, MouseP) || !IsActive(GS, mode_StyleSettings))
                 {
-                    if(IsButtonHovering(DisplayInfo->Song.Play[It]))
+                    For(DisplayInfo->Song.Base.Count)
                     {
-                        if(Popups->ActiveText != 4) 
-                            ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SongPlay, FontSize);
-                        Popups->ActiveText = 4;
-                        Popups->IsHovering = true;
-                        break;
-                    }
-                    else if(IsButtonHovering(DisplayInfo->Song.Add[It]))
-                    {
-                        if(Popups->ActiveText != 5) 
-                            ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SongAddToNextUp, FontSize);
-                        Popups->ActiveText = 5;
-                        Popups->IsHovering = true;
-                        break;
+                        if(IsButtonHovering(DisplayInfo->Song.Play[It]))
+                        {
+                            if(Popups->ActiveText != 4) 
+                                ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SongPlay, FontSize);
+                            Popups->ActiveText = 4;
+                            Popups->IsHovering = true;
+                            break;
+                        }
+                        else if(IsButtonHovering(DisplayInfo->Song.Add[It]))
+                        {
+                            if(Popups->ActiveText != 5) 
+                                ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SongAddToNextUp, FontSize);
+                            Popups->ActiveText = 5;
+                            Popups->IsHovering = true;
+                            break;
+                        }
+                        else if(IsInRect(DisplayInfo->Song.Base.SlotBGs[It], MouseP))
+                        {
+                            if(Popups->ActiveText != 32)
+                                ChangeText(&GS->Renderer, &GS->FixArena, &Popups->Popup, Popups->SongHeightToggle, FontSize);
+                            Popups->ActiveText = 32;
+                            Popups->IsHovering = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -2345,7 +2390,7 @@ ProcessShortcutPopup(shortcut_popups *Popups, r32 dTime, v2 MouseP)
 }
 
 internal void
-SetNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo)
+UpdatePlayingSongPanel(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo)
 {
     game_state *GS = &GlobalGameState;
     
@@ -2452,7 +2497,7 @@ SetNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definiti
     
     r32 TitleX = GetPosition(Panel->Track.Base).x + Panel->Track.Extends.x + Layout->PanelTextXOffset;
     
-    RenderText(GS, font_Medium, TitleString, TextColor, &Panel->Title, Depth-0.01f, 0);
+    RenderText(GS, font_Medium, TitleString, TextColor, &Panel->Title, Depth-0.0001f, 0);
     SetPosition(&Panel->Title, V2(TitleX, RowSongY));
 }
 

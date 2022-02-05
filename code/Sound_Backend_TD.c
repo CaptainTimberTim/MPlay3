@@ -778,7 +778,7 @@ CheckForLooping(u32 DisplayableCount, displayable_id PlayingSongID, play_loop Lo
 internal void
 SetNextSong(music_info *MusicInfo)
 {
-    playing_song *PlayingSong = &MusicInfo->PlayingSong ;
+    playing_song *PlayingSong = &MusicInfo->PlayingSong;
     play_loop Looping = MusicInfo->Playlist_->Looping;
     Assert(PlayingSong->DisplayableID >= -1);
     
@@ -2417,7 +2417,7 @@ FinishChangeEntireSong(game_state *GS, playing_song *Song)
         GS->MusicInfo.PlayingSong.DisplayableID.ID = -1;
         GS->MusicInfo.PlayingSong.PlaylistID.ID = -1;
         GS->MusicInfo.PlayingSong.DecodeID = -1;
-        SetNewPlayingSong(&GS->Renderer, &GS->MusicInfo.DisplayInfo.PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
+        UpdatePlayingSongPanel(&GS->Renderer, &GS->MusicInfo.DisplayInfo.PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     }
     else PushSongLoadingComplete(GlobalGameState.SoundThreadInterface, DInfo);
 }
@@ -2482,7 +2482,7 @@ ChangeSong(game_state *GameState, playing_song *Song)
         PushSoundBufferClear(GameState->SoundThreadInterface);
     }
     
-    SetNewPlayingSong(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);
+    UpdatePlayingSongPanel(&GameState->Renderer, &GameState->MusicInfo.DisplayInfo.PlayingSongPanel, &GameState->Layout, MusicInfo);
 }
 
 inline void
@@ -2512,10 +2512,9 @@ ApplyNewMetadata(game_state *GameState, music_info *MusicInfo)
     Assert(NameEndP >= 0);
     PLName.Pos = NameEndP-1;
     
-    For(MusicInfo->Playlists.Count-1)
-    { 
-        RemovePlaylist(GameState, MusicInfo->Playlists.List + (It+1), false);
-    }
+    u32 PlaylistCount = MusicInfo->Playlists.Count;
+    for(u32 It = PlaylistCount-1; It > 0; --It) 
+        RemovePlaylist(GameState, MusicInfo->Playlists.List + It, false);
     LoadAllPlaylists(GameState);
     
     playlist_info *ActivePlaylist = GetPlaylist(GameState, PLName);

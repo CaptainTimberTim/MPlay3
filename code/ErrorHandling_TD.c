@@ -12,15 +12,15 @@ _PushUserErrorMessage(struct game_state *GS, string_c *String, v2 MessagePositio
     ErrorInfo->AnimTime = 1.0f + String->Pos*0.1f; 
     
     font_size_id FontSize = font_Medium;
-    if(String->Pos > 60) FontSize = font_Small;
+    if(String->Pos > 60 || Find(*String, '\n') >= 0) FontSize = font_Small;
     
     ErrorInfo->dAnim = 0;
     ErrorInfo->IsAnimating = true;
     if(MessagePosition.x == MIN_REAL32)
     {
+        r32 FontAscent = GetFontAscent(GS, FontSize, *String);
         MessagePosition.x = GS->Layout.ErrorMessageX;
-        if(FontSize == font_Medium)     MessagePosition.y = -GS->Layout.ErrorMessageMediumTextY;
-        else if(FontSize == font_Small) MessagePosition.y = -GS->Layout.ErrorMessageSmallTextY;
+        MessagePosition.y = -GS->Layout.ErrorMessageYOffset - FontAscent;
     }
     
     RenderText(GS, FontSize, String, &GS->MusicInfo.DisplayInfo.ColorPalette.ErrorText, &ErrorInfo->Message, -0.8f, 0, MessagePosition + V2(0, (r32)Renderer->Window.FixedDim.Height));

@@ -9,7 +9,7 @@ inline font_atlas
 NewFontAtlas(serialization_settings *Settings, font_sizes FontSizes)
 {
     PrepareUnicodeGroupList();
-    font_atlas Result = {FontSizes, Settings->FontHeightOffset, 5, 0, NULL, Settings->CachedFontNames};
+    font_atlas Result = {FontSizes, 5, 0, NULL, Settings->CachedFontNames};
     return Result;
 }
 
@@ -246,7 +246,7 @@ ChangeFontSizes(game_state *GS, font_sizes NewSizes)
     
     PerformScreenTransform(&GS->Renderer);
     
-    SetNewPlayingSong(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
+    UpdatePlayingSongPanel(&GS->Renderer, &DisplayInfo->PlayingSongPanel, &GS->Layout, &GS->MusicInfo);
     
     UpdateSettings(GS);
     

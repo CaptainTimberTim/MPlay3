@@ -139,9 +139,9 @@ TryLoadSettingsFile(game_state *GameState)
             
             string_c VersionS                       = NewStaticStringCompound("Version ");
             string_c FontPathS                      = NewStaticStringCompound("FontPath:");
-            string_c FontHeightS                    = NewStaticStringCompound("FontHeightOffset:");
             string_c VolumeS                        = NewStaticStringCompound("Volume:");
             string_c LastPlayingSongS               = NewStaticStringCompound("LastPlayingSong:");
+            string_c PlayingSongTimeS               = NewStaticStringCompound("PlayingSongTime:");
             string_c ColorPaletteS                  = NewStaticStringCompound("ColorPalette:");
             string_c PlaylistsGenreEdgeXPercentageS = NewStaticStringCompound("PlaylistsGenreEdgeXPercent:");
             string_c GenreArtistEdgeXPercentageS    = NewStaticStringCompound("GenreArtistEdgeXPercent:");
@@ -185,12 +185,6 @@ TryLoadSettingsFile(game_state *GameState)
                     Result.FontPath = NewStringCompound(&GameState->FixArena, PLen);
                     CopyStringToCompound(&Result.FontPath, C, 0u, PLen);
                 }
-                else if(StringCompare(C, FontHeightS.S, 0, FontHeightS.Pos))
-                {
-                    C += FontHeightS.Pos;
-                    EatLeadingSpaces(&C);
-                    Result.FontHeightOffset = ProcessNextI32InString(C, (u8 *)"\n ", 2, L);
-                }
                 else if(StringCompare(C, VolumeS.S, 0, VolumeS.Pos))
                 {
                     C += VolumeS.Pos;
@@ -202,6 +196,12 @@ TryLoadSettingsFile(game_state *GameState)
                     C += LastPlayingSongS.Pos;
                     EatLeadingSpaces(&C);
                     Result.PlayingSongID.ID = ProcessNextI32InString(C, (u8 *)"\n ", 2, L);
+                }
+                else if(StringCompare(C, PlayingSongTimeS.S, 0, PlayingSongTimeS.Pos))
+                {
+                    C += PlayingSongTimeS.Pos;
+                    EatLeadingSpaces(&C);
+                    Result.PlayingSongTime = ProcessNextR32InString(C, (u8 *)"\n ", 2, L);
                 }
                 else if(StringCompare(C, ColorPaletteS.S, 0, ColorPaletteS.Pos))
                 {
@@ -395,9 +395,9 @@ SaveSettingsFile(game_state *GameState, serialization_settings *Settings)
     AppendStringToCompound(&SaveData, (u8 *) "\n\n# NOTE:: If you don't want this file and the Library\n# file to be in the same directory as the executable, you\n# can put them into the '%appdata%\\Roaming\\MPlay3Data'\n# folder. If they can be found -by the program- in\n# that specific location, it will overwrite them in there.\n\n");
     
     NewLocalString(FontPath,          280, "FontPath: ");
-    NewLocalString(FileFontOffset,     50, "FontHeightOffset: ");
     NewLocalString(FileVolume,         50, "Volume: ");
     NewLocalString(FileLastSong,       50, "LastPlayingSong: ");
+    NewLocalString(FileSongTime,       50, "PlayingSongTime: ");
     NewLocalString(FileColorPalette,   50, "ColorPalette: ");
     NewLocalString(FilePlaylistsGenre, 50, "PlaylistsGenreEdgeXPercent: ");
     NewLocalString(FileGenreArtist,    50, "GenreArtistEdgeXPercent: ");
@@ -417,7 +417,6 @@ SaveSettingsFile(game_state *GameState, serialization_settings *Settings)
     if(GameState->MusicInfo.PlayingSong.PlaylistID >= 0) 
         FileID = GetFileID(&GameState->MusicInfo.Playlist_->Song, GameState->MusicInfo.PlayingSong.PlaylistID);
     AppendStringCompoundToCompound(&FontPath, &Settings->FontPath);
-    I32ToString(&FileFontOffset, Settings->FontHeightOffset);
     R32ToString(&FileVolume, GameState->SoundThreadInterface->ToneVolume);
     I32ToString(&FileLastSong, FileID.ID);
     I32ToString(&FileColorPalette, GameState->MusicInfo.DisplayInfo.ColorPaletteID);
@@ -432,14 +431,16 @@ SaveSettingsFile(game_state *GameState, serialization_settings *Settings)
     R32ToString(&SmallFontSize,  GameState->Renderer.FontSizes.Sizes[font_Small].Size);
     R32ToString(&MediumFontSize, GameState->Renderer.FontSizes.Sizes[font_Medium].Size);
     
+    r32 SongTime = GetPlayedTime(GameState->SoundThreadInterface);
+    R32ToString(&FileSongTime, SongTime);
+    
     AppendStringCompoundToCompound(&ActivePlaylist, GetPlaylistName(&GameState->MusicInfo, GameState->MusicInfo.Playlist_));
     i32 NameEndP = FindLastOccurrenceOfCharInStringCompound(&ActivePlaylist, '(');
     Assert(NameEndP >= 0);
     ActivePlaylist.Pos = NameEndP-1;
     
     string_c LB   = NewStaticStringCompound("\n");
-    ConcatStringCompounds(34, &SaveData, &FontPath, &LB, &FileFontOffset, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB,
-                          &SmallFontSize, &LB, &MediumFontSize, &LB, &CachedFontNames, &LB, &ActivePlaylist);
+    ConcatStringCompounds(34, &SaveData, &FontPath, &LB, &FileVolume, &LB, &FileLastSong, &LB, &FileSongTime, &LB, &FileColorPalette, &LB, &FilePlaylistsGenre, &LB, &FileGenreArtist, &LB, &FileArtistAlbum, &LB, &FileAlbumSong, &LB, &WindowDimX, &LB, &WindowDimY, &LB, &Looping, &LB, &Shuffle, &LB, &SmallFontSize, &LB, &MediumFontSize, &LB, &CachedFontNames, &LB, &ActivePlaylist);
     
     // Save out used font names
     if(Settings->CachedFontNames)
@@ -518,6 +519,8 @@ ApplySettings(game_state *GameState, serialization_settings Settings)
     
     ChangeSong(GameState, &MusicInfo->PlayingSong); 
     
+    if(MusicInfo->PlayingSong.PlaylistID >= 0)
+        PushNewPlayedTimeAfterLoading(GameState->SoundThreadInterface, Settings.PlayingSongTime);
     
     MusicInfo->DisplayInfo.ColorPaletteID = Settings.ColorPaletteID; 
     UpdateColorPalette(&MusicInfo->DisplayInfo, false);

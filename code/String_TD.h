@@ -51,6 +51,7 @@ inline void CombineStringCompounds(string_compound *Comp1, string_compound *Comp
 inline void CombineStringCompounds(string_compound *Buffer, string_compound *Comp1, string_compound *Comp2);
 inline void ConcatStringCompounds(u32 ConcatCount, string_c *S1, ...);
 
+inline i32 Find(string_c FindIn, u8 FindWhat);
 inline i32 Find(string_c FindIn, string_c FindWhat);
 inline i32 Find(u8 *FindIn, string_c FindWhat);
 inline i32 FindFirstOccurrenceOfCharInStringCompound(string_compound *S, u8 Char);
@@ -405,6 +406,23 @@ Find(string_c FindIn, string_c FindWhat)
         {
             It -= Max(0, FoundLength-1);
             FoundLength = 0;
+        }
+    }
+    
+    return Result;
+}
+
+inline i32 
+Find(string_c FindIn, u8 FindWhat)
+{
+    i32 Result = -1;
+    
+    For(FindIn.Pos)
+    {
+        if(FindIn.S[It] == FindWhat)
+        {
+            Result = It;
+            break;
         }
     }
     

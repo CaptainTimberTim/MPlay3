@@ -17,6 +17,7 @@ struct serialization_settings
     
     r32 Volume = 0.5f;
     file_id PlayingSongID = {-1};
+    r32 PlayingSongTime = 0.0f;
     u32 ColorPaletteID = 4;
     r32 PlaylistsGenreEdgeXPercent = -1.0f;
     r32 GenreArtistEdgeXPercent    = -1.0f;
@@ -26,7 +27,6 @@ struct serialization_settings
     i32 WindowDimY = 0;
     b32 Looping = false;
     b32 Shuffle = false;
-    i32 FontHeightOffset = 0; // TODO:: Not used anymore, remove?
     string_c ActivePlaylist;
     
     font_name_list *CachedFontNames;
@@ -38,6 +38,7 @@ struct serialization_settings
     
     r32 SmallFontSize  = -1;
     r32 MediumFontSize = -1;
+    
 };
 
 internal serialization_settings TryLoadSettingsFile(game_state *GameState);

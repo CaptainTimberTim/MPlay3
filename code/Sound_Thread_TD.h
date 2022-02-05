@@ -56,6 +56,7 @@ struct sound_thread_interface
     b32 ClearSoundBufferToggle;
     mp3dec_file_info_t PlayingSongData;
     b32 ChangedTimeToggle;
+    b32 ChangedTimeAfterLoadingToggle;
     b32 SongChangedToggle;
     b32 SongFinishedLoadingToggle;
     

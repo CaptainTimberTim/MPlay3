@@ -1183,11 +1183,6 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         }
                         
                         ProcessAllSearchBars(GameState);
-                        
-                        if(PrevIsPlaying != MusicInfo->IsPlaying)
-                        {
-                            ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
-                        }
                     }
                     
                     b32 TimelineFreeze = GetIsPlayingPreload(GameState->SoundThreadInterface);
@@ -1210,7 +1205,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             SongChangedIsCurrentlyDecoding = false;
                             FinishChangeSong(GameState, PlayingSong);
-                            SetNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
+                            UpdatePlayingSongPanel(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                         }
                     }
                     else 
@@ -1226,7 +1221,7 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                         {
                             SongChangedIsCurrentlyFullyDecoding = false;
                             FinishChangeEntireSong(GameState, PlayingSong);
-                            SetNewPlayingSong(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
+                            UpdatePlayingSongPanel(Renderer, &DisplayInfo->PlayingSongPanel, Layout, MusicInfo);
                         }
                     }
                     else SongChangedIsCurrentlyFullyDecoding = true;
@@ -1260,6 +1255,10 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 {
                     PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
                     PrevIsPlaying = MusicInfo->IsPlaying;
+                    
+                    // Every time we actually have a 'IsPlaying' change, we also want to
+                    // change the main PlayPause buttons visuals.
+                    ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
                 }
                 
                 

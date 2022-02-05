@@ -259,6 +259,7 @@ struct border_rectangle
 };
 internal border_rectangle CreateBorderRectangle(renderer *Renderer, v2 Size, r32 Depth, r32 Thickness, v3 *Color, entry_id *Parent = NULL);
 inline void SetSize(border_rectangle *BorderRect, v2 Size);
+inline  b32 IsActive(border_rectangle *BorderRect);
 inline void SetActive(border_rectangle *BorderRect, b32 Activate);
 inline void SetParent(border_rectangle *BorderRect, entry_id *Parent);
 

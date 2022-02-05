@@ -225,8 +225,12 @@ struct shortcut_popups
     string_c RenamePlaylist;       // 29
     string_c RemovePlaylist;       // 30
     string_c SearchPlaylists;      // 31
+    string_c SongHeightToggle;     // 32
+    string_c FontSettingsSmall;    // 33
+    string_c FontSettingsMedium;   // 34
+    string_c FontSettingsPath;     // 35
     
-    u32 ActiveText; // Is one of the values from the strings above (1-31).
+    u32 ActiveText; // Is one of the values from the strings above (1-35).
     b32 IsHovering;
     
     popup Popup;
@@ -423,8 +427,7 @@ struct layout_definition
     
     // User error text
     r32 ErrorMessageX           = 180;
-    r32 ErrorMessageSmallTextY  = 12;
-    r32 ErrorMessageMediumTextY = 13;
+    r32 ErrorMessageYOffset     = 5;
     r32 ErrorTextAnimationTime  = 2.5f;
     
     // Style settings window
@@ -487,7 +490,7 @@ internal void KeepPlayingSongOnScreen(renderer *Renderer, struct music_info *Mus
 internal b32 UpdateDisplayColumn_(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn,
                                   playlist_column *PlaylistColumn, i32 ScrollAmount);
 internal void ScrollDisplayColumn(renderer *Renderer, music_info *MusicInfo, display_column *DisplayColumn, r32 ScrollAmount);
-internal void SetNewPlayingSong(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
+internal void UpdatePlayingSongPanel(renderer *Renderer, playing_song_panel *Panel, layout_definition *Layout, music_info *MusicInfo);
 
 
 internal void SearchInDisplayable(music_info *MusicInfo, playlist_column *PlaylistColumn, struct search_bar *Search, mp3_file_info *FileInfo = 0);

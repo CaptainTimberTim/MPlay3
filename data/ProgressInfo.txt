@@ -530,3 +530,6 @@
 - Added help-popup for switching song slots between height modes.
 - Added help-popup for font UI.
 - Added saving the current time of playing song. Will be loaded as well, on start.
+
+06.02.2022
+- Fixed wrong vertical slider alignment when starting in mini-mode.

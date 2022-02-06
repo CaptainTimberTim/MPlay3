@@ -626,7 +626,7 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     v2 BottomLeft = V2(GetRect(LeftBorder).Max.x, GetRect(DisplayInfo->EdgeBottom).Max.y);
     DisplayColumn->SliderHorizontal.Background = 
         CreateRenderRect(Renderer, {BottomLeft, BottomLeft+V2(DisplayColumn->SlotWidth, SliderHoriHeight)},
-                         DisplayColumn->ZValue-0.03f, 0, ColumnColors.SliderBG);
+                         DisplayColumn->ZValue-0.03f, NULL, ColumnColors.SliderBG);
     
     rect GrabThingRect = {BottomLeft+V2(0, InsetHori), BottomLeft+V2(DisplayColumn->SlotWidth, SliderHoriHeight-InsetHori)};
     DisplayColumn->SliderHorizontal.GrabThing  = CreateRenderRect(Renderer, GrabThingRect, DisplayColumn->ZValue-0.031f, 0, ColumnColors.SliderGrabThing);
@@ -646,7 +646,8 @@ CreateDisplayColumn(column_info ColumnInfo, arena_allocator *Arena, column_type 
     DisplayColumn->SliderVertical.Background = 
         CreateRenderRect(Renderer, {-VertSliderExtends, VertSliderExtends}, DisplayColumn->ZValue-0.0311f,
                          RightBorder, ColumnColors.SliderBG);
-    SetPosition(DisplayColumn->SliderVertical.Background, BottomLeft2+VertSliderExtends);
+    r32 centerY = CenterYBetweenRects(DisplayColumn->BottomBorder, DisplayColumn->TopBorder);
+    SetPosition(DisplayColumn->SliderVertical.Background, V2(BottomLeft2.x + VertSliderExtends.x, centerY));
     
     DisplayColumn->SliderVertical.GrabThing  = 
         CreateRenderRect(Renderer, {-VertSliderExtends+V2(InsetVert, 0), VertSliderExtends-V2(InsetVert, 0)},

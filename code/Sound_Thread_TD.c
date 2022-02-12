@@ -364,12 +364,22 @@ SetToneVolume(sound_thread_interface *Interface, r32 NewVolume)
     ReleaseMutex(Interface->SoundMutex);
 }
 
-internal void
+internal b32
 PushIsPlaying(sound_thread_interface *Interface, b32 IsPlaying)
 {
+    b32 Result = false;
     WaitForSingleObjectEx(Interface->SoundMutex, INFINITE, false);
-    Interface->IsPlaying = IsPlaying;
+    // If the song is still currently decoding and it was set to start playing
+    // from somewhere in the middle, we cannot start playing it!
+    if(!IsPlaying || 
+       !Interface->ChangedTimeAfterLoadingToggle ||
+       !GlobalGameState.MP3Info->DecodeInfo.PlayingDecoded.CurrentlyDecoding)
+    {
+        Interface->IsPlaying = IsPlaying;
+        Result = true;
+    }
     ReleaseMutex(Interface->SoundMutex);
+    return Result;
 }
 
 internal void
@@ -523,7 +533,9 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
         playing_decoded *PlayingDecoding = &GlobalGameState.MP3Info->DecodeInfo.PlayingDecoded;
         u32 QuarterSecondSamples = (MP3Decoded.hz*MP3Decoded.channels)/4;
         b32 PreloadAlmostPlayed = (MP3Decoded.samples-SoundInfo->PlayedSampleCount*MP3Decoded.channels) < QuarterSecondSamples;
-        if(PlayState == playState_Playing && PreloadAlmostPlayed && PlayingDecoding->CurrentlyDecoding)
+        if(PlayState != playState_Waiting && 
+           PreloadAlmostPlayed && 
+           PlayingDecoding->CurrentlyDecoding)
         {
             DebugLog(255, "NOTE:: Preload ended. Using half decoded file.\n");
             if(MP3Decoded.buffer) FreeMemory(Arena, MP3Decoded.buffer);

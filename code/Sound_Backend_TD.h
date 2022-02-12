@@ -75,6 +75,7 @@
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
 // - Position font sliders when resizing medium font.
+// - Columns still sometimes scroll up when resizing.
 
 #include "Sound_UI_TD.h"
 

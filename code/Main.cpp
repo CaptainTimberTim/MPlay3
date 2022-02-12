@@ -1253,12 +1253,15 @@ GetFontGroup(GameState, &Renderer->FontAtlas, 0x1f608);
                 }
                 if(PrevIsPlaying != MusicInfo->IsPlaying || SongFinished)
                 {
-                    PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
-                    PrevIsPlaying = MusicInfo->IsPlaying;
-                    
-                    // Every time we actually have a 'IsPlaying' change, we also want to
-                    // change the main PlayPause buttons visuals.
-                    ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
+                    b32 StartedPlaying = PushIsPlaying(GameState->SoundThreadInterface, MusicInfo->IsPlaying);
+                    if(StartedPlaying)
+                    {
+                        PrevIsPlaying = MusicInfo->IsPlaying;
+                        
+                        // Every time we actually have a 'IsPlaying' change, we also want to
+                        // change the main PlayPause buttons visuals.
+                        ToggleButtonVisuals(DisplayInfo->PlayPause, MusicInfo->IsPlaying);
+                    }
                 }
                 
                 

@@ -10,7 +10,8 @@ enum play_state
     playState_Error,
     playState_Done,
     playState_Playing,
-    playState_Waiting
+    playState_Waiting,
+    playState_Startup,
 };
 
 struct dsound_instance

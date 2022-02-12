@@ -18,7 +18,7 @@ struct serialization_settings
     r32 Volume = 0.5f;
     file_id PlayingSongID = {-1};
     r32 PlayingSongTime = 0.0f;
-    u32 ColorPaletteID = 4;
+    u32 ColorPaletteID = 5;
     r32 PlaylistsGenreEdgeXPercent = -1.0f;
     r32 GenreArtistEdgeXPercent    = -1.0f;
     r32 ArtistAlbumEdgeXPercent    = -1.0f;

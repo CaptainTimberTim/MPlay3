@@ -533,3 +533,7 @@
 
 06.02.2022
 - Fixed wrong vertical slider alignment when starting in mini-mode.
+
+12.02.2022
+- Fixed crash when pressing font-path button when there was no settings file on startup.
+- Fixed skipping first selected song when the app was closed with a song played > 5 seconds.

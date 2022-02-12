@@ -207,9 +207,9 @@ IsGivenBetweenForCircularBuffer(i32 Given, i32 Left, i32 Right)
     b32 IsLeftSmaller = Left < Right;
     
     // Normal case, not at the edge of the circular buffer
-    b32 Case_InMiddle =               IsLeftSmaller && (Given > Left) && (Given <= Right);
+    b32              Case_InMiddle =  IsLeftSmaller && (Given > Left) && (Given <= Right);
     // Case where both Given and Right are over the edge.
-    b32 Case_LeftPrevCycle =         !IsLeftSmaller && (Given < Left) && (Given <= Right);
+    b32         Case_LeftPrevCycle = !IsLeftSmaller && (Given < Left) && (Given <= Right);
     // Case where only Right is over the edge.
     b32 Case_LeftAndGivenPrevCycle = !IsLeftSmaller && (Given > Left) && (Given >  Right);
     
@@ -283,7 +283,8 @@ SimpleCalculateAndPlaySound(time_management *Time, sound_thread *SoundThread, mp
             // the last samples of the song, before I can give the playState_Done response.
             if(SoundInfo->SongEndByte >= 0) 
             {
-                if(IsGivenBetweenForCircularBuffer(SoundInfo->SongEndByte, SoundInfo->PrevPlayCursor, PlayCursor));
+                b32 IsDone = IsGivenBetweenForCircularBuffer(SoundInfo->SongEndByte, SoundInfo->PrevPlayCursor, PlayCursor);
+                if(IsDone)
                 {
                     Result = playState_Done;
                     DebugLog(12, "Done.\n");
@@ -341,7 +342,7 @@ internal void
 PushNewPlayedTimeAfterLoading(sound_thread_interface *Interface, r32 NewTime)
 {
     WaitForSingleObjectEx(Interface->SoundMutex, INFINITE, false);
-    Interface->CurrentPlaytime = NewTime;
+    Interface->CurrentPlaytime   = NewTime;
     Interface->ChangedTimeToggle = true;
     Interface->ChangedTimeAfterLoadingToggle = true;
     ReleaseMutex(Interface->SoundMutex);
@@ -416,7 +417,7 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
     LONGLONG FlipWallClock  = GetWallClock();
     
     time_management Time = {60, 1.0f/60.0f, 0, 0, 1};
-    play_state PlayState = playState_Error;
+    play_state PlayState = playState_Startup;
     mp3dec_file_info_t MP3Decoded = {};
     i16 *Buffer = 0;
     
@@ -465,6 +466,14 @@ internal SOUND_THREAD_CALLBACK(ProcessSound)
         if(Interface->SongChangedToggle)
         {
             Interface->SongChangedToggle = false;
+            if(PlayState == playState_Startup) PlayState = playState_Waiting;
+            else
+            {
+                // If we change the song and are not in startup state anymore, we don't want to 
+                // play from where the song was left on last time the app was closed.
+                Interface->ChangedTimeAfterLoadingToggle = false;
+                Interface->CurrentPlaytime = 0;
+            }
             
             if(MP3Decoded.buffer) FreeMemory(Arena, MP3Decoded.buffer);
             MP3Decoded        = Interface->PlayingSongData;

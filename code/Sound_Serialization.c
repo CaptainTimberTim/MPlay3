@@ -357,6 +357,10 @@ TryLoadSettingsFile(game_state *GameState)
             
         }
     }
+    else // No settings file exists yet.
+    {
+        Result.FontPath = NewStringCompound(&GameState->FixArena, 1);
+    }
     
     // If anything is wrong with the saved values, just use the default percentages
     if(Result.PlaylistsGenreEdgeXPercent < 0.0f || Result.PlaylistsGenreEdgeXPercent > 1.0f || 

@@ -74,6 +74,7 @@
 // - Switching audio sources freezes playing of music entirely. On play 1 sec gets advanced...
 // - Crash when adding songs and then searching for them?
 // - Random text behind lower left corner. Find it! Found it?
+// - Position font sliders when resizing medium font.
 
 #include "Sound_UI_TD.h"
 
